@@ -1,0 +1,5 @@
+bricks:
+  app_bootstrap:
+    path: bricks/apps/app_bootstrap
+  feature:
+    path: bricks/features/feature

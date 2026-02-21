@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1042223918289",
+    "project_id": "dllni-cleaning-owner",
+    "storage_bucket": "dllni-cleaning-owner.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1042223918289:android:173bbf2b59063b41aaa9f0",
+        "android_client_info": {
+          "package_name": "com.dllni.clOwner"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB9K6MUDDkITsdHVllGsorsljG1Mcm1A08"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

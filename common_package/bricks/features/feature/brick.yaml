@@ -1,0 +1,21 @@
+name: feature
+description: A new brick created with the Mason CLI.
+
+version: 0.1.0+1
+
+environment:
+  mason: ^0.1.2
+
+vars:
+  name:
+    type: string
+    description: auth
+    default: auth
+    prompt: What is your feature name?
+
+  usecases:
+    type: string
+    description: Optional comma separated list of usecase names (e.g. GetUser, UpdateUser)
+    default: ''
+    prompt: Enter usecase names separated by commas (leave empty if none, e.g. GetUser, UpdateUser)
+

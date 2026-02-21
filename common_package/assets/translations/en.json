@@ -1,0 +1,40 @@
+{
+  "validation": {
+    "requiredField": "This field is required.",
+    "invalidEmailAddress": "Please enter a valid email address.",
+    "passwordTooShort": "The password must be at least 8 characters long.",
+    "passwordsDoNotMatch": "Passwords do not match.",
+    "invalidPhoneNumber": "Please enter a valid phone number.",
+    "fieldTooShort": "This field must be at least {4} characters long.",
+    "fieldNameTooShort": "This field must be at least {2} characters long.",
+    "fieldNameTooLong": "This field must be at most {15} characters long.",
+    "plateTooLong": "This field must be at most {12} characters long.",
+    "errorDate": "Date of birth values must be numbers.",
+    "validationInvalidDay": "The day must be between 1 and 31.",
+    "validationInvalidMonth": "The month must be between 1 and 12.",
+    "validationInvalidYear": "The year must be within the last 100 years.",
+    "fieldTooLong": "This field must not exceed {100} characters.",
+    "invalidCharacters": "Some characters are not allowed.",
+    "pleaseFillAllOrNever": "Please fill in all the date of birth fields, or leave all three fields empty.",
+    "addNote": "Please add a note.",
+    "passwordNotStrong": "The password is not strong enough. It must include uppercase and lowercase letters, numbers, and special characters."
+  },
+  "errorMessage": {
+    "success": "Success",
+    "badRequestError": "Bad request",
+    "noContent": "No content",
+    "forbiddenError": "Forbidden",
+    "unauthorizedError": "Not authorized. Please sign in first.",
+    "notFoundError": "Account not found. Please check or create a new one.",
+    "conflictError": "Conflict",
+    "blockedError": "Blocked",
+    "internalServerError": "Server connection error",
+    "notAllowed": "You are not allowed to perform this action.",
+    "unknownError": "Unknown error",
+    "timeoutError": "Connection timed out. Check your internet and try again.",
+    "defaultError": "Default error",
+    "cacheError": "Cache error",
+    "noInternetError": "Check your internet connection and try again.",
+    "permission_not_granted": "permission not granted"
+  }
+}

@@ -1,0 +1,13 @@
+targets:
+  $default:
+    builders:
+      common_package|app_route_builder:
+        enabled: true
+
+builders:
+  app_route_builder:
+    import: "package:common_package/builder.dart"
+    builder_factories: ["appRouteBuilder"]
+    build_extensions: {"$lib$": ["generated/app_routes.g.dart"]}
+    auto_apply: dependents
+    build_to: source

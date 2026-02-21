@@ -1,0 +1,11 @@
+name: feature_hooks
+description: Hooks for the feature brick.
+publish_to: none
+
+environment:
+  sdk: ">=2.17.0 <4.0.0"
+
+dependencies:
+  mason: any
+
+

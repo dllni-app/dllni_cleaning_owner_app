@@ -1,0 +1,10 @@
+{
+  "bricks": {
+    "app_bootstrap": {
+      "path": "G:/my_projects/mine/common_package/bricks/apps/app_bootstrap"
+    },
+    "feature": {
+      "path": "G:/my_projects/mine/common_package/bricks/features/feature"
+    }
+  }
+}

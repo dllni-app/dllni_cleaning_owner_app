@@ -1,0 +1,40 @@
+{
+  "validation": {
+    "requiredField": "هذا الحقل مطلوب.",
+    "invalidEmailAddress": "الرجاء إدخال عنوان بريد إلكتروني صالح.",
+    "passwordTooShort": "يجب أن تكون كلمة المرور على الأقل 8 أحرف.",
+    "passwordsDoNotMatch": "كلمات المرور غير متطابقة.",
+    "invalidPhoneNumber": "الرجاء إدخال رقم هاتف صالح.",
+    "fieldTooShort": "يجب أن يكون هذا الحقل على الأقل {4} أحرف.",
+    "fieldNameTooShort": "يجب أن يكون هذا الحقل على الأقل {2} أحرف.",
+    "fieldNameTooLong": "يجب أن يكون هذا الحقل على الأكثر {15} أحرف.",
+    "plateTooLong": "يجب أن يكون هذا الحقل على الأكثر {12} أحرف.",
+    "errorDate": "قيم تاريخ الميلاد يجب أن تكون أرقام",
+    "validationInvalidDay": "يجب أن يكون اليوم بين 1 و 31",
+    "validationInvalidMonth": "يجب أن يكون الشهر بين 1 و 12",
+    "pleaseFillAllOrNever": "يرجى ملء جميع حقول تاريخ الميلاد أو إلغاء الإدخال في أي من الحقول الثلاثة.",
+    "validationInvalidYear": "يجب أن تكون السنة ضمن آخر 100 سنة",
+    "fieldTooLong": "يجب ألا يتجاوز هذا الحقل {100} أحرف.",
+    "invalidCharacters": "بعض الأحرف غير مسموح بها.",
+    "addNote": "الرجاء إضافة الملاحظة",
+    "passwordNotStrong": "كلمة المرور غير قوية بما فيه الكفاية، يجب أن تحتوي على حروف كبيرة وصغيرة، وأرقام، ورموز خاصة."
+  },
+  "errorMessage": {
+    "success": "نجاح",
+    "badRequestError": "طلب غير صحيح",
+    "noContent": "لا يوجد محتوى",
+    "forbiddenError": "ممنوع",
+    "unauthorizedError": "غير مسجل يرجى التسجيل أولا",
+    "notFoundError": "الحساب غير موجود، تحقق منه أو أنشئ حساباً",
+    "conflictError": "تعارض",
+    "blockedError": "محظور",
+    "internalServerError": "خطأ بالاتصال بالسيرفر",
+    "notAllowed": "غير مسموح لك هذا الأمر",
+    "unknownError": "خطأ غير معروف",
+    "timeoutError": "انتهى وقت الاتصال تحقق من الانترنت وحاول مجددا",
+    "defaultError": "خطأ افتراضي",
+    "cacheError": "خطأ في الذاكرة المؤقتة",
+    "noInternetError": "تحقق من اتصالك بالإنترنت ثم حاول مرة أخرى",
+    "permission_not_granted": "لم يتم منح الإذن"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "app": {
+    "title": "{{app_name}}",
+    "home": "Home",
+    "welcome": "Welcome"
+  }
+}
