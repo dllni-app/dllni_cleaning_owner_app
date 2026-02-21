@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "1042223918289",
-    "project_id": "dllni-cleaning-owner",
-    "storage_bucket": "dllni-cleaning-owner.firebasestorage.app"
+    "project_number": "212739916006",
+    "project_id": "dllni-96b5a",
+    "storage_bucket": "dllni-96b5a.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1042223918289:android:173bbf2b59063b41aaa9f0",
+        "mobilesdk_app_id": "1:212739916006:android:b99535e7fea56cb721fb27",
         "android_client_info": {
           "package_name": "com.dllni.clOwner"
         }
@@ -15,7 +15,26 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyB9K6MUDDkITsdHVllGsorsljG1Mcm1A08"
+          "current_key": "AIzaSyAqKgNz1HcrWEXDt5YCk9F-4dK2wLTi_VU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:212739916006:android:6e5240151937eb6321fb27",
+        "android_client_info": {
+          "package_name": "com.dllni.userapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAqKgNz1HcrWEXDt5YCk9F-4dK2wLTi_VU"
         }
       ],
       "services": {

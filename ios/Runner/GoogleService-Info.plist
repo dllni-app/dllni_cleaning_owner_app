@@ -3,17 +3,17 @@
 <plist version="1.0">
 <dict>
 	<key>API_KEY</key>
-	<string>AIzaSyCKEzTdkYq23sDWm0Nxxe6KCRYIsQF98Iw</string>
+	<string>AIzaSyAAhGydLdf_loszyTVC-Riw6GdnInIlxkw</string>
 	<key>GCM_SENDER_ID</key>
-	<string>1042223918289</string>
+	<string>212739916006</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
 	<string>com.dllni.clOwner</string>
 	<key>PROJECT_ID</key>
-	<string>dllni-cleaning-owner</string>
+	<string>dllni-96b5a</string>
 	<key>STORAGE_BUCKET</key>
-	<string>dllni-cleaning-owner.firebasestorage.app</string>
+	<string>dllni-96b5a.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:1042223918289:ios:40fc3e295a7ed9c2aaa9f0</string>
+	<string>1:212739916006:ios:c8f6cf834d34715b21fb27</string>
 </dict>
 </plist>
