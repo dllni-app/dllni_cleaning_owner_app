@@ -4,7 +4,7 @@ import 'error_handler.dart';
 
 typedef FromJson<T> = T Function(dynamic body);
 
-typedef QueryParams = Map<String, String?>;
+typedef QueryParams = Map<String, dynamic>;
 
 typedef BodyMap = Map<String, dynamic>;
 

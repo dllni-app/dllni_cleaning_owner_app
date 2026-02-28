@@ -54,7 +54,7 @@ class AggregatingAppRouteBuilder implements Builder {
             final paramAssignments = parameters
                 .map((p) {
                   final paramName = p.name;
-                  return "$paramName: $paramName";
+                  return "$paramName: args";
                 })
                 .join(', ');
 
