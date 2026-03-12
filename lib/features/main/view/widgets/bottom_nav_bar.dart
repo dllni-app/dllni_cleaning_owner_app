@@ -4,11 +4,16 @@ import 'package:flutter/material.dart';
 
 import '../../../../generated/assets.dart';
 
-class BottomNavBar extends StatelessWidget {
-  const BottomNavBar({super.key, required this.mainNotifier});
+class BottomNavBar extends StatefulWidget {
+  const BottomNavBar({super.key, required this.controller});
 
-  final MainNotifier mainNotifier;
+  final TabController controller;
 
+  @override
+  State<BottomNavBar> createState() => _BottomNavBarState();
+}
+
+class _BottomNavBarState extends State<BottomNavBar> {
   @override
   Widget build(BuildContext context) {
     List<String> images = [Assets.imagesNavBarHome, Assets.imagesNavBarCalender, Assets.imagesNavBarOrders, Assets.imagesNavBarMore];
@@ -22,31 +27,29 @@ class BottomNavBar extends StatelessWidget {
       ),
       width: context.width,
       height: 94,
-      child: ValueListenableBuilder(
-        valueListenable: mainNotifier.pageIndex,
-        builder: (context, index, _) => Row(
-          children: List.generate(
-            4,
-            (i) => Expanded(
-              child: InkWell(
-                splashColor: Colors.transparent,
-                highlightColor: Colors.transparent,
-                onTap: () {
-                  mainNotifier.changePageIndex(i);
-                },
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircleAvatar(
-                      radius: 25,
-                      backgroundColor: index == i ? context.primaryContainer.withAlpha(63) : Colors.transparent,
-                      child: AppImage.asset(images[i], color: index == i ? context.primaryContainer : Color(0xff526D6B), width: 30, height: 30),
-                    ),
-                    SizedBox(height: 8),
-                    AppText.labelMedium(titles[i], fontWeight: FontWeight.w300, color: Color(0xff526D6B)),
-                  ],
-                ),
+      child: Row(
+        children: List.generate(
+          4,
+          (i) => Expanded(
+            child: InkWell(
+              splashColor: Colors.transparent,
+              highlightColor: Colors.transparent,
+              onTap: () {
+                widget.controller.animateTo(i);
+                setState(() {});
+              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircleAvatar(
+                    radius: 25,
+                    backgroundColor: widget.controller.index == i ? context.primaryContainer.withAlpha(63) : Colors.transparent,
+                    child: AppImage.asset(images[i], color: widget.controller.index == i ? context.primaryContainer : Color(0xff526D6B), width: 30, height: 30),
+                  ),
+                  SizedBox(height: 8),
+                  AppText.labelMedium(titles[i], fontWeight: FontWeight.w300, color: Color(0xff526D6B)),
+                ],
               ),
             ),
           ),

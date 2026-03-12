@@ -190,6 +190,8 @@ class FetchOrdersUsecaseModelDataItem {
   double? addonsTotal;
   double? travelFee;
   double? cancellationFee;
+  double? addressLatitude;
+  double? addressLongitude;
 
   bool? termsAccepted;
 
@@ -199,6 +201,7 @@ class FetchOrdersUsecaseModelDataItem {
   String? customerConfirmedAt;
   String? cancelledAt;
   String? cancellationReason;
+  String? arrivedAt;
 
   WorkerData? worker;
 
@@ -236,6 +239,9 @@ class FetchOrdersUsecaseModelDataItem {
     this.workerId,
     this.workFinishedAt,
     this.workStartedAt,
+    this.addressLatitude,
+    this.addressLongitude,
+    this.arrivedAt,
   });
 
   factory FetchOrdersUsecaseModelDataItem.fromJson(Map<String, dynamic> json) {
@@ -246,7 +252,10 @@ class FetchOrdersUsecaseModelDataItem {
       scheduledDate: _asString(json['scheduledDate']),
       estimatedSqm: _asString(json['estimatedSqm']),
       scheduledTime: _asString(json['scheduledTime']),
+      addressLatitude: _asDouble(json['addressLatitude']),
+      addressLongitude: _asDouble(json['addressLongitude']),
       locationName: _asString(json['locationName']),
+      arrivedAt: _asString(json['arrivedAt']),
       numberOfRooms: _asInt(json['numberOfRooms']),
       estimatedHours: _asInt(json['estimatedHours']),
       totalHours: _asInt(json['totalHours']),

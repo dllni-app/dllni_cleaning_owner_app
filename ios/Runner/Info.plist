@@ -15,6 +15,11 @@
 	<key>LSApplicationQueriesSchemes</key>
     <array>
       <string>tel</string>
+      <string>sms</string>
+    </array>
+    <key>UIBackgroundModes</key>
+    <array>
+      <string>location</string>
     </array>
 	<key>CFBundleName</key>
 	<string>dllni_cleaninig_owner_app</string>

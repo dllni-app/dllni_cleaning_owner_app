@@ -1,6 +1,7 @@
 import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_rating/flutter_rating.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../manager/bloc/profile_bloc.dart';
@@ -43,11 +44,28 @@ class ProfileAppBar extends StatelessWidget {
                           textAlign: TextAlign.start,
                         ),
                         SizedBox(height: 12),
-                        AppText.labelMedium(
-                          state.workerProfileUsecase?.data?.user?.id == null ? '-' : state.workerProfileUsecase!.data!.user!.id.toString(),
-                          color: context.onPrimary,
-                          fontWeight: FontWeight.w500,
-                          textAlign: TextAlign.start,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            AppText.labelMedium(
+                              state.workerProfileUsecase?.data?.user?.id == null ? '-' : state.workerProfileUsecase!.data!.user!.id.toString(),
+                              color: context.onPrimary,
+                              fontWeight: FontWeight.w500,
+                              textAlign: TextAlign.start,
+                            ),
+                            StarRating(
+                              rating: state.workerProfileUsecase?.data?.averageRating ?? 0,
+                              color: Color(0xffFAE13D),
+                              size: 17,
+                              halfFilledIcon: Icons.star_rate_rounded,
+                              allowHalfRating: false,
+                              filledIcon: Icons.star_rate_rounded,
+                              emptyIcon: null,
+                              starCount: state.workerProfileUsecase?.data?.averageRating == null
+                                  ? 0
+                                  : state.workerProfileUsecase!.data!.averageRating!.ceil(),
+                            ),
+                          ],
                         ),
                       ],
                     ),

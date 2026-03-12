@@ -27,7 +27,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
     return BlocProvider<OrdersBloc>(
       lazy: false,
       create: (context) =>
-          getIt<OrdersBloc>()..add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: 'worker_assigned'), isReload: true)),
+          getIt<OrdersBloc>()..add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: 'pending'), isReload: true)),
       child: SafeArea(
         child: Column(
           children: [
@@ -35,7 +35,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
             // SizedBox(height: 20),
             // OrderWarningCard(),
             SizedBox(height: 20),
-            OrdersTypeTabBar(orderNotifier: orderNotifier),
+            Padding(
+              padding: EdgeInsetsDirectional.symmetric(horizontal: 24),
+              child: OrdersTypeTabBar(orderNotifier: orderNotifier),
+            ),
             SizedBox(height: 20),
             Expanded(
               child: BlocBuilder<OrdersBloc, OrdersState>(
@@ -51,7 +54,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       return ValueListenableBuilder(
                         valueListenable: orderNotifier.status,
                         builder: (context, status, _) => ListView.separated(
-                          padding: EdgeInsetsDirectional.symmetric(horizontal: 24),
+                          padding: EdgeInsetsDirectional.only(start: 24, end: 24, bottom: 20),
                           itemBuilder: (context, index) {
                             if (state.ordersUsecase!.length <= index) {
                               if (state.ordersUsecase!.length == index) {
@@ -67,8 +70,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
                             return status != 'completed'
                                 ? OrderCard(
                                     date: state.ordersUsecase!.list[index],
-                                    orderStatus: status == 'worker_assigned' ? OrderStatus.workerAssigned : OrderStatus.inProgress,
+                                    orderStatus: state.ordersUsecase!.list[index].status == 'worker_assigned'
+                                        ? OrderStatus.workerAssigned
+                                        : state.ordersUsecase!.list[index].status == 'in_progress'
+                                        ? OrderStatus.inProgress
+                                        : OrderStatus.pending,
                                     bloc: context.read<OrdersBloc>(),
+                                    index: index,
                                   )
                                 : CompletedOrderCard(date: state.ordersUsecase!.list[index]);
                           },

@@ -1,6 +1,8 @@
 part of 'orders_bloc.dart';
 
 class OrdersState {
+  BlocStatus? arriveStatus;
+  ArriveModel? arrive;
   BlocStatus? rejectOrderUsecaseStatus;
   RejectOrderUsecaseModel? rejectOrderUsecase;
   BlocStatus? availabilityUsecaseStatus;
@@ -22,6 +24,9 @@ class OrdersState {
   FetchOrderDetailsUsecaseModel? orderDetailsUsecase;
   PaginationStateModel<FetchOrdersUsecaseModelDataItem>? ordersUsecase;
   String? errorMessage;
+
+  int? selectedIndex;
+  int? currentStep;
 
   OrdersState({
     this.errorMessage,
@@ -45,6 +50,10 @@ class OrdersState {
     this.availabilityUsecaseStatus,
     this.rejectOrderUsecase,
     this.rejectOrderUsecaseStatus,
+    this.selectedIndex = -1,
+    this.arrive,
+    this.arriveStatus,
+    this.currentStep = 0,
   });
 
   OrdersState copyWith({
@@ -69,6 +78,10 @@ class OrdersState {
     BlocStatus? availabilityUsecaseStatus,
     RejectOrderUsecaseModel? rejectOrderUsecase,
     BlocStatus? rejectOrderUsecaseStatus,
+    int? selectedIndex,
+    int? currentStep,
+    ArriveModel? arrive,
+    BlocStatus? arriveStatus,
   }) => OrdersState(
     errorMessage: errorMessage ?? this.errorMessage,
     ordersUsecase: ordersUsecase ?? this.ordersUsecase,
@@ -91,5 +104,9 @@ class OrdersState {
     availabilityUsecaseStatus: availabilityUsecaseStatus ?? this.availabilityUsecaseStatus,
     rejectOrderUsecase: rejectOrderUsecase ?? this.rejectOrderUsecase,
     rejectOrderUsecaseStatus: rejectOrderUsecaseStatus ?? this.rejectOrderUsecaseStatus,
+    selectedIndex: selectedIndex ?? this.selectedIndex,
+    arrive: arrive ?? this.arrive,
+    arriveStatus: arriveStatus ?? this.arriveStatus,
+    currentStep: currentStep ?? this.currentStep,
   );
 }

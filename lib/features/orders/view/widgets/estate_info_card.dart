@@ -1,5 +1,6 @@
 import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
 import '../../data/models/fetch_orders_usecase_model.dart';
 
@@ -27,8 +28,8 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Color(0xffF4F5F7), borderRadius: BorderRadius.circular(20)),
+      padding: EdgeInsets.all(16.r),
+      decoration: BoxDecoration(color: Color(0xffF4F5F7), borderRadius: BorderRadius.circular(20.r)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -36,40 +37,40 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [AppText.labelMedium("معلومات العقار", fontWeight: FontWeight.w400)],
           ),
-          SizedBox(height: 12),
+          12.verticalSpace,
           Divider(color: Colors.black.withAlpha(42)),
-          SizedBox(height: 12),
+          12.verticalSpace,
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
                 children: [
-                  Icon(Icons.apartment, color: context.secondary, size: 18),
-                  SizedBox(width: 6),
+                  Icon(Icons.apartment, color: context.secondary, size: 18.sp),
+                  6.horizontalSpace,
                   AppText.labelMedium("نوع العقار", fontWeight: FontWeight.w400),
                 ],
               ),
               AppText.labelMedium(widget.order.locationName ?? '', fontWeight: FontWeight.w300),
             ],
           ),
-          SizedBox(height: 14),
+          14.verticalSpace,
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
                 children: [
-                  Icon(Icons.square_foot, color: context.secondary, size: 18),
-                  SizedBox(width: 6),
+                  Icon(Icons.square_foot, color: context.secondary, size: 18.sp),
+                  6.horizontalSpace,
                   AppText.labelMedium("المساحة التقديرية", fontWeight: FontWeight.w400),
                 ],
               ),
               AppText.labelMedium('${widget.order.estimatedSqm} متر مربع', fontWeight: FontWeight.w300),
             ],
           ),
-          SizedBox(height: 18),
+          18.verticalSpace,
           Wrap(
-            spacing: 12,
-            runSpacing: 12,
+            spacing: 12.w,
+            runSpacing: 12.h,
             children: List.generate(attributes.length, (i) => _buildFeatureChip(attributes[i], context)),
           ),
         ],
@@ -79,8 +80,8 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
 
   Widget _buildFeatureChip(String text, BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(color: context.secondary.withAlpha(40), borderRadius: BorderRadius.circular(12)),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      decoration: BoxDecoration(color: context.secondary.withAlpha(40), borderRadius: BorderRadius.circular(12.r)),
       child: AppText.labelMedium(text, fontWeight: FontWeight.w300, color: context.secondary),
     );
   }

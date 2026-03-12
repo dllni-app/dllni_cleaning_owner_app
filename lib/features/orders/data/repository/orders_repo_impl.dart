@@ -26,6 +26,8 @@ import '../../domain/usecases/update_availability_usecase_use_case.dart';
 import '../models/update_availability_usecase_model.dart';
 import '../../domain/usecases/reject_order_usecase_use_case.dart';
 import '../models/reject_order_usecase_model.dart';
+import '../../domain/usecases/arrive_use_case.dart';
+import '../models/arrive_model.dart';
 
 @LazySingleton(as: OrdersRepo)
 class OrdersRepoImpl with HandlingException implements OrdersRepo {
@@ -107,6 +109,13 @@ class OrdersRepoImpl with HandlingException implements OrdersRepo {
   DataResponse<RejectOrderUsecaseModel> rejectOrderUsecase(RejectOrderUsecaseParams params) {
     return wrapHandlingException(
       tryCall: () => ordersRemoteDataSource.rejectOrderUsecase(params),
+    );
+  }
+
+  @override
+  DataResponse<ArriveModel> arrive(ArriveParams params) {
+    return wrapHandlingException(
+      tryCall: () => ordersRemoteDataSource.arrive(params),
     );
   }}
 

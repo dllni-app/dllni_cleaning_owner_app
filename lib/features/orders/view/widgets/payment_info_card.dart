@@ -1,5 +1,6 @@
 import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
 import '../../data/models/fetch_orders_usecase_model.dart';
 
@@ -11,33 +12,33 @@ class PaymentInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Color(0xffF4F5F7), borderRadius: BorderRadius.circular(20)),
+      padding: EdgeInsets.all(16.r),
+      decoration: BoxDecoration(color: Color(0xffF4F5F7), borderRadius: BorderRadius.circular(20.r)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           AppText.labelMedium("تفاصيل الدفع", fontWeight: FontWeight.w400),
-          SizedBox(height: 12),
+          12.verticalSpace,
           Divider(color: Colors.black.withAlpha(42)),
-          SizedBox(height: 12),
+          12.verticalSpace,
           _buildPriceRow(title: "سعر الخدمة الأساس", price: order.basePrice == null ? '' : order.basePrice.toString()),
-          SizedBox(height: 12),
+          12.verticalSpace,
           _buildPriceRow(title: "رسوم توصيل", price: order.travelFee == null ? '' : order.travelFee.toString(), titleColor: context.primaryContainer, priceColor: context.primaryContainer),
-          SizedBox(height: 18),
+          18.verticalSpace,
           LayoutBuilder(
             builder: (context, constraints) {
-              final dashWidth = 6.0;
-              final dashSpace = 6.0;
+              final dashWidth = 6.0.w;
+              final dashSpace = 6.0.w;
               final dashCount = (constraints.constrainWidth() / (dashWidth + dashSpace)).floor();
               return Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: List.generate(dashCount, (_) {
-                  return Container(width: dashWidth, height: 2, color: context.primaryContainer);
+                  return Container(width: dashWidth, height: 2.h, color: context.primaryContainer);
                 }),
               );
             },
           ),
-          SizedBox(height: 18),
+          18.verticalSpace,
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

@@ -6,6 +6,7 @@ import 'package:dllni_cleaninig_owner_app/features/auth/data/models/login_usecas
 import 'package:dllni_cleaninig_owner_app/features/home/view/widgets/today_overview_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
 import '../../../../core/di/injection.dart';
 import '../../../orders/domain/usecases/fetch_orders_usecase_use_case.dart';
@@ -23,7 +24,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-
   LoginUsecaseModel? user;
 
   @override
@@ -42,34 +42,35 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         BlocProvider<OrdersBloc>(
           lazy: false,
-          create: (context) => getIt<OrdersBloc>()..add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: 'pending'))),
+          create: (context) =>
+              getIt<OrdersBloc>()..add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: 'worker_assigned'))),
         ),
       ],
       child: SafeArea(
         child: Column(
           children: [
-            HomeAppBar(name: user?.user?.name,),
+            HomeAppBar(name: user?.user?.name),
             Expanded(
               child: SingleChildScrollView(
-                padding: EdgeInsetsDirectional.only(start: 24, end: 24, bottom: 20),
+                padding: EdgeInsetsDirectional.only(start: 24.w, end: 24.w, bottom: 20.h),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(height: 16),
+                    16.verticalSpace,
                     // WarningContainer(),
                     // SizedBox(height: 24),
                     AppText.labelLarge('نظرة عامة عن اليوم', fontWeight: FontWeight.w400),
-                    SizedBox(height: 12),
+                    12.verticalSpace,
                     TodayOverviewCard(),
-                    SizedBox(height: 12),
+                    12.verticalSpace,
                     StatisticsRow(),
-                    SizedBox(height: 16),
+                    16.verticalSpace,
                     Row(
                       children: [
                         AppText.labelLarge('مهام اليوم', fontWeight: FontWeight.w400),
-                        SizedBox(width: 8),
+                        8.horizontalSpace,
                         CircleAvatar(
-                          radius: 10,
+                          radius: 10.r,
                           backgroundColor: context.error,
                           child: BlocBuilder<OrdersBloc, OrdersState>(
                             builder: (context, state) {
@@ -82,13 +83,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
-                    SizedBox(height: 8),
+                    8.verticalSpace,
                     BlocBuilder<OrdersBloc, OrdersState>(
                       buildWhen: (previous, current) => previous.ordersUsecase != current.ordersUsecase,
                       builder: (context, state) {
                         return state.ordersUsecase!.builder(
                           loadingWidget: Padding(
-                            padding: EdgeInsetsDirectional.only(top: 40),
+                            padding: EdgeInsetsDirectional.only(top: 40.h),
                             child: Center(child: CircularProgressIndicator.adaptive()),
                           ),
                           emptyWidget: AppText.labelMedium('لا يوجد مهام', fontWeight: FontWeight.w400),
@@ -96,9 +97,14 @@ class _HomeScreenState extends State<HomeScreen> {
                             return ListView.separated(
                               shrinkWrap: true,
                               physics: NeverScrollableScrollPhysics(),
-                              itemBuilder: (context, index) =>
-                                  OrderCard(date: state.ordersUsecase!.list[index], isInHome: true, bloc: context.read<OrdersBloc>()),
-                              separatorBuilder: (context, index) => SizedBox(height: 16),
+                              itemBuilder: (context, index) => OrderCard(
+                                date: state.ordersUsecase!.list[index],
+                                isInHome: true,
+                                bloc: context.read<OrdersBloc>(),
+                                index: index,
+                                orderStatus: OrderStatus.workerAssigned,
+                              ),
+                              separatorBuilder: (context, index) => 16.verticalSpace,
                               itemCount: state.ordersUsecase!.list.length,
                             );
                           },

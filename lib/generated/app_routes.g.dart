@@ -1,7 +1,9 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
 import 'package:flutter/material.dart';
+import 'package:dllni_cleaninig_owner_app/features/auth/view/screens/login_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/main/view/screens/main_screen.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/screens/emergency_sos_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/screens/order_details_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/transaction_details_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/transaction_history_screen.dart';
@@ -15,6 +17,11 @@ class GeneratedAppRoutes {
     final args = settings.arguments;
 
     switch (settings.name) {
+      case '/login':
+        return MaterialPageRoute(
+          builder: (_) => LoginScreen(),
+          settings: settings,
+        );
       case '/main':
         if (args is MainScreenParam?) {
           return MaterialPageRoute(
@@ -23,6 +30,11 @@ class GeneratedAppRoutes {
           );
         }
         return _errorRoute(settings);
+      case '/emergencysos':
+        return MaterialPageRoute(
+          builder: (_) => EmergencySosScreen(),
+          settings: settings,
+        );
       case '/orderdetails':
         if (args is OrderDetailsScreenParams) {
           return MaterialPageRoute(

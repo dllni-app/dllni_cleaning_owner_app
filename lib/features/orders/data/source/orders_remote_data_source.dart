@@ -23,6 +23,8 @@ import '../models/update_availability_usecase_model.dart';
 import '../../domain/usecases/update_availability_usecase_use_case.dart';
 import '../models/reject_order_usecase_model.dart';
 import '../../domain/usecases/reject_order_usecase_use_case.dart';
+import '../models/arrive_model.dart';
+import '../../domain/usecases/arrive_use_case.dart';
 
 @lazySingleton
 class OrdersRemoteDataSource with HandlingApiManager {
@@ -115,4 +117,11 @@ class OrdersRemoteDataSource with HandlingApiManager {
       jsonConvert: rejectOrderUsecaseModelFromJson,
     );
   }
-}
+
+
+  Future<ArriveModel> arrive(ArriveParams params) {
+    return wrapHandlingApi(
+      tryCall: () => dioNetwork.postData(endPoint: '/api/v1/cleaning-bookings/${params.id}/arrive', data: params.getBody(), params: params.getParams()),
+      jsonConvert: arriveModelFromJson,
+    );
+  }}

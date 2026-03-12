@@ -25,6 +25,8 @@ import '../../../domain/usecases/update_availability_usecase_use_case.dart';
 import '../../../data/models/update_availability_usecase_model.dart';
 import '../../../domain/usecases/reject_order_usecase_use_case.dart';
 import '../../../data/models/reject_order_usecase_model.dart';
+import '../../../domain/usecases/arrive_use_case.dart';
+import '../../../data/models/arrive_model.dart';
 
 part 'orders_event.dart';
 
@@ -32,6 +34,7 @@ part 'orders_state.dart';
 
 @injectable
 class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
+  final ArriveUseCase arriveUseCase;
   final RejectOrderUsecaseUseCase rejectOrderUsecaseUseCase;
   final UpdateAvailabilityUsecaseUseCase updateAvailabilityUsecaseUseCase;
   final RejectExtensionUsecaseUseCase rejectExtensionUsecaseUseCase;
@@ -55,7 +58,9 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     this.acceptExtensionUsecaseUseCase,
     this.rejectExtensionUsecaseUseCase,
     this.updateAvailabilityUsecaseUseCase,
-    this.rejectOrderUsecaseUseCase,) : super(OrdersState()) {
+    this.rejectOrderUsecaseUseCase,
+    this.arriveUseCase,
+  ) : super(OrdersState()) {
     on<FetchOrdersUsecaseEvent>(_fetchOrdersUsecase, transformer: droppableProMax());
     on<FetchOrderDetailsUsecaseEvent>(_fetchOrderDetailsUsecase);
     on<AcceptOrderUsecaseEvent>(_acceptOrderUsecase);
@@ -66,13 +71,19 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     on<AcceptExtensionUsecaseEvent>(_acceptExtensionUsecase);
     on<RejectExtensionUsecaseEvent>(_rejectExtensionUsecase);
     on<UpdateAvailabilityUsecaseEvent>(_updateAvailabilityUsecase);
-  
-    on<RejectOrderUsecaseEvent>(_rejectOrderUsecase);}
+    on<RejectOrderUsecaseEvent>(_rejectOrderUsecase);
+    on<ArriveEvent>(_arrive);
+    on<ChangeDetailsCurrentStep>(_changeDetailsStep);
+  }
 
   EventTransformer<T> droppableProMax<T extends EventWithReload>() {
     return (events, mapper) {
       return events.transform(ExhaustMapStreamTransformer(mapper));
     };
+  }
+
+  FutureOr<void> _changeDetailsStep(ChangeDetailsCurrentStep event, Emitter emit) {
+    emit(state.copyWith(currentStep: event.step));
   }
 
   FutureOr<void> _fetchOrdersUsecase(FetchOrdersUsecaseEvent event, Emitter<OrdersState> emit) async {
@@ -109,27 +120,29 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
   }
 
   FutureOr<void> _acceptOrderUsecase(AcceptOrderUsecaseEvent event, Emitter<OrdersState> emit) async {
-    emit(state.copyWith(acceptOrderUsecaseStatus: BlocStatus.loading));
+    emit(state.copyWith(acceptOrderUsecaseStatus: BlocStatus.loading, selectedIndex: event.index));
     final res = await acceptOrderUsecaseUseCase(event.params);
     res.fold(
       (l) {
         emit(state.copyWith(acceptOrderUsecaseStatus: BlocStatus.failed, errorMessage: l.message));
       },
       (r) {
-        emit(state.copyWith(acceptOrderUsecaseStatus: BlocStatus.success, acceptOrderUsecase: r));
+        add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: 'pending'), isReload: true));
+        emit(state.copyWith(acceptOrderUsecaseStatus: BlocStatus.success, acceptOrderUsecase: r, currentStep: 1));
       },
     );
   }
 
   FutureOr<void> _startTravelUsecase(StartTravelUsecaseEvent event, Emitter<OrdersState> emit) async {
-    emit(state.copyWith(startTravelUsecaseStatus: BlocStatus.loading));
+    emit(state.copyWith(startTravelUsecaseStatus: BlocStatus.loading, selectedIndex: event.index));
     final res = await startTravelUsecaseUseCase(event.params);
     res.fold(
       (l) {
         emit(state.copyWith(startTravelUsecaseStatus: BlocStatus.failed, errorMessage: l.message));
       },
       (r) {
-        emit(state.copyWith(startTravelUsecaseStatus: BlocStatus.success, startTravelUsecase: r));
+        add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: 'worker_assigned'), isReload: true));
+        emit(state.copyWith(startTravelUsecaseStatus: BlocStatus.success, startTravelUsecase: r, currentStep: 2));
       },
     );
   }
@@ -155,6 +168,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
         emit(state.copyWith(cancelOrderStatus: BlocStatus.failed, errorMessage: l.message));
       },
       (r) {
+        add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: 'worker_assigned'), isReload: true));
         emit(state.copyWith(cancelOrderStatus: BlocStatus.success, cancelOrder: r));
       },
     );
@@ -219,19 +233,31 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     );
   }
 
-
   FutureOr<void> _rejectOrderUsecase(RejectOrderUsecaseEvent event, Emitter<OrdersState> emit) async {
-    emit(state.copyWith(rejectOrderUsecaseStatus: BlocStatus.loading));
+    emit(state.copyWith(rejectOrderUsecaseStatus: BlocStatus.loading, selectedIndex: event.index));
     final res = await rejectOrderUsecaseUseCase(event.params);
-    res.fold((l) {
-      emit(state.copyWith(
-        rejectOrderUsecaseStatus: BlocStatus.failed,
-        errorMessage: l.message,
-      ));
-    }, (r) {
-      emit(state.copyWith(
-        rejectOrderUsecaseStatus: BlocStatus.success,
-        rejectOrderUsecase: r,
-      ));
-    });
-  }}
+    res.fold(
+      (l) {
+        emit(state.copyWith(rejectOrderUsecaseStatus: BlocStatus.failed, errorMessage: l.message));
+      },
+      (r) {
+        add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: 'pending'), isReload: true));
+        emit(state.copyWith(rejectOrderUsecaseStatus: BlocStatus.success, rejectOrderUsecase: r));
+      },
+    );
+  }
+
+  FutureOr<void> _arrive(ArriveEvent event, Emitter<OrdersState> emit) async {
+    emit(state.copyWith(arriveStatus: BlocStatus.loading, selectedIndex: event.index));
+    final res = await arriveUseCase(event.params);
+    res.fold(
+      (l) {
+        emit(state.copyWith(arriveStatus: BlocStatus.failed, errorMessage: l.message));
+      },
+      (r) {
+        add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: 'in_progress'), isReload: true));
+        emit(state.copyWith(arriveStatus: BlocStatus.success, arrive: r, currentStep: 3));
+      },
+    );
+  }
+}

@@ -56,7 +56,7 @@ class _CancelOrderDialogState extends State<CancelOrderDialog> with SingleTicker
   }
 
   void _onCancelOrder() {
-    widget.bloc.add(CancelOrderEvent(params: CancelOrderParams(id: widget.orderId)));
+    widget.bloc.add(CancelOrderEvent(params: CancelOrderParams(id: widget.orderId), index: 0));
     context.pop();
   }
 

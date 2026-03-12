@@ -18,25 +18,20 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
-  final MainNotifier mainNotifier = MainNotifier();
+class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateMixin {
+  late TabController controller;
 
   @override
   void initState() {
     super.initState();
-    if (widget.mainScreenParam != null) {
-      mainNotifier.changePageIndex(mainNotifier.pageIndex);
-    }
+    controller = TabController(length: 4, vsync: this);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      bottomNavigationBar: BottomNavBar(mainNotifier: mainNotifier),
-      body: ValueListenableBuilder(
-        valueListenable: mainNotifier.pageIndex,
-        builder: (context, index, _) => [HomeScreen(), CalenderScreen(), OrdersScreen(), ProfileScreen()][index],
-      ),
+      bottomNavigationBar: BottomNavBar(controller: controller,),
+      body: TabBarView(controller: controller, children: [HomeScreen(), CalenderScreen(), OrdersScreen(), ProfileScreen()]),
     );
   }
 }

@@ -21,6 +21,8 @@ import '../usecases/update_availability_usecase_use_case.dart';
 import '../../data/models/update_availability_usecase_model.dart';
 import '../usecases/reject_order_usecase_use_case.dart';
 import '../../data/models/reject_order_usecase_model.dart';
+import '../usecases/arrive_use_case.dart';
+import '../../data/models/arrive_model.dart';
 abstract class OrdersRepo {
   DataResponse<FetchOrdersUsecaseModel> fetchOrdersUsecase(FetchOrdersUsecaseParams params);
 
@@ -43,4 +45,6 @@ abstract class OrdersRepo {
   DataResponse<UpdateAvailabilityUsecaseModel> updateAvailabilityUsecase(UpdateAvailabilityUsecaseParams params);
 
   DataResponse<RejectOrderUsecaseModel> rejectOrderUsecase(RejectOrderUsecaseParams params);
+
+  DataResponse<ArriveModel> arrive(ArriveParams params);
 }

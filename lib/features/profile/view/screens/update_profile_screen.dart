@@ -1,6 +1,7 @@
 import 'package:common_package/common_package.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
 @AutoRoutePage()
 class UpdateProfileScreen extends StatefulWidget {
@@ -77,54 +78,54 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
       backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: EdgeInsets.symmetric(horizontal: 24.w),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 20),
+                20.verticalSpace,
                 Row(
                   children: [
                     InkWell(
                       onTap: () => context.pop(),
-                      child: Icon(Icons.arrow_back_ios, color: context.primary, size: 20),
+                      child: Icon(Icons.arrow_back_ios, color: context.primary, size: 20.sp),
                     ),
-                    SizedBox(width: 8),
+                    8.horizontalSpace,
                     Expanded(
                       child: AppText.titleLarge('حسابك', color: context.primary, fontWeight: FontWeight.w700, textAlign: TextAlign.start),
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                24.verticalSpace,
                 AppText.bodyLarge('مرحبا ${widget.params.name} !', color: context.primary, fontWeight: FontWeight.w500, textAlign: TextAlign.start),
-                const SizedBox(height: 24),
+                24.verticalSpace,
                 Center(
                   child: Column(
                     children: [
                       Stack(
                         children: [
                           CircleAvatar(
-                            radius: 50,
+                            radius: 50.r,
                             backgroundColor: Colors.grey.shade300,
                             backgroundImage: const NetworkImage('https://via.placeholder.com/100'),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
+                      8.verticalSpace,
                       AppText.labelMedium('التعديل صورة الملف الشخصي', color: Colors.grey.shade600, textAlign: TextAlign.center),
                     ],
                   ),
                 ),
-                const SizedBox(height: 32),
+                32.verticalSpace,
                 _buildFormField(label: 'الاسم', controller: _nameController),
-                const SizedBox(height: 16),
+                16.verticalSpace,
                 _buildFormField(label: 'البريد الإلكاروني', controller: _emailController, keyboardType: TextInputType.emailAddress),
-                const SizedBox(height: 16),
+                16.verticalSpace,
                 _buildDateField(label: 'تاريخ الميلاد', controller: _dateOfBirthController),
-                const SizedBox(height: 16),
+                16.verticalSpace,
                 _buildFormField(label: 'رقم الهاتف', controller: _phoneController, keyboardType: TextInputType.phone),
-                const SizedBox(height: 16),
+                16.verticalSpace,
                 _buildDropdownField(
                   label: 'الجنس',
                   value: _selectedGender,
@@ -135,37 +136,37 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                     });
                   },
                 ),
-                const SizedBox(height: 16),
+                16.verticalSpace,
                 _buildFormField(label: 'مدينتك', controller: _cityMeController, keyboardType: TextInputType.text),
-                const SizedBox(height: 16),
+                16.verticalSpace,
                 _buildTextAreaField(label: 'نبذة عني', controller: _aboutMeController),
-                const SizedBox(height: 32),
+                32.verticalSpace,
                 InkWell(
                   onTap: () {
                     if (_formKey.currentState!.validate()) {}
                   },
                   child: Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    decoration: BoxDecoration(color: context.primary, borderRadius: BorderRadius.circular(12)),
+                    padding: EdgeInsets.symmetric(vertical: 16.h),
+                    decoration: BoxDecoration(color: context.primary, borderRadius: BorderRadius.circular(12.r)),
                     child: AppText.labelLarge('حفظ', color: context.onPrimary, fontWeight: FontWeight.w500, textAlign: TextAlign.center),
                   ),
                 ),
-                const SizedBox(height: 24),
+                24.verticalSpace,
                 Center(
                   child: InkWell(
                     onTap: () {},
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.logout, size: 18, color: Colors.grey.shade600),
-                        const SizedBox(width: 8),
+                        Icon(Icons.logout, size: 18.sp, color: Colors.grey.shade600),
+                        8.horizontalSpace,
                         AppText.labelMedium('التسجيل الخروج', color: Colors.grey.shade600, textAlign: TextAlign.center),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 32),
+                32.verticalSpace,
               ],
             ),
           ),
@@ -179,20 +180,20 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         AppText.labelLarge(label, color: Colors.grey.shade700, fontWeight: FontWeight.w500, textAlign: TextAlign.start),
-        const SizedBox(height: 8),
+        8.verticalSpace,
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
-          style: TextStyle(color: Colors.grey.shade800, fontSize: 14),
+          style: TextStyle(color: Colors.grey.shade800, fontSize: 14.sp),
           decoration: InputDecoration(
             filled: true,
             fillColor: Color(0xffE9EBEF),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: context.primary, width: 1),
+              borderRadius: BorderRadius.circular(12.r),
+              borderSide: BorderSide(color: context.primary, width: 1.w),
             ),
           ),
         ),
@@ -205,22 +206,22 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         AppText.labelLarge(label, color: Colors.grey.shade700, fontWeight: FontWeight.w500, textAlign: TextAlign.start),
-        const SizedBox(height: 8),
+        8.verticalSpace,
         TextFormField(
           controller: controller,
           readOnly: true,
           onTap: _selectDate,
-          style: TextStyle(color: Colors.grey.shade800, fontSize: 14),
+          style: TextStyle(color: Colors.grey.shade800, fontSize: 14.sp),
           decoration: InputDecoration(
             filled: true,
             fillColor: Color(0xffE9EBEF),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            suffixIcon: Icon(Icons.calendar_today, size: 18, color: Colors.grey.shade600),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+            suffixIcon: Icon(Icons.calendar_today, size: 18.sp, color: Colors.grey.shade600),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: context.primary, width: 1),
+              borderRadius: BorderRadius.circular(12.r),
+              borderSide: BorderSide(color: context.primary, width: 1.w),
             ),
           ),
         ),
@@ -233,24 +234,24 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         AppText.labelLarge(label, color: Colors.grey.shade700, fontWeight: FontWeight.w500, textAlign: TextAlign.start),
-        const SizedBox(height: 8),
+        8.verticalSpace,
         Container(
-          decoration: BoxDecoration(color: Color(0xffE9EBEF), borderRadius: BorderRadius.circular(12)),
+          decoration: BoxDecoration(color: Color(0xffE9EBEF), borderRadius: BorderRadius.circular(12.r)),
           child: DropdownButtonFormField<String>(
             initialValue: value,
             decoration: InputDecoration(
               filled: true,
               fillColor: Color(0xffE9EBEF),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: context.primary, width: 1),
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide(color: context.primary, width: 1.w),
               ),
             ),
             icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey.shade600),
-            style: TextStyle(color: Colors.grey.shade800, fontSize: 14),
+            style: TextStyle(color: Colors.grey.shade800, fontSize: 14.sp),
             items: items.map((String item) {
               return DropdownMenuItem<String>(value: item, child: Text(item));
             }).toList(),
@@ -266,20 +267,20 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         AppText.labelLarge(label, color: Colors.grey.shade700, fontWeight: FontWeight.w500, textAlign: TextAlign.start),
-        const SizedBox(height: 8),
+        8.verticalSpace,
         TextFormField(
           controller: controller,
           maxLines: 4,
-          style: TextStyle(color: Colors.grey.shade800, fontSize: 14),
+          style: TextStyle(color: Colors.grey.shade800, fontSize: 14.sp),
           decoration: InputDecoration(
             filled: true,
             fillColor: Colors.grey.shade100,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: context.primary, width: 1),
+              borderRadius: BorderRadius.circular(12.r),
+              borderSide: BorderSide(color: context.primary, width: 1.w),
             ),
           ),
         ),

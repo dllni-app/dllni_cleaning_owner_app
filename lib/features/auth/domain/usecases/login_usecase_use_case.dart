@@ -17,11 +17,11 @@ class LoginUsecaseUseCase implements UseCase<LoginUsecaseModel, LoginUsecasePara
 }
 
 class LoginUsecaseParams with Params {
-  final String email;
+  final String phone;
   final String password;
 
-  LoginUsecaseParams({required this.email, required this.password});
+  LoginUsecaseParams({required this.phone, required this.password});
 
   @override
-  BodyMap getBody() => {'phone': email, 'password': password};
+  BodyMap getBody() => {'phone': phone, 'password': password};
 }

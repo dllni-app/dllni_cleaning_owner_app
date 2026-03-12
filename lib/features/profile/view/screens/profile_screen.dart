@@ -4,6 +4,7 @@ import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/fetch
 import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/update_profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
 import '../../../../generated/assets.dart';
 import '../manager/bloc/profile_bloc.dart';
@@ -20,8 +21,14 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
-    final List<String> titles = ['تعديل ملفي الشخصي', 'مناطق عملي', 'أوقات العمل', 'سجل المعاملات'];
-    final List<String> images = [Assets.imagesProfileUser, Assets.imagesProfileLocation, Assets.imagesProfileClock, Assets.imagesProfileSignal];
+    final List<String> titles = ['تعديل ملفي الشخصي', 'مناطق عملي', 'أوقات العمل', 'سجل المعاملات', 'تسجيل الخروج'];
+    final List<String> images = [
+      Assets.imagesProfileUser,
+      Assets.imagesProfileLocation,
+      Assets.imagesProfileClock,
+      Assets.imagesProfileSignal,
+      Assets.imagesLogout,
+    ];
 
     return BlocProvider<ProfileBloc>(
       lazy: false,
@@ -30,69 +37,76 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Column(
           children: [
             ProfileAppBar(),
-            SingleChildScrollView(
-              padding: EdgeInsetsDirectional.symmetric(horizontal: 24, vertical: 14),
-              child: Column(
-                children: [
-                  StatisticsLineChart(),
-                  SizedBox(height: 24),
-                  Column(
-                    spacing: 15,
-                    children: List.generate(
-                      titles.length,
-                      (i) => BlocBuilder<ProfileBloc, ProfileState>(
-                        builder: (context, state) {
-                          return sectionContainer(
-                            images[i],
-                            titles[i],
-                            context,
-                            i == 0
-                                ? () {
-                                    context.pushRoute(
-                                      '/updateprofile',
-                                      arguments: UpdateProfileScreenParams(
-                                        name: state.workerProfileUsecase!.data!.user!.name!,
-                                        email: state.workerProfileUsecase?.data?.user?.email,
-                                        phone: state.workerProfileUsecase?.data?.user?.phone,
-                                        bio: state.workerProfileUsecase?.data?.bio,
-                                        city: state.workerProfileUsecase?.data?.homeAddress,
-                                      ),
-                                    );
-                                  }
-                                : i == 1
-                                ? () {}
-                                : i == 2
-                                ? () {
-                                    context.pushRoute('/workingtime', arguments: state.workerProfileUsecase!.data!.defaultWorkingHours!);
-                                  }
-                                : () {
-                                    context.pushRoute('/transactionhistory');
-                                  },
-                          );
-                        },
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsetsDirectional.symmetric(horizontal: 24.w, vertical: 14.h),
+                child: Column(
+                  children: [
+                    StatisticsLineChart(),
+                    24.verticalSpace,
+                    Column(
+                      spacing: 15.h,
+                      children: List.generate(
+                        titles.length,
+                        (i) => BlocBuilder<ProfileBloc, ProfileState>(
+                          builder: (context, state) {
+                            return sectionContainer(
+                              images[i],
+                              titles[i],
+                              context,
+                              i == 0
+                                  ? () {
+                                      context.pushRoute(
+                                        '/updateprofile',
+                                        arguments: UpdateProfileScreenParams(
+                                          name: state.workerProfileUsecase!.data!.user!.name!,
+                                          email: state.workerProfileUsecase?.data?.user?.email,
+                                          phone: state.workerProfileUsecase?.data?.user?.phone,
+                                          bio: state.workerProfileUsecase?.data?.bio,
+                                          city: state.workerProfileUsecase?.data?.homeAddress,
+                                        ),
+                                      );
+                                    }
+                                  : i == 1
+                                  ? () {}
+                                  : i == 2
+                                  ? () {
+                                      context.pushRoute('/workingtime', arguments: state.workerProfileUsecase!.data!.defaultWorkingHours!);
+                                    }
+                                  : i == 3
+                                  ? () {
+                                      context.pushRoute('/transactionhistory');
+                                    }
+                                  : () {
+                                      SharedPreferencesHelper.clearData();
+                                      context.pushRouteAndRemoveUntil('/login');
+                                    },
+                            );
+                          },
+                        ),
                       ),
                     ),
-                  ),
-                  SizedBox(height: 24),
-                  Row(
-                    children: [
-                      AppText.labelLarge('حالة الحساب', color: context.primary, fontWeight: FontWeight.w500),
-                      SizedBox(width: 16),
-                      BlocBuilder<ProfileBloc, ProfileState>(
-                        builder: (context, state) {
-                          return CustomMiniSwitch(
-                            value: state.workerProfileUsecase?.data?.isActive ?? false,
-                            onChanged: (val) {
-                              setState(() {
-                                state.workerProfileUsecase?.data?.isActive = val;
-                              });
-                            },
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ],
+                    24.verticalSpace,
+                    Row(
+                      children: [
+                        AppText.labelLarge('حالة الحساب', color: context.primary, fontWeight: FontWeight.w500),
+                        16.horizontalSpace,
+                        BlocBuilder<ProfileBloc, ProfileState>(
+                          builder: (context, state) {
+                            return CustomMiniSwitch(
+                              value: state.workerProfileUsecase?.data?.isActive ?? false,
+                              onChanged: (val) {
+                                setState(() {
+                                  state.workerProfileUsecase?.data?.isActive = val;
+                                });
+                              },
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -102,20 +116,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget sectionContainer(String image, String title, BuildContext context, Function() onTap) => InkWell(
-    borderRadius: BorderRadius.circular(24),
+    borderRadius: BorderRadius.circular(24.r),
     onTap: onTap,
     child: Container(
-      decoration: BoxDecoration(color: Color(0xffE9EBEF), borderRadius: BorderRadius.circular(24)),
-      padding: EdgeInsetsDirectional.symmetric(horizontal: 24, vertical: 8),
+      decoration: BoxDecoration(color: Color(0xffE9EBEF), borderRadius: BorderRadius.circular(24.r)),
+      padding: EdgeInsetsDirectional.symmetric(horizontal: 24.w, vertical: 8.h),
       child: Row(
         children: [
-          AppImage.asset(image, size: 24),
-          SizedBox(width: 16),
+          AppImage.asset(image, size: 24.r),
+          16.horizontalSpace,
           Expanded(
             child: AppText.labelLarge(title, textAlign: TextAlign.start, maxLines: 1, overflow: TextOverflow.ellipsis),
           ),
-          SizedBox(width: 16),
-          Icon(Icons.arrow_forward_ios, size: 18, color: context.primary),
+          16.horizontalSpace,
+          Icon(Icons.arrow_forward_ios, size: 18.sp, color: context.primary),
         ],
       ),
     ),
@@ -139,16 +153,16 @@ class _CustomMiniSwitchState extends State<CustomMiniSwitch> {
       onTap: () => widget.onChanged(!widget.value),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        width: 46,
-        height: 22,
-        padding: const EdgeInsets.symmetric(horizontal: 3),
-        decoration: BoxDecoration(color: widget.value ? Colors.green.withAlpha(63) : Colors.grey.shade300, borderRadius: BorderRadius.circular(20)),
+        width: 46.w,
+        height: 22.h,
+        padding: EdgeInsets.symmetric(horizontal: 3.w),
+        decoration: BoxDecoration(color: widget.value ? Colors.green.withAlpha(63) : Colors.grey.shade300, borderRadius: BorderRadius.circular(20.r)),
         child: AnimatedAlign(
           duration: const Duration(milliseconds: 200),
           alignment: widget.value ? Alignment.centerRight : Alignment.centerLeft,
           child: Container(
-            width: 16,
-            height: 16,
+            width: 16.w,
+            height: 16.h,
             decoration: BoxDecoration(color: widget.value ? Colors.green : Colors.grey, shape: BoxShape.circle),
           ),
         ),

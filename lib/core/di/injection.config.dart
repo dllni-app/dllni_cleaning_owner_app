@@ -44,6 +44,7 @@ import '../../features/orders/domain/usecases/accept_extension_usecase_use_case.
     as _i533;
 import '../../features/orders/domain/usecases/accept_order_usecase_use_case.dart'
     as _i778;
+import '../../features/orders/domain/usecases/arrive_use_case.dart' as _i800;
 import '../../features/orders/domain/usecases/cancel_order_use_case.dart'
     as _i1;
 import '../../features/orders/domain/usecases/complete_order_usecase_use_case.dart'
@@ -128,6 +129,9 @@ _i174.GetIt $initGetIt(
   gh.lazySingleton<_i778.AcceptOrderUsecaseUseCase>(
     () => _i778.AcceptOrderUsecaseUseCase(orders: gh<_i132.OrdersRepo>()),
   );
+  gh.lazySingleton<_i800.ArriveUseCase>(
+    () => _i800.ArriveUseCase(orders: gh<_i132.OrdersRepo>()),
+  );
   gh.lazySingleton<_i1.CancelOrderUseCase>(
     () => _i1.CancelOrderUseCase(orders: gh<_i132.OrdersRepo>()),
   );
@@ -198,6 +202,7 @@ _i174.GetIt $initGetIt(
       gh<_i537.RejectExtensionUsecaseUseCase>(),
       gh<_i13.UpdateAvailabilityUsecaseUseCase>(),
       gh<_i452.RejectOrderUsecaseUseCase>(),
+      gh<_i800.ArriveUseCase>(),
     ),
   );
   gh.factory<_i648.HomeBloc>(

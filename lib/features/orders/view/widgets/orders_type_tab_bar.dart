@@ -21,7 +21,7 @@ class _OrdersTypeTabBarState extends State<OrdersTypeTabBar> with TickerProvider
 
   @override
   void initState() {
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     super.initState();
   }
 
@@ -34,31 +34,41 @@ class _OrdersTypeTabBarState extends State<OrdersTypeTabBar> with TickerProvider
   @override
   Widget build(BuildContext context) {
     return TabBar(
-      isScrollable: false,
+      isScrollable: true,
       onTap: (i) {
         if (i == 0) {
+          context.read<OrdersBloc>().add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: 'pending'), isReload: true));
+        }
+        if (i == 1) {
           context.read<OrdersBloc>().add(
             FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: 'worker_assigned'), isReload: true),
           );
         }
-        if (i == 1) {
+        if (i == 2) {
           context.read<OrdersBloc>().add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: 'in_progress'), isReload: true));
         }
-        if (i == 2) {
+        if (i == 3) {
           context.read<OrdersBloc>().add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: 'completed'), isReload: true));
         }
         widget.orderNotifier.status.value = i == 0
-            ? 'worker_assigned'
+            ? 'pending'
             : i == 1
+            ? 'worker_assigned'
+            : i == 2
             ? 'in_progress'
             : 'completed';
       },
       dividerHeight: .1,
-      tabAlignment: TabAlignment.center,
+      tabAlignment: TabAlignment.start,
       indicatorColor: context.primary,
       controller: _tabController,
+      tabs: [
+        AppText.labelLarge('الطلبات الجديدة'),
+        AppText.labelLarge('الطلبات المؤكدة'),
+        AppText.labelLarge('قيد التنفيذ'),
+        AppText.labelLarge('الطلبات المكتملة'),
+      ],
       labelPadding: EdgeInsetsDirectional.symmetric(vertical: 3, horizontal: 10),
-      tabs: [AppText.labelLarge('الطلبات الجديدة'), AppText.labelLarge('الطلبات المؤكدة'), AppText.labelLarge('الطلبات المكتملة')],
       labelColor: Colors.black,
       indicator: MaterialIndicator(
         height: 2,

@@ -5,7 +5,6 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/widgets/order_card.dart';
 import '../../../orders/domain/usecases/fetch_orders_usecase_use_case.dart';
 import '../../../orders/view/manager/bloc/orders_bloc.dart';
 import '../widgets/calender_app_bar.dart';

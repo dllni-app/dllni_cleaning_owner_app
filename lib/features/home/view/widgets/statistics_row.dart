@@ -1,6 +1,7 @@
 import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../../generated/assets.dart';
@@ -16,26 +17,26 @@ class StatisticsRow extends StatelessWidget {
     List<String> images = [Assets.imagesHomeNewOrdersIcon, Assets.imagesHomeConfirmedOrdersIcon, Assets.imagesHomeCompletedOrdersIcon];
 
     return Row(
-      spacing: 24,
+      spacing: 24.w,
       children: List.generate(
         3,
         (i) => Expanded(
           child: Container(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border(bottom: BorderSide(color: colors[i], width: 2)),
+              borderRadius: BorderRadius.circular(12.r),
+              border: Border(bottom: BorderSide(color: colors[i], width: 2.w)),
               color: context.onPrimary,
-              boxShadow: [BoxShadow(color: Colors.black.withAlpha(63), offset: Offset(0, 2), blurRadius: 4)],
+              boxShadow: [BoxShadow(color: Colors.black.withAlpha(63), offset: Offset(0, 2.h), blurRadius: 4.r)],
             ),
-            padding: EdgeInsetsDirectional.symmetric(vertical: 14),
+            padding: EdgeInsetsDirectional.symmetric(vertical: 14.h),
             child: Column(
               children: [
                 CircleAvatar(
-                  radius: 15,
+                  radius: 15.r,
                   backgroundColor: colors[i].withAlpha(51),
-                  child: AppImage.asset(images[i], size: 15, color: colors[i]),
+                  child: AppImage.asset(images[i], size: 15.r, color: colors[i]),
                 ),
-                SizedBox(height: 14),
+                14.verticalSpace,
                 BlocBuilder<HomeBloc, HomeState>(
                   builder: (context, state) {
                     switch (state.homePageUsecaseStatus) {
@@ -43,10 +44,10 @@ class StatisticsRow extends StatelessWidget {
                         return Shimmer.fromColors(
                           baseColor: context.onPrimary,
                           highlightColor: context.primary,
-                          child: Container(color: context.surface, height: 20, width: 20),
+                          child: Container(color: context.surface, height: 20.h, width: 20.w),
                         );
                       case BlocStatus.failed:
-                        return CircleAvatar(radius: 15, backgroundColor: context.surface, child: AppText.labelMedium('0'));
+                        return CircleAvatar(radius: 15.r, backgroundColor: context.surface, child: AppText.labelMedium('0'));
                       case BlocStatus.success:
                         final value = i == 0
                             ? state.homePageUsecase!.newOrdersCount
@@ -58,18 +59,18 @@ class StatisticsRow extends StatelessWidget {
                         return Shimmer.fromColors(
                           baseColor: context.onPrimary,
                           highlightColor: context.primary,
-                          child: Container(color: context.surface, height: 20, width: 20),
+                          child: Container(color: context.surface, height: 20.h, width: 20.w),
                         );
                       case BlocStatus.init:
                         return Shimmer.fromColors(
                           baseColor: context.onPrimary,
                           highlightColor: context.primary,
-                          child: Container(color: context.surface, height: 20, width: 20),
+                          child: Container(color: context.surface, height: 20.h, width: 20.w),
                         );
                     }
                   },
                 ),
-                SizedBox(height: 14),
+                14.verticalSpace,
                 AppText.labelMedium(titles[i], fontWeight: FontWeight.w500),
               ],
             ),

@@ -11,6 +11,8 @@ class Assets {
   static const String imagesHomeEarningIcon = 'assets/images/home_earning_icon.png';
   static const String imagesHomeNewOrdersIcon = 'assets/images/home_new_orders_icon.png';
   static const String imagesHomeUser = 'assets/images/home_user.svg';
+  static const String imagesLoginIcon = 'assets/images/login_icon.svg';
+  static const String imagesLogout = 'assets/images/logout.svg';
   static const String imagesNavBarCalender = 'assets/images/nav_bar_calender.svg';
   static const String imagesNavBarHome = 'assets/images/nav_bar_home.svg';
   static const String imagesNavBarMore = 'assets/images/nav_bar_more.svg';

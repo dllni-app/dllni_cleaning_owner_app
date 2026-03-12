@@ -20,13 +20,17 @@ class FetchOrderDetailsUsecaseEvent extends OrdersEvent {
 class AcceptOrderUsecaseEvent extends OrdersEvent {
   final AcceptOrderUsecaseParams params;
 
-  AcceptOrderUsecaseEvent({required this.params});
+  final int index;
+
+  AcceptOrderUsecaseEvent({required this.params, required this.index});
 }
 
 class StartTravelUsecaseEvent extends OrdersEvent {
   final StartTravelUsecaseParams params;
 
-  StartTravelUsecaseEvent({required this.params});
+  final int index;
+
+  StartTravelUsecaseEvent({required this.params, required this.index});
 }
 
 class CompleteOrderUsecaseEvent extends OrdersEvent {
@@ -38,7 +42,9 @@ class CompleteOrderUsecaseEvent extends OrdersEvent {
 class CancelOrderEvent extends OrdersEvent {
   final CancelOrderParams params;
 
-  CancelOrderEvent({required this.params});
+  final int index;
+
+  CancelOrderEvent({required this.params, required this.index});
 }
 
 class FetchExtensionRequestsUsecasEvent extends OrdersEvent with EventWithReload {
@@ -71,5 +77,20 @@ class UpdateAvailabilityUsecaseEvent extends OrdersEvent {
 class RejectOrderUsecaseEvent extends OrdersEvent {
   final RejectOrderUsecaseParams params;
 
-  RejectOrderUsecaseEvent({required this.params});
+  final int index;
+
+  RejectOrderUsecaseEvent({required this.params, required this.index});
+}
+
+class ArriveEvent extends OrdersEvent {
+  final ArriveParams params;
+  final int index;
+
+  ArriveEvent({required this.params, required this.index});
+}
+
+class ChangeDetailsCurrentStep extends OrdersEvent {
+  final int step;
+
+  ChangeDetailsCurrentStep({required this.step});
 }

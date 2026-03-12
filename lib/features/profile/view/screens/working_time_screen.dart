@@ -1,6 +1,7 @@
 import 'package:common_package/annotations/auto_route_page.dart';
 import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
 import '../../data/models/fetch_worker_profile_usecase_model.dart';
 import '../widgets/working_time_app_bar.dart';
@@ -31,10 +32,10 @@ class _WorkingTimeScreenState extends State<WorkingTimeScreen> {
         child: Column(
           children: [
             const WorkingTimeAppBar(),
-            const SizedBox(height: 16),
+            16.verticalSpace,
             Expanded(
               child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
                 itemCount: 7,
                 itemBuilder: (context, index) {
                   final isToday = index == todayWeekday;
@@ -63,7 +64,7 @@ class _WorkingTimeScreenState extends State<WorkingTimeScreen> {
                       break;
                   }
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
+                    padding: EdgeInsets.only(bottom: 16.h),
                     child: WorkingTimeCard(
                       dayName: arabicDayNames[index],
                       dayNameEn: englishDayNames[index],
@@ -75,39 +76,39 @@ class _WorkingTimeScreenState extends State<WorkingTimeScreen> {
                 },
               ),
             ),
-            const SizedBox(height: 10),
+            10.verticalSpace,
             Padding(
-              padding: EdgeInsetsDirectional.symmetric(horizontal: 24),
+              padding: EdgeInsetsDirectional.symmetric(horizontal: 24.w),
               child: Row(
                 children: [
                   Expanded(
                     flex: 5,
                     child: Container(
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(8.r),
                         color: context.primary,
                       ),
-                      padding: EdgeInsetsDirectional.symmetric(horizontal: 12, vertical: 16),
+                      padding: EdgeInsetsDirectional.symmetric(horizontal: 12.w, vertical: 16.h),
                       child: AppText.labelLarge('حفظ التغييرات', color: context.onPrimary, fontWeight: FontWeight.w500),
                     ),
                   ),
-                  SizedBox(width: 8),
+                  8.horizontalSpace,
                   Expanded(
                     flex: 1,
                     child: Container(
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(8.r),
                         color: context.error.withAlpha(50),
                         border: Border.all(color: context.error),
                       ),
-                      padding: EdgeInsetsDirectional.symmetric(horizontal: 6, vertical: 16),
+                      padding: EdgeInsetsDirectional.symmetric(horizontal: 6.w, vertical: 16.h),
                       child: AppText.labelLarge('إلغاء', color: context.error, fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],
               ),
             ),
-            SizedBox(height: 10,),
+            10.verticalSpace,
           ],
         ),
       ),

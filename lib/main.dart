@@ -1,5 +1,6 @@
 import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
 import 'app.dart';
 import 'core/di/injection.dart';
@@ -10,7 +11,12 @@ Future<void> main() async {
   await bootstrapApp(
     AppBootstrapConfig(
       navigatorKey: navigatorKey,
-      app: App(navigatorKey: navigatorKey),
+      app: ScreenUtilPlusInit(
+        designSize: const Size(360, 690),
+        minTextAdapt: true,
+        splitScreenMode: true,
+        builder: (context, child) => App(navigatorKey: navigatorKey),
+      ),
       configureDependencies: configureInjection,
       enableNotifications: true,
       fallbackLocale: const Locale('ar'),

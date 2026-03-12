@@ -30,6 +30,12 @@ dependencies:
   table_calendar: ^3.2.0
   url_launcher: ^6.3.2
   fl_chart: ^1.1.1
+  flutter_screenutil_plus: ^1.5.0
+  flutter_rating: ^2.0.2
+  latlong2: ^0.9.1
+  flutter_map: ^8.2.2
+  geolocator: ^14.0.2
+  toastification: ^3.0.3
 
 
 dev_dependencies:
