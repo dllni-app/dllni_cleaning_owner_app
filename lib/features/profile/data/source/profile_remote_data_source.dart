@@ -7,6 +7,14 @@ import '../models/fetch_disputes_usecase_model.dart';
 import '../../domain/usecases/fetch_disputes_usecase_use_case.dart';
 import '../models/fetch_dispute_details_usecase_model.dart';
 import '../../domain/usecases/fetch_dispute_details_usecase_use_case.dart';
+import '../models/update_dispute_model.dart';
+import '../../domain/usecases/update_dispute_use_case.dart';
+import '../models/fetch_worker_statistics_model.dart';
+import '../../domain/usecases/fetch_worker_statistics_use_case.dart';
+import '../models/worker_work_areas_model.dart';
+import '../../domain/usecases/update_worker_work_areas_use_case.dart';
+import '../models/update_worker_profile_model.dart';
+import '../../domain/usecases/update_worker_profile_use_case.dart';
 
 @lazySingleton
 class ProfileRemoteDataSource with HandlingApiManager {
@@ -37,6 +45,46 @@ class ProfileRemoteDataSource with HandlingApiManager {
       tryCall: () =>
           dioNetwork.getData(endPoint: '/api/v1/disputes/${params.id}', params: params.getParams(), data: params.getBody().isEmpty ? null : params.getBody()),
       jsonConvert: fetchDisputeDetailsUsecaseModelFromJson,
+    );
+  }
+
+  Future<UpdateDisputeModel> updateDispute(UpdateDisputeParams params) {
+    return wrapHandlingApi(
+      tryCall: () => dioNetwork.putData(
+        endPoint: '/api/v1/disputes/${params.disputeId}',
+        params: params.getParams(),
+        data: params.getBody(),
+      ),
+      jsonConvert: updateDisputeModelFromJson,
+    );
+  }
+
+  Future<FetchWorkerStatisticsModel> fetchWorkerStatistics(FetchWorkerStatisticsParams params) {
+    return wrapHandlingApi(
+      tryCall: () => dioNetwork.getData(endPoint: '/api/v1/cleaning/worker/statistics', params: params.getParams(), data: params.getBody().isEmpty ? null : params.getBody()),
+      jsonConvert: fetchWorkerStatisticsModelFromJson,
+    );
+  }
+
+  Future<WorkerWorkAreasModel> updateWorkerWorkAreas(UpdateWorkerWorkAreasParams params) {
+    return wrapHandlingApi(
+      tryCall: () => dioNetwork.putData(
+        endPoint: '/api/v1/cleaning/worker/account/work-areas',
+        params: params.getParams(),
+        data: params.getBody(),
+      ),
+      jsonConvert: workerWorkAreasModelFromJson,
+    );
+  }
+
+  Future<UpdateWorkerProfileModel> updateWorkerProfile(UpdateWorkerProfileParams params) {
+    return wrapHandlingApi(
+      tryCall: () => dioNetwork.putData(
+        endPoint: '/api/v1/cleaning/worker/account/profile',
+        params: params.getParams(),
+        data: params.getBody(),
+      ),
+      jsonConvert: updateWorkerProfileModelFromJson,
     );
   }
 }

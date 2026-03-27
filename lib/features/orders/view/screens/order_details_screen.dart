@@ -26,9 +26,11 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     if (widget.params.order.status == 'pending') {
       return 0;
     } else if (widget.params.order.status == 'worker_assigned') {
-      return 1;
-    } else if (widget.params.order.startedTravelAt != null) {
-      return 2;
+      if (widget.params.order.startedTravelAt == null) {
+        return 1;
+      } else {
+        return 2;
+      }
     } else if (widget.params.order.status == 'in_progress') {
       return 3;
     } else {
@@ -67,8 +69,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
               return OrderDetailsMissionBody(
                 order: widget.params.order,
                 bloc: widget.params.bloc,
-                addons: state.arrive?.data?.addons == null ? [] : state.arrive!.data!.addons!,
-                services: state.arrive?.data?.services == null ? [] : state.arrive!.data!.services!,
+                addons: state.arrive?.data?.addons == null ? widget.params.order.addons! : state.arrive!.data!.addons!,
+                services: state.arrive?.data?.services == null ? widget.params.order.services! : state.arrive!.data!.services!,
               );
             }
           },

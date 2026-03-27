@@ -2,8 +2,9 @@ import 'dart:convert';
 
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/widgets/order_card.dart';
-import 'package:dllni_cleaninig_owner_app/features/auth/data/models/login_usecase_model.dart';
+import 'package:dllni_cleaninig_owner_app/features/profile/data/models/fetch_worker_profile_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/home/view/widgets/today_overview_card.dart';
+import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/fetch_worker_profile_usecase_use_case.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
@@ -11,6 +12,7 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import '../../../../core/di/injection.dart';
 import '../../../orders/domain/usecases/fetch_orders_usecase_use_case.dart';
 import '../../../orders/view/manager/bloc/orders_bloc.dart';
+import '../../../profile/view/manager/bloc/profile_bloc.dart';
 import '../../domain/usecases/fetch_home_page_usecase_use_case.dart';
 import '../manager/bloc/home_bloc.dart';
 import '../widgets/home_app_bar.dart';
@@ -24,12 +26,15 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  LoginUsecaseModel? user;
+  FetchWorkerProfileUsecaseModel? user;
 
   @override
   void initState() {
     super.initState();
-    user = loginUsecaseModelFromJson(json.decode(SharedPreferencesHelper.getData(key: 'user')));
+    final data = SharedPreferencesHelper.getData(key: 'user');
+    if (data != null) {
+      user = fetchWorkerProfileUsecaseModelFromJson(data is String ? json.decode(data) : data);
+    }
   }
 
   @override
@@ -45,11 +50,15 @@ class _HomeScreenState extends State<HomeScreen> {
           create: (context) =>
               getIt<OrdersBloc>()..add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: 'worker_assigned'))),
         ),
+        BlocProvider<ProfileBloc>(
+          lazy: false,
+          create: (context) => getIt<ProfileBloc>()..add(FetchWorkerProfileUsecaseEvent(params: FetchWorkerProfileUsecaseParams())),
+        ),
       ],
       child: SafeArea(
         child: Column(
           children: [
-            HomeAppBar(name: user?.user?.name),
+            HomeAppBar(),
             Expanded(
               child: SingleChildScrollView(
                 padding: EdgeInsetsDirectional.only(start: 24.w, end: 24.w, bottom: 20.h),

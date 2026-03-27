@@ -13,7 +13,11 @@ class ProfileAppBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: context.primary,
+        gradient: LinearGradient(
+          colors: [context.primary, context.primaryContainer],
+          end: AlignmentGeometry.centerRight,
+          begin: AlignmentGeometry.centerLeft,
+        ),
         borderRadius: BorderRadius.only(bottomRight: Radius.circular(16), bottomLeft: Radius.circular(16)),
         boxShadow: [BoxShadow(color: Colors.black.withAlpha(27), offset: Offset(0, -2), blurRadius: 12, spreadRadius: 0)],
       ),
@@ -30,7 +34,11 @@ class ProfileAppBar extends StatelessWidget {
             case BlocStatus.success:
               return Row(
                 children: [
-                  CircleAvatar(radius: 30, backgroundImage: NetworkImage('image'), backgroundColor: context.onPrimaryContainer),
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundImage: NetworkImage(state.workerProfileUsecase?.data?.avatar?.url ?? ''),
+                    backgroundColor: context.onPrimaryContainer,
+                  ),
                   SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -48,7 +56,7 @@ class ProfileAppBar extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             AppText.labelMedium(
-                              state.workerProfileUsecase?.data?.user?.id == null ? '-' : state.workerProfileUsecase!.data!.user!.id.toString(),
+                              'ID: ${state.workerProfileUsecase?.data?.user?.id == null ? ' - ' : state.workerProfileUsecase!.data!.user!.id.toString()}',
                               color: context.onPrimary,
                               fontWeight: FontWeight.w500,
                               textAlign: TextAlign.start,

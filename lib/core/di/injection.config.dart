@@ -74,6 +74,14 @@ import '../../features/profile/domain/usecases/fetch_disputes_usecase_use_case.d
     as _i947;
 import '../../features/profile/domain/usecases/fetch_worker_profile_usecase_use_case.dart'
     as _i338;
+import '../../features/profile/domain/usecases/fetch_worker_statistics_use_case.dart'
+    as _i280;
+import '../../features/profile/domain/usecases/update_dispute_use_case.dart'
+    as _i973;
+import '../../features/profile/domain/usecases/update_worker_profile_use_case.dart'
+    as _i857;
+import '../../features/profile/domain/usecases/update_worker_work_areas_use_case.dart'
+    as _i780;
 import '../../features/profile/view/manager/bloc/profile_bloc.dart' as _i821;
 import 'injection.dart' as _i464;
 
@@ -174,6 +182,18 @@ _i174.GetIt $initGetIt(
       profile: gh<_i275.ProfileRepo>(),
     ),
   );
+  gh.lazySingleton<_i280.FetchWorkerStatisticsUseCase>(
+    () => _i280.FetchWorkerStatisticsUseCase(profile: gh<_i275.ProfileRepo>()),
+  );
+  gh.lazySingleton<_i973.UpdateDisputeUseCase>(
+    () => _i973.UpdateDisputeUseCase(profile: gh<_i275.ProfileRepo>()),
+  );
+  gh.lazySingleton<_i857.UpdateWorkerProfileUseCase>(
+    () => _i857.UpdateWorkerProfileUseCase(profile: gh<_i275.ProfileRepo>()),
+  );
+  gh.lazySingleton<_i780.UpdateWorkerWorkAreasUseCase>(
+    () => _i780.UpdateWorkerWorkAreasUseCase(profile: gh<_i275.ProfileRepo>()),
+  );
   gh.lazySingleton<_i976.AuthRepo>(
     () => _i751.AuthRepoImpl(
       authRemoteDataSource: gh<_i777.AuthRemoteDataSource>(),
@@ -181,13 +201,6 @@ _i174.GetIt $initGetIt(
   );
   gh.lazySingleton<_i1024.FetchHomePageUsecaseUseCase>(
     () => _i1024.FetchHomePageUsecaseUseCase(home: gh<_i396.HomeRepo>()),
-  );
-  gh.factory<_i821.ProfileBloc>(
-    () => _i821.ProfileBloc(
-      gh<_i338.FetchWorkerProfileUsecaseUseCase>(),
-      gh<_i947.FetchDisputesUsecaseUseCase>(),
-      gh<_i961.FetchDisputeDetailsUsecaseUseCase>(),
-    ),
   );
   gh.factory<_i305.OrdersBloc>(
     () => _i305.OrdersBloc(
@@ -207,6 +220,17 @@ _i174.GetIt $initGetIt(
   );
   gh.factory<_i648.HomeBloc>(
     () => _i648.HomeBloc(gh<_i1024.FetchHomePageUsecaseUseCase>()),
+  );
+  gh.factory<_i821.ProfileBloc>(
+    () => _i821.ProfileBloc(
+      gh<_i338.FetchWorkerProfileUsecaseUseCase>(),
+      gh<_i947.FetchDisputesUsecaseUseCase>(),
+      gh<_i961.FetchDisputeDetailsUsecaseUseCase>(),
+      gh<_i280.FetchWorkerStatisticsUseCase>(),
+      gh<_i780.UpdateWorkerWorkAreasUseCase>(),
+      gh<_i973.UpdateDisputeUseCase>(),
+      gh<_i857.UpdateWorkerProfileUseCase>(),
+    ),
   );
   gh.lazySingleton<_i462.LoginUsecaseUseCase>(
     () => _i462.LoginUsecaseUseCase(auth: gh<_i976.AuthRepo>()),

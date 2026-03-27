@@ -1,14 +1,16 @@
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/fetch_worker_profile_usecase_use_case.dart';
+import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/fetch_worker_statistics_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/update_profile_screen.dart';
+import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/work_areas_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
-import '../../../../generated/assets.dart';
 import '../manager/bloc/profile_bloc.dart';
 import '../widgets/profile_app_bar.dart';
+import '../widgets/section_card.dart';
 import '../widgets/statistics_line_chart.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -21,18 +23,23 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
-    final List<String> titles = ['تعديل ملفي الشخصي', 'مناطق عملي', 'أوقات العمل', 'سجل المعاملات', 'تسجيل الخروج'];
-    final List<String> images = [
-      Assets.imagesProfileUser,
-      Assets.imagesProfileLocation,
-      Assets.imagesProfileClock,
-      Assets.imagesProfileSignal,
-      Assets.imagesLogout,
+    final List<String> titles = ['تعديل ملفي الشخصي', 'مناطق عملي', 'أوقات العمل', 'سجل المعاملات', 'الدعم والمساعدة'];
+    final List<String> subtitles = [
+      'لتعديل بيانات العرض',
+      'يمكنك إدارة أماكن عملك ',
+      'يمكنك تعديل أوقات عملك',
+      'يمكنك تتبع أداءك',
+      'التواصل مع الدعم الفني',
     ];
+    final List<IconData> images = [Icons.person, Icons.location_on_outlined, Icons.alarm, Icons.signal_cellular_alt, Icons.headphones];
+
+    final List<Color> colors = [Color(0xff3B82F6), Color(0xffEAB308), Color(0xffA855F7), Color(0xff22C55E), Color(0xff6366F1)];
 
     return BlocProvider<ProfileBloc>(
       lazy: false,
-      create: (context) => getIt<ProfileBloc>()..add(FetchWorkerProfileUsecaseEvent(params: FetchWorkerProfileUsecaseParams())),
+      create: (context) => getIt<ProfileBloc>()
+        ..add(FetchWorkerProfileUsecaseEvent(params: FetchWorkerProfileUsecaseParams()))
+        ..add(FetchWorkerStatisticsEvent(params: FetchWorkerStatisticsParams())),
       child: SafeArea(
         child: Column(
           children: [
@@ -44,17 +51,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     StatisticsLineChart(),
                     24.verticalSpace,
+                    Row(
+                      children: [
+                        SizedBox(
+                          height: 20,
+                          child: VerticalDivider(color: Colors.black, thickness: 4, radius: BorderRadius.circular(9999)),
+                        ),
+                        SizedBox(width: 8),
+                        AppText.titleMedium('إدارة الحساب', fontWeight: FontWeight.bold),
+                      ],
+                    ),
+                    12.verticalSpace,
                     Column(
                       spacing: 15.h,
                       children: List.generate(
                         titles.length,
                         (i) => BlocBuilder<ProfileBloc, ProfileState>(
                           builder: (context, state) {
-                            return sectionContainer(
-                              images[i],
-                              titles[i],
-                              context,
-                              i == 0
+                            return SectionCard(
+                              containerColor: colors[i].withAlpha(27),
+                              title: titles[i],
+                              image: images[i],
+                              imageColor: colors[i],
+                              subtitle: subtitles[i],
+                              onTap: i == 0
                                   ? () {
                                       context.pushRoute(
                                         '/updateprofile',
@@ -68,7 +88,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       );
                                     }
                                   : i == 1
-                                  ? () {}
+                                  ? () {
+                                      context.pushRoute('/workareas', arguments: WorkAreasScreenParams(zones: state.workerProfileUsecase!.data!.zones!));
+                                    }
                                   : i == 2
                                   ? () {
                                       context.pushRoute('/workingtime', arguments: state.workerProfileUsecase!.data!.defaultWorkingHours!);
@@ -86,7 +108,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                     ),
-                    24.verticalSpace,
+                    12.verticalSpace,
+                    InkWell(
+                      onTap: () {
+                        SharedPreferencesHelper.clearData();
+                        context.pushRouteAndRemoveUntil('/login');
+                      },
+                      borderRadius: BorderRadius.circular(24),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Color(0xff727791).withAlpha(6),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: Color(0xff727791).withAlpha(52)),
+                        ),
+                        padding: EdgeInsetsDirectional.symmetric(vertical: 20),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.logout_rounded, color: context.primaryContainer),
+                            SizedBox(width: 12),
+                            AppText.bodyMedium('تسجيل الخروج', color: context.primaryContainer, fontWeight: FontWeight.bold),
+                          ],
+                        ),
+                      ),
+                    ),
+                    /*24.verticalSpace,
                     Row(
                       children: [
                         AppText.labelLarge('حالة الحساب', color: context.primary, fontWeight: FontWeight.w500),
@@ -104,7 +150,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           },
                         ),
                       ],
-                    ),
+                    ),*/
                   ],
                 ),
               ),
@@ -114,26 +160,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-
-  Widget sectionContainer(String image, String title, BuildContext context, Function() onTap) => InkWell(
-    borderRadius: BorderRadius.circular(24.r),
-    onTap: onTap,
-    child: Container(
-      decoration: BoxDecoration(color: Color(0xffE9EBEF), borderRadius: BorderRadius.circular(24.r)),
-      padding: EdgeInsetsDirectional.symmetric(horizontal: 24.w, vertical: 8.h),
-      child: Row(
-        children: [
-          AppImage.asset(image, size: 24.r),
-          16.horizontalSpace,
-          Expanded(
-            child: AppText.labelLarge(title, textAlign: TextAlign.start, maxLines: 1, overflow: TextOverflow.ellipsis),
-          ),
-          16.horizontalSpace,
-          Icon(Icons.arrow_forward_ios, size: 18.sp, color: context.primary),
-        ],
-      ),
-    ),
-  );
 }
 
 class CustomMiniSwitch extends StatefulWidget {

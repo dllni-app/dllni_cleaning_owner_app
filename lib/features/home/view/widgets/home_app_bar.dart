@@ -1,12 +1,12 @@
 import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
-class HomeAppBar extends StatelessWidget {
-  const HomeAppBar({super.key, this.image, this.name});
+import '../../../profile/view/manager/bloc/profile_bloc.dart';
 
-  final String? image;
-  final String? name;
+class HomeAppBar extends StatelessWidget {
+  const HomeAppBar({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -20,22 +20,26 @@ class HomeAppBar extends StatelessWidget {
       width: context.width,
       height: 70.h,
       padding: EdgeInsetsDirectional.symmetric(horizontal: 24.w),
-      child: Row(
-        children: [
-          image != null
-              ? AppImage.network(image!)
-              : CircleAvatar(radius: 20.r, backgroundColor: context.primaryContainer, child: AppText.labelSmall(name == null ? 'n' : name![0])),
-          8.horizontalSpace,
-          Expanded(
-            child: AppText.labelMedium(
-              'مرحباً $name, لنكتشف ماهي مهامك اليوم',
-              color: Color(0xff2C6862),
-              fontWeight: FontWeight.w500,
-              textAlign: TextAlign.start,
-            ),
-          ),
-          Icon(Icons.notifications_none_outlined, color: context.primaryContainer),
-        ],
+      child: BlocBuilder<ProfileBloc, ProfileState>(
+        builder: (context, state) {
+          return Row(
+            children: [
+              state.workerProfileUsecase?.data?.avatar?.url != null
+                  ? AppImage.network(state.workerProfileUsecase!.data!.avatar!.url!)
+                  : SizedBox.shrink(),
+              8.horizontalSpace,
+              Expanded(
+                child: AppText.labelMedium(
+                  'مرحباً ${state.workerProfileUsecase?.data?.firstName ?? ''}, لنكتشف ماهي مهامك اليوم',
+                  color: Color(0xff2C6862),
+                  fontWeight: FontWeight.w500,
+                  textAlign: TextAlign.start,
+                ),
+              ),
+              Icon(Icons.notifications_none_outlined, color: context.primaryContainer),
+            ],
+          );
+        },
       ),
     );
   }

@@ -70,12 +70,12 @@ dynamic _asDynamic(dynamic value) {
   return value.toString();
 }
 
-LoginUsecaseModel loginUsecaseModelFromJson(str) => LoginUsecaseModel.fromJson(str);
+LoginUsecaseModel loginUsecaseModelFromJson(str) => LoginUsecaseModel.fromJson(str is String ? json.decode(str) : str);
 
 String loginUsecaseModelToJson(LoginUsecaseModel data) => json.encode(data.toJson());
 
 
-LoginUsecaseModelUser loginUsecaseModelUserFromJson(str) => LoginUsecaseModelUser.fromJson(str);
+LoginUsecaseModelUser loginUsecaseModelUserFromJson(str) => LoginUsecaseModelUser.fromJson(str is String ? json.decode(str) : str);
 
 String loginUsecaseModelUserToJson(LoginUsecaseModelUser data) => json.encode(data.toJson());
 
@@ -105,49 +105,26 @@ class LoginUsecaseModel {
 }
 
 class LoginUsecaseModelUser {
-  int? id;
-  String? name;
-  String? email;
-  String? phone;
   String? moduleType;
   String? emailVerifiedAt;
-  String? createdAt;
-  String? updatedAt;
 
   LoginUsecaseModelUser({
-    this.id,
-    this.name,
-    this.email,
-    this.phone,
     this.moduleType,
     this.emailVerifiedAt,
-    this.createdAt,
-    this.updatedAt,
   });
 
   factory LoginUsecaseModelUser.fromJson(Map<String, dynamic> json) {
     return LoginUsecaseModelUser(
-      id: _asInt(json['id']),
-      name: _asString(json['name']),
-      email: _asString(json['email']),
-      phone: _asString(json['phone']),
       moduleType: _asString(json['moduleType']),
       emailVerifiedAt: _asString(json['emailVerifiedAt']),
-      createdAt: _asString(json['createdAt']),
-      updatedAt: _asString(json['updatedAt']),
     );
   }
 
+  @override
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'name': name,
-      'email': email,
-      'phone': phone,
       'moduleType': moduleType,
       'emailVerifiedAt': emailVerifiedAt,
-      'createdAt': createdAt,
-      'updatedAt': updatedAt,
     };
   }
 }

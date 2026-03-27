@@ -27,7 +27,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       },
       (r) {
         SharedPreferencesHelper.saveData(key: 'token', value: r.token!);
-        SharedPreferencesHelper.saveData(key: 'user', value: loginUsecaseModelToJson(r));
         emit(state.copyWith(loginUsecaseStatus: BlocStatus.success, loginUsecase: r));
       },
     );

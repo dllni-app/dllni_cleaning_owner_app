@@ -30,8 +30,12 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      bottomNavigationBar: BottomNavBar(controller: controller,),
-      body: TabBarView(controller: controller, children: [HomeScreen(), CalenderScreen(), OrdersScreen(), ProfileScreen()]),
+      bottomNavigationBar: BottomNavBar(controller: controller),
+      body: TabBarView(
+        controller: controller,
+        physics: const NeverScrollableScrollPhysics(),
+        children: [HomeScreen(), CalenderScreen(), OrdersScreen(), ProfileScreen()],
+      ),
     );
   }
 }

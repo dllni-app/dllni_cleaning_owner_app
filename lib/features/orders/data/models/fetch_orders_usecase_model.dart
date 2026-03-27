@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'arrive_model.dart';
+
 String? _asString(dynamic value) {
   if (value == null) return null;
   if (value is String) return value;
@@ -195,6 +197,9 @@ class FetchOrdersUsecaseModelDataItem {
 
   bool? termsAccepted;
 
+  List<Service>? services;
+  List<Addon>? addons;
+
   String? workStartedAt;
   String? workFinishedAt;
   String? startedTravelAt;
@@ -242,6 +247,8 @@ class FetchOrdersUsecaseModelDataItem {
     this.addressLatitude,
     this.addressLongitude,
     this.arrivedAt,
+    this.addons,
+    this.services,
   });
 
   factory FetchOrdersUsecaseModelDataItem.fromJson(Map<String, dynamic> json) {
@@ -288,6 +295,8 @@ class FetchOrdersUsecaseModelDataItem {
       cancellationReason: _asString(json['cancellationReason']),
 
       worker: json['worker'] is Map ? WorkerData.fromJson(Map<String, dynamic>.from(json['worker'])) : null,
+      services: json['services'] is List ? (json['services'] as List).map((e) => Service.fromJson(Map<String, dynamic>.from(e))).toList() : null,
+      addons: json['addons'] is List ? (json['addons'] as List).map((e) => Addon.fromJson(Map<String, dynamic>.from(e))).toList() : null,
     );
   }
 
@@ -308,6 +317,8 @@ class FetchOrdersUsecaseModelDataItem {
       'totalPrice': totalPrice,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
+      "services": services?.map((e) => e.toJson()).toList(),
+      "addons": addons?.map((e) => e.toJson()).toList(),
     };
   }
 }

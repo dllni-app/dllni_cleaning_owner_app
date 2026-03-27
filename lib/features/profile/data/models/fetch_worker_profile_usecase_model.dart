@@ -69,6 +69,7 @@ class FetchWorkerProfileUsecaseModelData {
   int? id;
   int? userId;
   String? firstName;
+  Avatar? avatar;
   String? bio;
   double? averageRating;
   int? totalCompletedJobs;
@@ -93,6 +94,7 @@ class FetchWorkerProfileUsecaseModelData {
     this.id,
     this.userId,
     this.firstName,
+    this.avatar,
     this.bio,
     this.averageRating,
     this.totalCompletedJobs,
@@ -119,6 +121,7 @@ class FetchWorkerProfileUsecaseModelData {
       id: _asInt(json['id']),
       userId: _asInt(json['userId']),
       firstName: _asString(json['firstName']),
+      avatar: json['avatar'] is Map ? Avatar.fromJson(Map<String, dynamic>.from(json['avatar'])) : null,
       bio: _asString(json['bio']),
       averageRating: _asDouble(json['averageRating']),
       totalCompletedJobs: _asInt(json['totalCompletedJobs']),
@@ -149,6 +152,7 @@ class FetchWorkerProfileUsecaseModelData {
     'id': id,
     'userId': userId,
     'firstName': firstName,
+    'avatar': avatar?.toJson(),
     'bio': bio,
     'averageRating': averageRating,
     'totalCompletedJobs': totalCompletedJobs,
@@ -169,6 +173,20 @@ class FetchWorkerProfileUsecaseModelData {
     'createdAt': createdAt,
     'updatedAt': updatedAt,
   };
+}
+
+class Avatar {
+  int? id;
+  String? url;
+
+  Avatar({this.id, this.url});
+
+  factory Avatar.fromJson(Map<String, dynamic> json) => Avatar(
+    id: _asInt(json['id']),
+    url: _asString(json['url']),
+  );
+
+  Map<String, dynamic> toJson() => {'id': id, 'url': url};
 }
 
 class WorkingDayItem {

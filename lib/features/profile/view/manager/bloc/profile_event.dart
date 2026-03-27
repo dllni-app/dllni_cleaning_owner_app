@@ -22,3 +22,27 @@ class FetchDisputeDetailsUsecaseEvent extends ProfileEvent {
 
   FetchDisputeDetailsUsecaseEvent({required this.params});
 }
+
+class UpdateDisputeEvent extends ProfileEvent {
+  final UpdateDisputeParams params;
+
+  UpdateDisputeEvent({required this.params});
+}
+
+class FetchWorkerStatisticsEvent extends ProfileEvent {
+  final FetchWorkerStatisticsParams params;
+
+  FetchWorkerStatisticsEvent({required this.params});
+}
+
+class UpdateWorkerWorkAreasEvent extends ProfileEvent {
+  final UpdateWorkerWorkAreasParams params;
+
+  UpdateWorkerWorkAreasEvent({required this.params});
+}
+
+class UpdateWorkerProfileEvent extends ProfileEvent {
+  final UpdateWorkerProfileParams params;
+
+  UpdateWorkerProfileEvent({required this.params});
+}

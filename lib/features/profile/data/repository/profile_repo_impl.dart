@@ -10,6 +10,14 @@ import '../../domain/usecases/fetch_disputes_usecase_use_case.dart';
 import '../models/fetch_disputes_usecase_model.dart';
 import '../../domain/usecases/fetch_dispute_details_usecase_use_case.dart';
 import '../models/fetch_dispute_details_usecase_model.dart';
+import '../../domain/usecases/update_dispute_use_case.dart';
+import '../models/update_dispute_model.dart';
+import '../../domain/usecases/fetch_worker_statistics_use_case.dart';
+import '../models/fetch_worker_statistics_model.dart';
+import '../../domain/usecases/update_worker_work_areas_use_case.dart';
+import '../models/worker_work_areas_model.dart';
+import '../../domain/usecases/update_worker_profile_use_case.dart';
+import '../models/update_worker_profile_model.dart';
 
 @LazySingleton(as: ProfileRepo)
 class ProfileRepoImpl with HandlingException implements ProfileRepo {
@@ -36,5 +44,33 @@ class ProfileRepoImpl with HandlingException implements ProfileRepo {
     return wrapHandlingException(
       tryCall: () => profileRemoteDataSource.fetchDisputeDetailsUsecase(params),
     );
-  }}
+  }
 
+  @override
+  DataResponse<UpdateDisputeModel> updateDispute(UpdateDisputeParams params) {
+    return wrapHandlingException(
+      tryCall: () => profileRemoteDataSource.updateDispute(params),
+    );
+  }
+
+  @override
+  DataResponse<FetchWorkerStatisticsModel> fetchWorkerStatistics(FetchWorkerStatisticsParams params) {
+    return wrapHandlingException(
+      tryCall: () => profileRemoteDataSource.fetchWorkerStatistics(params),
+    );
+  }
+
+  @override
+  DataResponse<WorkerWorkAreasModel> updateWorkerWorkAreas(UpdateWorkerWorkAreasParams params) {
+    return wrapHandlingException(
+      tryCall: () => profileRemoteDataSource.updateWorkerWorkAreas(params),
+    );
+  }
+
+  @override
+  DataResponse<UpdateWorkerProfileModel> updateWorkerProfile(UpdateWorkerProfileParams params) {
+    return wrapHandlingException(
+      tryCall: () => profileRemoteDataSource.updateWorkerProfile(params),
+    );
+  }
+}

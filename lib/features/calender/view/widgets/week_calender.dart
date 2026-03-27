@@ -38,6 +38,7 @@ class _WeekCalendarState extends State<WeekCalendar> {
           onDaySelected: (selected, focused) {
             setState(() {
               selectedDay = selected;
+              focusedDay = focused;
             });
             widget.calenderNotifier.changeSelectedDate(selected);
             context.read<OrdersBloc>().add(
@@ -46,6 +47,11 @@ class _WeekCalendarState extends State<WeekCalendar> {
                 isReload: true,
               ),
             );
+          },
+          onPageChanged: (focused) {
+            setState(() {
+              focusedDay = focused;
+            });
           },
           calendarStyle: CalendarStyle(
             isTodayHighlighted: false,
