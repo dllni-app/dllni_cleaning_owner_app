@@ -45,7 +45,12 @@ class _BottomNavBarState extends State<BottomNavBar> {
                   CircleAvatar(
                     radius: 25,
                     backgroundColor: widget.controller.index == i ? context.primaryContainer.withAlpha(63) : Colors.transparent,
-                    child: AppImage.asset(images[i], color: widget.controller.index == i ? context.primaryContainer : Color(0xff526D6B), width: 30, height: 30),
+                    child: AppImage.asset(
+                      images[i],
+                      color: widget.controller.index == i ? context.primaryContainer : Color(0xff526D6B),
+                      width: 30,
+                      height: 30,
+                    ),
                   ),
                   SizedBox(height: 8),
                   AppText.labelMedium(titles[i], fontWeight: FontWeight.w300, color: Color(0xff526D6B)),

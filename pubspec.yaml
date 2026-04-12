@@ -38,6 +38,7 @@ dependencies:
   geolocator: ^14.0.2
   toastification: ^3.0.3
   image_picker: ^1.2.1
+  flutter_launcher_icons: ^0.14.4
 
 
 dev_dependencies:
@@ -56,7 +57,13 @@ flutter:
 
   uses-material-design: true
 
-  #         weight: 700
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  remove_alpha_ios: true
+  image_path: "assets/images/app_logo.png"
+
   assets:
     - assets/translations/
     - assets/images/

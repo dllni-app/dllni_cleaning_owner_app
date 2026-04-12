@@ -6,10 +6,10 @@ class Assets {
   static const String imagesDisputeIcon = 'assets/images/dispute_icon.svg';
   static const String imagesHomeChart = 'assets/images/home_chart.svg';
   static const String imagesHomeClock = 'assets/images/home_clock.svg';
-  static const String imagesHomeCompletedOrdersIcon = 'assets/images/home_completed_orders_icon.png';
-  static const String imagesHomeConfirmedOrdersIcon = 'assets/images/home_confirmed_orders_icon.png';
-  static const String imagesHomeEarningIcon = 'assets/images/home_earning_icon.png';
-  static const String imagesHomeNewOrdersIcon = 'assets/images/home_new_orders_icon.png';
+  static const String imagesHomeCompletedOrdersIcon = 'assets/images/nav_bar_orders.svg';
+  static const String imagesHomeConfirmedOrdersIcon = 'assets/images/home_clock.svg';
+  static const String imagesHomeEarningIcon = 'assets/images/profile_signal.svg';
+  static const String imagesHomeNewOrdersIcon = 'assets/images/home_user.svg';
   static const String imagesHomeUser = 'assets/images/home_user.svg';
   static const String imagesLoginIcon = 'assets/images/login_icon.svg';
   static const String imagesLogout = 'assets/images/logout.svg';
@@ -28,5 +28,4 @@ class Assets {
   static const String imagesWorkingTimeCalender = 'assets/images/working_time_calender.svg';
   static const String translationsAr = 'assets/translations/ar.json';
   static const String translationsEn = 'assets/translations/en.json';
-
 }

@@ -53,6 +53,12 @@ class ErrorHandler implements Exception {
             return DataSource.notFound.getFailure();
           case ResponseCode.forBidden:
             return DataSource.forBidden.getFailure();
+          case ResponseCode.unAuthorized:
+            return UnauthenticatedFailure(
+              message: error.response?.data is Map<String, dynamic>
+                  ? ErrorMessageModel.fromJson(error.response!.data as Map<String, dynamic>).statusMessage
+                  : ResponseMessage.unAuthorized.tr(),
+            );
           case ResponseCode.blocked:
             return UserBlockedFailure(message: AppConstants.blockedError.tr());
           case ResponseCode.notAllowed:
