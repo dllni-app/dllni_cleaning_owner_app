@@ -72,7 +72,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       height: 80,
                       padding: EdgeInsetsDirectional.all(15.r),
                       decoration: BoxDecoration(color: Color(0xff1E2A78), borderRadius: BorderRadius.circular(16)),
-                      child: AppImage.asset(Assets.imagesLoginIcon),
+                      child: AppImage.asset(Assets.images.loginIcon.path),
                     ),
                     SizedBox(height: 24),
                     AppText.headlineLarge('مرحباً بعودتك', color: Color(0xff1E2A78), fontWeight: FontWeight.bold, textAlign: TextAlign.center),

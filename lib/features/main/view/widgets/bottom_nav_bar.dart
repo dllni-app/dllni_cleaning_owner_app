@@ -16,7 +16,12 @@ class BottomNavBar extends StatefulWidget {
 class _BottomNavBarState extends State<BottomNavBar> {
   @override
   Widget build(BuildContext context) {
-    List<String> images = [Assets.imagesNavBarHome, Assets.imagesNavBarCalender, Assets.imagesNavBarOrders, Assets.imagesNavBarMore];
+    List<String> images = [
+      Assets.images.navBarHome.path,
+      Assets.images.navBarCalender.path,
+      Assets.images.navBarOrders.path,
+      Assets.images.navBarMore.path,
+    ];
     List<String> titles = ['الرئيسية', 'تقويمي', 'الطلبات', 'المزيد'];
 
     return Container(

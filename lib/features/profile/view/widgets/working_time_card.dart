@@ -118,7 +118,7 @@ class _WorkingTimeCardState extends State<WorkingTimeCard> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: isEnabled
-                        ? Center(child: AppImage.asset(Assets.imagesWorkingTimeCalender))
+                        ? Center(child: AppImage.asset(Assets.images.workingTimeCalender.path))
                         : Center(child: Icon(Icons.door_front_door, color: Colors.grey.shade600, size: 24)),
                   ),
                   const SizedBox(width: 12),

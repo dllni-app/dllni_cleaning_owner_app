@@ -14,7 +14,7 @@ class StatisticsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     List<Color> colors = [Color(0xff2C3997), Color(0xffEF6221), Color(0xff00BA10)];
     List<String> titles = ['طلبات جديدة', 'طلبات مؤكدة', 'طلبات مكتملة'];
-    List<String> images = [Assets.imagesHomeNewOrdersIcon, Assets.imagesHomeConfirmedOrdersIcon, Assets.imagesHomeCompletedOrdersIcon];
+    List<String> images = [Assets.images.homeNewOrdersIcon.path, Assets.images.homeConfirmedOrdersIcon.path, Assets.images.homeCompletedOrdersIcon.path];
 
     return Row(
       spacing: 24.w,

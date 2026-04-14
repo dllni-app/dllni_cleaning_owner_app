@@ -25,7 +25,13 @@ class HomeAppBar extends StatelessWidget {
           return Row(
             children: [
               state.workerProfileUsecase?.data?.avatar?.url != null
-                  ? AppImage.network(state.workerProfileUsecase!.data!.avatar!.url!)
+                  ? AppImage.network(
+                      state.workerProfileUsecase!.data!.avatar!.url!,
+                      borderRadius: BorderRadius.circular(99),
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.cover,
+                    )
                   : SizedBox.shrink(),
               8.horizontalSpace,
               Expanded(

@@ -67,11 +67,11 @@ class TodayOverviewCard extends StatelessWidget {
                     }
                   },
                 ),
-                AppImage.asset(Assets.imagesHomeChart),
+                AppImage.asset(Assets.images.homeChart.path),
               ],
             ),
           ),
-          AppImage.asset(Assets.imagesHomeEarningIcon, size: 60,),
+          AppImage.asset(Assets.images.homeEarningIcon.path, size: 60,),
         ],
       ),
     );

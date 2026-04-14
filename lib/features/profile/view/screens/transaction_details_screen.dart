@@ -137,7 +137,7 @@ class _TransactionDetailsScreenState extends State<TransactionDetailsScreen> {
                                       width: context.width,
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [AppImage.asset(Assets.imagesDisputeIcon)],
+                                        children: [AppImage.asset(Assets.images.disputeIcon.path)],
                                       ),
                                     ),
                                   ],
