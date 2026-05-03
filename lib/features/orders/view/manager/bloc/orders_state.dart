@@ -1,6 +1,10 @@
 part of 'orders_bloc.dart';
 
 class OrdersState {
+  BlocStatus? startWorkStatus;
+  StartWorkModel? startWork;
+  BlocStatus? securityCodeStatus;
+  SecurityCodeModel? securityCode;
   BlocStatus? arriveStatus;
   ArriveModel? arrive;
   BlocStatus? rejectOrderUsecaseStatus;
@@ -29,6 +33,10 @@ class OrdersState {
   int? currentStep;
 
   OrdersState({
+    this.startWorkStatus,
+    this.startWork,
+    this.securityCodeStatus,
+    this.securityCode,
     this.errorMessage,
     this.ordersUsecase = const PaginationStateModel(perPage: 10),
     this.orderDetailsUsecase,
@@ -57,6 +65,10 @@ class OrdersState {
   });
 
   OrdersState copyWith({
+    StartWorkModel? startWork,
+    BlocStatus? startWorkStatus,
+    SecurityCodeModel? securityCode,
+    BlocStatus? securityCodeStatus,
     String? errorMessage,
     PaginationStateModel<FetchOrdersUsecaseModelDataItem>? ordersUsecase,
     FetchOrderDetailsUsecaseModel? orderDetailsUsecase,
@@ -83,6 +95,10 @@ class OrdersState {
     ArriveModel? arrive,
     BlocStatus? arriveStatus,
   }) => OrdersState(
+    startWork: startWork ?? this.startWork,
+    startWorkStatus: startWorkStatus ?? this.startWorkStatus,
+    securityCode: securityCode ?? this.securityCode,
+    securityCodeStatus: securityCodeStatus ?? this.securityCodeStatus,
     errorMessage: errorMessage ?? this.errorMessage,
     ordersUsecase: ordersUsecase ?? this.ordersUsecase,
     orderDetailsUsecase: orderDetailsUsecase ?? this.orderDetailsUsecase,

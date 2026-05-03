@@ -17,4 +17,8 @@ class FetchOrderDetailsUsecaseUseCase implements UseCase<FetchOrderDetailsUsecas
   }
 }
 
-class FetchOrderDetailsUsecaseParams with Params{}
+class FetchOrderDetailsUsecaseParams with Params {
+  FetchOrderDetailsUsecaseParams({required this.id});
+
+  final int id;
+}

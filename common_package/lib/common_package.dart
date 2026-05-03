@@ -10,6 +10,7 @@ export 'helpers/dio_network.dart';
 export 'helpers/droppable_helper.dart';
 export 'helpers/error_handler.dart';
 export 'helpers/logger_interceptor.dart';
+export 'helpers/pusher_service_logger.dart';
 export 'helpers/notification_helper.dart';
 export 'helpers/pagination_helper.dart';
 export 'helpers/shared_preferences_helper.dart';

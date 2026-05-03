@@ -17,4 +17,8 @@ class UpdateAvailabilityUsecaseUseCase implements UseCase<UpdateAvailabilityUsec
   }
 }
 
-class UpdateAvailabilityUsecaseParams with Params{}
+class UpdateAvailabilityUsecaseParams with Params {
+  UpdateAvailabilityUsecaseParams({required this.id});
+
+  final int id;
+}

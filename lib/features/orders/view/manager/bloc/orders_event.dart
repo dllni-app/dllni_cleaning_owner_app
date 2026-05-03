@@ -94,3 +94,27 @@ class ChangeDetailsCurrentStep extends OrdersEvent {
 
   ChangeDetailsCurrentStep({required this.step});
 }
+
+class ReportBookingLocationEvent extends OrdersEvent {
+  final PostBookingLocationParams params;
+
+  ReportBookingLocationEvent({required this.params});
+}
+
+class FetchSecurityCodeEvent extends OrdersEvent {
+  final FetchSecurityCodeParams params;
+
+  FetchSecurityCodeEvent({required this.params});
+}
+
+class StartWorkEvent extends OrdersEvent {
+  final StartWorkParams params;
+
+  StartWorkEvent({required this.params});
+}
+
+class SyncOrderFromRealtimeEvent extends OrdersEvent {
+  final int bookingId;
+
+  SyncOrderFromRealtimeEvent({required this.bookingId});
+}

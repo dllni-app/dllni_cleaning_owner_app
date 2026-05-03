@@ -17,4 +17,8 @@ class RejectExtensionUsecaseUseCase implements UseCase<RejectExtensionUsecaseMod
   }
 }
 
-class RejectExtensionUsecaseParams with Params{}
+class RejectExtensionUsecaseParams with Params {
+  RejectExtensionUsecaseParams({required this.id});
+
+  final int id;
+}

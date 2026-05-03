@@ -321,6 +321,56 @@ class FetchOrdersUsecaseModelDataItem {
       "addons": addons?.map((e) => e.toJson()).toList(),
     };
   }
+
+  FetchOrdersUsecaseModelDataItem withLifecycle({
+    String? status,
+    String? arrivedAt,
+    String? startedTravelAt,
+    String? workStartedAt,
+    String? workFinishedAt,
+    String? customerConfirmedAt,
+  }) {
+    return FetchOrdersUsecaseModelDataItem(
+      id: id,
+      bookingNumber: bookingNumber,
+      status: status ?? this.status,
+      scheduledDate: scheduledDate,
+      scheduledTime: scheduledTime,
+      locationName: locationName,
+      numberOfRooms: numberOfRooms,
+      estimatedHours: estimatedHours,
+      totalHours: totalHours,
+      customer: customer,
+      propertyType: propertyType,
+      propertyDetails: propertyDetails,
+      totalPrice: totalPrice,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      estimatedSqm: estimatedSqm,
+      addonsTotal: addonsTotal,
+      basePrice: basePrice,
+      billingPolicyId: billingPolicyId,
+      cancellationFee: cancellationFee,
+      cancellationPolicyId: cancellationPolicyId,
+      cancellationReason: cancellationReason,
+      cancelledAt: cancelledAt,
+      customerConfirmedAt: customerConfirmedAt ?? this.customerConfirmedAt,
+      customerId: customerId,
+      preferredWorkerId: preferredWorkerId,
+      startedTravelAt: startedTravelAt ?? this.startedTravelAt,
+      termsAccepted: termsAccepted,
+      travelFee: travelFee,
+      worker: worker,
+      workerId: workerId,
+      workFinishedAt: workFinishedAt ?? this.workFinishedAt,
+      workStartedAt: workStartedAt ?? this.workStartedAt,
+      addressLatitude: addressLatitude,
+      addressLongitude: addressLongitude,
+      arrivedAt: arrivedAt ?? this.arrivedAt,
+      addons: addons,
+      services: services,
+    );
+  }
 }
 
 class WorkerData {

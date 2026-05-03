@@ -1,8 +1,57 @@
 import 'package:common_package/extensions/theme_extension.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:toastification/toastification.dart';
 
 class AppToast {
+  static GlobalKey<NavigatorState>? _navigatorKey;
+
+  /// Call once at app startup with the same [GlobalKey] passed to [MaterialApp.navigatorKey].
+  static void bindNavigatorKey(GlobalKey<NavigatorState> key) {
+    _navigatorKey = key;
+  }
+
+  static const String defaultSuccessMessage = 'تمت العملية بنجاح';
+  static const String defaultErrorMessage = 'حدث خطأ';
+
+  static String _nonEmptyOr(String? message, String fallback) {
+    final t = message?.trim();
+    if (t == null || t.isEmpty) return fallback;
+    return t;
+  }
+
+  /// Shows an error toast using the root navigator context (no [BuildContext] required).
+  static void showErrorGlobal([String? message]) {
+    final context = _navigatorKey?.currentContext;
+    if (context == null) {
+      if (kDebugMode) {
+        debugPrint('AppToast.showErrorGlobal: no navigator context');
+      }
+      return;
+    }
+    showToast(
+      context: context,
+      message: _nonEmptyOr(message, defaultErrorMessage),
+      type: ToastificationType.error,
+    );
+  }
+
+  /// Shows a success toast using the root navigator context (no [BuildContext] required).
+  static void showSuccessGlobal([String? message]) {
+    final context = _navigatorKey?.currentContext;
+    if (context == null) {
+      if (kDebugMode) {
+        debugPrint('AppToast.showSuccessGlobal: no navigator context');
+      }
+      return;
+    }
+    showToast(
+      context: context,
+      message: _nonEmptyOr(message, defaultSuccessMessage),
+      type: ToastificationType.success,
+    );
+  }
+
   static void showToast({
     required BuildContext context,
     required String message,

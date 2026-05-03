@@ -28,6 +28,12 @@ import '../../domain/usecases/reject_order_usecase_use_case.dart';
 import '../models/reject_order_usecase_model.dart';
 import '../../domain/usecases/arrive_use_case.dart';
 import '../models/arrive_model.dart';
+import '../../domain/usecases/post_booking_location_use_case.dart';
+import '../models/booking_location_model.dart';
+import '../../domain/usecases/fetch_security_code_use_case.dart';
+import '../models/security_code_model.dart';
+import '../../domain/usecases/start_work_use_case.dart';
+import '../models/start_work_model.dart';
 
 @LazySingleton(as: OrdersRepo)
 class OrdersRepoImpl with HandlingException implements OrdersRepo {
@@ -117,5 +123,27 @@ class OrdersRepoImpl with HandlingException implements OrdersRepo {
     return wrapHandlingException(
       tryCall: () => ordersRemoteDataSource.arrive(params),
     );
-  }}
+  }
+
+  @override
+  DataResponse<BookingLocationOkModel> postBookingLocation(PostBookingLocationParams params) {
+    return wrapHandlingException(
+      tryCall: () => ordersRemoteDataSource.postBookingLocation(params),
+    );
+  }
+
+  @override
+  DataResponse<SecurityCodeModel> fetchSecurityCode(FetchSecurityCodeParams params) {
+    return wrapHandlingException(
+      tryCall: () => ordersRemoteDataSource.fetchSecurityCode(params),
+    );
+  }
+
+  @override
+  DataResponse<StartWorkModel> startWork(StartWorkParams params) {
+    return wrapHandlingException(
+      tryCall: () => ordersRemoteDataSource.startWork(params),
+    );
+  }
+}
 

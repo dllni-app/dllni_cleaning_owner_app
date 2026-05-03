@@ -1,4 +1,5 @@
 import 'package:common_package/common_package.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/order_notifier.dart';
 import 'package:flutter/material.dart';
@@ -16,7 +17,8 @@ class OrdersTypeTabBar extends StatefulWidget {
   State<OrdersTypeTabBar> createState() => _OrdersTypeTabBarState();
 }
 
-class _OrdersTypeTabBarState extends State<OrdersTypeTabBar> with TickerProviderStateMixin {
+class _OrdersTypeTabBarState extends State<OrdersTypeTabBar>
+    with TickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -37,26 +39,56 @@ class _OrdersTypeTabBarState extends State<OrdersTypeTabBar> with TickerProvider
       isScrollable: true,
       onTap: (i) {
         if (i == 0) {
-          context.read<OrdersBloc>().add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: 'pending'), isReload: true));
+          context.read<OrdersBloc>().add(
+            FetchOrdersUsecaseEvent(
+              params: FetchOrdersUsecaseParams(
+                page: 1,
+                status: CleaningBookingStatus.pending,
+              ),
+              isReload: true,
+            ),
+          );
         }
         if (i == 1) {
           context.read<OrdersBloc>().add(
-            FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: 'worker_assigned'), isReload: true),
+            FetchOrdersUsecaseEvent(
+              params: FetchOrdersUsecaseParams(
+                page: 1,
+                status: CleaningBookingStatus.workerAssigned,
+              ),
+              isReload: true,
+            ),
           );
         }
         if (i == 2) {
-          context.read<OrdersBloc>().add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: 'in_progress'), isReload: true));
+          context.read<OrdersBloc>().add(
+            FetchOrdersUsecaseEvent(
+              params: FetchOrdersUsecaseParams(
+                page: 1,
+                status: CleaningBookingStatus.inProgress,
+              ),
+              isReload: true,
+            ),
+          );
         }
         if (i == 3) {
-          context.read<OrdersBloc>().add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: 'completed'), isReload: true));
+          context.read<OrdersBloc>().add(
+            FetchOrdersUsecaseEvent(
+              params: FetchOrdersUsecaseParams(
+                page: 1,
+                status: CleaningBookingStatus.completed,
+              ),
+              isReload: true,
+            ),
+          );
         }
         widget.orderNotifier.status.value = i == 0
-            ? 'pending'
+            ? CleaningBookingStatus.pending
             : i == 1
-            ? 'worker_assigned'
+            ? CleaningBookingStatus.workerAssigned
             : i == 2
-            ? 'in_progress'
-            : 'completed';
+            ? CleaningBookingStatus.inProgress
+            : CleaningBookingStatus.completed;
       },
       dividerHeight: .1,
       tabAlignment: TabAlignment.start,
@@ -68,7 +100,10 @@ class _OrdersTypeTabBarState extends State<OrdersTypeTabBar> with TickerProvider
         AppText.labelLarge('قيد التنفيذ'),
         AppText.labelLarge('الطلبات المكتملة'),
       ],
-      labelPadding: EdgeInsetsDirectional.symmetric(vertical: 3, horizontal: 10),
+      labelPadding: EdgeInsetsDirectional.symmetric(
+        vertical: 3,
+        horizontal: 10,
+      ),
       labelColor: Colors.black,
       indicator: MaterialIndicator(
         height: 2,

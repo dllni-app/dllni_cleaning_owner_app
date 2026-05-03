@@ -9,7 +9,6 @@ import 'package:common_package/helpers/shared_preferences_helper.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 
 typedef NotificationTapCallback = FutureOr<void> Function(RemoteMessage message);
 typedef NotificationRouteArgumentsBuilder = Object? Function(String route, Map<String, dynamic> argsMap);

@@ -5,7 +5,6 @@ import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/updat
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:toastification/toastification.dart';
 
 import '../../../../generated/assets.dart';
 import '../manager/bloc/profile_bloc.dart';
@@ -58,7 +57,6 @@ class _TransactionDetailsScreenState extends State<TransactionDetailsScreen> {
             context.pop();
           } else if (state.updateDisputeStatus == BlocStatus.failed) {
             Loading.close();
-            AppToast.showToast(context: context, message: state.errorMessage ?? 'فشل في تحديث النزاع', type: ToastificationType.error);
           } else if (state.updateDisputeStatus == BlocStatus.loading) {
             Loading.show(context);
           }

@@ -23,6 +23,13 @@ import '../usecases/reject_order_usecase_use_case.dart';
 import '../../data/models/reject_order_usecase_model.dart';
 import '../usecases/arrive_use_case.dart';
 import '../../data/models/arrive_model.dart';
+import '../usecases/post_booking_location_use_case.dart';
+import '../../data/models/booking_location_model.dart';
+import '../usecases/fetch_security_code_use_case.dart';
+import '../../data/models/security_code_model.dart';
+import '../usecases/start_work_use_case.dart';
+import '../../data/models/start_work_model.dart';
+
 abstract class OrdersRepo {
   DataResponse<FetchOrdersUsecaseModel> fetchOrdersUsecase(FetchOrdersUsecaseParams params);
 
@@ -47,4 +54,10 @@ abstract class OrdersRepo {
   DataResponse<RejectOrderUsecaseModel> rejectOrderUsecase(RejectOrderUsecaseParams params);
 
   DataResponse<ArriveModel> arrive(ArriveParams params);
+
+  DataResponse<BookingLocationOkModel> postBookingLocation(PostBookingLocationParams params);
+
+  DataResponse<SecurityCodeModel> fetchSecurityCode(FetchSecurityCodeParams params);
+
+  DataResponse<StartWorkModel> startWork(StartWorkParams params);
 }

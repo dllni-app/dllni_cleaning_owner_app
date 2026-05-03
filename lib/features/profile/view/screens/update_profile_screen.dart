@@ -4,14 +4,12 @@ import 'dart:io';
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/core/widgets/app_pickers.dart';
-import 'package:dllni_cleaninig_owner_app/features/main/view/screens/main_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/update_worker_profile_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/manager/bloc/profile_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:toastification/toastification.dart';
 
 @AutoRoutePage()
 class UpdateProfileScreen extends StatefulWidget {
@@ -192,11 +190,6 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                                     Loading.close();
                                   } else if (state.updateWorkerProfileStatus == BlocStatus.failed) {
                                     Loading.close();
-                                    AppToast.showToast(
-                                      context: context,
-                                      message: state.errorMessage ?? 'فشل في تحديث النزاع',
-                                      type: ToastificationType.error,
-                                    );
                                   } else if (state.updateWorkerProfileStatus == BlocStatus.loading) {
                                     Loading.show(context);
                                   }

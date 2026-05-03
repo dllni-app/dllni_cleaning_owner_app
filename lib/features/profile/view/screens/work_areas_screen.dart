@@ -7,7 +7,6 @@ import 'package:dllni_cleaninig_owner_app/features/profile/view/manager/bloc/pro
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-import 'package:toastification/toastification.dart';
 
 class WorkAreasScreenParams {
   final List<Zone> zones;
@@ -214,7 +213,6 @@ class _WorkAreasScreenState extends State<WorkAreasScreen> {
                           Loading.show(context);
                         } else if (state.updateWorkAreasStatus == BlocStatus.failed) {
                           Loading.close();
-                          AppToast.showToast(context: context, message: state.errorMessage ?? 'خطا في حفظ التغييرات', type: ToastificationType.error);
                         }
                       },
                       builder: (context, state) {
@@ -355,9 +353,9 @@ class _SelectionBox extends StatelessWidget {
 }
 
 class _WorkAreaItem {
-  _WorkAreaItem({required this.id, required this.name, this.selected = false});
+  _WorkAreaItem({required this.id, required this.name});
 
   final String id;
   final String name;
-  bool selected;
+  bool selected = false;
 }

@@ -55,12 +55,18 @@ import '../../features/orders/domain/usecases/fetch_order_details_usecase_use_ca
     as _i718;
 import '../../features/orders/domain/usecases/fetch_orders_usecase_use_case.dart'
     as _i406;
+import '../../features/orders/domain/usecases/fetch_security_code_use_case.dart'
+    as _i310;
+import '../../features/orders/domain/usecases/post_booking_location_use_case.dart'
+    as _i931;
 import '../../features/orders/domain/usecases/reject_extension_usecase_use_case.dart'
     as _i537;
 import '../../features/orders/domain/usecases/reject_order_usecase_use_case.dart'
     as _i452;
 import '../../features/orders/domain/usecases/start_travel_usecase_use_case.dart'
     as _i713;
+import '../../features/orders/domain/usecases/start_work_use_case.dart'
+    as _i738;
 import '../../features/orders/domain/usecases/update_availability_usecase_use_case.dart'
     as _i13;
 import '../../features/orders/view/manager/bloc/orders_bloc.dart' as _i305;
@@ -83,6 +89,7 @@ import '../../features/profile/domain/usecases/update_worker_profile_use_case.da
 import '../../features/profile/domain/usecases/update_worker_work_areas_use_case.dart'
     as _i780;
 import '../../features/profile/view/manager/bloc/profile_bloc.dart' as _i821;
+import '../realtime/cleaning_booking_pusher_service.dart' as _i432;
 import 'injection.dart' as _i464;
 
 // initializes the registration of main-scope dependencies inside of GetIt
@@ -96,6 +103,9 @@ _i174.GetIt $initGetIt(
   gh.factory<_i472.CalenderBloc>(() => _i472.CalenderBloc());
   gh.factory<_i98.MainBloc>(() => _i98.MainBloc());
   gh.singleton<_i960.DioNetwork>(() => injectableModule.dio);
+  gh.lazySingleton<_i432.CleaningBookingPusherService>(
+    () => _i432.CleaningBookingPusherService(),
+  );
   gh.lazySingleton<_i148.CalenderRemoteDataSource>(
     () => _i148.CalenderRemoteDataSource(),
   );
@@ -157,6 +167,12 @@ _i174.GetIt $initGetIt(
   gh.lazySingleton<_i406.FetchOrdersUsecaseUseCase>(
     () => _i406.FetchOrdersUsecaseUseCase(orders: gh<_i132.OrdersRepo>()),
   );
+  gh.lazySingleton<_i310.FetchSecurityCodeUseCase>(
+    () => _i310.FetchSecurityCodeUseCase(orders: gh<_i132.OrdersRepo>()),
+  );
+  gh.lazySingleton<_i931.PostBookingLocationUseCase>(
+    () => _i931.PostBookingLocationUseCase(orders: gh<_i132.OrdersRepo>()),
+  );
   gh.lazySingleton<_i537.RejectExtensionUsecaseUseCase>(
     () => _i537.RejectExtensionUsecaseUseCase(orders: gh<_i132.OrdersRepo>()),
   );
@@ -165,6 +181,9 @@ _i174.GetIt $initGetIt(
   );
   gh.lazySingleton<_i713.StartTravelUsecaseUseCase>(
     () => _i713.StartTravelUsecaseUseCase(orders: gh<_i132.OrdersRepo>()),
+  );
+  gh.lazySingleton<_i738.StartWorkUseCase>(
+    () => _i738.StartWorkUseCase(orders: gh<_i132.OrdersRepo>()),
   );
   gh.lazySingleton<_i13.UpdateAvailabilityUsecaseUseCase>(
     () => _i13.UpdateAvailabilityUsecaseUseCase(orders: gh<_i132.OrdersRepo>()),
@@ -202,6 +221,9 @@ _i174.GetIt $initGetIt(
   gh.lazySingleton<_i1024.FetchHomePageUsecaseUseCase>(
     () => _i1024.FetchHomePageUsecaseUseCase(home: gh<_i396.HomeRepo>()),
   );
+  gh.factory<_i648.HomeBloc>(
+    () => _i648.HomeBloc(gh<_i1024.FetchHomePageUsecaseUseCase>()),
+  );
   gh.factory<_i305.OrdersBloc>(
     () => _i305.OrdersBloc(
       gh<_i406.FetchOrdersUsecaseUseCase>(),
@@ -216,10 +238,10 @@ _i174.GetIt $initGetIt(
       gh<_i13.UpdateAvailabilityUsecaseUseCase>(),
       gh<_i452.RejectOrderUsecaseUseCase>(),
       gh<_i800.ArriveUseCase>(),
+      gh<_i931.PostBookingLocationUseCase>(),
+      gh<_i310.FetchSecurityCodeUseCase>(),
+      gh<_i738.StartWorkUseCase>(),
     ),
-  );
-  gh.factory<_i648.HomeBloc>(
-    () => _i648.HomeBloc(gh<_i1024.FetchHomePageUsecaseUseCase>()),
   );
   gh.factory<_i821.ProfileBloc>(
     () => _i821.ProfileBloc(

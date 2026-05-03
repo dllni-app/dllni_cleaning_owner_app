@@ -11,8 +11,6 @@ import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/update_p
 import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/work_areas_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/working_time_screen.dart';
 
-import '../features/profile/data/models/fetch_worker_profile_usecase_model.dart';
-
 class GeneratedAppRoutes {
   static Route<dynamic>? onGenerateRoute(RouteSettings settings) {
     final args = settings.arguments;
@@ -74,9 +72,9 @@ class GeneratedAppRoutes {
         }
         return _errorRoute(settings);
       case '/workingtime':
-        if (args is FetchWorkerProfileUsecaseModelDataDefaultWorkingHours) {
+        if (args is WorkingTimeScreenParams) {
           return MaterialPageRoute(
-            builder: (_) => WorkingTimeScreen(data: args),
+            builder: (_) => WorkingTimeScreen(params: args),
             settings: settings,
           );
         }

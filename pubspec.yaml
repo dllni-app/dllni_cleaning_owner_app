@@ -40,6 +40,7 @@ dependencies:
   image_picker: ^1.2.1
   flutter_launcher_icons: ^0.14.4
   flutter_svg: ^2.0.10
+  pusher_channels_flutter: ^2.2.0
 
 
 dev_dependencies:

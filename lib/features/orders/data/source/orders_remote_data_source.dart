@@ -25,6 +25,12 @@ import '../models/reject_order_usecase_model.dart';
 import '../../domain/usecases/reject_order_usecase_use_case.dart';
 import '../models/arrive_model.dart';
 import '../../domain/usecases/arrive_use_case.dart';
+import '../models/booking_location_model.dart';
+import '../../domain/usecases/post_booking_location_use_case.dart';
+import '../models/security_code_model.dart';
+import '../../domain/usecases/fetch_security_code_use_case.dart';
+import '../models/start_work_model.dart';
+import '../../domain/usecases/start_work_use_case.dart';
 
 @lazySingleton
 class OrdersRemoteDataSource with HandlingApiManager {
@@ -43,7 +49,7 @@ class OrdersRemoteDataSource with HandlingApiManager {
   Future<FetchOrderDetailsUsecaseModel> fetchOrderDetailsUsecase(FetchOrderDetailsUsecaseParams params) {
     return wrapHandlingApi(
       tryCall: () => dioNetwork.getData(
-        endPoint: '/api/v1/cleaning-bookings/{id}',
+        endPoint: '/api/v1/cleaning-bookings/${params.id}',
         params: params.getParams(),
         data: params.getBody().isEmpty ? null : params.getBody(),
       ),
@@ -67,7 +73,8 @@ class OrdersRemoteDataSource with HandlingApiManager {
 
   Future<CompleteOrderUsecaseModel> completeOrderUsecase(CompleteOrderUsecaseParams params) {
     return wrapHandlingApi(
-      tryCall: () => dioNetwork.postData(endPoint: '/api/v1/cleaning-bookings/{id}/complete', data: params.getBody(), params: params.getParams()),
+      tryCall: () =>
+          dioNetwork.postData(endPoint: '/api/v1/cleaning-bookings/${params.id}/complete', data: params.getBody(), params: params.getParams()),
       jsonConvert: completeOrderUsecaseModelFromJson,
     );
   }
@@ -92,21 +99,23 @@ class OrdersRemoteDataSource with HandlingApiManager {
 
   Future<AcceptExtensionUsecaseModel> acceptExtensionUsecase(AcceptExtensionUsecaseParams params) {
     return wrapHandlingApi(
-      tryCall: () => dioNetwork.postData(endPoint: '/api/v1/cleaning-time-warnings/{id}/accept', data: params.getBody(), params: params.getParams()),
+      tryCall: () =>
+          dioNetwork.postData(endPoint: '/api/v1/cleaning-time-warnings/${params.id}/accept', data: params.getBody(), params: params.getParams()),
       jsonConvert: acceptExtensionUsecaseModelFromJson,
     );
   }
 
   Future<RejectExtensionUsecaseModel> rejectExtensionUsecase(RejectExtensionUsecaseParams params) {
     return wrapHandlingApi(
-      tryCall: () => dioNetwork.postData(endPoint: '/api/v1/cleaning-time-warnings/{id}/reject', data: params.getBody(), params: params.getParams()),
+      tryCall: () =>
+          dioNetwork.postData(endPoint: '/api/v1/cleaning-time-warnings/${params.id}/reject', data: params.getBody(), params: params.getParams()),
       jsonConvert: rejectExtensionUsecaseModelFromJson,
     );
   }
 
   Future<UpdateAvailabilityUsecaseModel> updateAvailabilityUsecase(UpdateAvailabilityUsecaseParams params) {
     return wrapHandlingApi(
-      tryCall: () => dioNetwork.putData(endPoint: '/api/v1/workers/{id}', data: params.getBody(), params: params.getParams()),
+      tryCall: () => dioNetwork.putData(endPoint: '/api/v1/workers/${params.id}', data: params.getBody(), params: params.getParams()),
       jsonConvert: updateAvailabilityUsecaseModelFromJson,
     );
   }
@@ -124,4 +133,38 @@ class OrdersRemoteDataSource with HandlingApiManager {
       tryCall: () => dioNetwork.postData(endPoint: '/api/v1/cleaning-bookings/${params.id}/arrive', data: params.getBody(), params: params.getParams()),
       jsonConvert: arriveModelFromJson,
     );
-  }}
+  }
+
+  Future<BookingLocationOkModel> postBookingLocation(PostBookingLocationParams params) {
+    return wrapHandlingApi(
+      tryCall: () => dioNetwork.postData(
+        endPoint: '/api/v1/cleaning-bookings/${params.id}/location',
+        data: params.getBody(),
+        params: params.getParams(),
+      ),
+      jsonConvert: bookingLocationOkModelFromJson,
+    );
+  }
+
+  Future<SecurityCodeModel> fetchSecurityCode(FetchSecurityCodeParams params) {
+    return wrapHandlingApi(
+      tryCall: () => dioNetwork.getData(
+        endPoint: '/api/v1/cleaning-bookings/${params.id}/security-code',
+        params: params.getParams(),
+        data: params.getBody().isEmpty ? null : params.getBody(),
+      ),
+      jsonConvert: securityCodeModelFromJson,
+    );
+  }
+
+  Future<StartWorkModel> startWork(StartWorkParams params) {
+    return wrapHandlingApi(
+      tryCall: () => dioNetwork.postData(
+        endPoint: '/api/v1/cleaning-bookings/${params.id}/start-work',
+        data: params.getBody(),
+        params: params.getParams(),
+      ),
+      jsonConvert: startWorkModelFromJson,
+    );
+  }
+}

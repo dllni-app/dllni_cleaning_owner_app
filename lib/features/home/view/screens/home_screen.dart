@@ -14,6 +14,7 @@ import '../../../orders/domain/usecases/fetch_orders_usecase_use_case.dart';
 import '../../../orders/view/manager/bloc/orders_bloc.dart';
 import '../../../profile/view/manager/bloc/profile_bloc.dart';
 import '../../domain/usecases/fetch_home_page_usecase_use_case.dart';
+import '../../../orders/view/widgets/extension_requests_sheet.dart';
 import '../manager/bloc/home_bloc.dart';
 import '../widgets/home_app_bar.dart';
 import '../widgets/statistics_row.dart';
@@ -73,6 +74,42 @@ class _HomeScreenState extends State<HomeScreen> {
                     TodayOverviewCard(),
                     12.verticalSpace,
                     StatisticsRow(),
+                    12.verticalSpace,
+                    BlocBuilder<HomeBloc, HomeState>(
+                      builder: (context, homeState) {
+                        final n = homeState.homePageUsecase?.pendingExtensionRequestsCount ?? 0;
+                        if (homeState.homePageUsecaseStatus != BlocStatus.success || n <= 0) {
+                          return const SizedBox.shrink();
+                        }
+                        return Padding(
+                          padding: EdgeInsets.only(bottom: 4.h),
+                          child: Material(
+                            color: context.colorScheme.errorContainer.withAlpha(100),
+                            borderRadius: BorderRadius.circular(12.r),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12.r),
+                              onTap: () {
+                                ExtensionRequestsSheet.show(
+                                  context,
+                                  onChanged: () => context.read<HomeBloc>().add(FetchHomePageUsecaseEvent(params: FetchHomePageUsecaseParams())),
+                                );
+                              },
+                              child: Padding(
+                                padding: EdgeInsetsDirectional.symmetric(horizontal: 16.w, vertical: 12.h),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.more_time, color: context.error),
+                                    12.horizontalSpace,
+                                    Expanded(child: AppText.labelLarge('طلبات تمديد الوقت ($n)', fontWeight: FontWeight.w500)),
+                                    Icon(Icons.chevron_left, color: context.colorScheme.outline),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                     16.verticalSpace,
                     Row(
                       children: [

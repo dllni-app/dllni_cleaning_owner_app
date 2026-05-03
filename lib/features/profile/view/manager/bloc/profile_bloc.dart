@@ -1,11 +1,9 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 import 'dart:async';
-import 'package:common_package/helpers/pagination_helper.dart';
-import 'package:common_package/helpers/shared_preferences_helper.dart';
+import 'package:common_package/common_package.dart';
 import '../../../domain/usecases/fetch_worker_profile_usecase_use_case.dart';
 import '../../../data/models/fetch_worker_profile_usecase_model.dart';
-import 'package:common_package/helpers/droppable_helper.dart';
 import '../../../domain/usecases/fetch_disputes_usecase_use_case.dart';
 import '../../../data/models/fetch_disputes_usecase_model.dart';
 import '../../../domain/usecases/fetch_dispute_details_usecase_use_case.dart';
@@ -57,6 +55,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     final res = await fetchWorkerProfileUsecaseUseCase(event.params);
     res.fold(
       (l) {
+        AppToast.showErrorGlobal(l.message);
         emit(state.copyWith(workerProfileUsecaseStatus: BlocStatus.failed, errorMessage: l.message));
       },
       (r) {
@@ -78,6 +77,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       final res = await fetchDisputesUsecaseUseCase(event.params);
       res.fold(
         (l) {
+          AppToast.showErrorGlobal(l.message);
           emit(
             state.copyWith(
               disputesUsecase: state.disputesUsecase!.setFaild(errorMessage: l.message),
@@ -97,6 +97,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     final res = await fetchDisputeDetailsUsecaseUseCase(event.params);
     res.fold(
       (l) {
+        AppToast.showErrorGlobal(l.message);
         emit(state.copyWith(disputeDetailsUsecaseStatus: BlocStatus.failed, errorMessage: l.message));
       },
       (r) {
@@ -110,9 +111,11 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     final res = await updateDisputeUseCase(event.params);
     res.fold(
       (l) {
+        AppToast.showErrorGlobal(l.message);
         emit(state.copyWith(updateDisputeStatus: BlocStatus.failed, errorMessage: l.message));
       },
       (r) {
+        AppToast.showSuccessGlobal('تم تحديث النزاع');
         add(FetchDisputesUsecaseEvent(params: FetchDisputesUsecaseParams(page: 1, status: 'open'), isReload: true));
         emit(state.copyWith(updateDisputeStatus: BlocStatus.success, updateDispute: r));
       },
@@ -124,6 +127,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     final res = await fetchWorkerStatisticsUseCase(event.params);
     res.fold(
       (l) {
+        AppToast.showErrorGlobal(l.message);
         emit(state.copyWith(workerStatisticsStatus: BlocStatus.failed, errorMessage: l.message));
       },
       (r) {
@@ -137,9 +141,11 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     final res = await updateWorkerWorkAreasUseCase(event.params);
     res.fold(
       (l) {
+        AppToast.showErrorGlobal(l.message);
         emit(state.copyWith(updateWorkAreasStatus: BlocStatus.failed, errorMessage: l.message));
       },
       (r) {
+        AppToast.showSuccessGlobal('تم تحديث مناطق العمل');
         emit(state.copyWith(updateWorkAreasStatus: BlocStatus.success, workAreas: r));
       },
     );
@@ -150,9 +156,11 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     final res = await updateWorkerProfileUseCase(event.params);
     res.fold(
       (l) {
+        AppToast.showErrorGlobal(l.message);
         emit(state.copyWith(updateWorkerProfileStatus: BlocStatus.failed, errorMessage: l.message));
       },
       (r) {
+        AppToast.showSuccessGlobal('تم تحديث الملف الشخصي');
         // Update local session data
         final userJson = SharedPreferencesHelper.getData(key: 'user');
         if (userJson != null) {

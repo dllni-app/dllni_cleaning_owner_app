@@ -9,6 +9,7 @@ import 'core/session/session_expired_handler.dart';
 Future<void> main() async {
   final navigatorKey = GlobalKey<NavigatorState>();
   SessionExpiredHandler.navigatorKey = navigatorKey;
+  AppToast.bindNavigatorKey(navigatorKey);
 
   await bootstrapApp(
     AppBootstrapConfig(

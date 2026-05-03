@@ -1,8 +1,9 @@
 import 'package:common_package/common_package.dart';
+import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
+import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_booking_pusher_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 import 'dart:async';
-import 'package:common_package/helpers/pagination_helper.dart';
 import '../../../domain/usecases/login_usecase_use_case.dart';
 import '../../../data/models/login_usecase_model.dart';
 
@@ -18,16 +19,38 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<LoginUsecaseEvent>(_loginUsecase);
   }
 
-  FutureOr<void> _loginUsecase(LoginUsecaseEvent event, Emitter<AuthState> emit) async {
+  FutureOr<void> _loginUsecase(
+    LoginUsecaseEvent event,
+    Emitter<AuthState> emit,
+  ) async {
     emit(state.copyWith(loginUsecaseStatus: BlocStatus.loading));
     final res = await loginUsecaseUseCase(event.params);
     res.fold(
       (l) {
-        emit(state.copyWith(loginUsecaseStatus: BlocStatus.failed, errorMessage: l.message));
+        AppToast.showErrorGlobal(l.message);
+        emit(
+          state.copyWith(
+            loginUsecaseStatus: BlocStatus.failed,
+            errorMessage: l.message,
+          ),
+        );
       },
       (r) {
         SharedPreferencesHelper.saveData(key: 'token', value: r.token!);
-        emit(state.copyWith(loginUsecaseStatus: BlocStatus.success, loginUsecase: r));
+        final workerId = r.user?.workerId ?? r.user?.id;
+        if (workerId != null) {
+          SharedPreferencesHelper.saveData(key: 'worker_id', value: workerId);
+          final pusher = getIt<CleaningBookingPusherService>();
+          unawaited(pusher.subscribeWorkerChannel(workerId));
+          pusher.setWorkerHandler(workerId, (eventName, payload) {});
+        }
+        AppToast.showSuccessGlobal('تم تسجيل الدخول بنجاح');
+        emit(
+          state.copyWith(
+            loginUsecaseStatus: BlocStatus.success,
+            loginUsecase: r,
+          ),
+        );
       },
     );
   }

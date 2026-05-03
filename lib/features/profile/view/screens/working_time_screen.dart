@@ -1,4 +1,3 @@
-import 'package:common_package/annotations/auto_route_page.dart';
 import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
@@ -7,11 +6,17 @@ import '../../data/models/fetch_worker_profile_usecase_model.dart';
 import '../widgets/working_time_app_bar.dart';
 import '../widgets/working_time_card.dart';
 
+class WorkingTimeScreenParams {
+  WorkingTimeScreenParams({required this.defaultWorkingHours});
+
+  final FetchWorkerProfileUsecaseModelDataDefaultWorkingHours defaultWorkingHours;
+}
+
 @AutoRoutePage()
 class WorkingTimeScreen extends StatefulWidget {
-  const WorkingTimeScreen({super.key, required this.data});
+  const WorkingTimeScreen({super.key, required this.params});
 
-  final FetchWorkerProfileUsecaseModelDataDefaultWorkingHours data;
+  final WorkingTimeScreenParams params;
 
   @override
   State<WorkingTimeScreen> createState() => _WorkingTimeScreenState();
@@ -40,27 +45,28 @@ class _WorkingTimeScreenState extends State<WorkingTimeScreen> {
                 itemBuilder: (context, index) {
                   final isToday = index == todayWeekday;
                   WorkingDay? workingDay;
+                  final data = widget.params.defaultWorkingHours;
                   switch (index) {
                     case 0:
-                      workingDay = widget.data.sunday;
+                      workingDay = data.sunday;
                       break;
                     case 1:
-                      workingDay = widget.data.monday;
+                      workingDay = data.monday;
                       break;
                     case 2:
-                      workingDay = widget.data.tuesday;
+                      workingDay = data.tuesday;
                       break;
                     case 3:
-                      workingDay = widget.data.wednesday;
+                      workingDay = data.wednesday;
                       break;
                     case 4:
-                      workingDay = widget.data.thursday;
+                      workingDay = data.thursday;
                       break;
                     case 5:
-                      workingDay = widget.data.friday;
+                      workingDay = data.friday;
                       break;
                     case 6:
-                      workingDay = widget.data.saturday;
+                      workingDay = data.saturday;
                       break;
                   }
                   return Padding(

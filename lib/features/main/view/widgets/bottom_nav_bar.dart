@@ -1,5 +1,4 @@
 import 'package:common_package/common_package.dart';
-import 'package:dllni_cleaninig_owner_app/features/main/view/manager/notifier/main_notifier.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../generated/assets.dart';

@@ -18,5 +18,6 @@ class HomeRepoImpl with HandlingException implements HomeRepo {
     return wrapHandlingException(
       tryCall: () => homeRemoteDataSource.fetchHomePageUsecase(params),
     );
-  }}
+  }
+}
 

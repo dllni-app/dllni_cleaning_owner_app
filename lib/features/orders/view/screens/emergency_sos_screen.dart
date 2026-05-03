@@ -45,7 +45,7 @@ class _EmergencySosScreenState extends State<EmergencySosScreen> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(24),
-                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: Offset(0, 4))],
+                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: Offset(0, 4))],
                       ),
                       padding: EdgeInsetsDirectional.all(25),
                       child: Column(

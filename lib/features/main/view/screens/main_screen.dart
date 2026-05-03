@@ -1,5 +1,4 @@
 import 'package:common_package/annotations/auto_route_page.dart';
-import 'package:dllni_cleaninig_owner_app/features/main/view/manager/notifier/main_notifier.dart';
 import 'package:flutter/material.dart';
 
 import '../../../calender/view/screens/calender_screen.dart';

@@ -17,4 +17,8 @@ class CompleteOrderUsecaseUseCase implements UseCase<CompleteOrderUsecaseModel, 
   }
 }
 
-class CompleteOrderUsecaseParams with Params{}
+class CompleteOrderUsecaseParams with Params {
+  CompleteOrderUsecaseParams({required this.id});
+
+  final int id;
+}

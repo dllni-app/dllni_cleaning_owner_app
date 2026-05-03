@@ -15,4 +15,5 @@ class HomeRemoteDataSource with HandlingApiManager {
       tryCall: () => dioNetwork.getData(endPoint: '/api/v1/cleaning/worker/homepage', params: params.getParams(), data: params.getBody().isEmpty ? null : params.getBody()),
       jsonConvert: fetchHomePageUsecaseModelFromJson,
     );
-  }}
+  }
+}

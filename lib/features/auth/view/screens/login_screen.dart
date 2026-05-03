@@ -3,7 +3,6 @@ import 'package:dllni_cleaninig_owner_app/features/auth/domain/usecases/login_us
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-import 'package:toastification/toastification.dart';
 
 import '../../../../core/di/injection.dart';
 import '../../../../generated/assets.dart';
@@ -42,7 +41,6 @@ class _LoginScreenState extends State<LoginScreen> {
               break;
             case BlocStatus.failed:
               Loading.close();
-              AppToast.showToast(context: context, message: state.errorMessage ?? 'حدث خطا ما', type: ToastificationType.error);
               break;
             case BlocStatus.success:
               Loading.close();
