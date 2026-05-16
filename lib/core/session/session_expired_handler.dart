@@ -10,22 +10,11 @@ class SessionExpiredHandler {
 
   static bool _navigating = false;
 
-  static int? _resolveWorkerId() {
-    final raw = SharedPreferencesHelper.getData(key: 'worker_id');
-    if (raw is num) return raw.toInt();
-    return int.tryParse('$raw');
-  }
-
   static Future<void> handle() async {
     if (_navigating) return;
     _navigating = true;
     try {
-      final workerId = _resolveWorkerId();
-      if (workerId != null) {
-        final pusher = getIt<CleaningBookingPusherService>();
-        pusher.setWorkerHandler(workerId, null);
-        await pusher.unsubscribeWorkerChannel(workerId);
-      }
+      await getIt<CleaningBookingPusherService>().disposeAllForSession();
       await SharedPreferencesHelper.clearData();
       navigatorKey?.currentState?.pushNamedAndRemoveUntil(
         '/login',

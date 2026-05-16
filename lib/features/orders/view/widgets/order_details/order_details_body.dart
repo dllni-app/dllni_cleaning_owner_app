@@ -6,16 +6,22 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
 import '../../../../../core/widgets/cancel_order_dialog.dart';
 import '../../../data/models/fetch_orders_usecase_model.dart';
-import '../../../domain/usecases/accept_order_usecase_use_case.dart';
 import '../../../domain/usecases/reject_order_usecase_use_case.dart';
 import '../../../domain/usecases/start_travel_usecase_use_case.dart';
 import '../../manager/bloc/orders_bloc.dart';
+import '../accept_order_bottom_sheet.dart';
 import '../estate_info_card.dart';
 import '../order_info_card.dart';
 import '../payment_info_card.dart';
 
 class OrderDetailsBody extends StatefulWidget {
-  const OrderDetailsBody({super.key, required this.bloc, required this.index, required this.order, required this.isNewOrder});
+  const OrderDetailsBody({
+    super.key,
+    required this.bloc,
+    required this.index,
+    required this.order,
+    required this.isNewOrder,
+  });
 
   final OrdersBloc bloc;
   final int index;
@@ -27,13 +33,21 @@ class OrderDetailsBody extends StatefulWidget {
 }
 
 class _OrderDetailsBodyState extends State<OrderDetailsBody> {
-  List<String> titles = ['إجمالي عدد\nساعات العمل', 'المساحة\nالتقديرية', 'السعر\nالإجمالي'];
+  List<String> titles = [
+    'إجمالي عدد\nساعات العمل',
+    'المساحة\nالتقديرية',
+    'السعر\nالإجمالي',
+  ];
   List<String> val = [];
 
   @override
   void initState() {
     super.initState();
-    val = [widget.order.totalHours.toString(), widget.order.estimatedSqm.toString(), '\$${widget.order.totalPrice.toString()}'];
+    val = [
+      widget.order.totalHours.toString(),
+      widget.order.estimatedSqm.toString(),
+      '\$${widget.order.totalPrice.toString()}',
+    ];
   }
 
   @override
@@ -54,7 +68,12 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                 child: Icon(Icons.arrow_back, color: Colors.black),
               ),
               12.horizontalSpace,
-              Expanded(child: AppText.headlineMedium('تفاصيل الطلب ${widget.order.bookingNumber}', textAlign: TextAlign.start)),
+              Expanded(
+                child: AppText.headlineMedium(
+                  'تفاصيل الطلب ${widget.order.bookingNumber}',
+                  textAlign: TextAlign.start,
+                ),
+              ),
             ],
           ),
           Expanded(
@@ -70,8 +89,14 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                       dashPattern: [8, 4],
                     ),
                     child: Container(
-                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), color: context.primaryContainer.withAlpha(31)),
-                      padding: EdgeInsetsDirectional.symmetric(horizontal: 10, vertical: 16),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        color: context.primaryContainer.withAlpha(31),
+                      ),
+                      padding: EdgeInsetsDirectional.symmetric(
+                        horizontal: 10,
+                        vertical: 16,
+                      ),
                       child: Row(
                         spacing: 30,
                         children: List.generate(
@@ -79,9 +104,17 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                           (i) => Expanded(
                             child: Column(
                               children: [
-                                AppText.headlineMedium(val[i], color: context.primary, fontWeight: FontWeight.w500),
+                                AppText.headlineMedium(
+                                  val[i],
+                                  color: context.primary,
+                                  fontWeight: FontWeight.w500,
+                                ),
                                 SizedBox(height: 8),
-                                AppText.labelLarge(titles[i], color: context.primary, fontWeight: FontWeight.w500),
+                                AppText.labelLarge(
+                                  titles[i],
+                                  color: context.primary,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ],
                             ),
                           ),
@@ -106,20 +139,40 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                                   onTap: () {
                                     widget.bloc.add(
                                       StartTravelUsecaseEvent(
-                                        params: StartTravelUsecaseParams(id: widget.order.id!),
+                                        params: StartTravelUsecaseParams(
+                                          id: widget.order.id!,
+                                        ),
                                         index: widget.index,
                                       ),
                                     );
                                   },
                                   child: Container(
                                     width: context.width,
-                                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), color: context.primary),
-                                    padding: EdgeInsetsDirectional.symmetric(horizontal: 12, vertical: 14),
-                                    child: state.startTravelUsecaseStatus == BlocStatus.loading
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(8),
+                                      color: context.primary,
+                                    ),
+                                    padding: EdgeInsetsDirectional.symmetric(
+                                      horizontal: 12,
+                                      vertical: 14,
+                                    ),
+                                    child:
+                                        state.startTravelUsecaseStatus ==
+                                            BlocStatus.loading
                                         ? Center(
-                                            child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: context.onPrimary)),
+                                            child: SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(
+                                                color: context.onPrimary,
+                                              ),
+                                            ),
                                           )
-                                        : AppText.labelLarge('أنا في الطريق', color: context.onPrimary, fontWeight: FontWeight.w500),
+                                        : AppText.labelLarge(
+                                            'أنا في الطريق',
+                                            color: context.onPrimary,
+                                            fontWeight: FontWeight.w500,
+                                          ),
                                   ),
                                 );
                               },
@@ -127,7 +180,12 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                             SizedBox(height: 12),
                             InkWell(
                               onTap: () {
-                                CancelOrderDialog.show(context, bloc: widget.bloc, orderId: widget.order.id!, orderNum: widget.order.bookingNumber!);
+                                CancelOrderDialog.show(
+                                  context,
+                                  bloc: widget.bloc,
+                                  orderId: widget.order.id!,
+                                  orderNum: widget.order.bookingNumber!,
+                                );
                               },
                               child: Container(
                                 width: context.width,
@@ -136,8 +194,15 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                                   color: context.error,
                                   border: Border.all(color: context.error),
                                 ),
-                                padding: EdgeInsetsDirectional.symmetric(horizontal: 6, vertical: 14),
-                                child: AppText.labelLarge('إلغاء الطلب', color: context.onError, fontWeight: FontWeight.w500),
+                                padding: EdgeInsetsDirectional.symmetric(
+                                  horizontal: 6,
+                                  vertical: 14,
+                                ),
+                                child: AppText.labelLarge(
+                                  'إلغاء الطلب',
+                                  color: context.onError,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
                           ],
@@ -149,22 +214,40 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                               builder: (context, state) {
                                 return InkWell(
                                   onTap: () {
-                                    widget.bloc.add(
-                                      AcceptOrderUsecaseEvent(
-                                        params: AcceptOrderUsecaseParams(id: widget.order.id!),
-                                        index: widget.index,
-                                      ),
+                                    AcceptOrderBottomSheet.show(
+                                      context,
+                                      order: widget.order,
+                                      bloc: widget.bloc,
+                                      index: widget.index,
                                     );
                                   },
                                   child: Container(
-                                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), color: context.primary),
-                                    padding: EdgeInsetsDirectional.symmetric(horizontal: 12, vertical: 14),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(8),
+                                      color: context.primary,
+                                    ),
+                                    padding: EdgeInsetsDirectional.symmetric(
+                                      horizontal: 12,
+                                      vertical: 14,
+                                    ),
                                     width: context.width,
-                                    child: state.acceptOrderUsecaseStatus == BlocStatus.loading
+                                    child:
+                                        state.acceptOrderUsecaseStatus ==
+                                            BlocStatus.loading
                                         ? Center(
-                                            child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: context.onPrimary)),
+                                            child: SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(
+                                                color: context.onPrimary,
+                                              ),
+                                            ),
                                           )
-                                        : AppText.labelLarge('قبول الطلب', color: context.onPrimary, fontWeight: FontWeight.w500),
+                                        : AppText.labelLarge(
+                                            'قبول الطلب',
+                                            color: context.onPrimary,
+                                            fontWeight: FontWeight.w500,
+                                          ),
                                   ),
                                 );
                               },
@@ -177,7 +260,9 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                                   onTap: () {
                                     widget.bloc.add(
                                       RejectOrderUsecaseEvent(
-                                        params: RejectOrderUsecaseParams(id: widget.order.id!),
+                                        params: RejectOrderUsecaseParams(
+                                          id: widget.order.id!,
+                                        ),
                                         index: widget.index,
                                       ),
                                     );
@@ -187,14 +272,31 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(8),
                                       color: Color(0xff727791),
-                                      border: Border.all(color: Color(0xff727791)),
+                                      border: Border.all(
+                                        color: Color(0xff727791),
+                                      ),
                                     ),
-                                    padding: EdgeInsetsDirectional.symmetric(horizontal: 6, vertical: 14),
-                                    child: state.rejectOrderUsecaseStatus == BlocStatus.loading
+                                    padding: EdgeInsetsDirectional.symmetric(
+                                      horizontal: 6,
+                                      vertical: 14,
+                                    ),
+                                    child:
+                                        state.rejectOrderUsecaseStatus ==
+                                            BlocStatus.loading
                                         ? Center(
-                                            child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: context.onError)),
+                                            child: SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(
+                                                color: context.onError,
+                                              ),
+                                            ),
                                           )
-                                        : AppText.labelLarge('رفض الطلب', color: context.onError, fontWeight: FontWeight.w500),
+                                        : AppText.labelLarge(
+                                            'رفض الطلب',
+                                            color: context.onError,
+                                            fontWeight: FontWeight.w500,
+                                          ),
                                   ),
                                 );
                               },

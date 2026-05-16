@@ -1,9 +1,11 @@
+import 'dart:async';
+
+import 'package:common_package/helpers/pusher_service_logger.dart';
 import 'package:common_package/widgets/app_text.dart';
 import 'package:common_package/helpers/shared_preferences_helper.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_booking_pusher_service.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
-import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/completed_order_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -22,9 +24,12 @@ class OrdersScreen extends StatefulWidget {
 }
 
 class _OrdersScreenState extends State<OrdersScreen> {
+  static const Duration _fallbackDebounce = Duration(milliseconds: 150);
+
   final OrderNotifier orderNotifier = OrderNotifier();
   late final OrdersBloc _ordersBloc;
   int? _workerId;
+  Timer? _fallbackRefreshDebounce;
 
   int? _resolveWorkerId() {
     final raw = SharedPreferencesHelper.getData(key: 'worker_id');
@@ -50,27 +55,76 @@ class _OrdersScreenState extends State<OrdersScreen> {
       final pusher = getIt<CleaningBookingPusherService>();
       pusher.setWorkerHandler(_workerId!, (eventName, payload) {
         if (!mounted) return;
-        if (eventName == 'ArrivalVerified' ||
-            eventName == 'CompletionDecisionMade' ||
-            eventName == 'ServiceExtensionRequested') {
-          _ordersBloc.add(
-            FetchOrdersUsecaseEvent(
-              params: FetchOrdersUsecaseParams(
-                page: 1,
-                status: orderNotifier.status.value,
-              ),
-              isReload: true,
-            ),
-          );
+        final hydrated = _dispatchRealtimeListHydration(
+          eventName: eventName,
+          payload: payload,
+        );
+        if (!hydrated) {
+          _scheduleFallbackRefresh();
         }
       });
+      unawaited(pusher.subscribeWorkerChannel(_workerId!));
     }
+  }
+
+  bool _dispatchRealtimeListHydration({
+    required String eventName,
+    required Map<String, dynamic> payload,
+  }) {
+    if (eventName != 'ArrivalVerified' &&
+        eventName != 'CompletionDecisionMade' &&
+        eventName != 'ServiceExtensionRequested' &&
+        eventName != 'CleaningBookingTrackingUpdated' &&
+        eventName != 'WorkerArrived' &&
+        eventName != 'cleaning_order.awaiting_start_verification' &&
+        eventName != 'cleaning_order.awaiting_customer_completion') {
+      return false;
+    }
+    final hasHydratablePayload =
+        payload['tracking'] is Map ||
+        payload['cleaningBookingId'] != null ||
+        payload['bookingId'] != null ||
+        payload['booking_id'] != null ||
+        payload['id'] != null ||
+        payload['status'] != null ||
+        payload['decision'] != null;
+    if (!hasHydratablePayload) return false;
+    _ordersBloc.add(
+      HydrateOrderListFromRealtimeEvent(eventName: eventName, payload: payload),
+    );
+    return true;
+  }
+
+  void _scheduleFallbackRefresh() {
+    _fallbackRefreshDebounce?.cancel();
+    _fallbackRefreshDebounce = Timer(_fallbackDebounce, () {
+      if (!mounted) return;
+      PusherServiceLogger.event(
+        'private-cleaning-worker.${_workerId ?? ''}',
+        'CleaningBookingTrackingUpdated',
+        <String, dynamic>{'status': orderNotifier.status.value},
+        eventHandledAtMs: DateTime.now().millisecondsSinceEpoch,
+        fallbackReason: 'missing_owner_orders_payload_fields',
+      );
+      _ordersBloc.add(
+        FetchOrdersUsecaseEvent(
+          params: FetchOrdersUsecaseParams(
+            page: 1,
+            status: orderNotifier.status.value,
+          ),
+          isReload: true,
+        ),
+      );
+    });
   }
 
   @override
   void dispose() {
+    _fallbackRefreshDebounce?.cancel();
     if (_workerId != null) {
-      getIt<CleaningBookingPusherService>().setWorkerHandler(_workerId!, null);
+      final pusher = getIt<CleaningBookingPusherService>();
+      pusher.setWorkerHandler(_workerId!, null);
+      unawaited(pusher.unsubscribeWorkerChannel(_workerId!));
     }
     _ordersBloc.close();
     super.dispose();
@@ -141,29 +195,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                 ),
                               );
                             }
-                            return status != CleaningBookingStatus.completed
-                                ? OrderCard(
-                                    date: state.ordersUsecase!.list[index],
-                                    orderStatus:
-                                        state
-                                                .ordersUsecase!
-                                                .list[index]
-                                                .status ==
-                                            CleaningBookingStatus.workerAssigned
-                                        ? OrderStatus.workerAssigned
-                                        : state
-                                                  .ordersUsecase!
-                                                  .list[index]
-                                                  .status ==
-                                              CleaningBookingStatus.inProgress
-                                        ? OrderStatus.inProgress
-                                        : OrderStatus.pending,
-                                    bloc: context.read<OrdersBloc>(),
-                                    index: index,
-                                  )
-                                : CompletedOrderCard(
-                                    date: state.ordersUsecase!.list[index],
-                                  );
+                            return OrderCard(
+                              data: state.ordersUsecase!.list[index],
+                              bloc: context.read<OrdersBloc>(),
+                              index: index,
+                            );
                           },
                           separatorBuilder: (context, index) =>
                               SizedBox(height: 16),

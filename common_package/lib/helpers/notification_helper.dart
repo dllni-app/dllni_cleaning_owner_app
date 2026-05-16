@@ -10,8 +10,10 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 
-typedef NotificationTapCallback = FutureOr<void> Function(RemoteMessage message);
-typedef NotificationRouteArgumentsBuilder = Object? Function(String route, Map<String, dynamic> argsMap);
+typedef NotificationTapCallback =
+    FutureOr<void> Function(RemoteMessage message);
+typedef NotificationRouteArgumentsBuilder =
+    Object? Function(String route, Map<String, dynamic> argsMap);
 
 class _ResolvedRoute {
   final String route;
@@ -25,7 +27,9 @@ const String _lifecycleMarkerKey = '_notification_lifecycle';
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  final payload = message.data.map((k, v) => MapEntry(k.toString(), v.toString()));
+  final payload = message.data.map(
+    (k, v) => MapEntry(k.toString(), v.toString()),
+  );
   // Store lifecycle marker to indicate this notification was created in background
   payload[_lifecycleMarkerKey] = NotificationLifeCycle.Background.name;
 
@@ -33,7 +37,10 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     content: NotificationContent(
       id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
       channelKey: 'basic_channel',
-      title: message.notification?.title ?? message.data['title'] ?? 'New Notification',
+      title:
+          message.notification?.title ??
+          message.data['title'] ??
+          'New Notification',
       body: message.notification?.body ?? message.data['body'] ?? '',
       payload: payload,
     ),
@@ -64,6 +71,8 @@ class NotificationHelper {
   static String? _lastTapFingerprint;
   static DateTime? _lastTapAt;
   static const Duration _tapDedupDuration = Duration(seconds: 3);
+  static const int _maxTokenFetchAttempts = 3;
+  static StreamSubscription<String>? _tokenRefreshSubscription;
 
   static Future<void> initAllNotifications({
     required String tokenKey,
@@ -90,15 +99,97 @@ class NotificationHelper {
 
   static Future<void> _initFirebase(String tokenKey) async {
     await Firebase.initializeApp();
+    await _requestMessagingPermission();
     await getToken(tokenKey);
+    _registerTokenRefreshListener(tokenKey);
   }
 
   static Future<void> getToken(String tokenKey) async {
-    final token = Platform.isIOS ? await FirebaseMessaging.instance.getAPNSToken() : await FirebaseMessaging.instance.getToken();
-    if (token != null) {
-      await SharedPreferencesHelper.saveData(key: tokenKey, value: token);
-      log('FCM Token: $token');
+    final token = await _fetchTokenWithRetry();
+    if (token != null && token.isNotEmpty) {
+      await _persistToken(tokenKey, token);
+      return;
     }
+
+    log(
+      'FCM token is unavailable right now. App startup will continue and token can be fetched later.',
+    );
+  }
+
+  static Future<void> _requestMessagingPermission() async {
+    try {
+      final settings = await FirebaseMessaging.instance.requestPermission();
+      log(
+        'FCM notification permission status: ${settings.authorizationStatus.name}',
+      );
+    } catch (error, stackTrace) {
+      log('Failed to request FCM permission: $error', stackTrace: stackTrace);
+    }
+  }
+
+  static Future<String?> _fetchTokenWithRetry() async {
+    for (var attempt = 1; attempt <= _maxTokenFetchAttempts; attempt++) {
+      try {
+        final token = Platform.isIOS
+            ? await FirebaseMessaging.instance.getAPNSToken()
+            : await FirebaseMessaging.instance.getToken();
+        if (token != null && token.isNotEmpty) {
+          return token;
+        }
+
+        log('FCM token attempt $attempt returned empty token.');
+      } catch (error, stackTrace) {
+        final retryable = _isRetryableTokenFailure(error);
+        log(
+          'FCM token attempt $attempt failed (retryable: $retryable): $error',
+          stackTrace: stackTrace,
+        );
+        if (!retryable) {
+          return null;
+        }
+      }
+
+      if (attempt < _maxTokenFetchAttempts) {
+        await Future<void>.delayed(Duration(seconds: attempt * 2));
+      }
+    }
+
+    return null;
+  }
+
+  static bool _isRetryableTokenFailure(Object error) {
+    final text = error.toString().toUpperCase();
+    return text.contains('SERVICE_NOT_AVAILABLE') ||
+        text.contains('TOO_MANY_REQUESTS') ||
+        text.contains('TIMEOUT') ||
+        text.contains('UNAVAILABLE');
+  }
+
+  static void _registerTokenRefreshListener(String tokenKey) {
+    if (_tokenRefreshSubscription != null) {
+      return;
+    }
+
+    _tokenRefreshSubscription = FirebaseMessaging.instance.onTokenRefresh
+        .listen(
+          (token) async {
+            if (token.isEmpty) {
+              return;
+            }
+            await _persistToken(tokenKey, token);
+          },
+          onError: (Object error, StackTrace stackTrace) {
+            log(
+              'FCM token refresh stream failed: $error',
+              stackTrace: stackTrace,
+            );
+          },
+        );
+  }
+
+  static Future<void> _persistToken(String tokenKey, String token) async {
+    await SharedPreferencesHelper.saveData(key: tokenKey, value: token);
+    log('FCM Token: $token');
   }
 
   static Future<void> _initAwesomeNotifications() async {
@@ -138,7 +229,9 @@ class NotificationHelper {
   }
 
   static Future<void> _handleForegroundMessage(RemoteMessage message) async {
-    final payload = message.data.map((k, v) => MapEntry(k.toString(), v.toString()));
+    final payload = message.data.map(
+      (k, v) => MapEntry(k.toString(), v.toString()),
+    );
     // Store lifecycle marker to indicate this notification was created in foreground
     payload[_lifecycleMarkerKey] = NotificationLifeCycle.Foreground.name;
 
@@ -158,18 +251,25 @@ class NotificationHelper {
 
     if (initialMessage != null) {
       log('App opened from terminated notification: ${initialMessage.data}');
-      await _handleNotificationTap(initialMessage, NotificationLifeCycle.Terminated);
+      await _handleNotificationTap(
+        initialMessage,
+        NotificationLifeCycle.Terminated,
+      );
     }
   }
 
   static Future<void> _checkInitialAwesomeAction() async {
-    final initialAction = await _awesome.getInitialNotificationAction(removeFromActionEvents: true);
+    final initialAction = await _awesome.getInitialNotificationAction(
+      removeFromActionEvents: true,
+    );
 
     if (initialAction?.payload == null || initialAction!.payload!.isEmpty) {
       return;
     }
 
-    log('App opened from awesome notification action: ${initialAction.payload}');
+    log(
+      'App opened from awesome notification action: ${initialAction.payload}',
+    );
     await handleAwesomeAction(initialAction);
   }
 
@@ -182,14 +282,21 @@ class NotificationHelper {
 
     final message = RemoteMessage(data: payload);
     final lifeCycle = _detectNotificationLifeCycle(action, payload);
-    log('Detected notification lifecycle: ${lifeCycle.name} for action: ${action.id}');
+    log(
+      'Detected notification lifecycle: ${lifeCycle.name} for action: ${action.id}',
+    );
     await _handleNotificationTap(message, lifeCycle);
   }
 
-  static NotificationLifeCycle _detectNotificationLifeCycle(ReceivedAction action, Map<String, String?> payload) {
+  static NotificationLifeCycle _detectNotificationLifeCycle(
+    ReceivedAction action,
+    Map<String, String?> payload,
+  ) {
     // First, check if Awesome Notifications provided a lifecycle
     if (action.actionLifeCycle != null) {
-      log('Using Awesome Notifications lifecycle: ${action.actionLifeCycle!.name}');
+      log(
+        'Using Awesome Notifications lifecycle: ${action.actionLifeCycle!.name}',
+      );
       return action.actionLifeCycle!;
     }
 
@@ -197,7 +304,9 @@ class NotificationHelper {
     final storedLifecycle = payload[_lifecycleMarkerKey];
     if (storedLifecycle != null) {
       try {
-        final lifecycle = NotificationLifeCycle.values.firstWhere((lc) => lc.name == storedLifecycle);
+        final lifecycle = NotificationLifeCycle.values.firstWhere(
+          (lc) => lc.name == storedLifecycle,
+        );
         log('Using stored lifecycle marker: ${lifecycle.name}');
         return lifecycle;
       } catch (_) {
@@ -213,7 +322,8 @@ class NotificationHelper {
         if (lifecycleState == AppLifecycleState.resumed) {
           log('Detected app in foreground (resumed)');
           return NotificationLifeCycle.Foreground;
-        } else if (lifecycleState == AppLifecycleState.paused || lifecycleState == AppLifecycleState.inactive) {
+        } else if (lifecycleState == AppLifecycleState.paused ||
+            lifecycleState == AppLifecycleState.inactive) {
           log('Detected app in background (paused/inactive)');
           return NotificationLifeCycle.Background;
         }
@@ -228,9 +338,16 @@ class NotificationHelper {
     return NotificationLifeCycle.Terminated;
   }
 
-  static Future<void> _handleNotificationTap(RemoteMessage message, NotificationLifeCycle lifeCycle) async {
+  static Future<void> _handleNotificationTap(
+    RemoteMessage message,
+    NotificationLifeCycle lifeCycle,
+  ) async {
     final resolvedRoute = _resolveRouteFromMessage(message);
-    final fingerprint = _buildTapFingerprint(message: message, lifeCycle: lifeCycle, resolvedRoute: resolvedRoute);
+    final fingerprint = _buildTapFingerprint(
+      message: message,
+      lifeCycle: lifeCycle,
+      resolvedRoute: resolvedRoute,
+    );
 
     if (_isDuplicateTap(fingerprint)) {
       log('Duplicate notification tap ignored for ${lifeCycle.name}.');
@@ -255,27 +372,43 @@ class NotificationHelper {
         return null;
       }
 
-      final argsMap = Map<String, dynamic>.from(decoded.map((key, value) => MapEntry(key.toString(), value)));
+      final argsMap = Map<String, dynamic>.from(
+        decoded.map((key, value) => MapEntry(key.toString(), value)),
+      );
       final routeValue = argsMap.remove('route');
       if (routeValue is! String || routeValue.isEmpty) {
-        log('Notification args payload does not contain a valid route: $argsMap');
+        log(
+          'Notification args payload does not contain a valid route: $argsMap',
+        );
         return null;
       }
 
       final navArgs = _buildArgumentsForRoute(routeValue, argsMap);
       return _ResolvedRoute(route: routeValue, arguments: navArgs);
     } catch (error, stackTrace) {
-      log('Failed to parse notification args payload: $error', stackTrace: stackTrace);
+      log(
+        'Failed to parse notification args payload: $error',
+        stackTrace: stackTrace,
+      );
       return null;
     }
   }
 
-  static Object? _buildArgumentsForRoute(String route, Map<String, dynamic> argsMap) {
+  static Object? _buildArgumentsForRoute(
+    String route,
+    Map<String, dynamic> argsMap,
+  ) {
     if (_routeArgumentsBuilder != null) {
       try {
-        return _routeArgumentsBuilder!.call(route, Map<String, dynamic>.from(argsMap));
+        return _routeArgumentsBuilder!.call(
+          route,
+          Map<String, dynamic>.from(argsMap),
+        );
       } catch (error, stackTrace) {
-        log('routeArgumentsBuilder failed for route $route: $error', stackTrace: stackTrace);
+        log(
+          'routeArgumentsBuilder failed for route $route: $error',
+          stackTrace: stackTrace,
+        );
       }
     }
 
@@ -293,25 +426,38 @@ class NotificationHelper {
 
     final context = _navigatorKey?.currentContext;
     if (context == null) {
-      log('Navigator context is not available. Skipping navigation to ${resolvedRoute.route}.');
+      log(
+        'Navigator context is not available. Skipping navigation to ${resolvedRoute.route}.',
+      );
       return;
     }
 
     try {
-      context.pushRoute(resolvedRoute.route, arguments: resolvedRoute.arguments);
+      context.pushRoute(
+        resolvedRoute.route,
+        arguments: resolvedRoute.arguments,
+      );
     } catch (error, stackTrace) {
-      log('Failed to navigate to ${resolvedRoute.route}: $error', stackTrace: stackTrace);
+      log(
+        'Failed to navigate to ${resolvedRoute.route}: $error',
+        stackTrace: stackTrace,
+      );
     }
   }
 
-  static Future<void> _invokeTapCallback(NotificationLifeCycle lifeCycle, RemoteMessage message) async {
+  static Future<void> _invokeTapCallback(
+    NotificationLifeCycle lifeCycle,
+    RemoteMessage message,
+  ) async {
     final callback = switch (lifeCycle) {
       NotificationLifeCycle.Foreground => _onForegroundTap,
       NotificationLifeCycle.Background => _onBackgroundTap,
       NotificationLifeCycle.Terminated => _onTerminatedTap,
     };
 
-    log('Invoking tap callback for ${lifeCycle.name}. Callback ${callback == null ? "is null" : "exists"}.');
+    log(
+      'Invoking tap callback for ${lifeCycle.name}. Callback ${callback == null ? "is null" : "exists"}.',
+    );
 
     if (callback == null) {
       log('No callback registered for ${lifeCycle.name} lifecycle');
@@ -319,11 +465,16 @@ class NotificationHelper {
     }
 
     try {
-      log('Calling ${lifeCycle.name} tap callback with message data: ${message.data}');
+      log(
+        'Calling ${lifeCycle.name} tap callback with message data: ${message.data}',
+      );
       await Future.sync(() => callback.call(message));
       log('Successfully invoked ${lifeCycle.name} tap callback');
     } catch (error, stackTrace) {
-      log('Notification tap callback failed for ${lifeCycle.name}: $error', stackTrace: stackTrace);
+      log(
+        'Notification tap callback failed for ${lifeCycle.name}: $error',
+        stackTrace: stackTrace,
+      );
     }
   }
 

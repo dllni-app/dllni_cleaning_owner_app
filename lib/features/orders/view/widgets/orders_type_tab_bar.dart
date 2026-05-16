@@ -65,7 +65,7 @@ class _OrdersTypeTabBarState extends State<OrdersTypeTabBar>
             FetchOrdersUsecaseEvent(
               params: FetchOrdersUsecaseParams(
                 page: 1,
-                status: CleaningBookingStatus.inProgress,
+                status: OrderStatusFilter.activeLifecycle,
               ),
               isReload: true,
             ),
@@ -87,7 +87,7 @@ class _OrdersTypeTabBarState extends State<OrdersTypeTabBar>
             : i == 1
             ? CleaningBookingStatus.workerAssigned
             : i == 2
-            ? CleaningBookingStatus.inProgress
+            ? OrderStatusFilter.activeLifecycle
             : CleaningBookingStatus.completed;
       },
       dividerHeight: .1,

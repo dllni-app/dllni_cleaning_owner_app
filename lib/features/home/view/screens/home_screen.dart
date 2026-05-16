@@ -34,7 +34,9 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     final data = SharedPreferencesHelper.getData(key: 'user');
     if (data != null) {
-      user = fetchWorkerProfileUsecaseModelFromJson(data is String ? json.decode(data) : data);
+      user = fetchWorkerProfileUsecaseModelFromJson(
+        data is String ? json.decode(data) : data,
+      );
     }
   }
 
@@ -44,16 +46,31 @@ class _HomeScreenState extends State<HomeScreen> {
       providers: [
         BlocProvider<HomeBloc>(
           lazy: false,
-          create: (context) => getIt<HomeBloc>()..add(FetchHomePageUsecaseEvent(params: FetchHomePageUsecaseParams())),
+          create: (context) => getIt<HomeBloc>()
+            ..add(
+              FetchHomePageUsecaseEvent(params: FetchHomePageUsecaseParams()),
+            ),
         ),
         BlocProvider<OrdersBloc>(
           lazy: false,
-          create: (context) =>
-              getIt<OrdersBloc>()..add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: 'worker_assigned'))),
+          create: (context) => getIt<OrdersBloc>()
+            ..add(
+              FetchOrdersUsecaseEvent(
+                params: FetchOrdersUsecaseParams(
+                  page: 1,
+                  status: 'worker_assigned',
+                ),
+              ),
+            ),
         ),
         BlocProvider<ProfileBloc>(
           lazy: false,
-          create: (context) => getIt<ProfileBloc>()..add(FetchWorkerProfileUsecaseEvent(params: FetchWorkerProfileUsecaseParams())),
+          create: (context) => getIt<ProfileBloc>()
+            ..add(
+              FetchWorkerProfileUsecaseEvent(
+                params: FetchWorkerProfileUsecaseParams(),
+              ),
+            ),
         ),
       ],
       child: SafeArea(
@@ -62,14 +79,21 @@ class _HomeScreenState extends State<HomeScreen> {
             HomeAppBar(),
             Expanded(
               child: SingleChildScrollView(
-                padding: EdgeInsetsDirectional.only(start: 24.w, end: 24.w, bottom: 20.h),
+                padding: EdgeInsetsDirectional.only(
+                  start: 24.w,
+                  end: 24.w,
+                  bottom: 20.h,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     16.verticalSpace,
                     // WarningContainer(),
                     // SizedBox(height: 24),
-                    AppText.labelLarge('نظرة عامة عن اليوم', fontWeight: FontWeight.w400),
+                    AppText.labelLarge(
+                      'نظرة عامة عن اليوم',
+                      fontWeight: FontWeight.w400,
+                    ),
                     12.verticalSpace,
                     TodayOverviewCard(),
                     12.verticalSpace,
@@ -77,31 +101,54 @@ class _HomeScreenState extends State<HomeScreen> {
                     12.verticalSpace,
                     BlocBuilder<HomeBloc, HomeState>(
                       builder: (context, homeState) {
-                        final n = homeState.homePageUsecase?.pendingExtensionRequestsCount ?? 0;
-                        if (homeState.homePageUsecaseStatus != BlocStatus.success || n <= 0) {
+                        final n =
+                            homeState
+                                .homePageUsecase
+                                ?.pendingExtensionRequestsCount ??
+                            0;
+                        if (homeState.homePageUsecaseStatus !=
+                                BlocStatus.success ||
+                            n <= 0) {
                           return const SizedBox.shrink();
                         }
                         return Padding(
                           padding: EdgeInsets.only(bottom: 4.h),
                           child: Material(
-                            color: context.colorScheme.errorContainer.withAlpha(100),
+                            color: context.colorScheme.errorContainer.withAlpha(
+                              100,
+                            ),
                             borderRadius: BorderRadius.circular(12.r),
                             child: InkWell(
                               borderRadius: BorderRadius.circular(12.r),
                               onTap: () {
                                 ExtensionRequestsSheet.show(
                                   context,
-                                  onChanged: () => context.read<HomeBloc>().add(FetchHomePageUsecaseEvent(params: FetchHomePageUsecaseParams())),
+                                  onChanged: () => context.read<HomeBloc>().add(
+                                    FetchHomePageUsecaseEvent(
+                                      params: FetchHomePageUsecaseParams(),
+                                    ),
+                                  ),
                                 );
                               },
                               child: Padding(
-                                padding: EdgeInsetsDirectional.symmetric(horizontal: 16.w, vertical: 12.h),
+                                padding: EdgeInsetsDirectional.symmetric(
+                                  horizontal: 16.w,
+                                  vertical: 12.h,
+                                ),
                                 child: Row(
                                   children: [
                                     Icon(Icons.more_time, color: context.error),
                                     12.horizontalSpace,
-                                    Expanded(child: AppText.labelLarge('طلبات تمديد الوقت ($n)', fontWeight: FontWeight.w500)),
-                                    Icon(Icons.chevron_left, color: context.colorScheme.outline),
+                                    Expanded(
+                                      child: AppText.labelLarge(
+                                        'طلبات تمديد الوقت ($n)',
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.chevron_left,
+                                      color: context.colorScheme.outline,
+                                    ),
                                   ],
                                 ),
                               ),
@@ -113,7 +160,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     16.verticalSpace,
                     Row(
                       children: [
-                        AppText.labelLarge('مهام اليوم', fontWeight: FontWeight.w400),
+                        AppText.labelLarge(
+                          'مهام اليوم',
+                          fontWeight: FontWeight.w400,
+                        ),
                         8.horizontalSpace,
                         CircleAvatar(
                           radius: 10.r,
@@ -121,7 +171,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: BlocBuilder<OrdersBloc, OrdersState>(
                             builder: (context, state) {
                               return AppText.labelSmall(
-                                state.ordersUsecase!.isSuccess ? state.ordersUsecase!.list.length.toString() : '0',
+                                state.ordersUsecase!.isSuccess
+                                    ? state.ordersUsecase!.list.length
+                                          .toString()
+                                    : '0',
                                 color: context.onError,
                               );
                             },
@@ -131,33 +184,46 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     8.verticalSpace,
                     BlocBuilder<OrdersBloc, OrdersState>(
-                      buildWhen: (previous, current) => previous.ordersUsecase != current.ordersUsecase,
+                      buildWhen: (previous, current) =>
+                          previous.ordersUsecase != current.ordersUsecase,
                       builder: (context, state) {
                         return state.ordersUsecase!.builder(
                           loadingWidget: Padding(
                             padding: EdgeInsetsDirectional.only(top: 40.h),
-                            child: Center(child: CircularProgressIndicator.adaptive()),
+                            child: Center(
+                              child: CircularProgressIndicator.adaptive(),
+                            ),
                           ),
-                          emptyWidget: AppText.labelMedium('لا يوجد مهام', fontWeight: FontWeight.w400),
+                          emptyWidget: AppText.labelMedium(
+                            'لا يوجد مهام',
+                            fontWeight: FontWeight.w400,
+                          ),
                           successWidget: () {
                             return ListView.separated(
                               shrinkWrap: true,
                               physics: NeverScrollableScrollPhysics(),
                               itemBuilder: (context, index) => OrderCard(
-                                date: state.ordersUsecase!.list[index],
-                                isInHome: true,
+                                data: state.ordersUsecase!.list[index],
                                 bloc: context.read<OrdersBloc>(),
                                 index: index,
-                                orderStatus: OrderStatus.workerAssigned,
                               ),
-                              separatorBuilder: (context, index) => 16.verticalSpace,
+                              separatorBuilder: (context, index) =>
+                                  16.verticalSpace,
                               itemCount: state.ordersUsecase!.list.length,
                             );
                           },
-                          failedWidget: AppText.labelLarge(state.errorMessage ?? 'حدث خطا ما', color: context.error),
+                          failedWidget: AppText.labelLarge(
+                            state.errorMessage ?? 'حدث خطا ما',
+                            color: context.error,
+                          ),
                           onTapRetry: () {
                             context.read<OrdersBloc>().add(
-                              FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: 'worker_assigned')),
+                              FetchOrdersUsecaseEvent(
+                                params: FetchOrdersUsecaseParams(
+                                  page: 1,
+                                  status: 'worker_assigned',
+                                ),
+                              ),
                             );
                           },
                         );

@@ -9,7 +9,6 @@ import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/fetch_
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/order_details/order_details_body.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/extension_request_action_sheet.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/order_details/order_details_mission_body.dart';
-import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/order_details/order_details_verification_body.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -27,9 +26,12 @@ class OrderDetailsScreen extends StatefulWidget {
 }
 
 class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
+  static const Duration _fallbackDebounce = Duration(milliseconds: 150);
+
   late FetchOrdersUsecaseModelDataItem _order;
   bool _subscribedToRealtime = false;
   int? _lastShownExtensionWarningId;
+  Timer? _syncFallbackDebounce;
 
   int _stepFor(FetchOrdersUsecaseModelDataItem o) {
     if (o.status == CleaningBookingStatus.pending) {
@@ -42,7 +44,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       return 2;
     }
     if (o.status == CleaningBookingStatus.awaitingStartVerification) {
-      return 4;
+      return 2;
     }
     if (o.status == CleaningBookingStatus.inProgress ||
         o.status == CleaningBookingStatus.timeExtensionRequested) {
@@ -70,15 +72,27 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       pusher.setBookingHandler(id, (eventName, payload) {
         if (!mounted) return;
         if (eventName == 'ServiceExtensionRequested') {
-          final warningId = payload['warningId'];
+          final warningId =
+              payload['warningId'] ?? payload['warning_id'] ?? payload['id'];
           final parsedWarningId = warningId is num
               ? warningId.toInt()
               : int.tryParse('$warningId');
           if (parsedWarningId != null &&
               parsedWarningId != _lastShownExtensionWarningId) {
             _lastShownExtensionWarningId = parsedWarningId;
-            final bookingIdRaw = payload['cleaningBookingId'];
-            final requestedRaw = payload['requestedMinutes'];
+            final bookingIdRaw =
+                payload['cleaningBookingId'] ??
+                payload['bookingId'] ??
+                payload['booking_id'] ??
+                payload['cleaning_booking_id'];
+            final requestedRaw =
+                payload['requestedMinutes'] ??
+                payload['requested_minutes'] ??
+                payload['minutes'];
+            final additionalAmountRaw =
+                payload['additionalAmount'] ??
+                payload['additional_amount'] ??
+                payload['amount'];
             unawaited(
               ExtensionRequestActionSheet.show(
                 context,
@@ -90,19 +104,78 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                 requestedMinutes: requestedRaw is num
                     ? requestedRaw.toInt()
                     : int.tryParse('$requestedRaw'),
+                customerName:
+                    (payload['customerName'] ?? payload['customer_name'])
+                        ?.toString(),
+                additionalAmount: additionalAmountRaw is num
+                    ? additionalAmountRaw.toDouble()
+                    : double.tryParse('$additionalAmountRaw'),
+                currency:
+                    (payload['currency'] ??
+                            payload['currencyCode'] ??
+                            payload['currency_code'])
+                        ?.toString(),
+                paymentMethod:
+                    (payload['paymentMethod'] ?? payload['payment_method'])
+                        ?.toString(),
               ),
             );
           }
         }
-        widget.params.bloc.add(SyncOrderFromRealtimeEvent(bookingId: id));
+        final hasHydratablePayload = _hasHydratableRealtimePayload(
+          eventName: eventName,
+          payload: payload,
+        );
+        if (hasHydratablePayload) {
+          widget.params.bloc.add(
+            HydrateOrderDetailsFromRealtimeEvent(
+              bookingId: id,
+              eventName: eventName,
+              payload: payload,
+            ),
+          );
+          return;
+        }
+        _scheduleSyncFallback(bookingId: id);
       });
       pusher.subscribeBookingChannel(id);
       _subscribedToRealtime = true;
     }
   }
 
+  bool _hasHydratableRealtimePayload({
+    required String eventName,
+    required Map<String, dynamic> payload,
+  }) {
+    if (payload['tracking'] is Map) return true;
+    if (payload['status'] != null || payload['decision'] != null) return true;
+    if (eventName == 'WorkerArrived' && payload['arrivedAt'] != null) {
+      return true;
+    }
+    if (eventName == 'ArrivalVerified' && payload['arrivedAt'] != null) {
+      return true;
+    }
+    return false;
+  }
+
+  void _scheduleSyncFallback({required int bookingId}) {
+    _syncFallbackDebounce?.cancel();
+    _syncFallbackDebounce = Timer(_fallbackDebounce, () {
+      if (!mounted) return;
+      PusherServiceLogger.event(
+        'private-cleaning-booking.$bookingId',
+        'CleaningBookingTrackingUpdated',
+        const <String, dynamic>{},
+        eventHandledAtMs: DateTime.now().millisecondsSinceEpoch,
+        fallbackReason: 'missing_owner_order_details_payload_fields',
+      );
+      widget.params.bloc.add(SyncOrderFromRealtimeEvent(bookingId: bookingId));
+    });
+  }
+
   @override
   void dispose() {
+    _syncFallbackDebounce?.cancel();
     if (_subscribedToRealtime) {
       final id = _order.id;
       if (id != null) {
@@ -226,12 +299,6 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                     order: _order,
                     bloc: widget.params.bloc,
                   ),
-                );
-              }
-              if (step == 4) {
-                return OrderDetailsVerificationBody(
-                  order: _order,
-                  bloc: widget.params.bloc,
                 );
               }
               return OrderDetailsMissionBody(

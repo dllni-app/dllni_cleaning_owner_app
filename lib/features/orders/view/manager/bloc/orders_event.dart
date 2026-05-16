@@ -47,13 +47,17 @@ class CancelOrderEvent extends OrdersEvent {
   CancelOrderEvent({required this.params, required this.index});
 }
 
-class FetchExtensionRequestsUsecasEvent extends OrdersEvent with EventWithReload {
+class FetchExtensionRequestsUsecasEvent extends OrdersEvent
+    with EventWithReload {
   final FetchExtensionRequestsUsecasParams params;
 
   @override
   final bool isReload;
 
-  FetchExtensionRequestsUsecasEvent({required this.params, this.isReload = false});
+  FetchExtensionRequestsUsecasEvent({
+    required this.params,
+    this.isReload = false,
+  });
 }
 
 class AcceptExtensionUsecaseEvent extends OrdersEvent {
@@ -117,4 +121,26 @@ class SyncOrderFromRealtimeEvent extends OrdersEvent {
   final int bookingId;
 
   SyncOrderFromRealtimeEvent({required this.bookingId});
+}
+
+class HydrateOrderListFromRealtimeEvent extends OrdersEvent {
+  final String eventName;
+  final Map<String, dynamic> payload;
+
+  HydrateOrderListFromRealtimeEvent({
+    required this.eventName,
+    required this.payload,
+  });
+}
+
+class HydrateOrderDetailsFromRealtimeEvent extends OrdersEvent {
+  final int bookingId;
+  final String eventName;
+  final Map<String, dynamic> payload;
+
+  HydrateOrderDetailsFromRealtimeEvent({
+    required this.bookingId,
+    required this.eventName,
+    required this.payload,
+  });
 }

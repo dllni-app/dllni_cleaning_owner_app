@@ -1,344 +1,515 @@
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/widgets/cancel_order_dialog.dart';
-import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/accept_order_usecase_use_case.dart';
-import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/arrive_use_case.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/reject_order_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/start_travel_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
-import 'package:easy_localization/easy_localization.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/screens/order_details_screen.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/accept_order_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
+import 'package:intl/intl.dart';
 
-import '../../features/orders/view/screens/order_details_screen.dart';
-import '../../generated/assets.dart';
-import '../../features/orders/data/models/fetch_orders_usecase_model.dart';
-
-enum OrderStatus { workerAssigned, pending, inProgress }
-
-class OrderCard extends StatefulWidget {
+class OrderCard extends StatelessWidget {
   const OrderCard({
     super.key,
-    required this.date,
-    this.orderStatus = OrderStatus.workerAssigned,
-    this.isInHome = false,
+    required this.data,
     required this.bloc,
     required this.index,
   });
 
-  final FetchOrdersUsecaseModelDataItem date;
-
-  final OrderStatus orderStatus;
-
-  final bool isInHome;
-
+  final FetchOrdersUsecaseModelDataItem data;
   final OrdersBloc bloc;
-
   final int index;
 
-  @override
-  State<OrderCard> createState() => _OrderCardState();
-}
+  String _serviceName() {
+    final type = (data.propertyType ?? '').toLowerCase();
+    switch (type) {
+      case 'apartment':
+        return 'خدمة تنظيف شقة';
+      case 'house':
+        return 'خدمة تنظيف منزل';
+      case 'villa':
+        return 'خدمة تنظيف فيلا';
+      case 'studio':
+        return 'خدمة تنظيف ستوديو';
+      default:
+        return 'خدمة تنظيف منزل';
+    }
+  }
 
-class _OrderCardState extends State<OrderCard> {
-  List<String> attributes = [];
+  String _statusLabel() {
+    final status = data.status;
+    if (status == CleaningBookingStatus.pending) return 'طلب جديد';
+    if (status == CleaningBookingStatus.workerAssigned) {
+      return data.startedTravelAt == null ? 'طلب مؤكد' : 'في الطريق';
+    }
+    if (status == CleaningBookingStatus.awaitingStartVerification) {
+      return 'بانتظار التحقق';
+    }
+    if (status == CleaningBookingStatus.inProgress) return 'قيد التنفيذ';
+    if (status == CleaningBookingStatus.awaitingCustomerCompletion) {
+      return 'بانتظار تأكيد العميل';
+    }
+    if (status == CleaningBookingStatus.timeExtensionRequested) {
+      return 'طلب تمديد وقت';
+    }
+    if (status == CleaningBookingStatus.completed) return 'مكتمل';
+    if (status == CleaningBookingStatus.cancelled) return 'ملغي';
+    return 'قيد المعالجة';
+  }
 
-  @override
-  void initState() {
-    super.initState();
-    attributes = [
-      '${widget.date.propertyDetails?.bathrooms} حمام',
-      '${widget.date.propertyDetails?.bedRooms} غرف نوم',
-      if (widget.date.propertyDetails?.kitchen == true) 'مطبخ',
-    ];
+  Color _statusColor(BuildContext context) {
+    final status = data.status;
+    if (status == CleaningBookingStatus.pending) return const Color(0xff1E2A78);
+    if (status == CleaningBookingStatus.workerAssigned) return const Color(0xff0EA5E9);
+    if (status == CleaningBookingStatus.awaitingStartVerification) {
+      return const Color(0xffF59E0B);
+    }
+    if (status == CleaningBookingStatus.inProgress ||
+        status == CleaningBookingStatus.timeExtensionRequested) {
+      return context.primaryContainer;
+    }
+    if (status == CleaningBookingStatus.awaitingCustomerCompletion) {
+      return const Color(0xff6366F1);
+    }
+    if (status == CleaningBookingStatus.completed) return const Color(0xff10B981);
+    return const Color(0xff64748B);
+  }
+
+  String _formatDate() {
+    final raw = data.scheduledDate;
+    if (raw == null || raw.isEmpty) return '-';
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) return raw;
+    return '${parsed.year}_${parsed.month}_${parsed.day}';
+  }
+
+  String _formatTime() {
+    final raw = data.scheduledTime;
+    if (raw == null || raw.isEmpty) return '-';
+    final parsed = DateTime.tryParse('2000-01-01T$raw');
+    if (parsed == null) return raw;
+    return DateFormat('h:mm a').format(parsed).toLowerCase();
+  }
+
+  List<String> _attributeLabels() {
+    final labels = <String>[];
+    final baths = data.propertyDetails?.bathrooms;
+    final beds = data.propertyDetails?.bedRooms;
+    final kitchen = data.propertyDetails?.kitchen;
+    if (baths != null) labels.add('$baths حمام');
+    if (beds != null) labels.add('$beds غرف نوم');
+    if (kitchen == true) labels.add('مطبخ');
+    return labels;
+  }
+
+  bool _isPending() => data.status == CleaningBookingStatus.pending;
+
+  bool _canStartTravel() =>
+      data.status == CleaningBookingStatus.workerAssigned &&
+      data.startedTravelAt == null;
+
+  void _openDetails(BuildContext context) {
+    context.pushRoute(
+      '/orderdetails',
+      arguments: OrderDetailsScreenParams(
+        isNewOrder: _isPending(),
+        order: data,
+        bloc: bloc,
+        index: index,
+      ),
+    );
+  }
+
+  Widget _metaTile({
+    required BuildContext context,
+    required String title,
+    required String value,
+    required IconData icon,
+  }) {
+    return Container(
+      padding: const EdgeInsetsDirectional.symmetric(horizontal: 10, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xffF3F4F6),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AppText.bodySmall(
+                  title,
+                  color: const Color(0xff6B7280),
+                  textAlign: TextAlign.start,
+                ),
+                const SizedBox(height: 4),
+                AppText.bodyMedium(value, fontWeight: FontWeight.w700),
+              ],
+            ),
+          ),
+          Icon(icon, color: context.primaryContainer, size: 18),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final statusColor = _statusColor(context);
+    final attributes = _attributeLabels();
+    final bookingLabel = data.bookingNumber ?? '${data.id ?? '-'}';
+
     return InkWell(
-      onTap: () {
-        context.pushRoute(
-          '/orderdetails',
-          arguments: OrderDetailsScreenParams(
-            isNewOrder: widget.orderStatus == OrderStatus.workerAssigned,
-            order: widget.date,
-            bloc: widget.bloc,
-            index: widget.index,
-          ),
-        );
-      },
-      borderRadius: BorderRadius.circular(16.r),
+      onTap: () => _openDetails(context),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
+        padding: const EdgeInsetsDirectional.fromSTEB(12, 12, 12, 14),
         decoration: BoxDecoration(
-          color: context.onPrimary,
-          border: Border(
-            right: BorderSide(color: context.primaryContainer, width: 5.w),
-          ),
-          borderRadius: BorderRadius.circular(16.r),
-        ),
-        child: Stack(
-          children: [
-            Padding(
-              padding: EdgeInsetsDirectional.symmetric(vertical: 16.h),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: EdgeInsetsDirectional.symmetric(horizontal: 10.w),
-                    child: AppText.labelLarge(widget.date.locationName ?? '', fontWeight: FontWeight.w400),
-                  ),
-                  12.verticalSpace,
-                  Divider(height: 1.h, color: context.surface),
-                  12.verticalSpace,
-                  dataRow(Assets.images.orderCardCalender.path, 'جدولة الحجز', widget.date.scheduledDate ?? ''),
-                  12.verticalSpace,
-                  dataRow(
-                    Assets.images.orderCardAlarm.path,
-                    'موعد الخدمة',
-                    widget.date.scheduledTime == null ? '' : DateFormat('hh:mm a').format(DateFormat("HH:mm:ss").parse(widget.date.scheduledTime!)),
-                  ),
-                  12.verticalSpace,
-                  Divider(height: 1.h, color: context.surface),
-                  12.verticalSpace,
-                  dataRow(Assets.images.orderCardBuilding.path, 'نوع العقار', widget.date.propertyType ?? ''),
-                  12.verticalSpace,
-                  dataRow(
-                    Assets.images.orderCardPointer.path,
-                    'المساحة التقديرية',
-                    widget.date.estimatedSqm == null ? '' : '${widget.date.estimatedSqm} متر مربع',
-                  ),
-                  12.verticalSpace,
-                  Container(
-                    height: 35.h,
-                    padding: EdgeInsetsDirectional.symmetric(horizontal: 10.w),
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      padding: EdgeInsetsDirectional.symmetric(vertical: 5.h),
-                      itemBuilder: (context, index) => Container(
-                        decoration: BoxDecoration(
-                          color: Color(0xffCAC7FF),
-                          borderRadius: BorderRadius.circular(30.r),
-                          boxShadow: [BoxShadow(color: Colors.black.withAlpha(63), blurRadius: 2.r, offset: Offset(0, 2.h))],
-                        ),
-                        padding: EdgeInsetsDirectional.symmetric(horizontal: 22.w, vertical: 3.h),
-                        child: AppText.labelMedium(attributes[index], color: context.primary, fontWeight: FontWeight.w300),
-                      ),
-                      separatorBuilder: (context, index) => 10.horizontalSpace,
-                      itemCount: attributes.length,
-                    ),
-                  ),
-                  12.verticalSpace,
-                  Padding(
-                    padding: EdgeInsetsDirectional.symmetric(horizontal: 10.w),
-                    child: widget.orderStatus == OrderStatus.workerAssigned
-                        ? Row(
-                            children: [
-                              Expanded(
-                                flex: 5,
-                                child: BlocBuilder<OrdersBloc, OrdersState>(
-                                  bloc: widget.bloc,
-                                  builder: (context, state) {
-                                    return InkWell(
-                                      onTap: () {
-                                        widget.bloc.add(
-                                          StartTravelUsecaseEvent(
-                                            params: StartTravelUsecaseParams(id: widget.date.id!),
-                                            index: widget.index,
-                                          ),
-                                        );
-                                      },
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(8.r),
-                                          color: widget.isInHome ? context.primaryContainer : context.primary,
-                                        ),
-                                        padding: EdgeInsetsDirectional.symmetric(horizontal: 12.w, vertical: 8.h),
-                                        child: state.startTravelUsecaseStatus == BlocStatus.loading && state.selectedIndex == widget.index
-                                            ? Center(
-                                                child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: context.onPrimary)),
-                                              )
-                                            : AppText.labelLarge('أنا في الطريق', color: context.onPrimary, fontWeight: FontWeight.w500),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                              8.horizontalSpace,
-                              Expanded(
-                                flex: 2,
-                                child: InkWell(
-                                  onTap: () {
-                                    CancelOrderDialog.show(
-                                      context,
-                                      bloc: widget.bloc,
-                                      orderId: widget.date.id!,
-                                      orderNum: widget.date.bookingNumber!,
-                                    );
-                                  },
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(8.r),
-                                      color: context.error.withAlpha(50),
-                                      border: Border.all(color: context.error),
-                                    ),
-                                    padding: EdgeInsetsDirectional.symmetric(horizontal: 6.w, vertical: 8.h),
-                                    child: AppText.labelLarge('إلغاء الطلب', color: context.error, fontWeight: FontWeight.w500),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          )
-                        : widget.orderStatus == OrderStatus.inProgress
-                        ? Row(
-                            children: [
-                              Expanded(
-                                flex: 5,
-                                child: BlocBuilder<OrdersBloc, OrdersState>(
-                                  bloc: widget.bloc,
-                                  builder: (context, state) {
-                                    return InkWell(
-                                      onTap: () {
-                                        widget.bloc.add(
-                                          ArriveEvent(
-                                            params: ArriveParams(id: widget.date.id!),
-                                            index: widget.index,
-                                          ),
-                                        );
-                                      },
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(8.r),
-                                          color: widget.isInHome ? context.primaryContainer : context.primary,
-                                        ),
-                                        padding: EdgeInsetsDirectional.symmetric(horizontal: 12.w, vertical: 8.h),
-                                        child: state.arriveStatus == BlocStatus.loading && state.selectedIndex == widget.index
-                                            ? Center(
-                                                child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: context.onPrimary)),
-                                              )
-                                            : AppText.labelLarge('لقد وصلت', color: context.onPrimary, fontWeight: FontWeight.w500),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          )
-                        : Row(
-                            children: [
-                              BlocBuilder<OrdersBloc, OrdersState>(
-                                bloc: widget.bloc,
-                                builder: (context, state) {
-                                  return Expanded(
-                                    flex: 5,
-                                    child: InkWell(
-                                      onTap: () {
-                                        context.read<OrdersBloc>().add(
-                                          AcceptOrderUsecaseEvent(
-                                            params: AcceptOrderUsecaseParams(id: widget.date.id!),
-                                            index: widget.index,
-                                          ),
-                                        );
-                                      },
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(8.r),
-                                          color: widget.isInHome ? context.primaryContainer : context.primary,
-                                        ),
-                                        padding: EdgeInsetsDirectional.symmetric(horizontal: 12.w, vertical: 8.h),
-                                        child: state.acceptOrderUsecaseStatus == BlocStatus.loading && state.selectedIndex == widget.index
-                                            ? Center(
-                                                child: SizedBox(
-                                                  width: 20,
-                                                  height: 20,
-                                                  child: CircularProgressIndicator(color: context.onPrimaryContainer),
-                                                ),
-                                              )
-                                            : AppText.labelLarge('قبول الطلب', color: context.onPrimary, fontWeight: FontWeight.w500),
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                              8.horizontalSpace,
-                              Expanded(
-                                flex: 2,
-                                child: BlocBuilder<OrdersBloc, OrdersState>(
-                                  bloc: widget.bloc,
-                                  builder: (context, state) {
-                                    return InkWell(
-                                      onTap: () {
-                                        context.read<OrdersBloc>().add(
-                                          RejectOrderUsecaseEvent(
-                                            params: RejectOrderUsecaseParams(id: widget.date.id!),
-                                            index: widget.index,
-                                          ),
-                                        );
-                                      },
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(8.r),
-                                          color: context.error.withAlpha(50),
-                                          border: Border.all(color: context.error),
-                                        ),
-                                        padding: EdgeInsetsDirectional.symmetric(horizontal: 6.w, vertical: 8.h),
-                                        child: state.rejectOrderUsecaseStatus == BlocStatus.loading && state.selectedIndex == widget.index
-                                            ? Center(
-                                                child: SizedBox(
-                                                  width: 20.w,
-                                                  height: 20.h,
-                                                  child: CircularProgressIndicator(color: context.error),
-                                                ),
-                                              )
-                                            : AppText.labelLarge('رفض', color: context.error, fontWeight: FontWeight.w500),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                  ),
-                ],
-              ),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xffE5E7EB)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(15),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
             ),
-            Column(
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                Container(
+                  padding: const EdgeInsetsDirectional.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: statusColor.withAlpha(30),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(radius: 3.5, backgroundColor: statusColor),
+                      const SizedBox(width: 6),
+                      AppText.labelSmall(
+                        _statusLabel(),
+                        color: statusColor,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ],
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xff334155),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  padding: const EdgeInsets.all(10),
+                  child: const Icon(Icons.person_outline, color: Color(0xffCBD5E1)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      AppText.titleSmall(
+                        _serviceName(),
+                        fontWeight: FontWeight.bold,
+                        textAlign: TextAlign.start,
+                      ),
+                      const SizedBox(height: 4),
+                      AppText.bodySmall(
+                        '#ORD-$bookingLabel • منذ 2 دقيقة',
+                        color: const Color(0xff6B7280),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
+                    AppText.titleSmall(
+                      '${data.totalPrice ?? 0} ل.س',
+                      color: const Color(0xff1E2A78),
+                      fontWeight: FontWeight.bold,
+                    ),
+                    const SizedBox(height: 4),
                     Container(
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.only(topLeft: Radius.circular(14.r), bottomRight: Radius.circular(10.r)),
-                        color: widget.isInHome ? context.primary.withAlpha(51) : context.primaryContainer.withAlpha(51),
+                        color: context.primaryContainer,
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      padding: EdgeInsetsDirectional.symmetric(horizontal: 22.w, vertical: 8.h),
-                      child: AppText.bodyLarge(
-                        '${widget.date.totalPrice.toString()} ل.س',
-                        fontWeight: FontWeight.w500,
-                        color: widget.isInHome ? context.primary : context.primaryContainer,
+                      padding: const EdgeInsetsDirectional.symmetric(horizontal: 12, vertical: 5),
+                      child: AppText.labelSmall(
+                        'نقدي',
+                        color: context.onPrimaryContainer,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
                 ),
               ],
             ),
+            const SizedBox(height: 12),
+            _metaTile(
+              context: context,
+              title: 'جدولة الحجز',
+              value: _formatDate(),
+              icon: Icons.calendar_today_rounded,
+            ),
+            const SizedBox(height: 8),
+            _metaTile(
+              context: context,
+              title: 'موعد الخدمة',
+              value: _formatTime(),
+              icon: Icons.schedule_rounded,
+            ),
+            const SizedBox(height: 8),
+            _metaTile(
+              context: context,
+              title: 'المساحة التقديرية',
+              value: '${data.estimatedSqm ?? '-'} متر مربع',
+              icon: Icons.square_foot_rounded,
+            ),
+            if (attributes.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: attributes
+                    .map(
+                      (label) => Container(
+                        padding: const EdgeInsetsDirectional.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: context.primaryContainer.withAlpha(35),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: AppText.bodySmall(
+                          label,
+                          color: context.primaryContainer,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
+            const SizedBox(height: 12),
+            if (_isPending())
+              Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: BlocBuilder<OrdersBloc, OrdersState>(
+                      bloc: bloc,
+                      builder: (context, state) {
+                        final loading =
+                            state.acceptOrderUsecaseStatus == BlocStatus.loading &&
+                            state.selectedIndex == index;
+                        return InkWell(
+                          onTap: loading
+                              ? null
+                              : () {
+                                  AcceptOrderBottomSheet.show(
+                                    context,
+                                    order: data,
+                                    bloc: bloc,
+                                    index: index,
+                                  );
+                                },
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            height: 44,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              color: context.primary,
+                            ),
+                            child: Center(
+                              child: loading
+                                  ? SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: context.onPrimary,
+                                      ),
+                                    )
+                                  : AppText.labelLarge(
+                                      'قبول الطلب',
+                                      color: context.onPrimary,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: BlocBuilder<OrdersBloc, OrdersState>(
+                      bloc: bloc,
+                      builder: (context, state) {
+                        final loading =
+                            state.rejectOrderUsecaseStatus == BlocStatus.loading &&
+                            state.selectedIndex == index;
+                        return InkWell(
+                          onTap: loading
+                              ? null
+                              : () {
+                                  if (data.id == null) return;
+                                  bloc.add(
+                                    RejectOrderUsecaseEvent(
+                                      params: RejectOrderUsecaseParams(id: data.id!),
+                                      index: index,
+                                    ),
+                                  );
+                                },
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            height: 44,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              color: context.error.withAlpha(20),
+                              border: Border.all(color: context.error),
+                            ),
+                            child: Center(
+                              child: loading
+                                  ? SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: context.error,
+                                      ),
+                                    )
+                                  : AppText.labelLarge(
+                                      'رفض',
+                                      color: context.error,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              )
+            else if (_canStartTravel())
+              Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: BlocBuilder<OrdersBloc, OrdersState>(
+                      bloc: bloc,
+                      builder: (context, state) {
+                        final loading =
+                            state.startTravelUsecaseStatus == BlocStatus.loading &&
+                            state.selectedIndex == index;
+                        return InkWell(
+                          onTap: loading
+                              ? null
+                              : () {
+                                  if (data.id == null) return;
+                                  bloc.add(
+                                    StartTravelUsecaseEvent(
+                                      params: StartTravelUsecaseParams(id: data.id!),
+                                      index: index,
+                                    ),
+                                  );
+                                },
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            height: 44,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              color: context.primary,
+                            ),
+                            child: Center(
+                              child: loading
+                                  ? SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: context.onPrimary,
+                                      ),
+                                    )
+                                  : AppText.labelLarge(
+                                      'أنا في الطريق',
+                                      color: context.onPrimary,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () {
+                        if (data.id == null || data.bookingNumber == null) return;
+                        CancelOrderDialog.show(
+                          context,
+                          bloc: bloc,
+                          orderId: data.id!,
+                          orderNum: data.bookingNumber!,
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        height: 44,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          color: context.error.withAlpha(20),
+                          border: Border.all(color: context.error),
+                        ),
+                        child: Center(
+                          child: AppText.labelLarge(
+                            'إلغاء',
+                            color: context.error,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            else
+              InkWell(
+                onTap: () => _openDetails(context),
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  height: 44,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    color: context.primaryContainer,
+                  ),
+                  child: Center(
+                    child: AppText.labelLarge(
+                      'متابعة الطلب',
+                      color: context.onPrimaryContainer,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget dataRow(image, title, data) {
-    return Padding(
-      padding: EdgeInsetsDirectional.symmetric(horizontal: 10.w),
-      child: Row(
-        children: [
-          SizedBox(width: 20, child: AppImage.asset(image, size: 15.r)),
-          8.horizontalSpace,
-          AppText.labelMedium(title, fontWeight: FontWeight.w300),
-          Spacer(),
-          AppText.labelMedium(data, fontWeight: FontWeight.w300),
-        ],
       ),
     );
   }

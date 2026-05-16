@@ -23,19 +23,8 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  int? _resolveWorkerId() {
-    final raw = SharedPreferencesHelper.getData(key: 'worker_id');
-    if (raw is num) return raw.toInt();
-    return int.tryParse('$raw');
-  }
-
   Future<void> _logout(BuildContext context) async {
-    final workerId = _resolveWorkerId();
-    if (workerId != null) {
-      final pusher = getIt<CleaningBookingPusherService>();
-      pusher.setWorkerHandler(workerId, null);
-      await pusher.unsubscribeWorkerChannel(workerId);
-    }
+    await getIt<CleaningBookingPusherService>().disposeAllForSession();
     await SharedPreferencesHelper.clearData();
     if (!context.mounted) return;
     context.pushRouteAndRemoveUntil('/login');

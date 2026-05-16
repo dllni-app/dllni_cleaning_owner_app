@@ -1,4 +1,5 @@
 import 'package:common_package/common_package.dart';
+import 'package:dllni_cleaninig_owner_app/core/realtime/pusher_manager.dart';
 import 'package:get_it/get_it.dart';
 import 'package:injectable/injectable.dart';
 
@@ -8,10 +9,18 @@ import 'injection.config.dart';
 
 final GetIt getIt = GetIt.instance;
 
-@InjectableInit(initializerName: r'$initGetIt', preferRelativeImports: true, asExtension: false)
+@InjectableInit(
+  initializerName: r'$initGetIt',
+  preferRelativeImports: true,
+  asExtension: false,
+)
 Future<GetIt> configureInjection() async {
   await SharedPreferencesHelper.init();
-  return $initGetIt(getIt);
+  final configured = $initGetIt(getIt);
+  if (!getIt.isRegistered<PusherManager>()) {
+    getIt.registerLazySingleton<PusherManager>(() => PusherManager());
+  }
+  return configured;
 }
 
 @module

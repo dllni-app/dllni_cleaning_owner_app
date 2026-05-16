@@ -18,7 +18,17 @@ class RejectExtensionUsecaseUseCase implements UseCase<RejectExtensionUsecaseMod
 }
 
 class RejectExtensionUsecaseParams with Params {
-  RejectExtensionUsecaseParams({required this.id});
+  RejectExtensionUsecaseParams({required this.id, this.message});
 
   final int id;
+  final String? message;
+
+  @override
+  BodyMap getBody() {
+    final value = message?.trim();
+    if (value == null || value.isEmpty) {
+      return <String, dynamic>{};
+    }
+    return <String, dynamic>{'message': value};
+  }
 }

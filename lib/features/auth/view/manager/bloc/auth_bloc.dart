@@ -1,9 +1,6 @@
 import 'package:common_package/common_package.dart';
-import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
-import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_booking_pusher_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
-import 'dart:async';
 import '../../../domain/usecases/login_usecase_use_case.dart';
 import '../../../data/models/login_usecase_model.dart';
 
@@ -19,7 +16,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<LoginUsecaseEvent>(_loginUsecase);
   }
 
-  FutureOr<void> _loginUsecase(
+  Future<void> _loginUsecase(
     LoginUsecaseEvent event,
     Emitter<AuthState> emit,
   ) async {
@@ -40,9 +37,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         final workerId = r.user?.workerId ?? r.user?.id;
         if (workerId != null) {
           SharedPreferencesHelper.saveData(key: 'worker_id', value: workerId);
-          final pusher = getIt<CleaningBookingPusherService>();
-          unawaited(pusher.subscribeWorkerChannel(workerId));
-          pusher.setWorkerHandler(workerId, (eventName, payload) {});
         }
         AppToast.showSuccessGlobal('تم تسجيل الدخول بنجاح');
         emit(

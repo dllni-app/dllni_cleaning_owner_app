@@ -21,24 +21,11 @@ class App extends StatefulWidget {
 }
 
 class _AppState extends State<App> {
-  int? _resolveWorkerId() {
-    final raw = SharedPreferencesHelper.getData(key: 'worker_id');
-    if (raw is num) return raw.toInt();
-    return int.tryParse('$raw');
-  }
-
   @override
   void initState() {
     super.initState();
     final pusher = getIt<CleaningBookingPusherService>();
     unawaited(pusher.ensureInitialized());
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final workerId = _resolveWorkerId();
-      if (workerId != null) {
-        pusher.setWorkerHandler(workerId, (eventName, payload) {});
-        unawaited(pusher.subscribeWorkerChannel(workerId));
-      }
-    });
   }
 
   @override
