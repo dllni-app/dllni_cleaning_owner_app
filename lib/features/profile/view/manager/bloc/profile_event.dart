@@ -46,3 +46,24 @@ class UpdateWorkerProfileEvent extends ProfileEvent {
 
   UpdateWorkerProfileEvent({required this.params});
 }
+
+class FetchNotificationsEvent extends ProfileEvent with EventWithReload {
+  final FetchNotificationsParams params;
+  final bool loadMore;
+  @override
+  final bool isReload;
+
+  FetchNotificationsEvent({
+    required this.params,
+    this.loadMore = false,
+    this.isReload = false,
+  });
+}
+
+class MarkAllNotificationsReadEvent extends ProfileEvent {}
+
+class MarkNotificationReadEvent extends ProfileEvent {
+  final String id;
+
+  MarkNotificationReadEvent({required this.id});
+}

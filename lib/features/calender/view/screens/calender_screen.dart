@@ -89,7 +89,7 @@ class CalenderScreen extends StatelessWidget {
                                           child: FittedBox(child: CircularProgressIndicator.adaptive(strokeWidth: 3)),
                                         );
                                       }
-                                      return CalenderOrderCard(date: state.ordersUsecase!.list[index]);
+                                      return CalenderOrderCard(date: state.ordersUsecase!.list[index], index: index,);
                                     },
                                     separatorBuilder: (context, index) => SizedBox(height: 16),
                                     itemCount: state.ordersUsecase!.listLength(1),

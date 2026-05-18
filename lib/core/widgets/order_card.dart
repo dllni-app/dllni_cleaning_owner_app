@@ -12,12 +12,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 class OrderCard extends StatelessWidget {
-  const OrderCard({
-    super.key,
-    required this.data,
-    required this.bloc,
-    required this.index,
-  });
+  const OrderCard({super.key, required this.data, required this.bloc, required this.index});
 
   final FetchOrdersUsecaseModelDataItem data;
   final OrdersBloc bloc;
@@ -67,8 +62,7 @@ class OrderCard extends StatelessWidget {
     if (status == CleaningBookingStatus.awaitingStartVerification) {
       return const Color(0xffF59E0B);
     }
-    if (status == CleaningBookingStatus.inProgress ||
-        status == CleaningBookingStatus.timeExtensionRequested) {
+    if (status == CleaningBookingStatus.inProgress || status == CleaningBookingStatus.timeExtensionRequested) {
       return context.primaryContainer;
     }
     if (status == CleaningBookingStatus.awaitingCustomerCompletion) {
@@ -107,45 +101,26 @@ class OrderCard extends StatelessWidget {
 
   bool _isPending() => data.status == CleaningBookingStatus.pending;
 
-  bool _canStartTravel() =>
-      data.status == CleaningBookingStatus.workerAssigned &&
-      data.startedTravelAt == null;
+  bool _canStartTravel() => data.status == CleaningBookingStatus.workerAssigned && data.startedTravelAt == null;
 
   void _openDetails(BuildContext context) {
     context.pushRoute(
       '/orderdetails',
-      arguments: OrderDetailsScreenParams(
-        isNewOrder: _isPending(),
-        order: data,
-        bloc: bloc,
-        index: index,
-      ),
+      arguments: OrderDetailsScreenParams(isNewOrder: _isPending(), order: data, bloc: bloc, index: index),
     );
   }
 
-  Widget _metaTile({
-    required BuildContext context,
-    required String title,
-    required String value,
-    required IconData icon,
-  }) {
+  Widget _metaTile({required BuildContext context, required String title, required String value, required IconData icon}) {
     return Container(
       padding: const EdgeInsetsDirectional.symmetric(horizontal: 10, vertical: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xffF3F4F6),
-        borderRadius: BorderRadius.circular(12),
-      ),
+      decoration: BoxDecoration(color: const Color(0xffF3F4F6), borderRadius: BorderRadius.circular(12)),
       child: Row(
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                AppText.bodySmall(
-                  title,
-                  color: const Color(0xff6B7280),
-                  textAlign: TextAlign.start,
-                ),
+                AppText.bodySmall(title, color: const Color(0xff6B7280), textAlign: TextAlign.start),
                 const SizedBox(height: 4),
                 AppText.bodyMedium(value, fontWeight: FontWeight.w700),
               ],
@@ -172,13 +147,7 @@ class OrderCard extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: const Color(0xffE5E7EB)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(15),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
-            ),
-          ],
+          boxShadow: [BoxShadow(color: Colors.black.withAlpha(15), blurRadius: 10, offset: const Offset(0, 3))],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -187,28 +156,18 @@ class OrderCard extends StatelessWidget {
               children: [
                 Container(
                   padding: const EdgeInsetsDirectional.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: statusColor.withAlpha(30),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  decoration: BoxDecoration(color: statusColor.withAlpha(30), borderRadius: BorderRadius.circular(12)),
                   child: Row(
                     children: [
                       CircleAvatar(radius: 3.5, backgroundColor: statusColor),
                       const SizedBox(width: 6),
-                      AppText.labelSmall(
-                        _statusLabel(),
-                        color: statusColor,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      AppText.labelSmall(_statusLabel(), color: statusColor, fontWeight: FontWeight.w700),
                     ],
                   ),
                 ),
                 const Spacer(),
                 Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xff334155),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
+                  decoration: BoxDecoration(color: const Color(0xff334155), borderRadius: BorderRadius.circular(14)),
                   padding: const EdgeInsets.all(10),
                   child: const Icon(Icons.person_outline, color: Color(0xffCBD5E1)),
                 ),
@@ -221,16 +180,9 @@ class OrderCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      AppText.titleSmall(
-                        _serviceName(),
-                        fontWeight: FontWeight.bold,
-                        textAlign: TextAlign.start,
-                      ),
+                      AppText.titleSmall(_serviceName(), fontWeight: FontWeight.bold, textAlign: TextAlign.start),
                       const SizedBox(height: 4),
-                      AppText.bodySmall(
-                        '#ORD-$bookingLabel • منذ 2 دقيقة',
-                        color: const Color(0xff6B7280),
-                      ),
+                      AppText.bodySmall('#ORD-$bookingLabel • منذ 2 دقيقة', color: const Color(0xff6B7280)),
                     ],
                   ),
                 ),
@@ -238,49 +190,23 @@ class OrderCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    AppText.titleSmall(
-                      '${data.totalPrice ?? 0} ل.س',
-                      color: const Color(0xff1E2A78),
-                      fontWeight: FontWeight.bold,
-                    ),
+                    AppText.titleSmall('${data.totalPrice ?? 0} ل.س', color: const Color(0xff1E2A78), fontWeight: FontWeight.bold),
                     const SizedBox(height: 4),
                     Container(
-                      decoration: BoxDecoration(
-                        color: context.primaryContainer,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                      decoration: BoxDecoration(color: context.primaryContainer, borderRadius: BorderRadius.circular(8)),
                       padding: const EdgeInsetsDirectional.symmetric(horizontal: 12, vertical: 5),
-                      child: AppText.labelSmall(
-                        'نقدي',
-                        color: context.onPrimaryContainer,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      child: AppText.labelSmall('نقدي', color: context.onPrimaryContainer, fontWeight: FontWeight.w700),
                     ),
                   ],
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            _metaTile(
-              context: context,
-              title: 'جدولة الحجز',
-              value: _formatDate(),
-              icon: Icons.calendar_today_rounded,
-            ),
+            _metaTile(context: context, title: 'جدولة الحجز', value: _formatDate(), icon: Icons.calendar_today_rounded),
             const SizedBox(height: 8),
-            _metaTile(
-              context: context,
-              title: 'موعد الخدمة',
-              value: _formatTime(),
-              icon: Icons.schedule_rounded,
-            ),
+            _metaTile(context: context, title: 'موعد الخدمة', value: _formatTime(), icon: Icons.schedule_rounded),
             const SizedBox(height: 8),
-            _metaTile(
-              context: context,
-              title: 'المساحة التقديرية',
-              value: '${data.estimatedSqm ?? '-'} متر مربع',
-              icon: Icons.square_foot_rounded,
-            ),
+            _metaTile(context: context, title: 'المساحة التقديرية', value: '${data.estimatedSqm ?? '-'} متر مربع', icon: Icons.square_foot_rounded),
             if (attributes.isNotEmpty) ...[
               const SizedBox(height: 10),
               Wrap(
@@ -290,15 +216,8 @@ class OrderCard extends StatelessWidget {
                     .map(
                       (label) => Container(
                         padding: const EdgeInsetsDirectional.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: context.primaryContainer.withAlpha(35),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: AppText.bodySmall(
-                          label,
-                          color: context.primaryContainer,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        decoration: BoxDecoration(color: context.primaryContainer.withAlpha(35), borderRadius: BorderRadius.circular(10)),
+                        child: AppText.bodySmall(label, color: context.primaryContainer, fontWeight: FontWeight.w700),
                       ),
                     )
                     .toList(),
@@ -313,42 +232,21 @@ class OrderCard extends StatelessWidget {
                     child: BlocBuilder<OrdersBloc, OrdersState>(
                       bloc: bloc,
                       builder: (context, state) {
-                        final loading =
-                            state.acceptOrderUsecaseStatus == BlocStatus.loading &&
-                            state.selectedIndex == index;
+                        final loading = state.acceptOrderUsecaseStatus == BlocStatus.loading && state.selectedIndex == index;
                         return InkWell(
                           onTap: loading
                               ? null
                               : () {
-                                  AcceptOrderBottomSheet.show(
-                                    context,
-                                    order: data,
-                                    bloc: bloc,
-                                    index: index,
-                                  );
+                                  AcceptOrderBottomSheet.show(context, order: data, bloc: bloc, index: index);
                                 },
                           borderRadius: BorderRadius.circular(10),
                           child: Container(
                             height: 44,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              color: context.primary,
-                            ),
+                            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: context.primary),
                             child: Center(
                               child: loading
-                                  ? SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: context.onPrimary,
-                                      ),
-                                    )
-                                  : AppText.labelLarge(
-                                      'قبول الطلب',
-                                      color: context.onPrimary,
-                                      fontWeight: FontWeight.w700,
-                                    ),
+                                  ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: context.onPrimary))
+                                  : AppText.labelLarge('قبول الطلب', color: context.onPrimary, fontWeight: FontWeight.w700),
                             ),
                           ),
                         );
@@ -360,9 +258,7 @@ class OrderCard extends StatelessWidget {
                     child: BlocBuilder<OrdersBloc, OrdersState>(
                       bloc: bloc,
                       builder: (context, state) {
-                        final loading =
-                            state.rejectOrderUsecaseStatus == BlocStatus.loading &&
-                            state.selectedIndex == index;
+                        final loading = state.rejectOrderUsecaseStatus == BlocStatus.loading && state.selectedIndex == index;
                         return InkWell(
                           onTap: loading
                               ? null
@@ -385,19 +281,8 @@ class OrderCard extends StatelessWidget {
                             ),
                             child: Center(
                               child: loading
-                                  ? SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: context.error,
-                                      ),
-                                    )
-                                  : AppText.labelLarge(
-                                      'رفض',
-                                      color: context.error,
-                                      fontWeight: FontWeight.w700,
-                                    ),
+                                  ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: context.error))
+                                  : AppText.labelLarge('رفض', color: context.error, fontWeight: FontWeight.w700),
                             ),
                           ),
                         );
@@ -414,9 +299,7 @@ class OrderCard extends StatelessWidget {
                     child: BlocBuilder<OrdersBloc, OrdersState>(
                       bloc: bloc,
                       builder: (context, state) {
-                        final loading =
-                            state.startTravelUsecaseStatus == BlocStatus.loading &&
-                            state.selectedIndex == index;
+                        final loading = state.startTravelUsecaseStatus == BlocStatus.loading && state.selectedIndex == index;
                         return InkWell(
                           onTap: loading
                               ? null
@@ -432,25 +315,11 @@ class OrderCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(10),
                           child: Container(
                             height: 44,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              color: context.primary,
-                            ),
+                            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: context.primary),
                             child: Center(
                               child: loading
-                                  ? SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: context.onPrimary,
-                                      ),
-                                    )
-                                  : AppText.labelLarge(
-                                      'أنا في الطريق',
-                                      color: context.onPrimary,
-                                      fontWeight: FontWeight.w700,
-                                    ),
+                                  ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: context.onPrimary))
+                                  : AppText.labelLarge('أنا في الطريق', color: context.onPrimary, fontWeight: FontWeight.w700),
                             ),
                           ),
                         );
@@ -462,12 +331,7 @@ class OrderCard extends StatelessWidget {
                     child: InkWell(
                       onTap: () {
                         if (data.id == null || data.bookingNumber == null) return;
-                        CancelOrderDialog.show(
-                          context,
-                          bloc: bloc,
-                          orderId: data.id!,
-                          orderNum: data.bookingNumber!,
-                        );
+                        CancelOrderDialog.show(context, bloc: bloc, orderId: data.id!, orderNum: data.bookingNumber!);
                       },
                       borderRadius: BorderRadius.circular(10),
                       child: Container(
@@ -478,11 +342,7 @@ class OrderCard extends StatelessWidget {
                           border: Border.all(color: context.error),
                         ),
                         child: Center(
-                          child: AppText.labelLarge(
-                            'إلغاء',
-                            color: context.error,
-                            fontWeight: FontWeight.w700,
-                          ),
+                          child: AppText.labelLarge('إلغاء', color: context.error, fontWeight: FontWeight.w700),
                         ),
                       ),
                     ),
@@ -495,16 +355,9 @@ class OrderCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
                 child: Container(
                   height: 44,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    color: context.primaryContainer,
-                  ),
+                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: context.primaryContainer),
                   child: Center(
-                    child: AppText.labelLarge(
-                      'متابعة الطلب',
-                      color: context.onPrimaryContainer,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    child: AppText.labelLarge('متابعة الطلب', color: context.onPrimaryContainer, fontWeight: FontWeight.w700),
                   ),
                 ),
               ),

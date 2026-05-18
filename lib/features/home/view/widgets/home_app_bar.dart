@@ -42,7 +42,11 @@ class HomeAppBar extends StatelessWidget {
                   textAlign: TextAlign.start,
                 ),
               ),
-              Icon(Icons.notifications_none_outlined, color: context.primaryContainer),
+              InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () => context.pushRoute('/notifications'),
+                child: Icon(Icons.notifications_none_outlined, color: context.primaryContainer),
+              ),
             ],
           );
         },

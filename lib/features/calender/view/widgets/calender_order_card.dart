@@ -1,30 +1,36 @@
 import 'package:common_package/common_package.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../generated/assets.dart';
 import '../../../orders/data/models/fetch_orders_usecase_model.dart';
+import '../../../orders/view/screens/order_details_screen.dart';
 
 class CalenderOrderCard extends StatelessWidget {
-  const CalenderOrderCard({super.key, required this.date});
+  const CalenderOrderCard({super.key, required this.date, required this.index});
 
   final FetchOrdersUsecaseModelDataItem date;
+  final int index;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: 52,
-          child: AppText.labelMedium(DateFormat('hh:mm a').format(DateFormat("HH:mm:ss").parse(date.scheduledTime!)), scrollText: true),
-        ),
+        SizedBox(width: 52, child: AppText.labelMedium(DateFormat('hh:mm a').format(DateFormat("HH:mm:ss").parse(date.scheduledTime!)), scrollText: true)),
         SizedBox(width: 13),
         Expanded(
           child: InkWell(
             onTap: () {
-              context.pushRoute('/orderdetails', arguments: date);
+              context.pushRoute('/orderdetails', arguments: OrderDetailsScreenParams(
+                bloc: context.read<OrdersBloc>(),
+                index: index,
+                order: date,
+                isNewOrder: false,
+              ));
             },
             borderRadius: BorderRadius.circular(16),
             child: Container(

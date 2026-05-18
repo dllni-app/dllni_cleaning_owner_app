@@ -5,6 +5,8 @@ import 'pusher_manager.dart';
 
 typedef CleaningBookingEventHandler =
     void Function(String eventName, Map<String, dynamic> payload);
+typedef CleaningBookingChannelErrorHandler =
+    void Function(RealtimeChannelError error);
 
 @lazySingleton
 class CleaningBookingPusherService {
@@ -16,6 +18,10 @@ class CleaningBookingPusherService {
       <int, CleaningBookingEventHandler>{};
   final Map<int, CleaningBookingEventHandler> _workerHandlers =
       <int, CleaningBookingEventHandler>{};
+  final Map<int, CleaningBookingChannelErrorHandler> _bookingErrorHandlers =
+      <int, CleaningBookingChannelErrorHandler>{};
+  final Map<int, CleaningBookingChannelErrorHandler> _workerErrorHandlers =
+      <int, CleaningBookingChannelErrorHandler>{};
 
   final Map<int, RealtimeListenerHandle> _bookingListenerHandles =
       <int, RealtimeListenerHandle>{};
@@ -48,6 +54,34 @@ class CleaningBookingPusherService {
     _workerHandlers[workerId] = onEvent;
   }
 
+  @Deprecated(
+    'Use PusherManager.listen with RealtimeListenerHandle ownership instead.',
+  )
+  void setBookingErrorHandler(
+    int bookingId,
+    CleaningBookingChannelErrorHandler? onError,
+  ) {
+    if (onError == null) {
+      _bookingErrorHandlers.remove(bookingId);
+      return;
+    }
+    _bookingErrorHandlers[bookingId] = onError;
+  }
+
+  @Deprecated(
+    'Use PusherManager.listen with RealtimeListenerHandle ownership instead.',
+  )
+  void setWorkerErrorHandler(
+    int workerId,
+    CleaningBookingChannelErrorHandler? onError,
+  ) {
+    if (onError == null) {
+      _workerErrorHandlers.remove(workerId);
+      return;
+    }
+    _workerErrorHandlers[workerId] = onError;
+  }
+
   Future<void> subscribeBookingChannel(int bookingId) async {
     if (_bookingListenerHandles.containsKey(bookingId)) return;
     final handle = await _pusherManager.listen(
@@ -56,6 +90,11 @@ class CleaningBookingPusherService {
         final handler = _bookingHandlers[bookingId];
         if (handler == null) return;
         handler(event.eventName, event.payload);
+      },
+      onChannelError: (error) {
+        final handler = _bookingErrorHandlers[bookingId];
+        if (handler == null) return;
+        handler(error);
       },
     );
     _bookingListenerHandles[bookingId] = handle;
@@ -75,6 +114,11 @@ class CleaningBookingPusherService {
         if (handler == null) return;
         handler(event.eventName, event.payload);
       },
+      onChannelError: (error) {
+        final handler = _workerErrorHandlers[workerId];
+        if (handler == null) return;
+        handler(error);
+      },
     );
     _workerListenerHandles[workerId] = handle;
   }
@@ -93,6 +137,8 @@ class CleaningBookingPusherService {
     _workerListenerHandles.clear();
     _bookingHandlers.clear();
     _workerHandlers.clear();
+    _bookingErrorHandlers.clear();
+    _workerErrorHandlers.clear();
 
     for (final handle in bookingHandles) {
       await handle.dispose();

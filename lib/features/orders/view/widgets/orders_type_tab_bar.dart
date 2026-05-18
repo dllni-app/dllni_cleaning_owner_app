@@ -1,7 +1,7 @@
 import 'package:common_package/common_package.dart';
-import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/order_notifier.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/orders_status_tabs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tab_indicator_styler/tab_indicator_styler.dart';
@@ -19,12 +19,15 @@ class OrdersTypeTabBar extends StatefulWidget {
 
 class _OrdersTypeTabBarState extends State<OrdersTypeTabBar>
     with TickerProviderStateMixin {
-  late TabController _tabController;
+  late final TabController _tabController;
 
   @override
   void initState() {
-    _tabController = TabController(length: 4, vsync: this);
     super.initState();
+    _tabController = TabController(
+      length: ordersStatusTabs.length,
+      vsync: this,
+    );
   }
 
   @override
@@ -33,74 +36,30 @@ class _OrdersTypeTabBarState extends State<OrdersTypeTabBar>
     super.dispose();
   }
 
+  void _onTabSelected(int index) {
+    final tab = ordersStatusTabs[index];
+    widget.orderNotifier.changeStatus(tab.status);
+    context.read<OrdersBloc>().add(
+      FetchOrdersUsecaseEvent(
+        params: FetchOrdersUsecaseParams(page: 1, status: tab.status),
+        isReload: true,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return TabBar(
       isScrollable: true,
-      onTap: (i) {
-        if (i == 0) {
-          context.read<OrdersBloc>().add(
-            FetchOrdersUsecaseEvent(
-              params: FetchOrdersUsecaseParams(
-                page: 1,
-                status: CleaningBookingStatus.pending,
-              ),
-              isReload: true,
-            ),
-          );
-        }
-        if (i == 1) {
-          context.read<OrdersBloc>().add(
-            FetchOrdersUsecaseEvent(
-              params: FetchOrdersUsecaseParams(
-                page: 1,
-                status: CleaningBookingStatus.workerAssigned,
-              ),
-              isReload: true,
-            ),
-          );
-        }
-        if (i == 2) {
-          context.read<OrdersBloc>().add(
-            FetchOrdersUsecaseEvent(
-              params: FetchOrdersUsecaseParams(
-                page: 1,
-                status: OrderStatusFilter.activeLifecycle,
-              ),
-              isReload: true,
-            ),
-          );
-        }
-        if (i == 3) {
-          context.read<OrdersBloc>().add(
-            FetchOrdersUsecaseEvent(
-              params: FetchOrdersUsecaseParams(
-                page: 1,
-                status: CleaningBookingStatus.completed,
-              ),
-              isReload: true,
-            ),
-          );
-        }
-        widget.orderNotifier.status.value = i == 0
-            ? CleaningBookingStatus.pending
-            : i == 1
-            ? CleaningBookingStatus.workerAssigned
-            : i == 2
-            ? OrderStatusFilter.activeLifecycle
-            : CleaningBookingStatus.completed;
-      },
+      onTap: _onTabSelected,
       dividerHeight: .1,
       tabAlignment: TabAlignment.start,
       indicatorColor: context.primary,
       controller: _tabController,
-      tabs: [
-        AppText.labelLarge('الطلبات الجديدة'),
-        AppText.labelLarge('الطلبات المؤكدة'),
-        AppText.labelLarge('قيد التنفيذ'),
-        AppText.labelLarge('الطلبات المكتملة'),
-      ],
-      labelPadding: EdgeInsetsDirectional.symmetric(
+      tabs: ordersStatusTabs
+          .map((tab) => Tab(child: AppText.labelLarge(tab.label)))
+          .toList(growable: false),
+      labelPadding: const EdgeInsetsDirectional.symmetric(
         vertical: 3,
         horizontal: 10,
       ),

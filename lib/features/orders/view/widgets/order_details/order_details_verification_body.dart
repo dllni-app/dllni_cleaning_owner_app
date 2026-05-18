@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
 import '../../../data/models/fetch_orders_usecase_model.dart';
+import '../../helpers/cleaning_security_code_display.dart';
 import '../../manager/bloc/orders_bloc.dart';
 import '../order_details_map_app_bar.dart';
 
@@ -49,10 +50,30 @@ class _OrderDetailsVerificationBodyState extends State<OrderDetailsVerificationB
                 }
                 final code = state.securityCode?.data?.securityCode ?? '----';
                 final expires = state.securityCode?.data?.expiresAt;
+                final formattedExpiry = formatCleaningSecurityCodeDateTime(expires);
+                final bookingLabel = formatCleaningBookingLabel(
+                  bookingId: widget.order.id,
+                  bookingNumber: widget.order.bookingNumber,
+                );
                 return Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     AppText.titleMedium('رمز التحقق للعميل', fontWeight: FontWeight.bold, textAlign: TextAlign.center),
+                    12.verticalSpace,
+                    AppText.labelMedium(
+                      'رقم الحجز: $bookingLabel',
+                      textAlign: TextAlign.center,
+                      color: context.colorScheme.onSurface,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    if (formattedExpiry.isNotEmpty) ...[
+                      8.verticalSpace,
+                      AppText.labelMedium(
+                        'صالح حتى: $formattedExpiry',
+                        textAlign: TextAlign.center,
+                        color: context.colorScheme.outline,
+                      ),
+                    ],
                     24.verticalSpace,
                     Container(
                       padding: EdgeInsetsDirectional.symmetric(vertical: 20.h, horizontal: 32.w),
@@ -63,10 +84,6 @@ class _OrderDetailsVerificationBodyState extends State<OrderDetailsVerificationB
                       ),
                       child: AppText.displaySmall(code, fontWeight: FontWeight.bold),
                     ),
-                    if (expires != null) ...[
-                      12.verticalSpace,
-                      AppText.labelMedium('صالح حتى: $expires', color: context.colorScheme.outline, textAlign: TextAlign.center),
-                    ],
                     32.verticalSpace,
                     AppText.bodyMedium(
                       'اطلب من العميل إدخال هذا الرمز في تطبيقه لتأكيد وصولك قبل بدء العمل.',

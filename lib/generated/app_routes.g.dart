@@ -5,6 +5,7 @@ import 'package:dllni_cleaninig_owner_app/features/auth/view/screens/login_scree
 import 'package:dllni_cleaninig_owner_app/features/main/view/screens/main_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/screens/emergency_sos_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/screens/order_details_screen.dart';
+import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/notifications_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/transaction_details_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/transaction_history_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/update_profile_screen.dart';
@@ -42,6 +43,11 @@ class GeneratedAppRoutes {
           );
         }
         return _errorRoute(settings);
+      case '/notifications':
+        return MaterialPageRoute(
+          builder: (_) => NotificationsScreen(),
+          settings: settings,
+        );
       case '/transactiondetails':
         if (args is TransactionDetailsScreenParam) {
           return MaterialPageRoute(

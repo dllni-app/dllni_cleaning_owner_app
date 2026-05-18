@@ -22,6 +22,20 @@ class RealtimeEvent {
   final int receivedAtMs;
 }
 
+class RealtimeChannelError {
+  const RealtimeChannelError({
+    required this.channelName,
+    required this.message,
+    this.statusCode,
+    this.rawError,
+  });
+
+  final String channelName;
+  final String message;
+  final int? statusCode;
+  final dynamic rawError;
+}
+
 class RealtimeListenerHandle {
   RealtimeListenerHandle(this._disposeInternal);
 
@@ -36,6 +50,8 @@ class RealtimeListenerHandle {
 }
 
 typedef RealtimeEventCallback = void Function(RealtimeEvent event);
+typedef RealtimeChannelErrorCallback =
+    void Function(RealtimeChannelError error);
 
 abstract class PusherClientBridge {
   Future<void> init({
@@ -171,12 +187,8 @@ class PusherManager {
       cluster: AppConfig.pusherCluster,
       useTls: true,
       onAuthorizer: _authorizePrivateChannel,
-      onSubscriptionError: (message, e) {
-        PusherServiceLogger.subscriptionError('(subscription)', message, e);
-      },
-      onError: (message, code, e) {
-        PusherServiceLogger.socketError(message, code, e);
-      },
+      onSubscriptionError: _handleSubscriptionError,
+      onError: _handleSocketError,
       onSubscriptionSucceeded: (channelName, data) {
         PusherServiceLogger.subscriptionSucceeded(channelName, data);
       },
@@ -193,6 +205,7 @@ class PusherManager {
     required String channelName,
     Set<String>? eventNames,
     required RealtimeEventCallback onEvent,
+    RealtimeChannelErrorCallback? onChannelError,
   }) async {
     if (AppConfig.pusherKey.isEmpty) {
       return RealtimeListenerHandle(() async {});
@@ -212,6 +225,7 @@ class PusherManager {
       id: listenerId,
       eventNames: normalizedEvents,
       onEvent: onEvent,
+      onChannelError: onChannelError,
     );
 
     final nextRefCount = (_channelRefCount[channelName] ?? 0) + 1;
@@ -272,9 +286,43 @@ class PusherManager {
         if (body['channel_data'] != null) 'channel_data': body['channel_data'],
       };
     } catch (e, st) {
+      _emitChannelError(
+        channelName: channelName,
+        message: 'Broadcasting auth failed',
+        statusCode: _extractStatusCode(e),
+        rawError: e,
+      );
       PusherServiceLogger.authAuthorizerError(channelName, e, st);
       rethrow;
     }
+  }
+
+  void _handleSubscriptionError(String message, dynamic error) {
+    final channelName = _extractChannelNameFromMessage(message);
+    if (channelName != null) {
+      _emitChannelError(
+        channelName: channelName,
+        message: message,
+        statusCode: _extractStatusCode(error) ?? _extractStatusCode(message),
+        rawError: error,
+      );
+      PusherServiceLogger.subscriptionError(channelName, message, error);
+      return;
+    }
+    PusherServiceLogger.subscriptionError('(subscription)', message, error);
+  }
+
+  void _handleSocketError(String message, int? code, dynamic error) {
+    final channelName = _extractChannelNameFromMessage(message);
+    if (channelName != null) {
+      _emitChannelError(
+        channelName: channelName,
+        message: message,
+        statusCode: code ?? _extractStatusCode(error),
+        rawError: error,
+      );
+    }
+    PusherServiceLogger.socketError(message, code, error);
   }
 
   Future<void> _removeListener(String channelName, int listenerId) async {
@@ -380,6 +428,51 @@ class PusherManager {
     }
     return const <String, dynamic>{};
   }
+
+  void _emitChannelError({
+    required String channelName,
+    required String message,
+    int? statusCode,
+    dynamic rawError,
+  }) {
+    final listeners = _listenersByChannel[channelName];
+    if (listeners == null || listeners.isEmpty) return;
+    final channelError = RealtimeChannelError(
+      channelName: channelName,
+      message: message,
+      statusCode: statusCode,
+      rawError: rawError,
+    );
+    for (final listener in listeners.values) {
+      final callback = listener.onChannelError;
+      if (callback == null) continue;
+      callback(channelError);
+    }
+  }
+
+  String? _extractChannelNameFromMessage(dynamic rawMessage) {
+    final message = '$rawMessage';
+    final match = RegExp(r'private-[A-Za-z0-9_.-]+').firstMatch(message);
+    return match?.group(0);
+  }
+
+  int? _extractStatusCode(dynamic value) {
+    if (value is DioException) {
+      return value.response?.statusCode;
+    }
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is Map) {
+      final map = value.map((k, v) => MapEntry(k.toString(), v));
+      return _extractStatusCode(
+        map['statusCode'] ?? map['status_code'] ?? map['status'] ?? map['code'],
+      );
+    }
+    final text = '$value';
+    final match = RegExp(r'\b(4\d{2}|5\d{2})\b').firstMatch(text);
+    if (match == null) return null;
+    return int.tryParse(match.group(1) ?? '');
+  }
 }
 
 class _RealtimeListenerEntry {
@@ -387,9 +480,11 @@ class _RealtimeListenerEntry {
     required this.id,
     required this.eventNames,
     required this.onEvent,
+    required this.onChannelError,
   });
 
   final int id;
   final Set<String>? eventNames;
   final RealtimeEventCallback onEvent;
+  final RealtimeChannelErrorCallback? onChannelError;
 }

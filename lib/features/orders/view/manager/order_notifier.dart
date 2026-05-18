@@ -1,20 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
 
-abstract class OrderStatusFilter {
-  static const activeLifecycle =
-      '${CleaningBookingStatus.inProgress},'
-      '${CleaningBookingStatus.awaitingStartVerification},'
-      '${CleaningBookingStatus.awaitingCustomerCompletion},'
-      '${CleaningBookingStatus.timeExtensionRequested}';
-}
+import 'orders_status_tabs.dart';
 
 class OrderNotifier {
-  ValueNotifier<String> status = ValueNotifier(
-    CleaningBookingStatus.workerAssigned,
-  );
+  OrderNotifier() : status = ValueNotifier(ordersStatusTabs.first.status);
 
-  changeStatus(String status) {
-    this.status.value = status;
+  ValueNotifier<String> status;
+
+  void changeStatus(String value) {
+    status.value = value;
   }
 }

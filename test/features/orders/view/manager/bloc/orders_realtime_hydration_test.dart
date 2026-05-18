@@ -36,11 +36,16 @@ import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orde
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('OrdersBloc realtime hydration', () {
+  group('OrdersBloc realtime sync-first policy', () {
     test(
-      'hydrates orders list item from realtime payload without refetch',
+      'lifecycle list event triggers refetch and replaces list state from API',
       () async {
-        final repo = _FakeOrdersRepo();
+        final repo = _FakeOrdersRepo(
+          listStatuses: const <String>[
+            CleaningBookingStatus.workerAssigned,
+            CleaningBookingStatus.awaitingStartVerification,
+          ],
+        );
         final bloc = _buildBloc(repo);
 
         bloc.add(
@@ -53,7 +58,8 @@ void main() {
           ),
         );
         await _flushBlocQueue();
-        expect(bloc.state.ordersUsecase?.list.first.id, 42);
+
+        expect(repo.fetchOrdersCalls, 1);
         expect(
           bloc.state.ordersUsecase?.list.first.status,
           CleaningBookingStatus.workerAssigned,
@@ -62,31 +68,59 @@ void main() {
         bloc.add(
           HydrateOrderListFromRealtimeEvent(
             eventName: 'WorkerArrived',
-            payload: <String, dynamic>{
-              'cleaningBookingId': 42,
-              'status': CleaningBookingStatus.awaitingStartVerification,
-              'arrivedAt': '2026-05-13T00:00:00Z',
-            },
+            payload: const <String, dynamic>{'cleaningBookingId': 42},
           ),
         );
         await _flushBlocQueue();
 
+        expect(repo.fetchOrdersCalls, 2);
         expect(
           bloc.state.ordersUsecase?.list.first.status,
           CleaningBookingStatus.awaitingStartVerification,
-        );
-        expect(
-          bloc.state.ordersUsecase?.list.first.arrivedAt,
-          '2026-05-13T00:00:00Z',
         );
         await bloc.close();
       },
     );
 
+    test('non-lifecycle list event does not trigger refetch', () async {
+      final repo = _FakeOrdersRepo(
+        listStatuses: const <String>[CleaningBookingStatus.workerAssigned],
+      );
+      final bloc = _buildBloc(repo);
+
+      bloc.add(
+        FetchOrdersUsecaseEvent(
+          params: FetchOrdersUsecaseParams(
+            page: 1,
+            status: CleaningBookingStatus.workerAssigned,
+          ),
+          isReload: true,
+        ),
+      );
+      await _flushBlocQueue();
+      expect(repo.fetchOrdersCalls, 1);
+
+      bloc.add(
+        HydrateOrderListFromRealtimeEvent(
+          eventName: 'WorkerLocationUpdated',
+          payload: const <String, dynamic>{'cleaningBookingId': 42},
+        ),
+      );
+      await _flushBlocQueue();
+
+      expect(repo.fetchOrdersCalls, 1);
+      await bloc.close();
+    });
+
     test(
-      'hydrates order details status from realtime decision payload',
+      'lifecycle details event triggers refetch and replaces details from API',
       () async {
-        final repo = _FakeOrdersRepo();
+        final repo = _FakeOrdersRepo(
+          detailsStatuses: const <String>[
+            CleaningBookingStatus.workerAssigned,
+            CleaningBookingStatus.completed,
+          ],
+        );
         final bloc = _buildBloc(repo);
 
         bloc.add(
@@ -95,6 +129,8 @@ void main() {
           ),
         );
         await _flushBlocQueue();
+
+        expect(repo.fetchOrderDetailsCalls, 1);
         expect(
           bloc.state.orderDetailsUsecase?.data?.status,
           CleaningBookingStatus.workerAssigned,
@@ -104,14 +140,12 @@ void main() {
           HydrateOrderDetailsFromRealtimeEvent(
             bookingId: 42,
             eventName: 'CompletionDecisionMade',
-            payload: <String, dynamic>{
-              'cleaningBookingId': 42,
-              'decision': 'approved',
-            },
+            payload: const <String, dynamic>{'cleaningBookingId': 42},
           ),
         );
         await _flushBlocQueue();
 
+        expect(repo.fetchOrderDetailsCalls, 2);
         expect(
           bloc.state.orderDetailsUsecase?.data?.status,
           CleaningBookingStatus.completed,
@@ -148,6 +182,27 @@ Future<void> _flushBlocQueue() async {
 }
 
 class _FakeOrdersRepo implements OrdersRepo {
+  _FakeOrdersRepo({List<String>? listStatuses, List<String>? detailsStatuses})
+    : _listStatuses =
+          listStatuses ?? const <String>[CleaningBookingStatus.workerAssigned],
+      _detailsStatuses =
+          detailsStatuses ??
+          const <String>[CleaningBookingStatus.workerAssigned];
+
+  final List<String> _listStatuses;
+  final List<String> _detailsStatuses;
+
+  int fetchOrdersCalls = 0;
+  int fetchOrderDetailsCalls = 0;
+
+  String _statusAt(List<String> statuses, int callIndex) {
+    if (statuses.isEmpty) return CleaningBookingStatus.workerAssigned;
+    final safeIndex = callIndex >= statuses.length
+        ? statuses.length - 1
+        : callIndex;
+    return statuses[safeIndex];
+  }
+
   @override
   DataResponse<AcceptExtensionUsecaseModel> acceptExtensionUsecase(
     AcceptExtensionUsecaseParams params,
@@ -190,12 +245,11 @@ class _FakeOrdersRepo implements OrdersRepo {
   DataResponse<FetchOrderDetailsUsecaseModel> fetchOrderDetailsUsecase(
     FetchOrderDetailsUsecaseParams params,
   ) async {
+    final status = _statusAt(_detailsStatuses, fetchOrderDetailsCalls);
+    fetchOrderDetailsCalls++;
     return Right(
       FetchOrderDetailsUsecaseModel(
-        data: FetchOrderDetailsUsecaseModelData(
-          id: 42,
-          status: CleaningBookingStatus.workerAssigned,
-        ),
+        data: FetchOrderDetailsUsecaseModelData(id: 42, status: status),
       ),
     );
   }
@@ -204,13 +258,12 @@ class _FakeOrdersRepo implements OrdersRepo {
   DataResponse<FetchOrdersUsecaseModel> fetchOrdersUsecase(
     FetchOrdersUsecaseParams params,
   ) async {
+    final status = _statusAt(_listStatuses, fetchOrdersCalls);
+    fetchOrdersCalls++;
     return Right(
       FetchOrdersUsecaseModel(
         data: <FetchOrdersUsecaseModelDataItem>[
-          FetchOrdersUsecaseModelDataItem(
-            id: 42,
-            status: CleaningBookingStatus.workerAssigned,
-          ),
+          FetchOrdersUsecaseModelDataItem(id: 42, status: status),
         ],
       ),
     );

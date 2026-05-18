@@ -1,6 +1,7 @@
 import 'package:common_package/helpers/dio_network.dart';
 import 'package:injectable/injectable.dart';
 import 'package:common_package/helpers/api_handler.dart';
+import 'package:common_package/helpers/typedef.dart';
 import '../models/fetch_worker_profile_usecase_model.dart';
 import '../../domain/usecases/fetch_worker_profile_usecase_use_case.dart';
 import '../models/fetch_disputes_usecase_model.dart';
@@ -15,6 +16,9 @@ import '../models/worker_work_areas_model.dart';
 import '../../domain/usecases/update_worker_work_areas_use_case.dart';
 import '../models/update_worker_profile_model.dart';
 import '../../domain/usecases/update_worker_profile_use_case.dart';
+import '../models/notification_api_models.dart';
+import '../../domain/usecases/fetch_notifications_use_case.dart';
+import '../../domain/usecases/mark_notification_read_use_case.dart';
 
 @lazySingleton
 class ProfileRemoteDataSource with HandlingApiManager {
@@ -85,6 +89,37 @@ class ProfileRemoteDataSource with HandlingApiManager {
         data: params.getBody(),
       ),
       jsonConvert: updateWorkerProfileModelFromJson,
+    );
+  }
+
+  Future<FetchNotificationsPageModel> fetchNotifications(FetchNotificationsParams params) {
+    return wrapHandlingApi(
+      tryCall: () => dioNetwork.getData(
+        endPoint: '/api/v1/notifications',
+        params: params.getParams(),
+        data: params.getBody().isEmpty ? null : params.getBody(),
+      ),
+      jsonConvert: fetchNotificationsPageModelFromJson,
+    );
+  }
+
+  Future<ActionResultModel> markAllNotificationsRead(NoParams params) {
+    return wrapHandlingApi(
+      tryCall: () => dioNetwork.patchData(
+        endPoint: '/api/v1/notifications/read-all',
+        data: params.getBody().isEmpty ? {} : params.getBody(),
+      ),
+      jsonConvert: actionResultModelFromJson,
+    );
+  }
+
+  Future<ActionResultModel> markNotificationRead(MarkNotificationReadParams params) {
+    return wrapHandlingApi(
+      tryCall: () => dioNetwork.patchData(
+        endPoint: '/api/v1/notifications/${params.notificationId}/read',
+        data: params.getBody().isEmpty ? {} : params.getBody(),
+      ),
+      jsonConvert: actionResultModelFromJson,
     );
   }
 }

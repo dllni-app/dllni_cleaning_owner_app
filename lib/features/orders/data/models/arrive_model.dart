@@ -84,7 +84,16 @@ class ArriveModel {
   ArriveModel({this.data});
 
   factory ArriveModel.fromJson(Map<String, dynamic> json) {
-    return ArriveModel(data: json['data'] is Map ? ArriveModelData.fromJson(Map<String, dynamic>.from(json['data'])) : null);
+    final nested = json['data'];
+    if (nested is Map) {
+      return ArriveModel(
+        data: ArriveModelData.fromJson(Map<String, dynamic>.from(nested)),
+      );
+    }
+    if (json.containsKey('id') || json.containsKey('status')) {
+      return ArriveModel(data: ArriveModelData.fromJson(json));
+    }
+    return ArriveModel();
   }
 
   Map<String, dynamic> toJson() {

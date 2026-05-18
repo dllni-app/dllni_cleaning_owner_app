@@ -78,10 +78,16 @@ import '../../features/profile/domain/usecases/fetch_dispute_details_usecase_use
     as _i961;
 import '../../features/profile/domain/usecases/fetch_disputes_usecase_use_case.dart'
     as _i947;
+import '../../features/profile/domain/usecases/fetch_notifications_use_case.dart'
+    as _i438;
 import '../../features/profile/domain/usecases/fetch_worker_profile_usecase_use_case.dart'
     as _i338;
 import '../../features/profile/domain/usecases/fetch_worker_statistics_use_case.dart'
     as _i280;
+import '../../features/profile/domain/usecases/mark_all_notifications_read_use_case.dart'
+    as _i10;
+import '../../features/profile/domain/usecases/mark_notification_read_use_case.dart'
+    as _i338;
 import '../../features/profile/domain/usecases/update_dispute_use_case.dart'
     as _i973;
 import '../../features/profile/domain/usecases/update_worker_profile_use_case.dart'
@@ -130,6 +136,18 @@ _i174.GetIt $initGetIt(
     () => _i265.ProfileRepoImpl(
       profileRemoteDataSource: gh<_i502.ProfileRemoteDataSource>(),
     ),
+  );
+  gh.lazySingleton<_i438.FetchNotificationsUseCase>(
+    () => _i438.FetchNotificationsUseCase(profileRepo: gh<_i275.ProfileRepo>()),
+  );
+  gh.lazySingleton<_i10.MarkAllNotificationsReadUseCase>(
+    () => _i10.MarkAllNotificationsReadUseCase(
+      profileRepo: gh<_i275.ProfileRepo>(),
+    ),
+  );
+  gh.lazySingleton<_i338.MarkNotificationReadUseCase>(
+    () =>
+        _i338.MarkNotificationReadUseCase(profileRepo: gh<_i275.ProfileRepo>()),
   );
   gh.lazySingleton<_i132.OrdersRepo>(
     () => _i849.OrdersRepoImpl(
@@ -252,6 +270,9 @@ _i174.GetIt $initGetIt(
       gh<_i780.UpdateWorkerWorkAreasUseCase>(),
       gh<_i973.UpdateDisputeUseCase>(),
       gh<_i857.UpdateWorkerProfileUseCase>(),
+      gh<_i438.FetchNotificationsUseCase>(),
+      gh<_i10.MarkAllNotificationsReadUseCase>(),
+      gh<_i338.MarkNotificationReadUseCase>(),
     ),
   );
   gh.lazySingleton<_i462.LoginUsecaseUseCase>(

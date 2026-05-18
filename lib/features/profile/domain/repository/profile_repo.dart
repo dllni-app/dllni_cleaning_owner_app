@@ -13,6 +13,9 @@ import '../usecases/update_worker_work_areas_use_case.dart';
 import '../../data/models/worker_work_areas_model.dart';
 import '../usecases/update_worker_profile_use_case.dart';
 import '../../data/models/update_worker_profile_model.dart';
+import '../usecases/fetch_notifications_use_case.dart';
+import '../usecases/mark_notification_read_use_case.dart';
+import '../../data/models/notification_api_models.dart';
 
 abstract class ProfileRepo {
   DataResponse<FetchWorkerProfileUsecaseModel> fetchWorkerProfileUsecase(FetchWorkerProfileUsecaseParams params);
@@ -28,4 +31,10 @@ abstract class ProfileRepo {
   DataResponse<WorkerWorkAreasModel> updateWorkerWorkAreas(UpdateWorkerWorkAreasParams params);
 
   DataResponse<UpdateWorkerProfileModel> updateWorkerProfile(UpdateWorkerProfileParams params);
+
+  DataResponse<FetchNotificationsPageModel> fetchNotifications(FetchNotificationsParams params);
+
+  DataResponse<ActionResultModel> markAllNotificationsRead(NoParams params);
+
+  DataResponse<ActionResultModel> markNotificationRead(MarkNotificationReadParams params);
 }

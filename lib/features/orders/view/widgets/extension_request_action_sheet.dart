@@ -16,10 +16,12 @@ class ExtensionRequestActionSheet {
     double? additionalAmount,
     String? currency,
     String? paymentMethod,
+    bool useRootNavigator = false,
   }) async {
     final messageController = TextEditingController();
     await showModalBottomSheet<void>(
       context: context,
+      useRootNavigator: useRootNavigator,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -36,6 +38,17 @@ class ExtensionRequestActionSheet {
             ),
             child: BlocConsumer<OrdersBloc, OrdersState>(
               bloc: bloc,
+              listenWhen: (previous, current) {
+                final acceptedNow =
+                    previous.acceptExtensionUsecaseStatus !=
+                        BlocStatus.success &&
+                    current.acceptExtensionUsecaseStatus == BlocStatus.success;
+                final rejectedNow =
+                    previous.rejectExtensionUsecaseStatus !=
+                        BlocStatus.success &&
+                    current.rejectExtensionUsecaseStatus == BlocStatus.success;
+                return acceptedNow || rejectedNow;
+              },
               listener: (context, state) {
                 if (state.acceptExtensionUsecaseStatus == BlocStatus.success ||
                     state.rejectExtensionUsecaseStatus == BlocStatus.success) {

@@ -7,32 +7,18 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 class AcceptOrderBottomSheet extends StatelessWidget {
-  const AcceptOrderBottomSheet({
-    super.key,
-    required this.order,
-    required this.bloc,
-    required this.index,
-  });
+  const AcceptOrderBottomSheet({super.key, required this.order, required this.bloc, required this.index});
 
   final FetchOrdersUsecaseModelDataItem order;
   final OrdersBloc bloc;
   final int index;
 
-  static Future<void> show(
-    BuildContext context, {
-    required FetchOrdersUsecaseModelDataItem order,
-    required OrdersBloc bloc,
-    required int index,
-  }) async {
+  static Future<void> show(BuildContext context, {required FetchOrdersUsecaseModelDataItem order, required OrdersBloc bloc, required int index}) async {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => AcceptOrderBottomSheet(
-        order: order,
-        bloc: bloc,
-        index: index,
-      ),
+      builder: (_) => AcceptOrderBottomSheet(order: order, bloc: bloc, index: index),
     );
   }
 
@@ -87,10 +73,7 @@ class AcceptOrderBottomSheet extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xffE5E7EB)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: children,
-      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
     );
   }
 
@@ -100,10 +83,7 @@ class AcceptOrderBottomSheet extends StatelessWidget {
       height: context.height * .88,
       decoration: BoxDecoration(
         color: context.onPrimary,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(24),
-          topRight: Radius.circular(24),
-        ),
+        borderRadius: const BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24)),
       ),
       child: Column(
         children: [
@@ -115,16 +95,8 @@ class AcceptOrderBottomSheet extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      AppText.titleMedium(
-                        'قبول الطلب #${order.bookingNumber ?? order.id ?? '-'}',
-                        fontWeight: FontWeight.bold,
-                        textAlign: TextAlign.start,
-                      ),
-                      AppText.bodySmall(
-                        'يرجى تأكيد تفاصيل الطلب قبل القبول',
-                        color: const Color(0xff6B7280),
-                        textAlign: TextAlign.start,
-                      ),
+                      AppText.titleMedium('قبول الطلب #${order.bookingNumber ?? order.id ?? '-'}', fontWeight: FontWeight.bold, textAlign: TextAlign.start),
+                      AppText.bodySmall('يرجى تأكيد تفاصيل الطلب قبل القبول', color: const Color(0xff6B7280), textAlign: TextAlign.start),
                     ],
                   ),
                 ),
@@ -144,13 +116,7 @@ class AcceptOrderBottomSheet extends StatelessWidget {
                 children: [
                   _sectionTitle(context, Icons.cleaning_services_outlined, 'نوع الخدمة'),
                   const SizedBox(height: 10),
-                  _detailCard(context, [
-                    AppText.bodyMedium(
-                      _serviceName(),
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xff111827),
-                    ),
-                  ]),
+                  _detailCard(context, [AppText.bodyMedium(_serviceName(), fontWeight: FontWeight.w700, color: const Color(0xff111827))]),
                   const SizedBox(height: 16),
                   _sectionTitle(context, Icons.schedule, 'موعد ووقت الخدمة'),
                   const SizedBox(height: 10),
@@ -184,56 +150,39 @@ class AcceptOrderBottomSheet extends StatelessWidget {
                   const SizedBox(height: 16),
                   _sectionTitle(context, Icons.checklist_rounded, 'الخدمات المطلوبة'),
                   const SizedBox(height: 10),
-                  _detailCard(
-                    context,
-                    [
-                      if ((order.services ?? []).isEmpty && (order.addons ?? []).isEmpty)
-                        AppText.bodySmall('لا توجد بنود خدمة مفصلة', color: const Color(0xff6B7280)),
-                      ...?order.services?.map(
-                        (s) => Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: AppText.bodyMedium(
-                                  s.name ?? 'خدمة',
-                                  fontWeight: FontWeight.w700,
-                                  textAlign: TextAlign.start,
-                                ),
-                              ),
-                              AppText.bodySmall('x${s.quantity ?? 1}', color: const Color(0xff6B7280)),
-                            ],
-                          ),
+                  _detailCard(context, [
+                    if ((order.services ?? []).isEmpty && (order.addons ?? []).isEmpty) AppText.bodySmall('لا توجد بنود خدمة مفصلة', color: const Color(0xff6B7280)),
+                    ...?order.services?.map(
+                      (s) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: AppText.bodyMedium(s.name ?? 'خدمة', fontWeight: FontWeight.w700, textAlign: TextAlign.start),
+                            ),
+                            AppText.bodySmall('x${s.quantity ?? 1}', color: const Color(0xff6B7280)),
+                          ],
                         ),
                       ),
-                      ...?order.addons?.map(
-                        (a) => Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: AppText.bodyMedium(
-                                  a.name ?? 'إضافة',
-                                  textAlign: TextAlign.start,
-                                  color: const Color(0xff374151),
-                                ),
-                              ),
-                              AppText.bodySmall('x${a.quantity ?? 1}', color: const Color(0xff6B7280)),
-                            ],
-                          ),
+                    ),
+                    ...?order.addons?.map(
+                      (a) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: AppText.bodyMedium(a.name ?? 'إضافة', textAlign: TextAlign.start, color: const Color(0xff374151)),
+                            ),
+                            AppText.bodySmall('x${a.quantity ?? 1}', color: const Color(0xff6B7280)),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ]),
                   const SizedBox(height: 16),
                   _sectionTitle(context, Icons.location_on_outlined, 'عنوان العقار'),
                   const SizedBox(height: 10),
-                  _detailCard(context, [
-                    AppText.bodyMedium(
-                      order.propertyDetails?.address ?? order.locationName ?? '-',
-                      textAlign: TextAlign.start,
-                    ),
-                  ]),
+                  _detailCard(context, [AppText.bodyMedium(order.propertyDetails?.address ?? order.locationName ?? '-', textAlign: TextAlign.start)]),
                   const SizedBox(height: 16),
                   _detailCard(context, [
                     Row(
@@ -241,12 +190,7 @@ class AcceptOrderBottomSheet extends StatelessWidget {
                         Icon(Icons.notifications_active_outlined, color: context.primaryContainer),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: AppText.bodySmall(
-                            'سيتم إشعار العميل مباشرة بعد قبول الطلب',
-                            color: context.primaryContainer,
-                            fontWeight: FontWeight.w700,
-                            textAlign: TextAlign.start,
-                          ),
+                          child: AppText.bodySmall('سيتم إشعار العميل مباشرة بعد قبول الطلب', color: context.primaryContainer, fontWeight: FontWeight.w700, textAlign: TextAlign.start),
                         ),
                       ],
                     ),
@@ -274,11 +218,7 @@ class AcceptOrderBottomSheet extends StatelessWidget {
                         color: context.error.withAlpha(20),
                       ),
                       child: Center(
-                        child: AppText.labelLarge(
-                          'إلغاء',
-                          color: context.error,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        child: AppText.labelLarge('إلغاء', color: context.error, fontWeight: FontWeight.w700),
                       ),
                     ),
                   ),
@@ -288,11 +228,7 @@ class AcceptOrderBottomSheet extends StatelessWidget {
                   flex: 2,
                   child: BlocConsumer<OrdersBloc, OrdersState>(
                     bloc: bloc,
-                    listener: (context, state) {
-                      if (state.acceptOrderUsecaseStatus == BlocStatus.success) {
-                        context.pop();
-                      }
-                    },
+                    listener: (context, state) {},
                     builder: (context, state) {
                       final loading = state.acceptOrderUsecaseStatus == BlocStatus.loading;
                       return InkWell(
@@ -304,31 +240,18 @@ class AcceptOrderBottomSheet extends StatelessWidget {
                                   AcceptOrderUsecaseEvent(
                                     params: AcceptOrderUsecaseParams(id: order.id!),
                                     index: index,
+                                    context: context,
                                   ),
                                 );
                               },
                         borderRadius: BorderRadius.circular(10),
                         child: Container(
                           height: 44,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            color: context.primary,
-                          ),
+                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: context.primary),
                           child: Center(
                             child: loading
-                                ? SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: context.onPrimary,
-                                    ),
-                                  )
-                                : AppText.labelLarge(
-                                    'تأكيد القبول',
-                                    color: context.onPrimary,
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                                ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: context.onPrimary))
+                                : AppText.labelLarge('تأكيد القبول', color: context.onPrimary, fontWeight: FontWeight.w700),
                           ),
                         ),
                       );

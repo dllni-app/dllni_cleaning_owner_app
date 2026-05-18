@@ -14,6 +14,9 @@ class ProfileState {
   UpdateDisputeModel? updateDispute;
   BlocStatus? updateWorkerProfileStatus;
   UpdateWorkerProfileModel? updateWorkerProfile;
+  final PaginationStateModel<FetchNotificationsModelDataItem> notificationsPagination;
+  final BlocStatus? markAllNotificationsReadStatus;
+  final String? notificationActionError;
   String? errorMessage;
 
   ProfileState({
@@ -31,6 +34,9 @@ class ProfileState {
     this.updateDispute,
     this.updateWorkerProfileStatus,
     this.updateWorkerProfile,
+    this.notificationsPagination = const PaginationStateModel<FetchNotificationsModelDataItem>(perPage: 10),
+    this.markAllNotificationsReadStatus,
+    this.notificationActionError,
   });
 
   ProfileState copyWith({
@@ -48,6 +54,11 @@ class ProfileState {
     UpdateDisputeModel? updateDispute,
     BlocStatus? updateWorkerProfileStatus,
     UpdateWorkerProfileModel? updateWorkerProfile,
+    PaginationStateModel<FetchNotificationsModelDataItem>? notificationsPagination,
+    BlocStatus? markAllNotificationsReadStatus,
+    bool clearMarkAllNotificationsReadStatus = false,
+    String? notificationActionError,
+    bool clearNotificationActionError = false,
   }) => ProfileState(
     errorMessage: errorMessage ?? this.errorMessage,
     workerProfileUsecase: workerProfileUsecase ?? this.workerProfileUsecase,
@@ -63,5 +74,16 @@ class ProfileState {
     updateDispute: updateDispute ?? this.updateDispute,
     updateWorkerProfileStatus: updateWorkerProfileStatus ?? this.updateWorkerProfileStatus,
     updateWorkerProfile: updateWorkerProfile ?? this.updateWorkerProfile,
+    notificationsPagination: notificationsPagination ?? this.notificationsPagination,
+    markAllNotificationsReadStatus: clearMarkAllNotificationsReadStatus
+        ? null
+        : (markAllNotificationsReadStatus ?? this.markAllNotificationsReadStatus),
+    notificationActionError: clearNotificationActionError
+        ? null
+        : (notificationActionError ?? this.notificationActionError),
   );
+
+  BlocStatus get notificationsStatus => notificationsPagination.status;
+
+  List<FetchNotificationsModelDataItem> get notifications => notificationsPagination.list;
 }

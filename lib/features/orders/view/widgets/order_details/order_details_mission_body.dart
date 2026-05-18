@@ -100,24 +100,31 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     ];
   }
 
-  bool get _isWaitingCustomer =>
-      widget.order.status == CleaningBookingStatus.awaitingCustomerCompletion;
+  String _effectiveStatus(OrdersState state) {
+    final details = state.orderDetailsUsecase?.data;
+    if (details?.id == widget.order.id && details?.status != null) {
+      return (details!.status ?? '').toLowerCase();
+    }
+    return (widget.order.status ?? '').toLowerCase();
+  }
 
   bool _isWaitingStatus(String? status) =>
-      status == CleaningBookingStatus.awaitingCustomerCompletion;
+      (status ?? '').toLowerCase() ==
+      CleaningBookingStatus.awaitingCustomerCompletion;
+
+  bool get _isWaitingCustomer =>
+      _isWaitingStatus(_effectiveStatus(widget.bloc.state));
 
   bool _isWaitingFromState(OrdersState state) {
-    final details = state.orderDetailsUsecase?.data;
-    if (details?.id == widget.order.id) {
-      return _isWaitingStatus(details?.status);
-    }
-    return _isWaitingCustomer;
+    return _isWaitingStatus(_effectiveStatus(state));
   }
 
   bool get _canFinish =>
       widget.order.id != null &&
-      (widget.order.status == CleaningBookingStatus.inProgress ||
-          widget.order.status == CleaningBookingStatus.timeExtensionRequested);
+      (_effectiveStatus(widget.bloc.state) ==
+              CleaningBookingStatus.inProgress ||
+          _effectiveStatus(widget.bloc.state) ==
+              CleaningBookingStatus.timeExtensionRequested);
 
   Future<void> _showWaitingConfirmationSheet() async {
     if (!mounted || _waitingSheetOpen) return;

@@ -18,6 +18,9 @@ import '../../domain/usecases/update_worker_work_areas_use_case.dart';
 import '../models/worker_work_areas_model.dart';
 import '../../domain/usecases/update_worker_profile_use_case.dart';
 import '../models/update_worker_profile_model.dart';
+import '../../domain/usecases/fetch_notifications_use_case.dart';
+import '../../domain/usecases/mark_notification_read_use_case.dart';
+import '../models/notification_api_models.dart';
 
 @LazySingleton(as: ProfileRepo)
 class ProfileRepoImpl with HandlingException implements ProfileRepo {
@@ -71,6 +74,27 @@ class ProfileRepoImpl with HandlingException implements ProfileRepo {
   DataResponse<UpdateWorkerProfileModel> updateWorkerProfile(UpdateWorkerProfileParams params) {
     return wrapHandlingException(
       tryCall: () => profileRemoteDataSource.updateWorkerProfile(params),
+    );
+  }
+
+  @override
+  DataResponse<FetchNotificationsPageModel> fetchNotifications(FetchNotificationsParams params) {
+    return wrapHandlingException(
+      tryCall: () => profileRemoteDataSource.fetchNotifications(params),
+    );
+  }
+
+  @override
+  DataResponse<ActionResultModel> markAllNotificationsRead(NoParams params) {
+    return wrapHandlingException(
+      tryCall: () => profileRemoteDataSource.markAllNotificationsRead(params),
+    );
+  }
+
+  @override
+  DataResponse<ActionResultModel> markNotificationRead(MarkNotificationReadParams params) {
+    return wrapHandlingException(
+      tryCall: () => profileRemoteDataSource.markNotificationRead(params),
     );
   }
 }

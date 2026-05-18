@@ -3,11 +3,12 @@ import 'dart:async';
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_booking_pusher_service.dart';
+import 'package:dllni_cleaninig_owner_app/core/realtime/pusher_manager.dart';
+import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_realtime_contract.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/fetch_order_details_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/order_details/order_details_body.dart';
-import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/extension_request_action_sheet.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/order_details/order_details_mission_body.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -30,7 +31,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 
   late FetchOrdersUsecaseModelDataItem _order;
   bool _subscribedToRealtime = false;
-  int? _lastShownExtensionWarningId;
+  bool _realtimeAuthWarningShown = false;
   Timer? _syncFallbackDebounce;
 
   int _stepFor(FetchOrdersUsecaseModelDataItem o) {
@@ -70,95 +71,44 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       );
       final pusher = getIt<CleaningBookingPusherService>();
       pusher.setBookingHandler(id, (eventName, payload) {
-        if (!mounted) return;
-        if (eventName == 'ServiceExtensionRequested') {
-          final warningId =
-              payload['warningId'] ?? payload['warning_id'] ?? payload['id'];
-          final parsedWarningId = warningId is num
-              ? warningId.toInt()
-              : int.tryParse('$warningId');
-          if (parsedWarningId != null &&
-              parsedWarningId != _lastShownExtensionWarningId) {
-            _lastShownExtensionWarningId = parsedWarningId;
-            final bookingIdRaw =
-                payload['cleaningBookingId'] ??
-                payload['bookingId'] ??
-                payload['booking_id'] ??
-                payload['cleaning_booking_id'];
-            final requestedRaw =
-                payload['requestedMinutes'] ??
-                payload['requested_minutes'] ??
-                payload['minutes'];
-            final additionalAmountRaw =
-                payload['additionalAmount'] ??
-                payload['additional_amount'] ??
-                payload['amount'];
-            unawaited(
-              ExtensionRequestActionSheet.show(
-                context,
-                bloc: widget.params.bloc,
-                warningId: parsedWarningId,
-                bookingId: bookingIdRaw is num
-                    ? bookingIdRaw.toInt()
-                    : int.tryParse('$bookingIdRaw'),
-                requestedMinutes: requestedRaw is num
-                    ? requestedRaw.toInt()
-                    : int.tryParse('$requestedRaw'),
-                customerName:
-                    (payload['customerName'] ?? payload['customer_name'])
-                        ?.toString(),
-                additionalAmount: additionalAmountRaw is num
-                    ? additionalAmountRaw.toDouble()
-                    : double.tryParse('$additionalAmountRaw'),
-                currency:
-                    (payload['currency'] ??
-                            payload['currencyCode'] ??
-                            payload['currency_code'])
-                        ?.toString(),
-                paymentMethod:
-                    (payload['paymentMethod'] ?? payload['payment_method'])
-                        ?.toString(),
-              ),
-            );
-          }
-        }
-        final hasHydratablePayload = _hasHydratableRealtimePayload(
-          eventName: eventName,
-          payload: payload,
+        final normalizedEvent = CleaningRealtimeContract.normalizeEventName(
+          eventName,
         );
-        if (hasHydratablePayload) {
-          widget.params.bloc.add(
-            HydrateOrderDetailsFromRealtimeEvent(
-              bookingId: id,
-              eventName: eventName,
-              payload: payload,
-            ),
+        if (!mounted) return;
+        if (CleaningRealtimeContract.isLifecycleRefreshEvent(normalizedEvent)) {
+          _scheduleSyncFallback(
+            bookingId: id,
+            reason: 'owner_details_lifecycle_event_refresh',
           );
-          return;
         }
-        _scheduleSyncFallback(bookingId: id);
       });
+      pusher.setBookingErrorHandler(id, _onRealtimeChannelError);
       pusher.subscribeBookingChannel(id);
       _subscribedToRealtime = true;
     }
   }
 
-  bool _hasHydratableRealtimePayload({
-    required String eventName,
-    required Map<String, dynamic> payload,
-  }) {
-    if (payload['tracking'] is Map) return true;
-    if (payload['status'] != null || payload['decision'] != null) return true;
-    if (eventName == 'WorkerArrived' && payload['arrivedAt'] != null) {
-      return true;
+  void _onRealtimeChannelError(RealtimeChannelError error) {
+    if (error.statusCode != 403) return;
+    final bookingId = _order.id;
+    if (bookingId != null) {
+      _scheduleSyncFallback(
+        bookingId: bookingId,
+        reason: 'owner_details_channel_auth_403_refresh',
+      );
     }
-    if (eventName == 'ArrivalVerified' && payload['arrivedAt'] != null) {
-      return true;
-    }
-    return false;
+    if (_realtimeAuthWarningShown || !mounted) return;
+    _realtimeAuthWarningShown = true;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'تعذر استقبال التحديث المباشر حالياً. تتم مزامنة الطلب في الخلفية.',
+        ),
+      ),
+    );
   }
 
-  void _scheduleSyncFallback({required int bookingId}) {
+  void _scheduleSyncFallback({required int bookingId, required String reason}) {
     _syncFallbackDebounce?.cancel();
     _syncFallbackDebounce = Timer(_fallbackDebounce, () {
       if (!mounted) return;
@@ -167,7 +117,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         'CleaningBookingTrackingUpdated',
         const <String, dynamic>{},
         eventHandledAtMs: DateTime.now().millisecondsSinceEpoch,
-        fallbackReason: 'missing_owner_order_details_payload_fields',
+        fallbackReason: reason,
       );
       widget.params.bloc.add(SyncOrderFromRealtimeEvent(bookingId: bookingId));
     });
@@ -181,6 +131,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       if (id != null) {
         final pusher = getIt<CleaningBookingPusherService>();
         pusher.setBookingHandler(id, null);
+        pusher.setBookingErrorHandler(id, null);
         pusher.unsubscribeBookingChannel(id);
       }
     }
@@ -194,6 +145,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       listenWhen: (p, c) =>
           c.orderDetailsUsecase != p.orderDetailsUsecase ||
           c.arrive != p.arrive ||
+          c.securityCode != p.securityCode ||
           c.startWork != p.startWork ||
           c.completeOrderUsecase != p.completeOrderUsecase ||
           c.startTravelUsecase != p.startTravelUsecase ||
@@ -215,7 +167,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         if (arrive != null && arrive.id == oid) {
           setState(() {
             _order = _order.withLifecycle(
-              status: arrive.status,
+              status: arrive.status ?? _order.status,
               arrivedAt: arrive.arrivedAt,
               workStartedAt: arrive.workStartedAt,
               workFinishedAt: arrive.workFinishedAt,

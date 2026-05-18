@@ -21,8 +21,9 @@ class AcceptOrderUsecaseEvent extends OrdersEvent {
   final AcceptOrderUsecaseParams params;
 
   final int index;
+  final BuildContext context;
 
-  AcceptOrderUsecaseEvent({required this.params, required this.index});
+  AcceptOrderUsecaseEvent({required this.params, required this.index, required this.context});
 }
 
 class StartTravelUsecaseEvent extends OrdersEvent {
@@ -107,8 +108,9 @@ class ReportBookingLocationEvent extends OrdersEvent {
 
 class FetchSecurityCodeEvent extends OrdersEvent {
   final FetchSecurityCodeParams params;
+  final bool force;
 
-  FetchSecurityCodeEvent({required this.params});
+  FetchSecurityCodeEvent({required this.params, this.force = false});
 }
 
 class StartWorkEvent extends OrdersEvent {

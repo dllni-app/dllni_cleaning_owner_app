@@ -67,9 +67,21 @@ class PaginationStateModel<T> {
     }
     if (isLoading) {
       return loadingWidget;
-    } else {
-      return failedWidget!;
     }
+    if (failedWidget != null) {
+      return failedWidget;
+    }
+    if (onTapRetry != null) {
+      return Center(
+        child: TextButton(
+          onPressed: onTapRetry,
+          child: Text(
+            errorMessage.isNotEmpty ? errorMessage : 'Retry',
+          ),
+        ),
+      );
+    }
+    return const SizedBox.shrink();
   }
 
   @override
