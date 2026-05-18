@@ -6,6 +6,7 @@ import 'package:common_package/helpers/pusher_service_logger.dart';
 import 'package:common_package/helpers/shared_preferences_helper.dart';
 import 'package:dio/dio.dart';
 import 'package:dllni_cleaninig_owner_app/core/app_config.dart';
+import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_realtime_contract.dart';
 import 'package:pusher_channels_flutter/pusher_channels_flutter.dart';
 
 class RealtimeEvent {
@@ -399,7 +400,10 @@ class PusherManager {
 
     for (final listener in listeners.values) {
       if (listener.eventNames != null &&
-          !listener.eventNames!.contains(rawEvent.eventName)) {
+          !CleaningRealtimeContract.matchesEventFilter(
+            listener.eventNames!,
+            rawEvent.eventName,
+          )) {
         continue;
       }
       listener.onEvent(realtimeEvent);

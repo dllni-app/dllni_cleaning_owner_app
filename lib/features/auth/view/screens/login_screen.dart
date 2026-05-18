@@ -3,8 +3,11 @@ import 'package:dllni_cleaninig_owner_app/features/auth/domain/usecases/login_us
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
+import 'package:intl_phone_number_input/intl_phone_number_input.dart';
 
 import '../../../../core/di/injection.dart';
+import '../../../../core/helpers/phone_number_helper.dart';
+import '../../../../core/widgets/app_phone_number_field.dart';
 import '../../../../generated/assets.dart';
 import '../manager/bloc/auth_bloc.dart';
 
@@ -18,15 +21,31 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _phoneController = TextEditingController();
+  final _phoneFieldKey = GlobalKey<AppPhoneNumberFieldState>();
   final _passwordController = TextEditingController();
+  PhoneNumber? _phone;
   bool _obscurePassword = true;
 
   @override
   void dispose() {
-    _phoneController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _submit(AuthBloc bloc) async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    final phoneError = await _phoneFieldKey.currentState?.validate();
+    if (phoneError != null) return;
+
+    final phone = formatPhoneForApi(_phone);
+    if (phone == null) return;
+
+    bloc.add(
+      LoginUsecaseEvent(
+        params: LoginUsecaseParams(phone: phone, password: _passwordController.text),
+      ),
+    );
   }
 
   @override
@@ -89,48 +108,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       padding: EdgeInsetsDirectional.all(25),
                       child: Column(
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              AppText.bodyMedium('رقم الجوال', fontWeight: FontWeight.bold, color: Color(0xff111827), textAlign: TextAlign.start),
-                              SizedBox(height: 8),
-                              TextFormField(
-                                controller: _phoneController,
-                                keyboardType: TextInputType.phone,
-                                textDirection: TextDirection.ltr,
-                                style: TextStyle(color: Colors.black),
-                                decoration: InputDecoration(
-                                  hintText: 'أدخل رقم الجوال',
-                                  hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-                                  filled: true,
-                                  fillColor: context.onPrimary,
-                                  contentPadding: EdgeInsetsDirectional.symmetric(horizontal: 16, vertical: 16),
-                                  prefixIcon: Icon(Icons.person_outline, color: Colors.grey.shade400, size: 20),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                    borderSide: BorderSide(color: Colors.grey.shade300),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                    borderSide: BorderSide(color: context.secondary),
-                                  ),
-                                  errorBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                    borderSide: BorderSide(color: context.error),
-                                  ),
-                                  focusedErrorBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                    borderSide: BorderSide(color: context.error),
-                                  ),
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'الرجاء إدخال رقم الجوال';
-                                  }
-                                  return null;
-                                },
-                              ),
-                            ],
+                          AppPhoneNumberField(
+                            key: _phoneFieldKey,
+                            label: 'رقم الجوال',
+                            isRequired: true,
+                            variant: AppPhoneFieldVariant.ownerLogin,
+                            onChanged: (number) => _phone = number,
                           ),
                           SizedBox(height: 20),
                           Column(
@@ -193,12 +176,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             builder: (context, state) {
                               return InkWell(
                                 borderRadius: BorderRadius.circular(16),
-                                onTap: () {
-                                  context.read<AuthBloc>().add(
-                                    LoginUsecaseEvent(
-                                      params: LoginUsecaseParams(phone: _phoneController.text, password: _passwordController.text),
-                                    ),
-                                  );
+                                onTap: () async {
+                                  await _submit(context.read<AuthBloc>());
                                 },
                                 child: Container(
                                   decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), color: Color(0xff1E2A78)),

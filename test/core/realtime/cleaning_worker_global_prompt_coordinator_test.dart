@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_realtime_contract.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_worker_global_prompt_coordinator.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/pusher_manager.dart';
 import 'package:flutter/material.dart';
@@ -38,6 +40,64 @@ void main() {
 
         expect(shown.length, 1);
         expect(shown.first.warningId, 100);
+      },
+    );
+
+    test(
+      'ServiceExtensionRequested unwraps nested data.warningId',
+      () async {
+        final shown = <WorkerExtensionPromptData>[];
+        final coordinator = CleaningWorkerGlobalPromptCoordinator(
+          navigatorKey: GlobalKey<NavigatorState>(),
+          pusherManager: _buildNoopPusherManager(),
+          extensionPromptPresenter: (prompt) async {
+            shown.add(prompt);
+            return true;
+          },
+        )..markStartedForTest();
+
+        await coordinator.handleRealtimeEventForTest(
+          'service_extension_requested',
+          const <String, dynamic>{
+            'data': <String, dynamic>{
+              'warningId': 202,
+              'cleaningBookingId': 55,
+              'additionalMinutes': 15,
+            },
+          },
+        );
+
+        expect(shown.length, 1);
+        expect(shown.first.warningId, 202);
+        expect(shown.first.bookingId, 55);
+        expect(shown.first.requestedMinutes, 15);
+      },
+    );
+
+    test(
+      'ServiceExtensionRequested resolves additionalMinutes alias',
+      () async {
+        final shown = <WorkerExtensionPromptData>[];
+        final coordinator = CleaningWorkerGlobalPromptCoordinator(
+          navigatorKey: GlobalKey<NavigatorState>(),
+          pusherManager: _buildNoopPusherManager(),
+          extensionPromptPresenter: (prompt) async {
+            shown.add(prompt);
+            return true;
+          },
+        )..markStartedForTest();
+
+        await coordinator.handleRealtimeEventForTest(
+          CleaningRealtimeContract.serviceExtensionRequested,
+          const <String, dynamic>{
+            'warningId': 101,
+            'cleaningBookingId': 43,
+            'additionalMinutes': 60,
+          },
+        );
+
+        expect(shown.length, 1);
+        expect(shown.first.requestedMinutes, 60);
       },
     );
 
@@ -132,6 +192,52 @@ void main() {
         expect(shown.length, 1);
         expect(shown.first.warningId, 501);
         expect(shown.first.requestedMinutes, 45);
+      },
+    );
+
+    test('pollPendingExtensionPrompts opens first pending warning', () async {
+      final shown = <WorkerExtensionPromptData>[];
+      final coordinator = CleaningWorkerGlobalPromptCoordinator(
+        navigatorKey: GlobalKey<NavigatorState>(),
+        pusherManager: _buildNoopPusherManager(),
+        pendingRequestsLoader: () async => const <WorkerPendingExtensionRequest>[
+          WorkerPendingExtensionRequest(
+            warningId: 777,
+            bookingId: 88,
+            requestedMinutes: 30,
+          ),
+        ],
+        extensionPromptPresenter: (prompt) async {
+          shown.add(prompt);
+          return true;
+        },
+      )
+        ..markStartedForTest()
+        ..markAuthBypassForTest();
+
+      await coordinator.pollPendingExtensionPrompts();
+
+      expect(shown.length, 1);
+      expect(shown.first.warningId, 777);
+    });
+
+    test(
+      'findTimeExtensionRequestedBookingIds filters by status',
+      () {
+        final ids =
+            CleaningWorkerGlobalPromptCoordinator.findTimeExtensionRequestedBookingIds(
+              <FetchOrdersUsecaseModelDataItem>[
+                FetchOrdersUsecaseModelDataItem(
+                  id: 1,
+                  status: CleaningBookingStatus.timeExtensionRequested,
+                ),
+                FetchOrdersUsecaseModelDataItem(
+                  id: 2,
+                  status: CleaningBookingStatus.inProgress,
+                ),
+              ],
+            );
+        expect(ids, [1]);
       },
     );
 

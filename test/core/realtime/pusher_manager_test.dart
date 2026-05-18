@@ -50,6 +50,29 @@ void main() {
       await handle.dispose();
     });
 
+    test('filters events by normalized alias name', () async {
+      final fakeBridge = _FakePusherClientBridge();
+      final manager = PusherManager(clientBridge: fakeBridge);
+
+      var receivedCount = 0;
+      final handle = await manager.listen(
+        channelName: 'private-test.alias',
+        eventNames: const <String>{'ServiceExtensionRequested'},
+        onEvent: (_) => receivedCount++,
+      );
+
+      fakeBridge.emitEvent(
+        PusherEvent(
+          channelName: 'private-test.alias',
+          eventName: 'service_extension_requested',
+          data: const <String, dynamic>{'warningId': 1},
+        ),
+      );
+
+      expect(receivedCount, 1);
+      await handle.dispose();
+    });
+
     test('filters events by name', () async {
       final fakeBridge = _FakePusherClientBridge();
       final manager = PusherManager(clientBridge: fakeBridge);

@@ -3,13 +3,18 @@ import 'dart:io';
 
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
+import 'package:dllni_cleaninig_owner_app/core/helpers/phone_number_helper.dart';
+import 'package:dllni_cleaninig_owner_app/core/widgets/app_phone_number_field.dart';
 import 'package:dllni_cleaninig_owner_app/core/widgets/app_pickers.dart';
+import 'package:dllni_cleaninig_owner_app/features/profile/data/models/fetch_worker_profile_usecase_model.dart';
+import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/fetch_worker_profile_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/update_worker_profile_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/manager/bloc/profile_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl_phone_number_input/intl_phone_number_input.dart';
 
 @AutoRoutePage()
 class UpdateProfileScreen extends StatefulWidget {
@@ -27,9 +32,13 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
   late TextEditingController _nameController;
   late TextEditingController _emailController;
   late TextEditingController _dateOfBirthController;
-  late TextEditingController _phoneController;
   late TextEditingController _aboutMeController;
   late TextEditingController _cityMeController;
+
+  final _phoneFieldKey = GlobalKey<AppPhoneNumberFieldState>();
+  PhoneNumber? _phone;
+  PhoneNumber? _initialPhone;
+  bool _isLoadingPhone = true;
 
   String? _selectedGender;
 
@@ -43,10 +52,20 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     _nameController = TextEditingController(text: widget.params.name);
     _emailController = TextEditingController(text: widget.params.email ?? '');
     _dateOfBirthController = TextEditingController(text: widget.params.birth ?? '');
-    _phoneController = TextEditingController(text: widget.params.phone ?? '');
     _aboutMeController = TextEditingController(text: widget.params.bio ?? '');
     _cityMeController = TextEditingController(text: widget.params.city ?? '');
     _selectedGender = 'ذكر';
+    _loadInitialPhone();
+  }
+
+  Future<void> _loadInitialPhone() async {
+    final parsed = await parseInitialPhone(widget.params.phone);
+    if (!mounted) return;
+    setState(() {
+      _initialPhone = parsed;
+      _phone = parsed;
+      _isLoadingPhone = false;
+    });
   }
 
   @override
@@ -54,7 +73,6 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _dateOfBirthController.dispose();
-    _phoneController.dispose();
     _aboutMeController.dispose();
     _cityMeController.dispose();
     super.dispose();
@@ -65,10 +83,21 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     setState(() {});
   }
 
+  ProfileBloc _resolveProfileBloc(BuildContext context) {
+    try {
+      return context.read<ProfileBloc>();
+    } catch (_) {
+      final bloc = getIt<ProfileBloc>();
+      bloc.add(FetchWorkerProfileUsecaseEvent(params: FetchWorkerProfileUsecaseParams()));
+      return bloc;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<ProfileBloc>(
-      create: (context) => getIt<ProfileBloc>(),
+    final profileBloc = _resolveProfileBloc(context);
+    return BlocProvider<ProfileBloc>.value(
+      value: profileBloc,
       child: Scaffold(
         backgroundColor: const Color(0xffF9FAFB),
         body: SafeArea(
@@ -138,12 +167,17 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                             children: [
                               _buildField(label: 'الاسم الكامل', controller: _nameController, isRequired: true),
                               14.verticalSpace,
-                              _buildField(
-                                label: 'رقم الهاتف الأساسي',
-                                controller: _phoneController,
-                                keyboardType: TextInputType.phone,
-                                isRequired: true,
-                              ),
+                              if (_isLoadingPhone)
+                                const Center(child: CircularProgressIndicator())
+                              else
+                                AppPhoneNumberField(
+                                  key: _phoneFieldKey,
+                                  label: 'رقم الهاتف الأساسي',
+                                  isRequired: true,
+                                  initialValue: _initialPhone,
+                                  variant: AppPhoneFieldVariant.ownerProfile,
+                                  onChanged: (phone) => _phone = phone,
+                                ),
                               14.verticalSpace,
                               _buildField(
                                 label: 'البريد الإلكتروني',
@@ -185,9 +219,16 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                             Expanded(
                               flex: 2,
                               child: BlocConsumer<ProfileBloc, ProfileState>(
+                                listenWhen: (previous, current) =>
+                                    previous.updateWorkerProfileStatus !=
+                                    current.updateWorkerProfileStatus,
                                 listener: (context, state) {
                                   if (state.updateWorkerProfileStatus == BlocStatus.success) {
                                     Loading.close();
+                                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                                      if (!context.mounted) return;
+                                      context.maybePop(true);
+                                    });
                                   } else if (state.updateWorkerProfileStatus == BlocStatus.failed) {
                                     Loading.close();
                                   } else if (state.updateWorkerProfileStatus == BlocStatus.loading) {
@@ -196,24 +237,34 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                                 },
                                 builder: (context, state) {
                                   return ElevatedButton(
-                                    onPressed: () {
-                                      if (_formKey.currentState!.validate()) {
-                                        context.read<ProfileBloc>().add(
-                                          UpdateWorkerProfileEvent(
-                                            params: UpdateWorkerProfileParams(
-                                              avatar: selectedImage,
-                                              bio: _aboutMeController.text,
-                                              birthday: _dateOfBirthController.text,
-                                              city: _cityMeController.text,
-                                              email: _emailController.text,
-                                              gender: _selectedGender,
-                                              isActive: 1,
-                                              name: _nameController.text,
-                                              phone: _phoneController.text,
-                                            ),
-                                          ),
-                                        );
+                                    onPressed: () async {
+                                      if (!(_formKey.currentState?.validate() ?? false)) {
+                                        return;
                                       }
+
+                                      final phoneError =
+                                          await _phoneFieldKey.currentState?.validate();
+                                      if (phoneError != null) return;
+
+                                      final phone = formatPhoneForApi(_phone);
+                                      if (phone == null) return;
+
+                                      if (!context.mounted) return;
+                                      context.read<ProfileBloc>().add(
+                                        UpdateWorkerProfileEvent(
+                                          params: UpdateWorkerProfileParams(
+                                            avatar: selectedImage,
+                                            bio: _aboutMeController.text,
+                                            birthday: _dateOfBirthController.text,
+                                            city: _cityMeController.text,
+                                            email: _emailController.text,
+                                            gender: _selectedGender,
+                                            isActive: 1,
+                                            name: _nameController.text,
+                                            phone: phone,
+                                          ),
+                                        ),
+                                      );
                                     },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xff1E3A8A),
@@ -230,7 +281,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                             12.horizontalSpace,
                             Expanded(
                               child: OutlinedButton(
-                                onPressed: () => context.pop(),
+                                onPressed: () => context.maybePop(),
                                 style: OutlinedButton.styleFrom(
                                   side: BorderSide(color: const Color(0xffE11D48).withAlpha(150)),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
@@ -456,6 +507,28 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
 }
 
 class UpdateProfileScreenParams {
+  const UpdateProfileScreenParams({
+    required this.name,
+    this.email,
+    this.phone,
+    this.gender,
+    this.birth,
+    this.city,
+    this.bio,
+  });
+
+  factory UpdateProfileScreenParams.fromWorkerProfile(
+    FetchWorkerProfileUsecaseModelData data,
+  ) {
+    return UpdateProfileScreenParams(
+      name: data.user?.name ?? data.firstName ?? '',
+      email: data.user?.email,
+      phone: data.user?.phone,
+      bio: data.bio,
+      city: data.homeAddress,
+    );
+  }
+
   final String name;
   final String? email;
   final String? phone;
@@ -463,6 +536,4 @@ class UpdateProfileScreenParams {
   final String? birth;
   final String? city;
   final String? bio;
-
-  UpdateProfileScreenParams({required this.name, this.email, this.phone, this.gender, this.birth, this.city, this.bio});
 }

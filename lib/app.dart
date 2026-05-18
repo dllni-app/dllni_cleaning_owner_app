@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_booking_pusher_service.dart';
+import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_worker_extension_prompts.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_worker_global_prompt_coordinator.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
@@ -32,11 +33,13 @@ class _AppState extends State<App> {
     _workerPromptCoordinator = CleaningWorkerGlobalPromptCoordinator(
       navigatorKey: widget.navigatorKey,
     );
+    CleaningWorkerExtensionPrompts.coordinator = _workerPromptCoordinator;
     unawaited(_workerPromptCoordinator.start());
   }
 
   @override
   void dispose() {
+    CleaningWorkerExtensionPrompts.coordinator = null;
     unawaited(_workerPromptCoordinator.stop());
     super.dispose();
   }

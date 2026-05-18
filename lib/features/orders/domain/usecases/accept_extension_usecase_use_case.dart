@@ -18,7 +18,16 @@ class AcceptExtensionUsecaseUseCase implements UseCase<AcceptExtensionUsecaseMod
 }
 
 class AcceptExtensionUsecaseParams with Params {
-  AcceptExtensionUsecaseParams({required this.id});
+  AcceptExtensionUsecaseParams({required this.id, this.additionalMinutes});
 
   final int id;
+  final int? additionalMinutes;
+
+  @override
+  BodyMap getBody() {
+    if (additionalMinutes == null) {
+      return <String, dynamic>{};
+    }
+    return {'additionalMinutes': additionalMinutes};
+  }
 }

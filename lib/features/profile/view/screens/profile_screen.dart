@@ -119,32 +119,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               subtitle: subtitles[i],
                               onTap: i == 0
                                   ? () {
-                                      context.pushRoute(
-                                        '/updateprofile',
-                                        arguments: UpdateProfileScreenParams(
-                                          name: state
-                                              .workerProfileUsecase!
-                                              .data!
-                                              .user!
-                                              .name!,
-                                          email: state
-                                              .workerProfileUsecase
-                                              ?.data
-                                              ?.user
-                                              ?.email,
-                                          phone: state
-                                              .workerProfileUsecase
-                                              ?.data
-                                              ?.user
-                                              ?.phone,
-                                          bio: state
-                                              .workerProfileUsecase
-                                              ?.data
-                                              ?.bio,
-                                          city: state
-                                              .workerProfileUsecase
-                                              ?.data
-                                              ?.homeAddress,
+                                      final data = state.workerProfileUsecase?.data;
+                                      if (data == null) return;
+
+                                      final profileBloc = context.read<ProfileBloc>();
+                                      Navigator.of(context).push<void>(
+                                        MaterialPageRoute<void>(
+                                          builder: (_) => BlocProvider.value(
+                                            value: profileBloc,
+                                            child: UpdateProfileScreen(
+                                              params: UpdateProfileScreenParams.fromWorkerProfile(data),
+                                            ),
+                                          ),
                                         ),
                                       );
                                     }

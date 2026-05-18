@@ -1,6 +1,7 @@
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/accept_extension_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/reject_extension_usecase_use_case.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/extension_time_format_helper.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -18,255 +19,36 @@ class ExtensionRequestActionSheet {
     String? paymentMethod,
     bool useRootNavigator = false,
   }) async {
-    final messageController = TextEditingController();
     await showModalBottomSheet<void>(
       context: context,
       useRootNavigator: useRootNavigator,
       isScrollControlled: true,
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
         return BlocProvider.value(
           value: bloc,
-          child: Padding(
-            padding: EdgeInsets.only(
-              left: 16,
-              right: 16,
-              top: 12,
-              bottom: MediaQuery.viewInsetsOf(ctx).bottom + 16,
-            ),
-            child: BlocConsumer<OrdersBloc, OrdersState>(
-              bloc: bloc,
-              listenWhen: (previous, current) {
-                final acceptedNow =
-                    previous.acceptExtensionUsecaseStatus !=
-                        BlocStatus.success &&
-                    current.acceptExtensionUsecaseStatus == BlocStatus.success;
-                final rejectedNow =
-                    previous.rejectExtensionUsecaseStatus !=
-                        BlocStatus.success &&
-                    current.rejectExtensionUsecaseStatus == BlocStatus.success;
-                return acceptedNow || rejectedNow;
-              },
-              listener: (context, state) {
-                if (state.acceptExtensionUsecaseStatus == BlocStatus.success ||
-                    state.rejectExtensionUsecaseStatus == BlocStatus.success) {
-                  Navigator.of(ctx).pop();
-                }
-              },
-              builder: (context, state) {
-                final isLoading =
-                    state.acceptExtensionUsecaseStatus == BlocStatus.loading ||
-                    state.rejectExtensionUsecaseStatus == BlocStatus.loading;
-                final amountText = additionalAmount == null
-                    ? '-'
-                    : additionalAmount.toStringAsFixed(2);
-                final currencyText = (currency?.trim().isNotEmpty ?? false)
-                    ? currency!.trim()
-                    : 'ل.س';
-                final customerText = (customerName?.trim().isNotEmpty ?? false)
-                    ? customerName!.trim()
-                    : 'العميل';
-                final paymentText = _paymentMethodLabel(paymentMethod);
-
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      children: [
-                        IconButton(
-                          onPressed: isLoading
-                              ? null
-                              : () => Navigator.of(ctx).pop(),
-                          icon: const Icon(Icons.close),
-                        ),
-                        Expanded(
-                          child: AppText.titleMedium(
-                            'طلب تمديد مدة العمل',
-                            textAlign: TextAlign.center,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(width: 48),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xffFFF7ED),
-                        border: Border.all(color: const Color(0xffFDBA74)),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(
-                            Icons.info_outline,
-                            color: Color(0xffC2410C),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: AppText.bodyMedium(
-                              '$customerText يطلب تمديد مدة الخدمة ${requestedMinutes ?? 0} دقيقة إضافية',
-                              color: const Color(0xff9A3412),
-                              textAlign: TextAlign.start,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xffE5E7EB)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          AppText.bodyMedium(
-                            'مربحك الإضافية',
-                            color: const Color(0xff6B7280),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              AppText.bodyLarge(
-                                'الإجمالي',
-                                fontWeight: FontWeight.w700,
-                              ),
-                              AppText.bodyLarge(
-                                '$amountText $currencyText',
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.payments_outlined,
-                                color: Color(0xff22C55E),
-                                size: 18,
-                              ),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: AppText.bodySmall(
-                                  paymentText,
-                                  color: const Color(0xff374151),
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (bookingId != null) ...[
-                            const SizedBox(height: 6),
-                            AppText.bodySmall(
-                              'حجز #$bookingId',
-                              color: const Color(0xff9CA3AF),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: messageController,
-                      maxLength: 150,
-                      minLines: 2,
-                      maxLines: 3,
-                      decoration: InputDecoration(
-                        labelText: 'كتابة رسالة اعتذار',
-                        hintText: 'اكتب رسالة توضيحية للعميل...',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: isLoading
-                                ? null
-                                : () {
-                                    bloc.add(
-                                      RejectExtensionUsecaseEvent(
-                                        params: RejectExtensionUsecaseParams(
-                                          id: warningId,
-                                          message: messageController.text,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Color(0xffEF4444)),
-                              foregroundColor: const Color(0xffEF4444),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
-                            child: AppText.labelLarge(
-                              'كتابة رسالة اعتذار',
-                              color: const Color(0xffEF4444),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: FilledButton(
-                            onPressed: isLoading
-                                ? null
-                                : () {
-                                    bloc.add(
-                                      AcceptExtensionUsecaseEvent(
-                                        params: AcceptExtensionUsecaseParams(
-                                          id: warningId,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                            style: FilledButton.styleFrom(
-                              backgroundColor: const Color(0xff1DBCC8),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
-                            child: isLoading
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : AppText.labelLarge(
-                                    'الموافقة على طلب التمديد',
-                                    color: Colors.white,
-                                  ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                );
-              },
-            ),
+          child: _ExtensionRequestActionSheetBody(
+            bloc: bloc,
+            warningId: warningId,
+            bookingId: bookingId,
+            requestedMinutes: requestedMinutes,
+            customerName: customerName,
+            additionalAmount: additionalAmount,
+            currency: currency,
+            paymentMethod: paymentMethod,
           ),
         );
       },
     );
-    messageController.dispose();
   }
 
-  static String _paymentMethodLabel(String? paymentMethod) {
+  static String paymentMethodLabel(String? paymentMethod) {
     final value = (paymentMethod ?? '').trim().toLowerCase();
     if (value == 'cash' || value == 'cash_on_delivery') {
-      return 'نقدا عند الاستلام';
+      return 'نقداً عند الاستلام';
     }
     if (value == 'card') {
       return 'دفع إلكتروني';
@@ -275,5 +57,368 @@ class ExtensionRequestActionSheet {
       return 'طريقة الدفع غير محددة';
     }
     return paymentMethod!;
+  }
+}
+
+class _ExtensionRequestActionSheetBody extends StatefulWidget {
+  const _ExtensionRequestActionSheetBody({
+    required this.bloc,
+    required this.warningId,
+    this.bookingId,
+    this.requestedMinutes,
+    this.customerName,
+    this.additionalAmount,
+    this.currency,
+    this.paymentMethod,
+  });
+
+  final OrdersBloc bloc;
+  final int warningId;
+  final int? bookingId;
+  final int? requestedMinutes;
+  final String? customerName;
+  final double? additionalAmount;
+  final String? currency;
+  final String? paymentMethod;
+
+  @override
+  State<_ExtensionRequestActionSheetBody> createState() =>
+      _ExtensionRequestActionSheetBodyState();
+}
+
+class _ExtensionRequestActionSheetBodyState
+    extends State<_ExtensionRequestActionSheetBody> {
+  final _messageController = TextEditingController();
+  String? _rejectError;
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    super.dispose();
+  }
+
+  void _onReject() {
+    final message = _messageController.text.trim();
+    if (message.isEmpty) {
+      setState(() => _rejectError = 'يرجى كتابة رسالة اعتذار للعميل');
+      return;
+    }
+    setState(() => _rejectError = null);
+    widget.bloc.add(
+      RejectExtensionUsecaseEvent(
+        params: RejectExtensionUsecaseParams(
+          id: widget.warningId,
+          message: message,
+        ),
+      ),
+    );
+  }
+
+  void _onAccept() {
+    setState(() => _rejectError = null);
+    widget.bloc.add(
+      AcceptExtensionUsecaseEvent(
+        params: AcceptExtensionUsecaseParams(
+          id: widget.warningId,
+          additionalMinutes: widget.requestedMinutes,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final customerText = (widget.customerName?.trim().isNotEmpty ?? false)
+        ? widget.customerName!.trim()
+        : 'العميل';
+    final durationText = formatExtensionDurationAr(widget.requestedMinutes);
+    final amountText = widget.additionalAmount == null
+        ? '-'
+        : widget.additionalAmount!.toStringAsFixed(2);
+    final currencyText = (widget.currency?.trim().isNotEmpty ?? false)
+        ? widget.currency!.trim()
+        : 'ل.س';
+    final paymentText = ExtensionRequestActionSheet.paymentMethodLabel(
+      widget.paymentMethod,
+    );
+
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 12,
+        bottom: MediaQuery.viewInsetsOf(context).bottom + 16,
+      ),
+      child: BlocConsumer<OrdersBloc, OrdersState>(
+        bloc: widget.bloc,
+        listenWhen: (previous, current) {
+          final acceptedNow =
+              previous.acceptExtensionUsecaseStatus != BlocStatus.success &&
+              current.acceptExtensionUsecaseStatus == BlocStatus.success;
+          final rejectedNow =
+              previous.rejectExtensionUsecaseStatus != BlocStatus.success &&
+              current.rejectExtensionUsecaseStatus == BlocStatus.success;
+          return acceptedNow || rejectedNow;
+        },
+        listener: (context, state) {
+          if (state.acceptExtensionUsecaseStatus == BlocStatus.success ||
+              state.rejectExtensionUsecaseStatus == BlocStatus.success) {
+            Navigator.of(context).pop();
+          }
+        },
+        builder: (context, state) {
+          final isLoading =
+              state.acceptExtensionUsecaseStatus == BlocStatus.loading ||
+              state.rejectExtensionUsecaseStatus == BlocStatus.loading;
+
+          return SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Material(
+                      color: const Color(0xffF3F4F6),
+                      shape: const CircleBorder(),
+                      child: IconButton(
+                        onPressed: isLoading
+                            ? null
+                            : () => Navigator.of(context).pop(),
+                        icon: const Icon(
+                          Icons.close,
+                          color: Color(0xff6B7280),
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          AppText.titleMedium(
+                            'طلب تمديد مدة العمل',
+                            textAlign: TextAlign.center,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          const SizedBox(height: 4),
+                          AppText.bodySmall(
+                            'إذا كان برنامجك يسمح هذا سيؤدي لمرابح أكثر',
+                            textAlign: TextAlign.center,
+                            color: const Color(0xff6B7280),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xffFFF7ED),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: AppText.bodyMedium(
+                          'العميل $customerText يطلب تمديد الخدمة $durationText',
+                          color: const Color(0xff9A3412),
+                          textAlign: TextAlign.start,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(
+                        Icons.info_outline,
+                        color: Color(0xffEA580C),
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xffE5E7EB)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      AppText.bodyMedium(
+                        'مرابحك الإضافية',
+                        fontWeight: FontWeight.w700,
+                        textAlign: TextAlign.right,
+                      ),
+                      const SizedBox(height: 10),
+                      const Divider(height: 1, color: Color(0xffE5E7EB)),
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          AppText.bodyLarge(
+                            '$amountText $currencyText',
+                            fontWeight: FontWeight.w700,
+                          ),
+                          AppText.bodyLarge(
+                            'الإجمالي',
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xffF3F4F6),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: AppText.bodySmall(
+                                paymentText,
+                                color: const Color(0xff374151),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Icon(
+                              Icons.payments_outlined,
+                              color: Color(0xff22C55E),
+                              size: 20,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.chat_bubble_outline,
+                      size: 18,
+                      color: Color(0xff374151),
+                    ),
+                    const SizedBox(width: 6),
+                    AppText.bodyMedium(
+                      'كتابة رسالة اعتذار',
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _messageController,
+                  maxLength: 150,
+                  minLines: 3,
+                  maxLines: 4,
+                  onChanged: (_) {
+                    if (_rejectError != null) {
+                      setState(() => _rejectError = null);
+                    }
+                  },
+                  buildCounter: (
+                    context, {
+                    required currentLength,
+                    required isFocused,
+                    maxLength,
+                  }) {
+                    return Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '$currentLength/${maxLength ?? 150}',
+                        style: const TextStyle(
+                          color: Color(0xff9CA3AF),
+                          fontSize: 12,
+                        ),
+                      ),
+                    );
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'اكتب رسالة توضيحية للعميل...',
+                    errorText: _rejectError,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xffE5E7EB)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xffE5E7EB)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xff1DBCC8)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Directionality(
+                  textDirection: TextDirection.ltr,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: isLoading ? null : _onReject,
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xffEF4444)),
+                            foregroundColor: const Color(0xffEF4444),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: AppText.labelLarge(
+                            'كتابة رسالة اعتذار',
+                            color: const Color(0xffEF4444),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: isLoading ? null : _onAccept,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xff1DBCC8),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: isLoading &&
+                                  state.acceptExtensionUsecaseStatus ==
+                                      BlocStatus.loading
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : AppText.labelLarge(
+                                  'الموافقة على طلب التمديد',
+                                  color: Colors.white,
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 }

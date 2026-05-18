@@ -8,21 +8,23 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:intl/intl.dart';
 
 import '../../../data/models/arrive_model.dart';
-import '../../../data/models/cleaning_booking_status.dart';
 import '../../../data/models/fetch_orders_usecase_model.dart';
 import '../../../domain/usecases/complete_order_usecase_use_case.dart';
+import '../../helpers/order_lifecycle_policy.dart';
 
 class OrderDetailsMissionBody extends StatefulWidget {
   const OrderDetailsMissionBody({
     super.key,
     required this.order,
     required this.bloc,
+    required this.index,
     required this.services,
     required this.addons,
   });
 
   final FetchOrdersUsecaseModelDataItem order;
   final OrdersBloc bloc;
+  final int index;
   final List<Service> services;
   final List<Addon> addons;
 
@@ -108,23 +110,16 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     return (widget.order.status ?? '').toLowerCase();
   }
 
-  bool _isWaitingStatus(String? status) =>
-      (status ?? '').toLowerCase() ==
-      CleaningBookingStatus.awaitingCustomerCompletion;
+  bool get _isWaitingCustomer => OrderLifecyclePolicy.isAwaitingCustomerCompletion(
+        _effectiveStatus(widget.bloc.state),
+      );
 
-  bool get _isWaitingCustomer =>
-      _isWaitingStatus(_effectiveStatus(widget.bloc.state));
-
-  bool _isWaitingFromState(OrdersState state) {
-    return _isWaitingStatus(_effectiveStatus(state));
-  }
+  bool _isWaitingFromState(OrdersState state) =>
+      OrderLifecyclePolicy.isAwaitingCustomerCompletion(_effectiveStatus(state));
 
   bool get _canFinish =>
       widget.order.id != null &&
-      (_effectiveStatus(widget.bloc.state) ==
-              CleaningBookingStatus.inProgress ||
-          _effectiveStatus(widget.bloc.state) ==
-              CleaningBookingStatus.timeExtensionRequested);
+      OrderLifecyclePolicy.canCompleteWork(_effectiveStatus(widget.bloc.state));
 
   Future<void> _showWaitingConfirmationSheet() async {
     if (!mounted || _waitingSheetOpen) return;

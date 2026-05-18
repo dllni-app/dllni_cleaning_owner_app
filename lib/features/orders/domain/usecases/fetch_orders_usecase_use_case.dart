@@ -23,6 +23,7 @@ class FetchOrdersUsecaseParams with Params {
   final String? scheduledDateTo;
   final String? sort;
   final int page;
+  final int perPage;
 
   FetchOrdersUsecaseParams({
     this.status,
@@ -31,6 +32,7 @@ class FetchOrdersUsecaseParams with Params {
     this.scheduledDateTo,
     this.sort,
     required this.page,
+    this.perPage = 10,
   });
 
   @override
@@ -40,7 +42,7 @@ class FetchOrdersUsecaseParams with Params {
     "filter[scheduledDate]": scheduledDate,
     "filter[scheduledDateFrom]": scheduledDateFrom,
     "filter[scheduledDateTo]": scheduledDateTo,
-    "perPage": "10",
+    "perPage": "$perPage",
     "page": "$page",
     "sort": sort,
   }..removeWhere((key, value) => value == null);

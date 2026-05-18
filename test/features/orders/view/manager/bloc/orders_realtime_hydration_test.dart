@@ -153,6 +153,48 @@ void main() {
         await bloc.close();
       },
     );
+
+    test(
+      'scoped arrival-verified alias triggers details lifecycle refetch',
+      () async {
+        final repo = _FakeOrdersRepo(
+          detailsStatuses: const <String>[
+            CleaningBookingStatus.awaitingStartVerification,
+            CleaningBookingStatus.inProgress,
+          ],
+        );
+        final bloc = _buildBloc(repo);
+
+        bloc.add(
+          FetchOrderDetailsUsecaseEvent(
+            params: FetchOrderDetailsUsecaseParams(id: 42),
+          ),
+        );
+        await _flushBlocQueue();
+
+        expect(repo.fetchOrderDetailsCalls, 1);
+        expect(
+          bloc.state.orderDetailsUsecase?.data?.status,
+          CleaningBookingStatus.awaitingStartVerification,
+        );
+
+        bloc.add(
+          HydrateOrderDetailsFromRealtimeEvent(
+            bookingId: 42,
+            eventName: 'cleaning_order.arrival_verified',
+            payload: const <String, dynamic>{'cleaningBookingId': 42},
+          ),
+        );
+        await _flushBlocQueue();
+
+        expect(repo.fetchOrderDetailsCalls, 2);
+        expect(
+          bloc.state.orderDetailsUsecase?.data?.status,
+          CleaningBookingStatus.inProgress,
+        );
+        await bloc.close();
+      },
+    );
   });
 }
 

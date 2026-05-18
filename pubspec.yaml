@@ -38,6 +38,7 @@ dependencies:
   geolocator: ^14.0.2
   toastification: ^3.0.3
   intl: ^0.20.2
+  intl_phone_number_input: ^0.7.5
   image_picker: ^1.2.1
   flutter_launcher_icons: ^0.14.4
   flutter_svg: ^2.0.10

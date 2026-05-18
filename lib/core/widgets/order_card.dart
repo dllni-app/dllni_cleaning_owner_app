@@ -5,6 +5,7 @@ import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orde
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/reject_order_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/start_travel_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_lifecycle_policy.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/screens/order_details_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/accept_order_bottom_sheet.dart';
 import 'package:flutter/material.dart';
@@ -34,26 +35,7 @@ class OrderCard extends StatelessWidget {
     }
   }
 
-  String _statusLabel() {
-    final status = data.status;
-    if (status == CleaningBookingStatus.pending) return 'طلب جديد';
-    if (status == CleaningBookingStatus.workerAssigned) {
-      return data.startedTravelAt == null ? 'طلب مؤكد' : 'في الطريق';
-    }
-    if (status == CleaningBookingStatus.awaitingStartVerification) {
-      return 'بانتظار التحقق';
-    }
-    if (status == CleaningBookingStatus.inProgress) return 'قيد التنفيذ';
-    if (status == CleaningBookingStatus.awaitingCustomerCompletion) {
-      return 'بانتظار تأكيد العميل';
-    }
-    if (status == CleaningBookingStatus.timeExtensionRequested) {
-      return 'طلب تمديد وقت';
-    }
-    if (status == CleaningBookingStatus.completed) return 'مكتمل';
-    if (status == CleaningBookingStatus.cancelled) return 'ملغي';
-    return 'قيد المعالجة';
-  }
+  String _statusLabel() => OrderLifecyclePolicy.statusLabel(data);
 
   Color _statusColor(BuildContext context) {
     final status = data.status;
@@ -99,14 +81,15 @@ class OrderCard extends StatelessWidget {
     return labels;
   }
 
-  bool _isPending() => data.status == CleaningBookingStatus.pending;
-
-  bool _canStartTravel() => data.status == CleaningBookingStatus.workerAssigned && data.startedTravelAt == null;
-
   void _openDetails(BuildContext context) {
     context.pushRoute(
       '/orderdetails',
-      arguments: OrderDetailsScreenParams(isNewOrder: _isPending(), order: data, bloc: bloc, index: index),
+      arguments: OrderDetailsScreenParams(
+        isNewOrder: OrderLifecyclePolicy.isPending(data),
+        order: data,
+        bloc: bloc,
+        index: index,
+      ),
     );
   }
 
@@ -224,7 +207,7 @@ class OrderCard extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 12),
-            if (_isPending())
+            if (OrderLifecyclePolicy.canAcceptReject(data))
               Row(
                 children: [
                   Expanded(
@@ -232,7 +215,11 @@ class OrderCard extends StatelessWidget {
                     child: BlocBuilder<OrdersBloc, OrdersState>(
                       bloc: bloc,
                       builder: (context, state) {
-                        final loading = state.acceptOrderUsecaseStatus == BlocStatus.loading && state.selectedIndex == index;
+                        final loading = OrderLifecyclePolicy.isLoadingForOrderIndex(
+                          state: state,
+                          orderIndex: index,
+                          actionStatus: state.acceptOrderUsecaseStatus,
+                        );
                         return InkWell(
                           onTap: loading
                               ? null
@@ -258,7 +245,11 @@ class OrderCard extends StatelessWidget {
                     child: BlocBuilder<OrdersBloc, OrdersState>(
                       bloc: bloc,
                       builder: (context, state) {
-                        final loading = state.rejectOrderUsecaseStatus == BlocStatus.loading && state.selectedIndex == index;
+                        final loading = OrderLifecyclePolicy.isLoadingForOrderIndex(
+                          state: state,
+                          orderIndex: index,
+                          actionStatus: state.rejectOrderUsecaseStatus,
+                        );
                         return InkWell(
                           onTap: loading
                               ? null
@@ -291,7 +282,7 @@ class OrderCard extends StatelessWidget {
                   ),
                 ],
               )
-            else if (_canStartTravel())
+            else if (OrderLifecyclePolicy.canStartTravel(data))
               Row(
                 children: [
                   Expanded(
@@ -299,7 +290,11 @@ class OrderCard extends StatelessWidget {
                     child: BlocBuilder<OrdersBloc, OrdersState>(
                       bloc: bloc,
                       builder: (context, state) {
-                        final loading = state.startTravelUsecaseStatus == BlocStatus.loading && state.selectedIndex == index;
+                        final loading = OrderLifecyclePolicy.isLoadingForOrderIndex(
+                          state: state,
+                          orderIndex: index,
+                          actionStatus: state.startTravelUsecaseStatus,
+                        );
                         return InkWell(
                           onTap: loading
                               ? null
@@ -329,10 +324,16 @@ class OrderCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: InkWell(
-                      onTap: () {
-                        if (data.id == null || data.bookingNumber == null) return;
-                        CancelOrderDialog.show(context, bloc: bloc, orderId: data.id!, orderNum: data.bookingNumber!);
-                      },
+                      onTap: OrderLifecyclePolicy.canCancel(data)
+                          ? () {
+                              CancelOrderDialog.show(
+                                context,
+                                bloc: bloc,
+                                orderId: data.id!,
+                                orderNum: data.bookingNumber!,
+                              );
+                            }
+                          : null,
                       borderRadius: BorderRadius.circular(10),
                       child: Container(
                         height: 44,

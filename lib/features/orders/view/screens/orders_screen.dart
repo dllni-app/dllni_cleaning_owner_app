@@ -7,6 +7,7 @@ import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_booking_pusher_service.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/pusher_manager.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_realtime_contract.dart';
+import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_worker_extension_prompts.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -50,9 +51,26 @@ class _OrdersScreenState extends State<OrdersScreen> {
       pusher.setWorkerHandler(_workerId!, (eventName, payload) {
         if (!mounted) return;
         final normalizedEvent = CleaningRealtimeContract.normalizeEventName(eventName);
+        if (normalizedEvent ==
+                CleaningRealtimeContract.serviceExtensionRequested ||
+            (normalizedEvent ==
+                    CleaningRealtimeContract.completionDecisionMade &&
+                (payload['decision'] ?? '')
+                        .toString()
+                        .trim()
+                        .toLowerCase() ==
+                    'extension_requested')) {
+          unawaited(
+            CleaningWorkerExtensionPrompts.dispatchRealtimeEvent(
+              eventName,
+              payload,
+            ),
+          );
+        }
         if (!CleaningRealtimeContract.isLifecycleRefreshEvent(normalizedEvent)) {
           return;
         }
+        unawaited(CleaningWorkerExtensionPrompts.pollPendingExtensions());
         _scheduleFallbackRefresh(reason: 'worker_lifecycle_event_refresh');
       });
       pusher.setWorkerErrorHandler(_workerId!, _onWorkerRealtimeError);

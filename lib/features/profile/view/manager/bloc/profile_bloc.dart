@@ -21,8 +21,6 @@ import '../../../data/models/notification_api_models.dart';
 import '../../../domain/usecases/fetch_notifications_use_case.dart';
 import '../../../domain/usecases/mark_all_notifications_read_use_case.dart';
 import '../../../domain/usecases/mark_notification_read_use_case.dart';
-import '../../../../auth/data/models/login_usecase_model.dart';
-
 part 'profile_event.dart';
 
 part 'profile_state.dart';
@@ -74,7 +72,13 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       },
       (r) {
         SharedPreferencesHelper.saveData(key: 'user', value: fetchWorkerProfileUsecaseModelToJson(r));
-        emit(state.copyWith(workerProfileUsecaseStatus: BlocStatus.success, workerProfileUsecase: r));
+        emit(
+          state.copyWith(
+            workerProfileUsecaseStatus: BlocStatus.success,
+            workerProfileUsecase: r,
+            updateWorkerProfileStatus: BlocStatus.init,
+          ),
+        );
       },
     );
   }
@@ -175,18 +179,26 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       },
       (r) {
         AppToast.showSuccessGlobal('تم تحديث الملف الشخصي');
-        // Update local session data
-        final userJson = SharedPreferencesHelper.getData(key: 'user');
-        if (userJson != null) {
-          final loginModel = loginUsecaseModelFromJson(userJson);
-          if (r.data != null) {
-            loginModel.user = LoginUsecaseModelUser.fromJson(r.data!.toJson());
-            SharedPreferencesHelper.saveData(key: 'user', value: loginUsecaseModelToJson(loginModel));
-          }
+
+        FetchWorkerProfileUsecaseModel? refreshedProfile;
+        if (r.data != null) {
+          refreshedProfile = FetchWorkerProfileUsecaseModel(data: r.data);
+          SharedPreferencesHelper.saveData(
+            key: 'user',
+            value: fetchWorkerProfileUsecaseModelToJson(refreshedProfile),
+          );
         }
 
+        emit(
+          state.copyWith(
+            updateWorkerProfileStatus: BlocStatus.success,
+            updateWorkerProfile: r,
+            workerProfileUsecase: refreshedProfile ?? state.workerProfileUsecase,
+            workerProfileUsecaseStatus: BlocStatus.success,
+          ),
+        );
+
         add(FetchWorkerProfileUsecaseEvent(params: FetchWorkerProfileUsecaseParams()));
-        emit(state.copyWith(updateWorkerProfileStatus: BlocStatus.success, updateWorkerProfile: r));
       },
     );
   }

@@ -15,6 +15,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../data/models/fetch_orders_usecase_model.dart';
+import '../../helpers/order_lifecycle_policy.dart';
 import '../../manager/bloc/orders_bloc.dart';
 import '../order_details_map_app_bar.dart';
 import '../../helpers/cleaning_security_code_display.dart';
@@ -26,10 +27,16 @@ bool _securityCodeInFlightForBooking(OrdersBloc bloc, int bookingId) {
 }
 
 class OrderDetailsMapBody extends StatefulWidget {
-  const OrderDetailsMapBody({super.key, required this.order, required this.bloc});
+  const OrderDetailsMapBody({
+    super.key,
+    required this.order,
+    required this.bloc,
+    required this.index,
+  });
 
   final FetchOrdersUsecaseModelDataItem order;
   final OrdersBloc bloc;
+  final int index;
 
   @override
   State<OrderDetailsMapBody> createState() => _OrderDetailsMapBodyState();
@@ -45,7 +52,7 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
   bool _suppressLocationReporting = false;
 
   bool get _isAwaitingVerification =>
-      widget.order.status == CleaningBookingStatus.awaitingStartVerification;
+      OrderLifecyclePolicy.isAwaitingStartVerification(widget.order);
 
   bool _isAwaitingVerificationAfterArrive(OrdersState state) {
     if (_suppressLocationReporting) return true;
@@ -63,7 +70,7 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
   bool _shouldShowVerificationUi(OrdersState state) =>
       _isAwaitingVerification || _isAwaitingVerificationAfterArrive(state);
 
-  bool get _canArrive => widget.order.status == CleaningBookingStatus.workerAssigned && widget.order.startedTravelAt != null;
+  bool get _canArrive => OrderLifecyclePolicy.canArrive(widget.order);
 
   bool _shouldReportLocationFor(OrdersState state) {
     if (_suppressLocationReporting) return false;
@@ -328,14 +335,23 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
       );
     }
 
-    final loading = state.arriveStatus == BlocStatus.loading;
+    final loading = OrderLifecyclePolicy.isLoadingForOrderIndex(
+      state: state,
+      orderIndex: widget.index,
+      actionStatus: state.arriveStatus,
+    );
     return InkWell(
       onTap: loading
           ? null
           : () {
               setState(() => _suppressLocationReporting = true);
               _syncLocationTrackingState();
-              widget.bloc.add(ArriveEvent(params: ArriveParams(id: widget.order.id!), index: 0));
+              widget.bloc.add(
+                ArriveEvent(
+                  params: ArriveParams(id: widget.order.id!),
+                  index: widget.index,
+                ),
+              );
             },
       child: Container(
         width: context.width,

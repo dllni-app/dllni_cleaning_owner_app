@@ -178,28 +178,119 @@ class FetchExtensionRequestsUsecasModelLinks {
   }
 }
 
+class FetchExtensionRequestsUsecasModelDataItemBooking {
+  int? id;
+  String? status;
+
+  FetchExtensionRequestsUsecasModelDataItemBooking({this.id, this.status});
+
+  factory FetchExtensionRequestsUsecasModelDataItemBooking.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return FetchExtensionRequestsUsecasModelDataItemBooking(
+      id: _asInt(json['id']),
+      status: _asString(json['status']),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {'id': id, 'status': status};
+}
+
 class FetchExtensionRequestsUsecasModelDataItem {
   int? id;
   int? bookingId;
   String? bookingType;
   int? requestedMinutes;
+  int? additionalMinutes;
+  String? customerResponse;
+  String? workerResponse;
+  String? workerRejectMessage;
+  String? workerRespondedAt;
   dynamic responseStatus;
+  FetchExtensionRequestsUsecasModelDataItemBooking? booking;
 
   FetchExtensionRequestsUsecasModelDataItem({
     this.id,
     this.bookingId,
     this.bookingType,
     this.requestedMinutes,
+    this.additionalMinutes,
+    this.customerResponse,
+    this.workerResponse,
+    this.workerRejectMessage,
+    this.workerRespondedAt,
     this.responseStatus,
+    this.booking,
   });
 
-  factory FetchExtensionRequestsUsecasModelDataItem.fromJson(Map<String, dynamic> json) {
+  /// Contract field `additionalMinutes` with legacy `requestedMinutes` fallback.
+  int? get resolvedAdditionalMinutes =>
+      additionalMinutes ?? requestedMinutes;
+
+  bool get isPendingWorkerResponse {
+    final status = responseStatus?.toString().trim().toLowerCase();
+    if (status == 'accepted' ||
+        status == 'rejected' ||
+        status == 'resolved' ||
+        status == 'closed') {
+      return false;
+    }
+    if (status == 'pending' ||
+        status == 'awaiting_worker' ||
+        status == 'awaiting_worker_response') {
+      return true;
+    }
+
+    final workerAnswer = workerResponse?.trim().toLowerCase();
+    if (workerAnswer == 'accept' ||
+        workerAnswer == 'accepted' ||
+        workerAnswer == 'reject' ||
+        workerAnswer == 'rejected' ||
+        workerAnswer == 'commit_current_time') {
+      return false;
+    }
+
+    if (workerRespondedAt != null && workerRespondedAt!.trim().isNotEmpty) {
+      return false;
+    }
+
+    final customerAnswer = customerResponse?.trim().toLowerCase();
+    if (customerAnswer == 'extend_time') {
+      return workerAnswer == null || workerAnswer.isEmpty;
+    }
+
+    return workerAnswer == null || workerAnswer.isEmpty;
+  }
+
+  factory FetchExtensionRequestsUsecasModelDataItem.fromJson(
+    Map<String, dynamic> json,
+  ) {
     return FetchExtensionRequestsUsecasModelDataItem(
       id: _asInt(json['id']),
-      bookingId: _asInt(json['bookingId']),
-      bookingType: _asString(json['bookingType']),
+      bookingId: _asInt(json['bookingId'] ?? json['booking_id']),
+      bookingType: _asString(json['bookingType'] ?? json['booking_type']),
       requestedMinutes: _asInt(json['requestedMinutes']),
+      additionalMinutes: _asInt(
+        json['additionalMinutes'] ?? json['additional_minutes'],
+      ),
+      customerResponse: _asString(
+        json['customerResponse'] ?? json['customer_response'],
+      ),
+      workerResponse: _asString(
+        json['workerResponse'] ?? json['worker_response'],
+      ),
+      workerRejectMessage: _asString(
+        json['workerRejectMessage'] ?? json['worker_reject_message'],
+      ),
+      workerRespondedAt: _asString(
+        json['workerRespondedAt'] ?? json['worker_responded_at'],
+      ),
       responseStatus: _asDynamic(json['responseStatus']),
+      booking: json['booking'] is Map
+          ? FetchExtensionRequestsUsecasModelDataItemBooking.fromJson(
+              Map<String, dynamic>.from(json['booking'] as Map),
+            )
+          : null,
     );
   }
 
@@ -209,7 +300,13 @@ class FetchExtensionRequestsUsecasModelDataItem {
       'bookingId': bookingId,
       'bookingType': bookingType,
       'requestedMinutes': requestedMinutes,
+      'additionalMinutes': additionalMinutes,
+      'customerResponse': customerResponse,
+      'workerResponse': workerResponse,
+      'workerRejectMessage': workerRejectMessage,
+      'workerRespondedAt': workerRespondedAt,
       'responseStatus': responseStatus,
+      'booking': booking?.toJson(),
     };
   }
 }

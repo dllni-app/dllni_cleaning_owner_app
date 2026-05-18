@@ -34,6 +34,7 @@ import '../../../domain/usecases/fetch_security_code_use_case.dart';
 import '../../../data/models/security_code_model.dart';
 import '../../../domain/usecases/start_work_use_case.dart';
 import '../../../data/models/start_work_model.dart';
+import '../../helpers/order_lifecycle_policy.dart';
 import '../../widgets/order_details/location_reporting_policy.dart';
 
 part 'orders_event.dart';
@@ -145,7 +146,17 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
         emit(state.copyWith(orderDetailsUsecaseStatus: BlocStatus.failed, errorMessage: l.message));
       },
       (r) {
-        emit(state.copyWith(orderDetailsUsecaseStatus: BlocStatus.success, orderDetailsUsecase: r));
+        final status = r.data?.status;
+        final step = status != null
+            ? OrderLifecyclePolicy.detailsStepForStatus(status)
+            : state.currentStep;
+        emit(
+          state.copyWith(
+            orderDetailsUsecaseStatus: BlocStatus.success,
+            orderDetailsUsecase: r,
+            currentStep: step,
+          ),
+        );
       },
     );
   }

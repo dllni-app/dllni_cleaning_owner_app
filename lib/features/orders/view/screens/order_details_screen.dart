@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_booking_pusher_service.dart';
-import 'package:dllni_cleaninig_owner_app/core/realtime/pusher_manager.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_realtime_contract.dart';
-import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
+import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_worker_extension_prompts.dart';
+import 'package:dllni_cleaninig_owner_app/core/realtime/pusher_manager.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/fetch_order_details_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/order_details/order_details_body.dart';
@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../manager/bloc/orders_bloc.dart';
+import '../helpers/order_lifecycle_policy.dart';
 import '../widgets/order_details/order_details_map_body.dart';
 
 @AutoRoutePage()
@@ -33,29 +34,10 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   bool _subscribedToRealtime = false;
   bool _realtimeAuthWarningShown = false;
   Timer? _syncFallbackDebounce;
+  OrdersState? _previousBlocState;
 
-  int _stepFor(FetchOrdersUsecaseModelDataItem o) {
-    if (o.status == CleaningBookingStatus.pending) {
-      return 0;
-    }
-    if (o.status == CleaningBookingStatus.workerAssigned) {
-      if (o.startedTravelAt == null) {
-        return 1;
-      }
-      return 2;
-    }
-    if (o.status == CleaningBookingStatus.awaitingStartVerification) {
-      return 2;
-    }
-    if (o.status == CleaningBookingStatus.inProgress ||
-        o.status == CleaningBookingStatus.timeExtensionRequested) {
-      return 3;
-    }
-    if (o.status == CleaningBookingStatus.awaitingCustomerCompletion) {
-      return 3;
-    }
-    return 1;
-  }
+  int _stepFor(FetchOrdersUsecaseModelDataItem o) =>
+      OrderLifecyclePolicy.detailsStepFor(o);
 
   @override
   void initState() {
@@ -75,6 +57,38 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           eventName,
         );
         if (!mounted) return;
+
+        if (normalizedEvent ==
+                CleaningRealtimeContract.serviceExtensionRequested ||
+            (normalizedEvent ==
+                    CleaningRealtimeContract.completionDecisionMade &&
+                (payload['decision'] ?? '')
+                        .toString()
+                        .trim()
+                        .toLowerCase() ==
+                    'extension_requested')) {
+          unawaited(
+            CleaningWorkerExtensionPrompts.dispatchRealtimeEvent(
+              eventName,
+              payload,
+            ),
+          );
+        }
+
+        if (normalizedEvent == CleaningRealtimeContract.arrivalVerified ||
+            normalizedEvent == CleaningRealtimeContract.trackingUpdated) {
+          final status = CleaningRealtimeContract.extractTrackingStatus(
+            payload,
+          );
+          if (status != null &&
+              OrderLifecyclePolicy.shouldPreferIncomingStatus(
+                _order.status,
+                status,
+              )) {
+            _applyLifecyclePatch(status: status);
+          }
+        }
+
         if (CleaningRealtimeContract.isLifecycleRefreshEvent(normalizedEvent)) {
           _scheduleSyncFallback(
             bookingId: id,
@@ -123,6 +137,110 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     });
   }
 
+  void _applyLifecyclePatch({
+    String? status,
+    String? arrivedAt,
+    String? startedTravelAt,
+    String? workStartedAt,
+    String? workFinishedAt,
+    String? customerConfirmedAt,
+  }) {
+    if (!mounted) return;
+
+    final resolvedStatus =
+        status != null &&
+            OrderLifecyclePolicy.shouldPreferIncomingStatus(
+              _order.status,
+              status,
+            )
+        ? status
+        : _order.status;
+
+    setState(() {
+      _order = _order.withLifecycle(
+        status: resolvedStatus,
+        arrivedAt: arrivedAt,
+        startedTravelAt: startedTravelAt,
+        workStartedAt: workStartedAt,
+        workFinishedAt: workFinishedAt,
+        customerConfirmedAt: customerConfirmedAt,
+      );
+    });
+    widget.params.bloc.add(
+      ChangeDetailsCurrentStep(step: _stepFor(_order)),
+    );
+  }
+
+  void _onBlocStateChanged(OrdersState state, OrdersState? previous) {
+    final oid = _order.id;
+    if (oid == null) return;
+
+    if (previous == null ||
+        state.orderDetailsUsecase != previous.orderDetailsUsecase) {
+      final details = state.orderDetailsUsecase?.data;
+      if (details != null && details.id == oid) {
+        _applyLifecyclePatch(
+          status: details.status,
+          arrivedAt: details.arrivedAt,
+          startedTravelAt: details.startedTravelAt,
+          workStartedAt: details.workStartedAt,
+          workFinishedAt: details.workFinishedAt,
+          customerConfirmedAt: details.customerConfirmedAt,
+        );
+      }
+    }
+
+    if (previous == null || state.arrive != previous.arrive) {
+      final arrive = state.arrive?.data;
+      if (arrive != null && arrive.id == oid) {
+        _applyLifecyclePatch(
+          status: arrive.status,
+          arrivedAt: arrive.arrivedAt,
+          startedTravelAt: arrive.startedTravelAt,
+          workStartedAt: arrive.workStartedAt,
+          workFinishedAt: arrive.workFinishedAt,
+          customerConfirmedAt: arrive.customerConfirmedAt,
+        );
+      }
+    }
+
+    if (previous == null || state.startTravelUsecase != previous.startTravelUsecase) {
+      final st = state.startTravelUsecase?.data;
+      if (st != null && st.id == oid && st.status != null) {
+        _applyLifecyclePatch(status: st.status);
+      }
+    }
+
+    if (previous == null || state.startWork != previous.startWork) {
+      final sw = state.startWork?.data;
+      if (sw != null && sw.id == oid) {
+        _applyLifecyclePatch(
+          status: sw.status,
+          workStartedAt: sw.workStartedAt,
+        );
+      }
+    }
+
+    if (previous == null ||
+        state.completeOrderUsecase != previous.completeOrderUsecase) {
+      final co = state.completeOrderUsecase?.data;
+      if (co != null && co.id == oid) {
+        _applyLifecyclePatch(
+          status: co.status,
+          workFinishedAt: co.workFinishedAt,
+        );
+      }
+    }
+
+    if (previous == null ||
+        state.acceptOrderUsecase != previous.acceptOrderUsecase) {
+      final acc = state.acceptOrderUsecase?.data;
+      if (acc != null && acc.id == oid && acc.status != null) {
+        _applyLifecyclePatch(status: acc.status);
+      }
+    }
+  }
+
   @override
   void dispose() {
     _syncFallbackDebounce?.cancel();
@@ -151,77 +269,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           c.startTravelUsecase != p.startTravelUsecase ||
           c.acceptOrderUsecase != p.acceptOrderUsecase,
       listener: (context, state) {
-        final oid = _order.id;
-
-        final details = state.orderDetailsUsecase?.data;
-        if (details != null && details.id == oid && details.status != null) {
-          setState(() {
-            _order = _order.withLifecycle(status: details.status);
-          });
-          widget.params.bloc.add(
-            ChangeDetailsCurrentStep(step: _stepFor(_order)),
-          );
-        }
-
-        final arrive = state.arrive?.data;
-        if (arrive != null && arrive.id == oid) {
-          setState(() {
-            _order = _order.withLifecycle(
-              status: arrive.status ?? _order.status,
-              arrivedAt: arrive.arrivedAt,
-              workStartedAt: arrive.workStartedAt,
-              workFinishedAt: arrive.workFinishedAt,
-              startedTravelAt: arrive.startedTravelAt,
-              customerConfirmedAt: arrive.customerConfirmedAt,
-            );
-          });
-          widget.params.bloc.add(
-            ChangeDetailsCurrentStep(step: _stepFor(_order)),
-          );
-        }
-
-        final st = state.startTravelUsecase?.data;
-        if (st != null && st.id == oid && st.status != null) {
-          setState(() {
-            _order = _order.withLifecycle(status: st.status);
-          });
-          widget.params.bloc.add(
-            ChangeDetailsCurrentStep(step: _stepFor(_order)),
-          );
-        }
-
-        final sw = state.startWork?.data;
-        if (sw != null && sw.id == oid) {
-          setState(() {
-            _order = _order.withLifecycle(
-              status: sw.status,
-              workStartedAt: sw.workStartedAt,
-            );
-          });
-          widget.params.bloc.add(
-            ChangeDetailsCurrentStep(step: _stepFor(_order)),
-          );
-        }
-
-        final co = state.completeOrderUsecase?.data;
-        if (co != null && oid != null && co.id == oid) {
-          setState(() {
-            _order = _order.withLifecycle(
-              status: co.status,
-              workFinishedAt: co.workFinishedAt,
-            );
-          });
-          widget.params.bloc.add(
-            ChangeDetailsCurrentStep(step: _stepFor(_order)),
-          );
-        }
-
-        final acc = state.acceptOrderUsecase?.data;
-        if (acc != null && acc.id == oid && acc.status != null) {
-          setState(() {
-            _order = _order.withLifecycle(status: acc.status);
-          });
-        }
+        final previous = _previousBlocState;
+        _previousBlocState = state;
+        _onBlocStateChanged(state, previous);
       },
       child: Scaffold(
         body: SafeArea(
@@ -229,20 +279,11 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             bloc: widget.params.bloc,
             builder: (context, state) {
               final step = state.currentStep ?? _stepFor(_order);
-              if (step == 0) {
+              if (step == 0 || step == 1) {
                 return OrderDetailsBody(
                   bloc: widget.params.bloc,
                   index: widget.params.index,
                   order: _order,
-                  isNewOrder: widget.params.isNewOrder,
-                );
-              }
-              if (step == 1) {
-                return OrderDetailsBody(
-                  bloc: widget.params.bloc,
-                  index: widget.params.index,
-                  order: _order,
-                  isNewOrder: false,
                 );
               }
               if (step == 2) {
@@ -250,12 +291,14 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                   child: OrderDetailsMapBody(
                     order: _order,
                     bloc: widget.params.bloc,
+                    index: widget.params.index,
                   ),
                 );
               }
               return OrderDetailsMissionBody(
                 order: _order,
                 bloc: widget.params.bloc,
+                index: widget.params.index,
                 addons: state.arrive?.data?.addons ?? _order.addons ?? [],
                 services: state.arrive?.data?.services ?? _order.services ?? [],
               );

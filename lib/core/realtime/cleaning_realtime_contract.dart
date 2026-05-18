@@ -22,11 +22,86 @@ class CleaningRealtimeContract {
     'SecurityCodeIssued': awaitingStartVerification,
     'cleaning_order.security_code_issued': awaitingStartVerification,
     'ArrivalVerificationRequested': awaitingStartVerification,
+    'cleaning_order.arrival_verified': arrivalVerified,
     'CompletionReviewRequested': awaitingCustomerCompletion,
+    'completion_review_requested': awaitingCustomerCompletion,
+    'cleaning_order.completion_review_requested': awaitingCustomerCompletion,
+    'service_extension_requested': serviceExtensionRequested,
+    'cleaning_order.service_extension_requested': serviceExtensionRequested,
+    'completion_decision_made': completionDecisionMade,
+    'cleaning_order.completion_decision_made': completionDecisionMade,
   };
 
+  static final Map<String, String> _normalizedEventAliases =
+      _buildNormalizedEventAliases();
+
+  static Map<String, String> _buildNormalizedEventAliases() {
+    final aliases = <String, String>{};
+    void addAlias(String key, String value) {
+      final trimmed = key.trim();
+      if (trimmed.isEmpty) return;
+      aliases[trimmed] = value;
+      aliases[trimmed.toLowerCase()] = value;
+    }
+
+    for (final entry in legacyEventAliases.entries) {
+      addAlias(entry.key, entry.value);
+    }
+
+    const canonicalEvents = <String>{
+      workerLocationUpdated,
+      workerArrived,
+      awaitingStartVerification,
+      arrivalVerified,
+      awaitingCustomerCompletion,
+      completionDecisionMade,
+      serviceExtensionRequested,
+      trackingUpdated,
+    };
+    for (final eventName in canonicalEvents) {
+      addAlias(eventName, eventName);
+    }
+    return aliases;
+  }
+
   static String normalizeEventName(String eventName) {
-    return legacyEventAliases[eventName] ?? eventName;
+    final raw = eventName.trim();
+    if (raw.isEmpty) return raw;
+    return _normalizedEventAliases[raw] ??
+        _normalizedEventAliases[raw.toLowerCase()] ??
+        raw;
+  }
+
+  /// Expands canonical event names with known legacy / snake_case aliases for
+  /// [PusherManager] filters that compare raw broadcast names.
+  static Set<String> expandEventFilter(Iterable<String> canonicalEventNames) {
+    final expanded = <String>{};
+    for (final canonical in canonicalEventNames) {
+      expanded.add(canonical);
+      expanded.add(canonical.toLowerCase());
+      for (final entry in legacyEventAliases.entries) {
+        if (entry.value == canonical) {
+          expanded.add(entry.key);
+        }
+      }
+    }
+    return expanded;
+  }
+
+  static bool matchesEventFilter(Set<String> filter, String rawEventName) {
+    if (filter.contains(rawEventName)) return true;
+    return filter.contains(normalizeEventName(rawEventName));
+  }
+
+  static Map<String, dynamic> unwrapPayload(Map<String, dynamic> payload) {
+    final nested = _asStringMap(payload['data']);
+    if (nested.isEmpty) return payload;
+    return <String, dynamic>{...nested, ...payload};
+  }
+
+  static int? extractWarningId(Map<String, dynamic> payload) {
+    final unwrapped = unwrapPayload(payload);
+    return _asInt(unwrapped['warningId'] ?? unwrapped['warning_id']);
   }
 
   static bool isLocationEvent(String eventName) {
@@ -44,11 +119,24 @@ class CleaningRealtimeContract {
         normalized == trackingUpdated;
   }
 
-  static int? extractBookingId(Map<String, dynamic> payload) {
+  static String? extractTrackingStatus(Map<String, dynamic> payload) {
     final tracking = payload['tracking'];
+    final trackingMap = tracking is Map
+        ? tracking.map((key, value) => MapEntry(key.toString(), value))
+        : const <String, dynamic>{};
+    final raw = trackingMap['status'] ?? payload['status'];
+    if (raw == null) return null;
+    final normalized = raw.toString().trim().toLowerCase();
+    return normalized.isEmpty ? null : normalized;
+  }
+
+  static int? extractBookingId(Map<String, dynamic> payload) {
+    final unwrapped = unwrapPayload(payload);
+    final tracking = unwrapped['tracking'];
     final trackingMap = tracking is Map
         ? tracking.map((k, v) => MapEntry(k.toString(), v))
         : const <String, dynamic>{};
+    final bookingMap = _asStringMap(unwrapped['booking']);
     return _asInt(
           trackingMap['cleaningBookingId'] ??
               trackingMap['bookingId'] ??
@@ -57,14 +145,24 @@ class CleaningRealtimeContract {
               trackingMap['id'],
         ) ??
         _asInt(
-          payload['cleaningBookingId'] ??
-              payload['bookingId'] ??
-              payload['booking_id'] ??
-              payload['cleaning_booking_id'] ??
-              payload['id'] ??
-              payload['orderId'] ??
-              payload['order_id'],
+          bookingMap['id'] ??
+              bookingMap['bookingId'] ??
+              bookingMap['booking_id'],
+        ) ??
+        _asInt(
+          unwrapped['cleaningBookingId'] ??
+              unwrapped['bookingId'] ??
+              unwrapped['booking_id'] ??
+              unwrapped['cleaning_booking_id'] ??
+              unwrapped['id'] ??
+              unwrapped['orderId'] ??
+              unwrapped['order_id'],
         );
+  }
+
+  static Map<String, dynamic> _asStringMap(dynamic value) {
+    if (value is! Map) return const <String, dynamic>{};
+    return value.map((key, nested) => MapEntry(key.toString(), nested));
   }
 
   static String? statusFromDecision(String? decision) {
