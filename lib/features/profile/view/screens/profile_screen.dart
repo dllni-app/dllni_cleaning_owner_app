@@ -9,6 +9,7 @@ import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/working_
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../manager/bloc/profile_bloc.dart';
 import '../widgets/profile_app_bar.dart';
@@ -121,7 +122,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ? () {
                                       final data = state.workerProfileUsecase?.data;
                                       if (data == null) return;
-
                                       final profileBloc = context.read<ProfileBloc>();
                                       Navigator.of(context).push<void>(
                                         MaterialPageRoute<void>(
@@ -163,7 +163,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       context.pushRoute('/transactionhistory');
                                     }
                                   : () async {
-                                      await _logout(context);
+                                      await launchUrl(Uri.parse('https://wa.me/message/XJOZBNT3VS5SJ1'));
                                     },
                             );
                           },

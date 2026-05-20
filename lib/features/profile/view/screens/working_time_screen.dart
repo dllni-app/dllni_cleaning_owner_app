@@ -85,33 +85,13 @@ class _WorkingTimeScreenState extends State<WorkingTimeScreen> {
             10.verticalSpace,
             Padding(
               padding: EdgeInsetsDirectional.symmetric(horizontal: 24.w),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 5,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8.r),
-                        color: context.primary,
-                      ),
-                      padding: EdgeInsetsDirectional.symmetric(horizontal: 12.w, vertical: 16.h),
-                      child: AppText.labelLarge('حفظ التغييرات', color: context.onPrimary, fontWeight: FontWeight.w500),
-                    ),
-                  ),
-                  8.horizontalSpace,
-                  Expanded(
-                    flex: 1,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8.r),
-                        color: context.error.withAlpha(50),
-                        border: Border.all(color: context.error),
-                      ),
-                      padding: EdgeInsetsDirectional.symmetric(horizontal: 6.w, vertical: 16.h),
-                      child: AppText.labelLarge('إلغاء', color: context.error, fontWeight: FontWeight.w500),
-                    ),
-                  ),
-                ],
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8.r),
+                  color: context.primary,
+                ),
+                padding: EdgeInsetsDirectional.symmetric(horizontal: 12.w, vertical: 16.h),
+                child: AppText.labelLarge('حفظ التغييرات', color: context.onPrimary, fontWeight: FontWeight.w500),
               ),
             ),
             10.verticalSpace,

@@ -20,7 +20,9 @@ import '../widgets/orders_app_bar.dart';
 import '../widgets/orders_type_tab_bar.dart';
 
 class OrdersScreen extends StatefulWidget {
-  const OrdersScreen({super.key});
+  const OrdersScreen({super.key, this.initialStatus});
+
+  final String? initialStatus;
 
   @override
   State<OrdersScreen> createState() => _OrdersScreenState();
@@ -44,21 +46,35 @@ class _OrdersScreenState extends State<OrdersScreen> {
   @override
   void initState() {
     super.initState();
-    _ordersBloc = getIt<OrdersBloc>()..add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: CleaningBookingStatus.pending), isReload: true));
+    final initialStatus = widget.initialStatus;
+    final hasInitialStatus =
+        initialStatus != null && initialStatus.trim().isNotEmpty;
+    final firstFetchStatus = hasInitialStatus
+        ? initialStatus
+        : CleaningBookingStatus.pending;
+    if (hasInitialStatus) {
+      orderNotifier.changeStatus(initialStatus);
+    }
+    _ordersBloc = getIt<OrdersBloc>()
+      ..add(
+        FetchOrdersUsecaseEvent(
+          params: FetchOrdersUsecaseParams(page: 1, status: firstFetchStatus),
+          isReload: true,
+        ),
+      );
     _workerId = _resolveWorkerId();
     if (_workerId != null) {
       final pusher = getIt<CleaningBookingPusherService>();
       pusher.setWorkerHandler(_workerId!, (eventName, payload) {
         if (!mounted) return;
-        final normalizedEvent = CleaningRealtimeContract.normalizeEventName(eventName);
+        final normalizedEvent = CleaningRealtimeContract.normalizeEventName(
+          eventName,
+        );
         if (normalizedEvent ==
                 CleaningRealtimeContract.serviceExtensionRequested ||
             (normalizedEvent ==
                     CleaningRealtimeContract.completionDecisionMade &&
-                (payload['decision'] ?? '')
-                        .toString()
-                        .trim()
-                        .toLowerCase() ==
+                (payload['decision'] ?? '').toString().trim().toLowerCase() ==
                     'extension_requested')) {
           unawaited(
             CleaningWorkerExtensionPrompts.dispatchRealtimeEvent(
@@ -67,7 +83,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
             ),
           );
         }
-        if (!CleaningRealtimeContract.isLifecycleRefreshEvent(normalizedEvent)) {
+        if (!CleaningRealtimeContract.isLifecycleRefreshEvent(
+          normalizedEvent,
+        )) {
           return;
         }
         unawaited(CleaningWorkerExtensionPrompts.pollPendingExtensions());
@@ -83,7 +101,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
     _scheduleFallbackRefresh(reason: 'worker_channel_auth_403_refresh');
     if (_workerRealtimeAuthWarningShown || !mounted) return;
     _workerRealtimeAuthWarningShown = true;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تعذر استقبال التحديث المباشر حالياً. سيتم تحديث الطلبات تلقائياً في الخلفية.')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'تعذر استقبال التحديث المباشر حالياً. سيتم تحديث الطلبات تلقائياً في الخلفية.',
+        ),
+      ),
+    );
   }
 
   void _scheduleFallbackRefresh({required String reason}) {
@@ -97,7 +121,15 @@ class _OrdersScreenState extends State<OrdersScreen> {
         eventHandledAtMs: DateTime.now().millisecondsSinceEpoch,
         fallbackReason: reason,
       );
-      _ordersBloc.add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: orderNotifier.status.value), isReload: true));
+      _ordersBloc.add(
+        FetchOrdersUsecaseEvent(
+          params: FetchOrdersUsecaseParams(
+            page: 1,
+            status: orderNotifier.status.value,
+          ),
+          isReload: true,
+        ),
+      );
     });
   }
 
@@ -133,21 +165,29 @@ class _OrdersScreenState extends State<OrdersScreen> {
             SizedBox(height: 20),
             Expanded(
               child: BlocBuilder<OrdersBloc, OrdersState>(
-                buildWhen: (previous, current) => previous.ordersUsecase != current.ordersUsecase,
+                buildWhen: (previous, current) =>
+                    previous.ordersUsecase != current.ordersUsecase,
                 builder: (context, state) {
                   final orders = state.ordersUsecase;
                   if (orders == null) {
                     return const Padding(
                       padding: EdgeInsetsDirectional.only(top: 40),
-                      child: Center(child: CircularProgressIndicator.adaptive()),
+                      child: Center(
+                        child: CircularProgressIndicator.adaptive(),
+                      ),
                     );
                   }
                   return orders.builder(
                     loadingWidget: Padding(
                       padding: EdgeInsetsDirectional.only(top: 40),
-                      child: Center(child: CircularProgressIndicator.adaptive()),
+                      child: Center(
+                        child: CircularProgressIndicator.adaptive(),
+                      ),
                     ),
-                    emptyWidget: AppText.labelMedium('لا يوجد مهام', fontWeight: FontWeight.w400),
+                    emptyWidget: AppText.labelMedium(
+                      'لا يوجد مهام',
+                      fontWeight: FontWeight.w400,
+                    ),
                     failedWidget: Padding(
                       padding: const EdgeInsetsDirectional.only(top: 40),
                       child: Center(
@@ -164,22 +204,42 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       return ValueListenableBuilder(
                         valueListenable: orderNotifier.status,
                         builder: (context, status, _) => ListView.separated(
-                          padding: EdgeInsetsDirectional.only(start: 24, end: 24, bottom: 20),
+                          padding: EdgeInsetsDirectional.only(
+                            start: 24,
+                            end: 24,
+                            bottom: 20,
+                          ),
                           itemBuilder: (context, index) {
                             if (orders.length <= index) {
                               if (orders.length == index) {
                                 context.read<OrdersBloc>().add(
                                   FetchOrdersUsecaseEvent(
                                     isReload: false,
-                                    params: FetchOrdersUsecaseParams(page: orders.pageNumber, status: status),
+                                    params: FetchOrdersUsecaseParams(
+                                      page: orders.pageNumber,
+                                      status: status,
+                                    ),
                                   ),
                                 );
                               }
-                              return SizedBox(width: 30, height: 30, child: FittedBox(child: CircularProgressIndicator.adaptive(strokeWidth: 3)));
+                              return SizedBox(
+                                width: 30,
+                                height: 30,
+                                child: FittedBox(
+                                  child: CircularProgressIndicator.adaptive(
+                                    strokeWidth: 3,
+                                  ),
+                                ),
+                              );
                             }
-                            return OrderCard(data: orders.list[index], bloc: context.read<OrdersBloc>(), index: index);
+                            return OrderCard(
+                              data: orders.list[index],
+                              bloc: context.read<OrdersBloc>(),
+                              index: index,
+                            );
                           },
-                          separatorBuilder: (context, index) => SizedBox(height: 16),
+                          separatorBuilder: (context, index) =>
+                              SizedBox(height: 16),
                           itemCount: orders.listLength(1),
                         ),
                       );

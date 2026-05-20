@@ -17,13 +17,16 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateMixin {
+class _MainScreenState extends State<MainScreen>
+    with SingleTickerProviderStateMixin {
   late TabController controller;
 
   @override
   void initState() {
     super.initState();
-    controller = TabController(length: 4, vsync: this);
+    final requestedIndex = widget.mainScreenParam?.returnedPageIndex ?? 0;
+    final safeIndex = requestedIndex.clamp(0, 3).toInt();
+    controller = TabController(length: 4, vsync: this, initialIndex: safeIndex);
   }
 
   @override
@@ -33,7 +36,14 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
       body: TabBarView(
         controller: controller,
         physics: const NeverScrollableScrollPhysics(),
-        children: [HomeScreen(), CalenderScreen(), OrdersScreen(), ProfileScreen()],
+        children: [
+          HomeScreen(),
+          CalenderScreen(),
+          OrdersScreen(
+            initialStatus: widget.mainScreenParam?.ordersInitialStatus,
+          ),
+          ProfileScreen(),
+        ],
       ),
     );
   }
@@ -41,6 +51,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
 
 class MainScreenParam {
   final int returnedPageIndex;
+  final String? ordersInitialStatus;
 
-  MainScreenParam({required this.returnedPageIndex});
+  MainScreenParam({required this.returnedPageIndex, this.ordersInitialStatus});
 }

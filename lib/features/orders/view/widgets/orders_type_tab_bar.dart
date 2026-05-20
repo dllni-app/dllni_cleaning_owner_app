@@ -24,9 +24,13 @@ class _OrdersTypeTabBarState extends State<OrdersTypeTabBar>
   @override
   void initState() {
     super.initState();
+    final initialIndex = ordersStatusTabs.indexWhere(
+      (tab) => tab.status == widget.orderNotifier.status.value,
+    );
     _tabController = TabController(
       length: ordersStatusTabs.length,
       vsync: this,
+      initialIndex: initialIndex >= 0 ? initialIndex : 0,
     );
   }
 

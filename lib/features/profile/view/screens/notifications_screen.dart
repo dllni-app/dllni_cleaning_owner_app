@@ -104,9 +104,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             if (pagination.isEndPage || pagination.status == BlocStatus.loading) {
                               return false;
                             }
-                            context.read<ProfileBloc>().add(
-                              FetchNotificationsEvent(params: FetchNotificationsParams(perPage: pagination.perPage), loadMore: true),
-                            );
+                            context.read<ProfileBloc>().add(FetchNotificationsEvent(params: FetchNotificationsParams(perPage: pagination.perPage), loadMore: true));
                             return false;
                           },
                           child: ListView(
@@ -116,12 +114,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                 if (groups[section]!.isNotEmpty) ...[
                                   Padding(
                                     padding: const EdgeInsetsDirectional.fromSTEB(16, 10, 16, 8),
-                                    child: AppText.labelLarge(
-                                      section,
-                                      color: const Color(0xff9CA3AF),
-                                      fontWeight: FontWeight.w700,
-                                      textAlign: TextAlign.start,
-                                    ),
+                                    child: AppText.labelLarge(section, color: const Color(0xff9CA3AF), fontWeight: FontWeight.w700, textAlign: TextAlign.start),
                                   ),
                                   Container(
                                     color: context.onPrimary,
@@ -137,13 +130,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                                 if (id != null && id.isNotEmpty && item.isRead != true) {
                                                   context.read<ProfileBloc>().add(MarkNotificationReadEvent(id: id));
                                                 }
-                                                tryNavigateFromNotificationPayload(
-                                                  context,
-                                                  module: item.module,
-                                                  canonicalType: item.canonicalType,
-                                                  type: item.type,
-                                                  data: item.data,
-                                                );
+                                                tryNavigateFromNotificationPayload(context, module: item.module, canonicalType: item.canonicalType, type: item.type, data: item.data);
                                               },
                                               child: NotificationFeedItem(notification: groups[section]![i]),
                                             ),
@@ -208,9 +195,9 @@ class _NotificationsAppBar extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: AppText.headlineMedium('الإشعارات', color: context.primary, fontWeight: FontWeight.w700),
+            child: AppText.titleLarge('الإشعارات', color: context.primary, fontWeight: FontWeight.w700, textAlign: TextAlign.start),
           ),
-          BlocBuilder<ProfileBloc, ProfileState>(
+          /*BlocBuilder<ProfileBloc, ProfileState>(
             buildWhen: (previous, current) =>
                 previous.notifications != current.notifications || previous.markAllNotificationsReadStatus != current.markAllNotificationsReadStatus,
             builder: (context, state) {
@@ -227,7 +214,7 @@ class _NotificationsAppBar extends StatelessWidget {
                       ),
               );
             },
-          ),
+          ),*/
         ],
       ),
     );

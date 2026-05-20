@@ -29,7 +29,7 @@ class CalenderScreen extends StatelessWidget {
               color: context.primary,
               child: Column(
                 children: [
-                  SizedBox(height: 100),
+                  SizedBox(height: context.height * .12),
                   WeekCalendar(calenderNotifier: calenderNotifier),
                   SizedBox(height: 10),
                   Row(

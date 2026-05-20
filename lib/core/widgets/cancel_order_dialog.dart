@@ -10,29 +10,39 @@ class CancelOrderDialog extends StatelessWidget {
     required this.bloc,
     required this.orderId,
     required this.orderNum,
+    this.index = 0,
   });
 
   final OrdersBloc bloc;
   final int orderId;
   final String orderNum;
+  final int index;
 
   static Future<void> show(
     BuildContext context, {
     required OrdersBloc bloc,
     required int orderId,
     required String orderNum,
+    int index = 0,
   }) {
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (_) =>
-          CancelOrderDialog(bloc: bloc, orderId: orderId, orderNum: orderNum),
+      builder: (_) => CancelOrderDialog(
+        bloc: bloc,
+        orderId: orderId,
+        orderNum: orderNum,
+        index: index,
+      ),
     );
   }
 
   void _submitCancel(BuildContext context) {
     bloc.add(
-      CancelOrderEvent(params: CancelOrderParams(id: orderId), index: 0),
+      CancelOrderEvent(
+        params: CancelOrderParams(id: orderId),
+        index: index,
+      ),
     );
     Navigator.of(context).pop();
   }

@@ -31,6 +31,7 @@ class _WeekCalendarState extends State<WeekCalendar> {
           firstDay: DateTime(2020),
           lastDay: DateTime(2100),
           focusedDay: focusedDay,
+          startingDayOfWeek: StartingDayOfWeek.sunday,
           selectedDayPredicate: (day) => isSameDay(selectedDay, day),
           calendarFormat: CalendarFormat.week,
           headerVisible: false,
@@ -43,7 +44,10 @@ class _WeekCalendarState extends State<WeekCalendar> {
             widget.calenderNotifier.changeSelectedDate(selected);
             context.read<OrdersBloc>().add(
               FetchOrdersUsecaseEvent(
-                params: FetchOrdersUsecaseParams(page: 1, scheduledDate: DateFormat('yyyy-MM-dd').format(selected)),
+                params: FetchOrdersUsecaseParams(
+                  page: 1,
+                  scheduledDate: DateFormat('yyyy-MM-dd').format(selected),
+                ),
                 isReload: true,
               ),
             );
@@ -60,8 +64,14 @@ class _WeekCalendarState extends State<WeekCalendar> {
               border: Border.all(color: context.primaryContainer, width: 2),
               shape: BoxShape.circle,
             ),
-            selectedDecoration: BoxDecoration(color: context.primaryContainer, shape: BoxShape.circle),
-            selectedTextStyle: TextStyle(color: context.onPrimaryContainer, fontWeight: FontWeight.bold),
+            selectedDecoration: BoxDecoration(
+              color: context.primaryContainer,
+              shape: BoxShape.circle,
+            ),
+            selectedTextStyle: TextStyle(
+              color: context.onPrimaryContainer,
+              fontWeight: FontWeight.bold,
+            ),
             defaultTextStyle: TextStyle(color: context.onPrimaryContainer),
             weekendTextStyle: TextStyle(color: context.onPrimaryContainer),
           ),
@@ -75,7 +85,9 @@ class _WeekCalendarState extends State<WeekCalendar> {
   }
 
   Widget _buildHeader() {
-    final startOfWeek = focusedDay.subtract(Duration(days: focusedDay.weekday));
+    final startOfWeek = focusedDay.subtract(
+      Duration(days: focusedDay.weekday % DateTime.daysPerWeek),
+    );
     final endOfWeek = startOfWeek.add(Duration(days: 6));
 
     final monthName = DateFormat.MMMM('ar').format(focusedDay);
@@ -95,7 +107,11 @@ class _WeekCalendarState extends State<WeekCalendar> {
           ),
           Text(
             "$monthName ${startOfWeek.day}_${endOfWeek.day}",
-            style: TextStyle(color: context.onPrimaryContainer, fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: context.onPrimaryContainer,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           IconButton(
             onPressed: () {

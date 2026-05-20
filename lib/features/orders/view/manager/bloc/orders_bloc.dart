@@ -84,13 +84,19 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     this.fetchSecurityCodeUseCase,
     this.startWorkUseCase,
   ) : super(OrdersState()) {
-    on<FetchOrdersUsecaseEvent>(_fetchOrdersUsecase, transformer: droppableProMax());
+    on<FetchOrdersUsecaseEvent>(
+      _fetchOrdersUsecase,
+      transformer: droppableProMax(),
+    );
     on<FetchOrderDetailsUsecaseEvent>(_fetchOrderDetailsUsecase);
     on<AcceptOrderUsecaseEvent>(_acceptOrderUsecase);
     on<StartTravelUsecaseEvent>(_startTravelUsecase);
     on<CompleteOrderUsecaseEvent>(_completeOrderUsecase);
     on<CancelOrderEvent>(_cancelOrder);
-    on<FetchExtensionRequestsUsecasEvent>(_fetchExtensionRequestsUsecas, transformer: droppableProMax());
+    on<FetchExtensionRequestsUsecasEvent>(
+      _fetchExtensionRequestsUsecas,
+      transformer: droppableProMax(),
+    );
     on<AcceptExtensionUsecaseEvent>(_acceptExtensionUsecase);
     on<RejectExtensionUsecaseEvent>(_rejectExtensionUsecase);
     on<UpdateAvailabilityUsecaseEvent>(_updateAvailabilityUsecase);
@@ -111,39 +117,65 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     };
   }
 
-  FutureOr<void> _changeDetailsStep(ChangeDetailsCurrentStep event, Emitter emit) {
+  FutureOr<void> _changeDetailsStep(
+    ChangeDetailsCurrentStep event,
+    Emitter emit,
+  ) {
     emit(state.copyWith(currentStep: event.step));
   }
 
-  FutureOr<void> _fetchOrdersUsecase(FetchOrdersUsecaseEvent event, Emitter<OrdersState> emit) async {
+  FutureOr<void> _fetchOrdersUsecase(
+    FetchOrdersUsecaseEvent event,
+    Emitter<OrdersState> emit,
+  ) async {
     _lastOrdersStatusFilter = event.params.status ?? _lastOrdersStatusFilter;
     if (!state.ordersUsecase!.isEndPage || event.isReload) {
-      emit(state.copyWith(ordersUsecase: state.ordersUsecase!.setLoading(isReload: event.isReload)));
+      emit(
+        state.copyWith(
+          ordersUsecase: state.ordersUsecase!.setLoading(
+            isReload: event.isReload,
+          ),
+        ),
+      );
       final res = await fetchOrdersUsecaseUseCase(event.params);
       res.fold(
         (l) {
           AppToast.showErrorGlobal(l.message);
           emit(
             state.copyWith(
-              ordersUsecase: state.ordersUsecase!.setFaild(errorMessage: l.message),
+              ordersUsecase: state.ordersUsecase!.setFaild(
+                errorMessage: l.message,
+              ),
               errorMessage: l.message,
             ),
           );
         },
         (r) {
-          emit(state.copyWith(ordersUsecase: state.ordersUsecase!.setSuccess(data: r.data!)));
+          emit(
+            state.copyWith(
+              ordersUsecase: state.ordersUsecase!.setSuccess(data: r.data!),
+            ),
+          );
         },
       );
     }
   }
 
-  FutureOr<void> _fetchOrderDetailsUsecase(FetchOrderDetailsUsecaseEvent event, Emitter<OrdersState> emit) async {
+  FutureOr<void> _fetchOrderDetailsUsecase(
+    FetchOrderDetailsUsecaseEvent event,
+    Emitter<OrdersState> emit,
+  ) async {
     emit(state.copyWith(orderDetailsUsecaseStatus: BlocStatus.loading));
     final res = await fetchOrderDetailsUsecaseUseCase(event.params);
     res.fold(
       (l) {
         AppToast.showErrorGlobal(l.message);
-        emit(state.copyWith(orderDetailsUsecaseStatus: BlocStatus.failed, errorMessage: l.message));
+        emit(
+          state.copyWith(
+            orderDetailsUsecaseStatus: BlocStatus.failed,
+            errorMessage: l.message,
+          ),
+        );
       },
       (r) {
         final status = r.data?.status;
@@ -161,176 +193,408 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     );
   }
 
-  FutureOr<void> _acceptOrderUsecase(AcceptOrderUsecaseEvent event, Emitter<OrdersState> emit) async {
-    emit(state.copyWith(acceptOrderUsecaseStatus: BlocStatus.loading, selectedIndex: event.index));
+  FutureOr<void> _acceptOrderUsecase(
+    AcceptOrderUsecaseEvent event,
+    Emitter<OrdersState> emit,
+  ) async {
+    emit(
+      state.copyWith(
+        acceptOrderUsecaseStatus: BlocStatus.loading,
+        selectedIndex: event.index,
+      ),
+    );
     final res = await acceptOrderUsecaseUseCase(event.params);
     res.fold(
       (l) {
         AppToast.showErrorGlobal(l.message);
-        emit(state.copyWith(acceptOrderUsecaseStatus: BlocStatus.failed, errorMessage: l.message));
+        emit(
+          state.copyWith(
+            acceptOrderUsecaseStatus: BlocStatus.failed,
+            errorMessage: l.message,
+          ),
+        );
       },
       (r) {
         AppToast.showSuccessGlobal('تم قبول الطلب');
-        add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: CleaningBookingStatus.pending), isReload: true));
-        emit(state.copyWith(acceptOrderUsecaseStatus: BlocStatus.success, acceptOrderUsecase: r, currentStep: 1));
+        add(
+          FetchOrdersUsecaseEvent(
+            params: FetchOrdersUsecaseParams(
+              page: 1,
+              status: CleaningBookingStatus.pending,
+            ),
+            isReload: true,
+          ),
+        );
+        emit(
+          state.copyWith(
+            acceptOrderUsecaseStatus: BlocStatus.success,
+            acceptOrderUsecase: r,
+            currentStep: 1,
+          ),
+        );
         event.context.pop();
       },
     );
   }
 
-  FutureOr<void> _startTravelUsecase(StartTravelUsecaseEvent event, Emitter<OrdersState> emit) async {
-    emit(state.copyWith(startTravelUsecaseStatus: BlocStatus.loading, selectedIndex: event.index));
+  FutureOr<void> _startTravelUsecase(
+    StartTravelUsecaseEvent event,
+    Emitter<OrdersState> emit,
+  ) async {
+    emit(
+      state.copyWith(
+        startTravelUsecaseStatus: BlocStatus.loading,
+        selectedIndex: event.index,
+      ),
+    );
     final res = await startTravelUsecaseUseCase(event.params);
     res.fold(
       (l) {
-        final message = _mapLifecycleFailureMessage(l, invalidStateMessage: 'لا يمكن بدء التحرك في حالة الطلب الحالية.');
+        final message = _mapLifecycleFailureMessage(
+          l,
+          invalidStateMessage: 'لا يمكن بدء التحرك في حالة الطلب الحالية.',
+        );
         AppToast.showErrorGlobal(message);
-        emit(state.copyWith(startTravelUsecaseStatus: BlocStatus.failed, errorMessage: message));
+        emit(
+          state.copyWith(
+            startTravelUsecaseStatus: BlocStatus.failed,
+            errorMessage: message,
+          ),
+        );
       },
       (r) {
         AppToast.showSuccessGlobal('تم بدء التحرك');
-        add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: CleaningBookingStatus.workerAssigned), isReload: true));
-        emit(state.copyWith(startTravelUsecaseStatus: BlocStatus.success, startTravelUsecase: r, currentStep: 2));
+        add(
+          FetchOrdersUsecaseEvent(
+            params: FetchOrdersUsecaseParams(
+              page: 1,
+              status: CleaningBookingStatus.workerAssigned,
+            ),
+            isReload: true,
+          ),
+        );
+        emit(
+          state.copyWith(
+            startTravelUsecaseStatus: BlocStatus.success,
+            startTravelUsecase: r,
+            currentStep: 2,
+          ),
+        );
       },
     );
   }
 
-  FutureOr<void> _completeOrderUsecase(CompleteOrderUsecaseEvent event, Emitter<OrdersState> emit) async {
+  FutureOr<void> _completeOrderUsecase(
+    CompleteOrderUsecaseEvent event,
+    Emitter<OrdersState> emit,
+  ) async {
     emit(state.copyWith(completeOrderUsecaseStatus: BlocStatus.loading));
     final res = await completeOrderUsecaseUseCase(event.params);
     res.fold(
       (l) {
-        final message = _mapLifecycleFailureMessage(l, invalidStateMessage: 'لا يمكن إنهاء العمل في حالة الطلب الحالية.');
+        final message = _mapLifecycleFailureMessage(
+          l,
+          invalidStateMessage: 'لا يمكن إنهاء العمل في حالة الطلب الحالية.',
+        );
         AppToast.showErrorGlobal(message);
-        emit(state.copyWith(completeOrderUsecaseStatus: BlocStatus.failed, errorMessage: message));
+        emit(
+          state.copyWith(
+            completeOrderUsecaseStatus: BlocStatus.failed,
+            errorMessage: message,
+          ),
+        );
       },
       (r) {
         AppToast.showSuccessGlobal('تم إكمال الطلب');
-        add(FetchOrderDetailsUsecaseEvent(params: FetchOrderDetailsUsecaseParams(id: event.params.id)));
-        add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: CleaningBookingStatus.inProgress), isReload: true));
-        add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: CleaningBookingStatus.workerAssigned), isReload: true));
-        emit(state.copyWith(completeOrderUsecaseStatus: BlocStatus.success, completeOrderUsecase: r));
+        add(
+          FetchOrderDetailsUsecaseEvent(
+            params: FetchOrderDetailsUsecaseParams(id: event.params.id),
+          ),
+        );
+        add(
+          FetchOrdersUsecaseEvent(
+            params: FetchOrdersUsecaseParams(
+              page: 1,
+              status: CleaningBookingStatus.inProgress,
+            ),
+            isReload: true,
+          ),
+        );
+        add(
+          FetchOrdersUsecaseEvent(
+            params: FetchOrdersUsecaseParams(
+              page: 1,
+              status: CleaningBookingStatus.workerAssigned,
+            ),
+            isReload: true,
+          ),
+        );
+        emit(
+          state.copyWith(
+            completeOrderUsecaseStatus: BlocStatus.success,
+            completeOrderUsecase: r,
+          ),
+        );
       },
     );
   }
 
-  FutureOr<void> _cancelOrder(CancelOrderEvent event, Emitter<OrdersState> emit) async {
-    emit(state.copyWith(cancelOrderStatus: BlocStatus.loading));
+  FutureOr<void> _cancelOrder(
+    CancelOrderEvent event,
+    Emitter<OrdersState> emit,
+  ) async {
+    emit(
+      state.copyWith(
+        cancelOrderStatus: BlocStatus.loading,
+        selectedIndex: event.index,
+      ),
+    );
     final res = await cancelOrderUseCase(event.params);
     res.fold(
       (l) {
         AppToast.showErrorGlobal(l.message);
-        emit(state.copyWith(cancelOrderStatus: BlocStatus.failed, errorMessage: l.message));
+        emit(
+          state.copyWith(
+            cancelOrderStatus: BlocStatus.failed,
+            errorMessage: l.message,
+          ),
+        );
       },
       (r) {
         AppToast.showSuccessGlobal('تم إلغاء الطلب');
-        add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: CleaningBookingStatus.workerAssigned), isReload: true));
-        emit(state.copyWith(cancelOrderStatus: BlocStatus.success, cancelOrder: r));
+        add(
+          FetchOrdersUsecaseEvent(
+            params: FetchOrdersUsecaseParams(
+              page: 1,
+              status: _lastOrdersStatusFilter,
+            ),
+            isReload: true,
+          ),
+        );
+        emit(
+          state.copyWith(cancelOrderStatus: BlocStatus.success, cancelOrder: r),
+        );
       },
     );
   }
 
-  FutureOr<void> _fetchExtensionRequestsUsecas(FetchExtensionRequestsUsecasEvent event, Emitter<OrdersState> emit) async {
+  FutureOr<void> _fetchExtensionRequestsUsecas(
+    FetchExtensionRequestsUsecasEvent event,
+    Emitter<OrdersState> emit,
+  ) async {
     if (!state.extensionRequestsUsecas!.isEndPage || event.isReload) {
-      emit(state.copyWith(extensionRequestsUsecas: state.extensionRequestsUsecas!.setLoading(isReload: event.isReload)));
+      emit(
+        state.copyWith(
+          extensionRequestsUsecas: state.extensionRequestsUsecas!.setLoading(
+            isReload: event.isReload,
+          ),
+        ),
+      );
       final res = await fetchExtensionRequestsUsecasUseCase(event.params);
       res.fold(
         (l) {
           AppToast.showErrorGlobal(l.message);
           emit(
             state.copyWith(
-              extensionRequestsUsecas: state.extensionRequestsUsecas!.setFaild(errorMessage: l.message),
+              extensionRequestsUsecas: state.extensionRequestsUsecas!.setFaild(
+                errorMessage: l.message,
+              ),
               errorMessage: l.message,
             ),
           );
         },
         (r) {
-          emit(state.copyWith(extensionRequestsUsecas: state.extensionRequestsUsecas!.setSuccess(data: r.data!)));
+          emit(
+            state.copyWith(
+              extensionRequestsUsecas: state.extensionRequestsUsecas!
+                  .setSuccess(data: r.data!),
+            ),
+          );
         },
       );
     }
   }
 
-  FutureOr<void> _acceptExtensionUsecase(AcceptExtensionUsecaseEvent event, Emitter<OrdersState> emit) async {
+  FutureOr<void> _acceptExtensionUsecase(
+    AcceptExtensionUsecaseEvent event,
+    Emitter<OrdersState> emit,
+  ) async {
     emit(state.copyWith(acceptExtensionUsecaseStatus: BlocStatus.loading));
     final res = await acceptExtensionUsecaseUseCase(event.params);
     res.fold(
       (l) {
         AppToast.showErrorGlobal(l.message);
-        emit(state.copyWith(acceptExtensionUsecaseStatus: BlocStatus.failed, errorMessage: l.message));
+        emit(
+          state.copyWith(
+            acceptExtensionUsecaseStatus: BlocStatus.failed,
+            errorMessage: l.message,
+          ),
+        );
       },
       (r) {
         AppToast.showSuccessGlobal('تم قبول طلب التمديد');
-        add(FetchExtensionRequestsUsecasEvent(params: FetchExtensionRequestsUsecasParams(), isReload: true));
-        emit(state.copyWith(acceptExtensionUsecaseStatus: BlocStatus.success, acceptExtensionUsecase: r));
+        add(
+          FetchExtensionRequestsUsecasEvent(
+            params: FetchExtensionRequestsUsecasParams(),
+            isReload: true,
+          ),
+        );
+        emit(
+          state.copyWith(
+            acceptExtensionUsecaseStatus: BlocStatus.success,
+            acceptExtensionUsecase: r,
+          ),
+        );
       },
     );
   }
 
-  FutureOr<void> _rejectExtensionUsecase(RejectExtensionUsecaseEvent event, Emitter<OrdersState> emit) async {
+  FutureOr<void> _rejectExtensionUsecase(
+    RejectExtensionUsecaseEvent event,
+    Emitter<OrdersState> emit,
+  ) async {
     emit(state.copyWith(rejectExtensionUsecaseStatus: BlocStatus.loading));
     final res = await rejectExtensionUsecaseUseCase(event.params);
     res.fold(
       (l) {
         AppToast.showErrorGlobal(l.message);
-        emit(state.copyWith(rejectExtensionUsecaseStatus: BlocStatus.failed, errorMessage: l.message));
+        emit(
+          state.copyWith(
+            rejectExtensionUsecaseStatus: BlocStatus.failed,
+            errorMessage: l.message,
+          ),
+        );
       },
       (r) {
         AppToast.showSuccessGlobal('تم رفض طلب التمديد');
-        add(FetchExtensionRequestsUsecasEvent(params: FetchExtensionRequestsUsecasParams(), isReload: true));
-        emit(state.copyWith(rejectExtensionUsecaseStatus: BlocStatus.success, rejectExtensionUsecase: r));
+        add(
+          FetchExtensionRequestsUsecasEvent(
+            params: FetchExtensionRequestsUsecasParams(),
+            isReload: true,
+          ),
+        );
+        emit(
+          state.copyWith(
+            rejectExtensionUsecaseStatus: BlocStatus.success,
+            rejectExtensionUsecase: r,
+          ),
+        );
       },
     );
   }
 
-  FutureOr<void> _updateAvailabilityUsecase(UpdateAvailabilityUsecaseEvent event, Emitter<OrdersState> emit) async {
+  FutureOr<void> _updateAvailabilityUsecase(
+    UpdateAvailabilityUsecaseEvent event,
+    Emitter<OrdersState> emit,
+  ) async {
     emit(state.copyWith(availabilityUsecaseStatus: BlocStatus.loading));
     final res = await updateAvailabilityUsecaseUseCase(event.params);
     res.fold(
       (l) {
         AppToast.showErrorGlobal(l.message);
-        emit(state.copyWith(availabilityUsecaseStatus: BlocStatus.failed, errorMessage: l.message));
+        emit(
+          state.copyWith(
+            availabilityUsecaseStatus: BlocStatus.failed,
+            errorMessage: l.message,
+          ),
+        );
       },
       (r) {
         AppToast.showSuccessGlobal('تم تحديث التوفر');
-        emit(state.copyWith(availabilityUsecaseStatus: BlocStatus.success, availabilityUsecase: r));
+        emit(
+          state.copyWith(
+            availabilityUsecaseStatus: BlocStatus.success,
+            availabilityUsecase: r,
+          ),
+        );
       },
     );
   }
 
-  FutureOr<void> _rejectOrderUsecase(RejectOrderUsecaseEvent event, Emitter<OrdersState> emit) async {
-    emit(state.copyWith(rejectOrderUsecaseStatus: BlocStatus.loading, selectedIndex: event.index));
+  FutureOr<void> _rejectOrderUsecase(
+    RejectOrderUsecaseEvent event,
+    Emitter<OrdersState> emit,
+  ) async {
+    emit(
+      state.copyWith(
+        rejectOrderUsecaseStatus: BlocStatus.loading,
+        selectedIndex: event.index,
+      ),
+    );
     final res = await rejectOrderUsecaseUseCase(event.params);
     res.fold(
       (l) {
         AppToast.showErrorGlobal(l.message);
-        emit(state.copyWith(rejectOrderUsecaseStatus: BlocStatus.failed, errorMessage: l.message));
+        emit(
+          state.copyWith(
+            rejectOrderUsecaseStatus: BlocStatus.failed,
+            errorMessage: l.message,
+          ),
+        );
       },
       (r) {
         AppToast.showSuccessGlobal('تم رفض الطلب');
-        add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: CleaningBookingStatus.pending), isReload: true));
-        emit(state.copyWith(rejectOrderUsecaseStatus: BlocStatus.success, rejectOrderUsecase: r));
+        add(
+          FetchOrdersUsecaseEvent(
+            params: FetchOrdersUsecaseParams(
+              page: 1,
+              status: CleaningBookingStatus.pending,
+            ),
+            isReload: true,
+          ),
+        );
+        emit(
+          state.copyWith(
+            rejectOrderUsecaseStatus: BlocStatus.success,
+            rejectOrderUsecase: r,
+          ),
+        );
       },
     );
   }
 
   FutureOr<void> _arrive(ArriveEvent event, Emitter<OrdersState> emit) async {
     _arrivingBookingId = event.params.id;
-    emit(state.copyWith(arriveStatus: BlocStatus.loading, selectedIndex: event.index));
+    emit(
+      state.copyWith(
+        arriveStatus: BlocStatus.loading,
+        selectedIndex: event.index,
+      ),
+    );
     final res = await arriveUseCase(event.params);
     res.fold(
       (l) {
         _arrivingBookingId = null;
-        final message = _mapLifecycleFailureMessage(l, invalidStateMessage: 'لا يمكن تأكيد الوصول في حالة الطلب الحالية.');
+        final message = _mapLifecycleFailureMessage(
+          l,
+          invalidStateMessage: 'لا يمكن تأكيد الوصول في حالة الطلب الحالية.',
+        );
         AppToast.showErrorGlobal(message);
-        emit(state.copyWith(arriveStatus: BlocStatus.failed, errorMessage: message));
+        emit(
+          state.copyWith(
+            arriveStatus: BlocStatus.failed,
+            errorMessage: message,
+          ),
+        );
       },
       (r) {
         _arrivingBookingId = null;
         AppToast.showSuccessGlobal('تم تأكيد الوصول');
         final bookingId = r.data?.id ?? event.params.id;
-        add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: CleaningBookingStatus.workerAssigned), isReload: true));
-        add(FetchOrderDetailsUsecaseEvent(params: FetchOrderDetailsUsecaseParams(id: bookingId)));
+        add(
+          FetchOrdersUsecaseEvent(
+            params: FetchOrdersUsecaseParams(
+              page: 1,
+              status: CleaningBookingStatus.workerAssigned,
+            ),
+            isReload: true,
+          ),
+        );
+        add(
+          FetchOrderDetailsUsecaseEvent(
+            params: FetchOrderDetailsUsecaseParams(id: bookingId),
+          ),
+        );
 
         final embeddedCode = r.data == null
             ? null
@@ -339,7 +603,9 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
         final status = r.data?.status;
         final step = status == CleaningBookingStatus.awaitingStartVerification
             ? 2
-            : status == CleaningBookingStatus.inProgress || status == CleaningBookingStatus.awaitingCustomerCompletion || status == CleaningBookingStatus.timeExtensionRequested
+            : status == CleaningBookingStatus.inProgress ||
+                  status == CleaningBookingStatus.awaitingCustomerCompletion ||
+                  status == CleaningBookingStatus.timeExtensionRequested
             ? 3
             : 2;
         emit(
@@ -348,21 +614,29 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
             arrive: r,
             currentStep: step,
             securityCode: hasEmbeddedCode ? embeddedCode : state.securityCode,
-            securityCodeStatus:
-                hasEmbeddedCode ? BlocStatus.success : state.securityCodeStatus,
+            securityCodeStatus: hasEmbeddedCode
+                ? BlocStatus.success
+                : state.securityCodeStatus,
           ),
         );
 
         if (hasEmbeddedCode) {
           _securityCodeLoadedForBookingId = bookingId;
         } else {
-          add(FetchSecurityCodeEvent(params: FetchSecurityCodeParams(id: bookingId)));
+          add(
+            FetchSecurityCodeEvent(
+              params: FetchSecurityCodeParams(id: bookingId),
+            ),
+          );
         }
       },
     );
   }
 
-  FutureOr<void> _reportBookingLocation(ReportBookingLocationEvent event, Emitter<OrdersState> emit) async {
+  FutureOr<void> _reportBookingLocation(
+    ReportBookingLocationEvent event,
+    Emitter<OrdersState> emit,
+  ) async {
     final bookingId = event.params.id;
     if (_arrivingBookingId == bookingId) return;
 
@@ -380,15 +654,27 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     }
 
     final res = await postBookingLocationUseCase(event.params);
-    res.fold((l) => AppToast.showErrorGlobal(_mapLifecycleFailureMessage(l, invalidStateMessage: 'تعذر إرسال الموقع في حالة الطلب الحالية.')), (_) {});
+    res.fold(
+      (l) => AppToast.showErrorGlobal(
+        _mapLifecycleFailureMessage(
+          l,
+          invalidStateMessage: 'تعذر إرسال الموقع في حالة الطلب الحالية.',
+        ),
+      ),
+      (_) {},
+    );
   }
 
-  FutureOr<void> _fetchSecurityCode(FetchSecurityCodeEvent event, Emitter<OrdersState> emit) async {
+  FutureOr<void> _fetchSecurityCode(
+    FetchSecurityCodeEvent event,
+    Emitter<OrdersState> emit,
+  ) async {
     final bookingId = event.params.id;
     if (!event.force) {
       if (_securityCodeInFlightForBookingId == bookingId) return;
       final cached = state.securityCode?.data;
-      if (_securityCodeLoadedForBookingId == bookingId && cached?.hasCode == true) {
+      if (_securityCodeLoadedForBookingId == bookingId &&
+          cached?.hasCode == true) {
         return;
       }
     }
@@ -399,25 +685,37 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     _securityCodeInFlightForBookingId = null;
     res.fold(
       (l) {
-        final message = _mapLifecycleFailureMessage(l, invalidStateMessage: 'لا يمكن جلب رمز التحقق في حالة الطلب الحالية.');
+        final message = _mapLifecycleFailureMessage(
+          l,
+          invalidStateMessage: 'لا يمكن جلب رمز التحقق في حالة الطلب الحالية.',
+        );
         if (event.force) {
           AppToast.showErrorGlobal(message);
         }
-        emit(state.copyWith(securityCodeStatus: BlocStatus.failed, errorMessage: message));
+        emit(
+          state.copyWith(
+            securityCodeStatus: BlocStatus.failed,
+            errorMessage: message,
+          ),
+        );
       },
       (r) {
         if (event.force) {
           AppToast.showSuccessGlobal('تم جلب رمز التحقق');
         }
         _securityCodeLoadedForBookingId = bookingId;
-        emit(state.copyWith(securityCodeStatus: BlocStatus.success, securityCode: r));
+        emit(
+          state.copyWith(
+            securityCodeStatus: BlocStatus.success,
+            securityCode: r,
+          ),
+        );
       },
     );
   }
 
-  ({String? status, String? startedTravelAt, String? arrivedAt}) _bookingLifecycleSnapshot(
-    int bookingId,
-  ) {
+  ({String? status, String? startedTravelAt, String? arrivedAt})
+  _bookingLifecycleSnapshot(int bookingId) {
     final arrive = state.arrive?.data;
     if (arrive?.id == bookingId) {
       return (
@@ -439,45 +737,102 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     return (status: null, startedTravelAt: null, arrivedAt: null);
   }
 
-  FutureOr<void> _startWork(StartWorkEvent event, Emitter<OrdersState> emit) async {
+  FutureOr<void> _startWork(
+    StartWorkEvent event,
+    Emitter<OrdersState> emit,
+  ) async {
     emit(state.copyWith(startWorkStatus: BlocStatus.loading));
     final res = await startWorkUseCase(event.params);
     res.fold(
       (l) {
-        final message = _mapLifecycleFailureMessage(l, invalidStateMessage: 'لا يمكن بدء العمل في حالة الطلب الحالية.');
+        final message = _mapLifecycleFailureMessage(
+          l,
+          invalidStateMessage: 'لا يمكن بدء العمل في حالة الطلب الحالية.',
+        );
         AppToast.showErrorGlobal(message);
-        emit(state.copyWith(startWorkStatus: BlocStatus.failed, errorMessage: message));
+        emit(
+          state.copyWith(
+            startWorkStatus: BlocStatus.failed,
+            errorMessage: message,
+          ),
+        );
       },
       (r) {
         AppToast.showSuccessGlobal('تم بدء العمل');
-        add(FetchOrderDetailsUsecaseEvent(params: FetchOrderDetailsUsecaseParams(id: event.params.id)));
-        add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: CleaningBookingStatus.inProgress), isReload: true));
-        emit(state.copyWith(startWorkStatus: BlocStatus.success, startWork: r, currentStep: 3));
+        add(
+          FetchOrderDetailsUsecaseEvent(
+            params: FetchOrderDetailsUsecaseParams(id: event.params.id),
+          ),
+        );
+        add(
+          FetchOrdersUsecaseEvent(
+            params: FetchOrdersUsecaseParams(
+              page: 1,
+              status: CleaningBookingStatus.inProgress,
+            ),
+            isReload: true,
+          ),
+        );
+        emit(
+          state.copyWith(
+            startWorkStatus: BlocStatus.success,
+            startWork: r,
+            currentStep: 3,
+          ),
+        );
       },
     );
   }
 
-  void _syncOrderFromRealtime(SyncOrderFromRealtimeEvent event, Emitter<OrdersState> emit) {
-    add(FetchOrderDetailsUsecaseEvent(params: FetchOrderDetailsUsecaseParams(id: event.bookingId)));
+  void _syncOrderFromRealtime(
+    SyncOrderFromRealtimeEvent event,
+    Emitter<OrdersState> emit,
+  ) {
+    add(
+      FetchOrderDetailsUsecaseEvent(
+        params: FetchOrderDetailsUsecaseParams(id: event.bookingId),
+      ),
+    );
   }
 
-  void _hydrateOrderListFromRealtime(HydrateOrderListFromRealtimeEvent event, Emitter<OrdersState> emit) {
-    final normalizedEvent = CleaningRealtimeContract.normalizeEventName(event.eventName);
+  void _hydrateOrderListFromRealtime(
+    HydrateOrderListFromRealtimeEvent event,
+    Emitter<OrdersState> emit,
+  ) {
+    final normalizedEvent = CleaningRealtimeContract.normalizeEventName(
+      event.eventName,
+    );
     if (!CleaningRealtimeContract.isLifecycleRefreshEvent(normalizedEvent)) {
       return;
     }
-    add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: _lastOrdersStatusFilter), isReload: true));
+    add(
+      FetchOrdersUsecaseEvent(
+        params: FetchOrdersUsecaseParams(
+          page: 1,
+          status: _lastOrdersStatusFilter,
+        ),
+        isReload: true,
+      ),
+    );
   }
 
-  void _hydrateOrderDetailsFromRealtime(HydrateOrderDetailsFromRealtimeEvent event, Emitter<OrdersState> emit) {
-    final normalizedEvent = CleaningRealtimeContract.normalizeEventName(event.eventName);
+  void _hydrateOrderDetailsFromRealtime(
+    HydrateOrderDetailsFromRealtimeEvent event,
+    Emitter<OrdersState> emit,
+  ) {
+    final normalizedEvent = CleaningRealtimeContract.normalizeEventName(
+      event.eventName,
+    );
     if (!CleaningRealtimeContract.isLifecycleRefreshEvent(normalizedEvent)) {
       return;
     }
     add(SyncOrderFromRealtimeEvent(bookingId: event.bookingId));
   }
 
-  String _mapLifecycleFailureMessage(Failure failure, {required String invalidStateMessage}) {
+  String _mapLifecycleFailureMessage(
+    Failure failure, {
+    required String invalidStateMessage,
+  }) {
     switch (failure.statusCode) {
       case _statusForbidden:
         return 'غير مسموح بتنفيذ هذا الإجراء على الطلب.';

@@ -131,7 +131,8 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                   PaymentInfoCard(order: widget.order),
                   SizedBox(height: 10),
                   if (canAcceptReject) _buildAcceptRejectActions(context),
-                  if (canStartTravel) _buildStartTravelActions(context, canCancel),
+                  if (canStartTravel)
+                    _buildStartTravelActions(context, canCancel),
                   SizedBox(height: 20),
                 ],
               ),
@@ -311,6 +312,7 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                     bloc: widget.bloc,
                     orderId: widget.order.id!,
                     orderNum: widget.order.bookingNumber!,
+                    index: widget.index,
                   );
                 }
               : null,
