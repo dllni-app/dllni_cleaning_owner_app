@@ -2,6 +2,7 @@ import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/widgets/cancel_order_dialog.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/reject_order_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/start_travel_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_lifecycle_policy.dart';
@@ -352,62 +353,75 @@ class OrderCard extends StatelessWidget {
                       },
                     ),
                   ),
-                  if (data.status != CleaningBookingStatus.pending) ...[
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: BlocBuilder<OrdersBloc, OrdersState>(
-                        bloc: bloc,
-                        builder: (context, state) {
-                          final loading =
-                              OrderLifecyclePolicy.isLoadingForOrderIndex(
-                                state: state,
-                                orderIndex: index,
-                                actionStatus: state.cancelOrderStatus,
-                              );
-                          return InkWell(
-                            onTap: loading
-                                ? null
-                                : () {
-                                    if (data.id == null) return;
-                                    CancelOrderDialog.show(
-                                      context,
-                                      bloc: bloc,
-                                      orderId: data.id!,
-                                      orderNum:
-                                          data.bookingNumber ?? bookingLabel,
-                                      index: index,
-                                    );
-                                  },
-                            borderRadius: BorderRadius.circular(10),
-                            child: Container(
-                              height: 44,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(10),
-                                color: context.error.withAlpha(20),
-                                border: Border.all(color: context.error),
-                              ),
-                              child: Center(
-                                child: loading
-                                    ? SizedBox(
-                                        width: 18,
-                                        height: 18,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: context.error,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: BlocBuilder<OrdersBloc, OrdersState>(
+                      bloc: bloc,
+                      builder: (context, state) {
+                        final isPending =
+                            data.status == CleaningBookingStatus.pending;
+                        final loading =
+                            OrderLifecyclePolicy.isLoadingForOrderIndex(
+                              state: state,
+                              orderIndex: index,
+                              actionStatus: isPending
+                                  ? state.rejectOrderUsecaseStatus
+                                  : state.cancelOrderStatus,
+                            );
+                        return InkWell(
+                          onTap: loading
+                              ? null
+                              : () {
+                                  if (data.id == null) return;
+                                  if (isPending) {
+                                    bloc.add(
+                                      RejectOrderUsecaseEvent(
+                                        params: RejectOrderUsecaseParams(
+                                          id: data.id!,
                                         ),
-                                      )
-                                    : AppText.labelLarge(
-                                        'إلغاء',
-                                        color: context.error,
-                                        fontWeight: FontWeight.w700,
+                                        index: index,
                                       ),
-                              ),
+                                    );
+                                    return;
+                                  }
+                                  CancelOrderDialog.show(
+                                    context,
+                                    bloc: bloc,
+                                    orderId: data.id!,
+                                    orderNum:
+                                        data.bookingNumber ?? bookingLabel,
+                                    index: index,
+                                  );
+                                },
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            height: 44,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              color: context.error.withAlpha(20),
+                              border: Border.all(color: context.error),
                             ),
-                          );
-                        },
-                      ),
+                            child: Center(
+                              child: loading
+                                  ? SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: context.error,
+                                      ),
+                                    )
+                                  : AppText.labelLarge(
+                                      isPending ? 'رفض' : 'إلغاء',
+                                      color: context.error,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  ],
+                  ),
                 ],
               )
             else if (OrderLifecyclePolicy.canStartTravel(data))

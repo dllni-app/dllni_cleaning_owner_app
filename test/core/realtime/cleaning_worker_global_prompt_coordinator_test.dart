@@ -43,36 +43,33 @@ void main() {
       },
     );
 
-    test(
-      'ServiceExtensionRequested unwraps nested data.warningId',
-      () async {
-        final shown = <WorkerExtensionPromptData>[];
-        final coordinator = CleaningWorkerGlobalPromptCoordinator(
-          navigatorKey: GlobalKey<NavigatorState>(),
-          pusherManager: _buildNoopPusherManager(),
-          extensionPromptPresenter: (prompt) async {
-            shown.add(prompt);
-            return true;
-          },
-        )..markStartedForTest();
+    test('ServiceExtensionRequested unwraps nested data.warningId', () async {
+      final shown = <WorkerExtensionPromptData>[];
+      final coordinator = CleaningWorkerGlobalPromptCoordinator(
+        navigatorKey: GlobalKey<NavigatorState>(),
+        pusherManager: _buildNoopPusherManager(),
+        extensionPromptPresenter: (prompt) async {
+          shown.add(prompt);
+          return true;
+        },
+      )..markStartedForTest();
 
-        await coordinator.handleRealtimeEventForTest(
-          'service_extension_requested',
-          const <String, dynamic>{
-            'data': <String, dynamic>{
-              'warningId': 202,
-              'cleaningBookingId': 55,
-              'additionalMinutes': 15,
-            },
+      await coordinator.handleRealtimeEventForTest(
+        'service_extension_requested',
+        const <String, dynamic>{
+          'data': <String, dynamic>{
+            'warningId': 202,
+            'cleaningBookingId': 55,
+            'additionalMinutes': 15,
           },
-        );
+        },
+      );
 
-        expect(shown.length, 1);
-        expect(shown.first.warningId, 202);
-        expect(shown.first.bookingId, 55);
-        expect(shown.first.requestedMinutes, 15);
-      },
-    );
+      expect(shown.length, 1);
+      expect(shown.first.warningId, 202);
+      expect(shown.first.bookingId, 55);
+      expect(shown.first.requestedMinutes, 15);
+    });
 
     test(
       'ServiceExtensionRequested resolves additionalMinutes alias',
@@ -197,23 +194,25 @@ void main() {
 
     test('pollPendingExtensionPrompts opens first pending warning', () async {
       final shown = <WorkerExtensionPromptData>[];
-      final coordinator = CleaningWorkerGlobalPromptCoordinator(
-        navigatorKey: GlobalKey<NavigatorState>(),
-        pusherManager: _buildNoopPusherManager(),
-        pendingRequestsLoader: () async => const <WorkerPendingExtensionRequest>[
-          WorkerPendingExtensionRequest(
-            warningId: 777,
-            bookingId: 88,
-            requestedMinutes: 30,
-          ),
-        ],
-        extensionPromptPresenter: (prompt) async {
-          shown.add(prompt);
-          return true;
-        },
-      )
-        ..markStartedForTest()
-        ..markAuthBypassForTest();
+      final coordinator =
+          CleaningWorkerGlobalPromptCoordinator(
+              navigatorKey: GlobalKey<NavigatorState>(),
+              pusherManager: _buildNoopPusherManager(),
+              pendingRequestsLoader: () async =>
+                  const <WorkerPendingExtensionRequest>[
+                    WorkerPendingExtensionRequest(
+                      warningId: 777,
+                      bookingId: 88,
+                      requestedMinutes: 30,
+                    ),
+                  ],
+              extensionPromptPresenter: (prompt) async {
+                shown.add(prompt);
+                return true;
+              },
+            )
+            ..markStartedForTest()
+            ..markAuthBypassForTest();
 
       await coordinator.pollPendingExtensionPrompts();
 
@@ -222,24 +221,124 @@ void main() {
     });
 
     test(
-      'findTimeExtensionRequestedBookingIds filters by status',
-      () {
-        final ids =
-            CleaningWorkerGlobalPromptCoordinator.findTimeExtensionRequestedBookingIds(
-              <FetchOrdersUsecaseModelDataItem>[
-                FetchOrdersUsecaseModelDataItem(
-                  id: 1,
-                  status: CleaningBookingStatus.timeExtensionRequested,
-                ),
-                FetchOrdersUsecaseModelDataItem(
-                  id: 2,
-                  status: CleaningBookingStatus.inProgress,
-                ),
-              ],
-            );
-        expect(ids, [1]);
+      'pollPendingExtensionPrompts opens pending order accept prompt',
+      () async {
+        final shown = <WorkerPendingOrderPromptData>[];
+        final coordinator =
+            CleaningWorkerGlobalPromptCoordinator(
+                navigatorKey: GlobalKey<NavigatorState>(),
+                pusherManager: _buildNoopPusherManager(),
+                pendingOrdersLoader: () async =>
+                    <FetchOrdersUsecaseModelDataItem>[
+                      FetchOrdersUsecaseModelDataItem(
+                        id: 321,
+                        status: CleaningBookingStatus.pending,
+                      ),
+                    ],
+                pendingOrderPromptPresenter: (prompt) async {
+                  shown.add(prompt);
+                  return true;
+                },
+              )
+              ..markStartedForTest()
+              ..markAuthBypassForTest();
+
+        await coordinator.pollPendingExtensionPrompts();
+
+        expect(shown.length, 1);
+        expect(shown.first.order.id, 321);
       },
     );
+
+    test(
+      'pollPendingExtensionPrompts prioritizes pending order prompt over extension prompt',
+      () async {
+        final pendingShown = <WorkerPendingOrderPromptData>[];
+        final extensionShown = <WorkerExtensionPromptData>[];
+        final coordinator =
+            CleaningWorkerGlobalPromptCoordinator(
+                navigatorKey: GlobalKey<NavigatorState>(),
+                pusherManager: _buildNoopPusherManager(),
+                pendingOrdersLoader: () async =>
+                    <FetchOrdersUsecaseModelDataItem>[
+                      FetchOrdersUsecaseModelDataItem(
+                        id: 654,
+                        status: CleaningBookingStatus.pending,
+                      ),
+                    ],
+                pendingOrderPromptPresenter: (prompt) async {
+                  pendingShown.add(prompt);
+                  return true;
+                },
+                pendingRequestsLoader: () async =>
+                    const <WorkerPendingExtensionRequest>[
+                      WorkerPendingExtensionRequest(
+                        warningId: 7777,
+                        bookingId: 654,
+                        requestedMinutes: 30,
+                      ),
+                    ],
+                extensionPromptPresenter: (prompt) async {
+                  extensionShown.add(prompt);
+                  return true;
+                },
+              )
+              ..markStartedForTest()
+              ..markAuthBypassForTest();
+
+        await coordinator.pollPendingExtensionPrompts();
+
+        expect(pendingShown.length, 1);
+        expect(extensionShown, isEmpty);
+      },
+    );
+
+    test(
+      'pollPendingExtensionPrompts does not duplicate pending order prompt in same session',
+      () async {
+        var presentedCount = 0;
+        final coordinator =
+            CleaningWorkerGlobalPromptCoordinator(
+                navigatorKey: GlobalKey<NavigatorState>(),
+                pusherManager: _buildNoopPusherManager(),
+                pendingOrdersLoader: () async =>
+                    <FetchOrdersUsecaseModelDataItem>[
+                      FetchOrdersUsecaseModelDataItem(
+                        id: 900,
+                        status: CleaningBookingStatus.pending,
+                      ),
+                    ],
+                pendingOrderPromptPresenter: (_) async {
+                  presentedCount++;
+                  return true;
+                },
+              )
+              ..markStartedForTest()
+              ..markAuthBypassForTest();
+
+        await coordinator.pollPendingExtensionPrompts();
+        await coordinator.pollPendingExtensionPrompts();
+
+        expect(presentedCount, 1);
+      },
+    );
+
+    test('findTimeExtensionRequestedBookingIds filters by status', () {
+      final ids =
+          CleaningWorkerGlobalPromptCoordinator.findTimeExtensionRequestedBookingIds(
+            <FetchOrdersUsecaseModelDataItem>[
+              FetchOrdersUsecaseModelDataItem(
+                id: 1,
+                status: CleaningBookingStatus.timeExtensionRequested,
+              ),
+              FetchOrdersUsecaseModelDataItem(
+                id: 2,
+                status: CleaningBookingStatus.inProgress,
+              ),
+            ],
+          );
+      expect(ids, [1]);
+    });
 
     test(
       'extension_requested then ServiceExtensionRequested does not duplicate same warning',

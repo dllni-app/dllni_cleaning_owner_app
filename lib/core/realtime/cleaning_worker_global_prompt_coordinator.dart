@@ -9,6 +9,7 @@ import '../../features/orders/domain/usecases/fetch_extension_requests_usecas_us
 import '../../features/orders/domain/usecases/fetch_order_details_usecase_use_case.dart';
 import '../../features/orders/domain/usecases/fetch_orders_usecase_use_case.dart';
 import '../../features/orders/view/manager/bloc/orders_bloc.dart';
+import '../../features/orders/view/widgets/accept_order_bottom_sheet.dart';
 import '../../features/orders/view/widgets/extension_request_action_sheet.dart';
 import '../di/injection.dart';
 import 'cleaning_realtime_contract.dart';
@@ -18,8 +19,12 @@ typedef WorkerExtensionPromptPresenter =
     Future<bool> Function(WorkerExtensionPromptData prompt);
 typedef WorkerDecisionAlertPresenter =
     Future<bool> Function(WorkerDecisionAlertData prompt);
+typedef WorkerPendingOrderPromptPresenter =
+    Future<bool> Function(WorkerPendingOrderPromptData prompt);
 typedef WorkerPendingExtensionRequestsLoader =
     Future<List<WorkerPendingExtensionRequest>> Function();
+typedef WorkerPendingOrdersLoader =
+    Future<List<FetchOrdersUsecaseModelDataItem>> Function();
 
 class CleaningWorkerGlobalPromptCoordinator {
   CleaningWorkerGlobalPromptCoordinator({
@@ -31,23 +36,30 @@ class CleaningWorkerGlobalPromptCoordinator {
     WorkerExtensionPromptPresenter? extensionPromptPresenter,
     WorkerDecisionAlertPresenter? decisionAlertPresenter,
     WorkerPendingExtensionRequestsLoader? pendingRequestsLoader,
+    WorkerPendingOrderPromptPresenter? pendingOrderPromptPresenter,
+    WorkerPendingOrdersLoader? pendingOrdersLoader,
   }) : _navigatorKey = navigatorKey,
        _pusherManager = pusherManager ?? getIt<PusherManager>(),
-       _fetchExtensionRequestsUseCase = fetchExtensionRequestsUseCase ??
+       _fetchExtensionRequestsUseCase =
+           fetchExtensionRequestsUseCase ??
            (getIt.isRegistered<FetchExtensionRequestsUsecasUseCase>()
                ? getIt<FetchExtensionRequestsUsecasUseCase>()
                : null),
-       _fetchOrderDetailsUseCase = fetchOrderDetailsUseCase ??
+       _fetchOrderDetailsUseCase =
+           fetchOrderDetailsUseCase ??
            (getIt.isRegistered<FetchOrderDetailsUsecaseUseCase>()
                ? getIt<FetchOrderDetailsUsecaseUseCase>()
                : null),
-       _fetchOrdersUsecaseUseCase = fetchOrdersUsecaseUseCase ??
+       _fetchOrdersUsecaseUseCase =
+           fetchOrdersUsecaseUseCase ??
            (getIt.isRegistered<FetchOrdersUsecaseUseCase>()
                ? getIt<FetchOrdersUsecaseUseCase>()
                : null),
        _extensionPromptPresenter = extensionPromptPresenter,
        _decisionAlertPresenter = decisionAlertPresenter,
-       _pendingRequestsLoader = pendingRequestsLoader;
+       _pendingRequestsLoader = pendingRequestsLoader,
+       _pendingOrderPromptPresenter = pendingOrderPromptPresenter,
+       _pendingOrdersLoader = pendingOrdersLoader;
 
   final GlobalKey<NavigatorState> _navigatorKey;
   final PusherManager _pusherManager;
@@ -57,6 +69,8 @@ class CleaningWorkerGlobalPromptCoordinator {
   final WorkerExtensionPromptPresenter? _extensionPromptPresenter;
   final WorkerDecisionAlertPresenter? _decisionAlertPresenter;
   final WorkerPendingExtensionRequestsLoader? _pendingRequestsLoader;
+  final WorkerPendingOrderPromptPresenter? _pendingOrderPromptPresenter;
+  final WorkerPendingOrdersLoader? _pendingOrdersLoader;
 
   RealtimeListenerHandle? _workerListenerHandle;
   int? _listeningWorkerId;
@@ -72,9 +86,11 @@ class CleaningWorkerGlobalPromptCoordinator {
   bool _extensionPollInFlight = false;
   bool _authBypassForTest = false;
   bool _workerChannelAuthWarningShown = false;
-  bool _extensionSheetOpen = false;
+  bool _promptSheetOpen = false;
   bool _decisionDialogOpen = false;
 
+  final Set<int> _handledPendingPromptBookingIds = <int>{};
+  final Set<int> _inFlightPendingPromptBookingIds = <int>{};
   final Set<int> _handledExtensionWarningIds = <int>{};
   final Set<int> _inFlightExtensionWarningIds = <int>{};
   final Set<int> _inFlightExtensionLookupBookingIds = <int>{};
@@ -133,12 +149,10 @@ class CleaningWorkerGlobalPromptCoordinator {
 
     final handle = await _pusherManager.listen(
       channelName: '${CleaningRealtimeContract.workerChannelPrefix}$workerId',
-      eventNames: CleaningRealtimeContract.expandEventFilter(
-        const <String>{
-          CleaningRealtimeContract.serviceExtensionRequested,
-          CleaningRealtimeContract.completionDecisionMade,
-        },
-      ),
+      eventNames: CleaningRealtimeContract.expandEventFilter(const <String>{
+        CleaningRealtimeContract.serviceExtensionRequested,
+        CleaningRealtimeContract.completionDecisionMade,
+      }),
       onEvent: (event) {
         final normalized = CleaningRealtimeContract.normalizeEventName(
           event.eventName,
@@ -195,13 +209,16 @@ class CleaningWorkerGlobalPromptCoordinator {
   }
 
   /// Polls `GET /cleaning-bookings?filter[status]=time_extension_requested` and
-  /// pending time-warning records, then opens [ExtensionRequestActionSheet].
+  /// pending time-warning records, then opens the appropriate prompt:
+  /// [AcceptOrderBottomSheet] for pending orders, [ExtensionRequestActionSheet]
+  /// for extension requests.
   Future<void> pollPendingExtensionPrompts() async {
     if (!_started || (!_authBypassForTest && !_hasToken())) return;
-    if (_extensionPollInFlight || _extensionSheetOpen) return;
+    if (_extensionPollInFlight || _promptSheetOpen) return;
 
     _extensionPollInFlight = true;
     try {
+      if (await _promptFirstPendingOrder()) return;
       if (await _promptFirstPendingExtensionRequest()) return;
       await _promptExtensionsFromTimeExtensionOrders();
     } finally {
@@ -224,6 +241,30 @@ class CleaningWorkerGlobalPromptCoordinator {
         .toList(growable: false);
   }
 
+  @visibleForTesting
+  static List<int> findPendingBookingIds(
+    List<FetchOrdersUsecaseModelDataItem> orders,
+  ) {
+    return orders
+        .where(
+          (order) =>
+              (order.status ?? '').trim().toLowerCase() ==
+              CleaningBookingStatus.pending,
+        )
+        .map((order) => order.id)
+        .whereType<int>()
+        .toList(growable: false);
+  }
+
+  Future<bool> _promptFirstPendingOrder() async {
+    final pendingOrders = await _loadPendingOrders();
+    for (final order in pendingOrders) {
+      final shown = await _openPendingOrderPromptForOrder(order: order);
+      if (shown) return true;
+    }
+    return false;
+  }
+
   Future<bool> _promptFirstPendingExtensionRequest() async {
     final pending = await _loadPendingExtensionRequests();
     for (final request in pending) {
@@ -238,6 +279,61 @@ class CleaningWorkerGlobalPromptCoordinator {
       if (shown) return true;
     }
     return false;
+  }
+
+  Future<bool> _openPendingOrderPromptForOrder({
+    required FetchOrdersUsecaseModelDataItem order,
+  }) async {
+    final bookingId = order.id;
+    if (bookingId == null) return false;
+    if (_handledPendingPromptBookingIds.contains(bookingId) ||
+        _inFlightPendingPromptBookingIds.contains(bookingId)) {
+      return false;
+    }
+
+    _inFlightPendingPromptBookingIds.add(bookingId);
+    try {
+      final shown = await _showPendingOrderSheet(order: order);
+      if (shown) {
+        _handledPendingPromptBookingIds.add(bookingId);
+      }
+      return shown;
+    } finally {
+      _inFlightPendingPromptBookingIds.remove(bookingId);
+    }
+  }
+
+  Future<bool> _showPendingOrderSheet({
+    required FetchOrdersUsecaseModelDataItem order,
+  }) async {
+    final presenter = _pendingOrderPromptPresenter;
+    if (presenter != null) {
+      return presenter(WorkerPendingOrderPromptData(order: order));
+    }
+    if (_promptSheetOpen) return false;
+
+    final bloc = _ensurePromptBloc();
+    _promptSheetOpen = true;
+    try {
+      for (var attempt = 0; attempt < 8; attempt++) {
+        final context = _navigatorKey.currentContext;
+        if (context != null && context.mounted) {
+          await AcceptOrderBottomSheet.show(
+            context,
+            useRootNavigator: true,
+            autoRejectOnClose: true,
+            order: order,
+            bloc: bloc,
+            index: -1,
+          );
+          return true;
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 120));
+      }
+      return false;
+    } finally {
+      _promptSheetOpen = false;
+    }
   }
 
   Future<void> _promptExtensionsFromTimeExtensionOrders() async {
@@ -368,8 +464,7 @@ class CleaningWorkerGlobalPromptCoordinator {
         warningId: warningId,
         bookingId: bookingId,
         requestedMinutes:
-            requestedMinutesOverride ??
-            _resolveRequestedMinutes(payload),
+            requestedMinutesOverride ?? _resolveRequestedMinutes(payload),
         customerName: (payload['customerName'] ?? payload['customer_name'])
             ?.toString(),
         additionalAmount: _asDouble(
@@ -456,10 +551,10 @@ class CleaningWorkerGlobalPromptCoordinator {
         ),
       );
     }
-    if (_extensionSheetOpen) return false;
+    if (_promptSheetOpen) return false;
 
     final bloc = _ensurePromptBloc();
-    _extensionSheetOpen = true;
+    _promptSheetOpen = true;
     try {
       for (var attempt = 0; attempt < 8; attempt++) {
         final context = _navigatorKey.currentContext;
@@ -482,7 +577,7 @@ class CleaningWorkerGlobalPromptCoordinator {
       }
       return false;
     } finally {
-      _extensionSheetOpen = false;
+      _promptSheetOpen = false;
     }
   }
 
@@ -501,7 +596,8 @@ class CleaningWorkerGlobalPromptCoordinator {
 
     final needsDetails =
         bookingId != null &&
-        ((resolvedCustomerName == null || resolvedCustomerName.trim().isEmpty) ||
+        ((resolvedCustomerName == null ||
+                resolvedCustomerName.trim().isEmpty) ||
             resolvedAmount == null ||
             (resolvedPaymentMethod == null ||
                 resolvedPaymentMethod.trim().isEmpty));
@@ -544,8 +640,7 @@ class CleaningWorkerGlobalPromptCoordinator {
         final totalHours = details.totalHours;
         final totalPrice = details.totalPrice;
         if (totalHours != null && totalHours > 0 && totalPrice != null) {
-          resolvedAmount =
-              totalPrice / totalHours * (requestedMinutes / 60.0);
+          resolvedAmount = totalPrice / totalHours * (requestedMinutes / 60.0);
         }
       }
 
@@ -658,6 +753,44 @@ class CleaningWorkerGlobalPromptCoordinator {
     });
   }
 
+  Future<List<FetchOrdersUsecaseModelDataItem>> _loadPendingOrders() async {
+    final loader = _pendingOrdersLoader;
+    if (loader != null) {
+      return loader();
+    }
+    final fetchUseCase = _fetchOrdersUsecaseUseCase;
+    if (fetchUseCase == null) {
+      return const <FetchOrdersUsecaseModelDataItem>[];
+    }
+
+    final collected = <FetchOrdersUsecaseModelDataItem>[];
+    for (var page = 1; page <= _pollMaxPagesPerStatus; page++) {
+      final response = await fetchUseCase(
+        FetchOrdersUsecaseParams(
+          page: page,
+          perPage: _pollPageSize,
+          status: CleaningBookingStatus.pending,
+        ),
+      );
+      final orders = response.fold(
+        (_) => const <FetchOrdersUsecaseModelDataItem>[],
+        (result) => result.data ?? const <FetchOrdersUsecaseModelDataItem>[],
+      );
+      if (orders.isEmpty) break;
+
+      collected.addAll(
+        orders.where(
+          (order) =>
+              (order.status ?? '').trim().toLowerCase() ==
+                  CleaningBookingStatus.pending &&
+              order.id != null,
+        ),
+      );
+      if (orders.length < _pollPageSize) break;
+    }
+    return collected;
+  }
+
   void _onWorkerRealtimeChannelError(RealtimeChannelError error) {
     if (error.statusCode != 403) return;
     if (_workerChannelAuthWarningShown) return;
@@ -690,8 +823,10 @@ class CleaningWorkerGlobalPromptCoordinator {
   }
 
   void _resetPromptSessionState() {
-    _extensionSheetOpen = false;
+    _promptSheetOpen = false;
     _decisionDialogOpen = false;
+    _handledPendingPromptBookingIds.clear();
+    _inFlightPendingPromptBookingIds.clear();
     _handledExtensionWarningIds.clear();
     _inFlightExtensionWarningIds.clear();
     _inFlightExtensionLookupBookingIds.clear();
@@ -757,6 +892,12 @@ class WorkerExtensionPromptData {
   final double? additionalAmount;
   final String? currency;
   final String? paymentMethod;
+}
+
+class WorkerPendingOrderPromptData {
+  const WorkerPendingOrderPromptData({required this.order});
+
+  final FetchOrdersUsecaseModelDataItem order;
 }
 
 class WorkerDecisionAlertData {

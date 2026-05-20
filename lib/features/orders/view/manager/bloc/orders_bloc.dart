@@ -232,7 +232,6 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
             currentStep: 1,
           ),
         );
-        event.context.pop();
       },
     );
   }
