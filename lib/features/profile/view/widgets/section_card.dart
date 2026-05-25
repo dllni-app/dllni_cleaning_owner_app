@@ -49,6 +49,7 @@ class SectionCard extends StatelessWidget {
                       child: AppText.bodyMedium(
                         title,
                         fontWeight: FontWeight.bold,
+                        textAlign: TextAlign.start
                       ),
                     ),
                     if (titleTrailing != null) ...[

@@ -34,12 +34,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _loadMissionStartLocationSelection() {
-    final lat = SharedPreferencesHelper.getData(
-      key: MissionStartLocationScreen.latPreferenceKey,
-    );
-    final lng = SharedPreferencesHelper.getData(
-      key: MissionStartLocationScreen.lngPreferenceKey,
-    );
+    final lat = SharedPreferencesHelper.getData(key: MissionStartLocationScreen.latPreferenceKey);
+    final lng = SharedPreferencesHelper.getData(key: MissionStartLocationScreen.lngPreferenceKey);
     final hasLocation = lat is num && lng is num;
     if (_hasMissionStartLocation == hasLocation) return;
     setState(() {
@@ -48,34 +44,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _openMissionStartLocationScreen() async {
-    final saved = await Navigator.of(context).push<bool>(
-      MaterialPageRoute<bool>(
-        builder: (_) => const MissionStartLocationScreen(),
-      ),
-    );
+    final saved = await Navigator.of(context).push<bool>(MaterialPageRoute<bool>(builder: (_) => const MissionStartLocationScreen()));
     if (!mounted || saved != true) return;
     _loadMissionStartLocationSelection();
   }
 
   Widget _buildMissionLocationBadge() {
     final isSelected = _hasMissionStartLocation;
-    final backgroundColor = isSelected
-        ? const Color(0xffDCFCE7)
-        : const Color(0xffFEE2E2);
-    final textColor = isSelected
-        ? const Color(0xff166534)
-        : const Color(0xff991B1B);
+    final backgroundColor = isSelected ? const Color(0xffDCFCE7) : const Color(0xffFEE2E2);
+    final textColor = isSelected ? const Color(0xff166534) : const Color(0xff991B1B);
     return Container(
       padding: EdgeInsetsDirectional.symmetric(horizontal: 8.w, vertical: 3.h),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(9999),
-      ),
-      child: AppText.labelSmall(
-        isSelected ? 'مختار' : 'غير مختار',
-        color: textColor,
-        fontWeight: FontWeight.w700,
-      ),
+      decoration: BoxDecoration(color: backgroundColor, borderRadius: BorderRadius.circular(9999)),
+      child: AppText.labelSmall(isSelected ? 'مختار' : 'غير مختار', color: textColor, fontWeight: FontWeight.w700),
     );
   }
 
@@ -88,61 +69,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final List<String> titles = [
-      'تعديل ملفي الشخصي',
-      'مناطق عملي',
-      'الموقع بدئ المهمة',
-      'أوقات العمل',
-      'سجل المعاملات',
-      'الدعم والمساعدة',
-    ];
-    final List<String> subtitles = [
-      'لتعديل بيانات العرض',
-      'يمكنك إدارة أماكن عملك ',
-      'للمساعدة على حساب تكلفة التنقل',
-      'يمكنك تعديل أوقات عملك',
-      'يمكنك تتبع أداءك',
-      'التواصل مع الدعم الفني',
-    ];
-    final List<IconData> images = [
-      Icons.person,
-      Icons.location_on_outlined,
-      Icons.flag_outlined,
-      Icons.alarm,
-      Icons.signal_cellular_alt,
-      Icons.headphones,
-    ];
+    final List<String> titles = ['تعديل ملفي الشخصي', 'مناطق عملي', 'موقع بدئ المهمة', 'أوقات العمل', 'سجل المعاملات', 'الدعم والمساعدة'];
+    final List<String> subtitles = ['لتعديل بيانات العرض', 'يمكنك إدارة أماكن عملك ', 'للمساعدة على حساب تكلفة التنقل', 'يمكنك تعديل أوقات عملك', 'يمكنك تتبع أداءك', 'التواصل مع الدعم الفني'];
+    final List<IconData> images = [Icons.person, Icons.location_on_outlined, Icons.flag_outlined, Icons.alarm, Icons.signal_cellular_alt, Icons.headphones];
 
-    final List<Color> colors = [
-      Color(0xff3B82F6),
-      Color(0xffEAB308),
-      Color(0xffF97316),
-      Color(0xffA855F7),
-      Color(0xff22C55E),
-      Color(0xff6366F1),
-    ];
+    final List<Color> colors = [Color(0xff3B82F6), Color(0xffEAB308), Color(0xffF97316), Color(0xffA855F7), Color(0xff22C55E), Color(0xff6366F1)];
 
     return BlocProvider<ProfileBloc>(
       lazy: false,
       create: (context) => getIt<ProfileBloc>()
-        ..add(
-          FetchWorkerProfileUsecaseEvent(
-            params: FetchWorkerProfileUsecaseParams(),
-          ),
-        )
-        ..add(
-          FetchWorkerStatisticsEvent(params: FetchWorkerStatisticsParams()),
-        ),
+        ..add(FetchWorkerProfileUsecaseEvent(params: FetchWorkerProfileUsecaseParams()))
+        ..add(FetchWorkerStatisticsEvent(params: FetchWorkerStatisticsParams())),
       child: SafeArea(
         child: Column(
           children: [
             ProfileAppBar(),
             Expanded(
               child: SingleChildScrollView(
-                padding: EdgeInsetsDirectional.symmetric(
-                  horizontal: 24.w,
-                  vertical: 14.h,
-                ),
+                padding: EdgeInsetsDirectional.symmetric(horizontal: 24.w, vertical: 14.h),
                 child: Column(
                   children: [
                     StatisticsLineChart(),
@@ -151,17 +95,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       children: [
                         SizedBox(
                           height: 20,
-                          child: VerticalDivider(
-                            color: Colors.black,
-                            thickness: 4,
-                            radius: BorderRadius.circular(9999),
-                          ),
+                          child: VerticalDivider(color: Colors.black, thickness: 4, radius: BorderRadius.circular(9999)),
                         ),
                         SizedBox(width: 8),
-                        AppText.titleMedium(
-                          'إدارة الحساب',
-                          fontWeight: FontWeight.bold,
-                        ),
+                        AppText.titleMedium('إدارة الحساب', fontWeight: FontWeight.bold),
                       ],
                     ),
                     12.verticalSpace,
@@ -177,68 +114,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               image: images[i],
                               imageColor: colors[i],
                               subtitle: subtitles[i],
-                              titleTrailing: i == 2
-                                  ? _buildMissionLocationBadge()
-                                  : null,
+                              titleTrailing: i == 2 ? _buildMissionLocationBadge() : null,
                               onTap: i == 0
                                   ? () {
-                                      final data =
-                                          state.workerProfileUsecase?.data;
+                                      final data = state.workerProfileUsecase?.data;
                                       if (data == null) return;
-                                      final profileBloc = context
-                                          .read<ProfileBloc>();
+                                      final profileBloc = context.read<ProfileBloc>();
                                       Navigator.of(context).push<void>(
                                         MaterialPageRoute<void>(
                                           builder: (_) => BlocProvider.value(
                                             value: profileBloc,
-                                            child: UpdateProfileScreen(
-                                              params:
-                                                  UpdateProfileScreenParams.fromWorkerProfile(
-                                                    data,
-                                                  ),
-                                            ),
+                                            child: UpdateProfileScreen(params: UpdateProfileScreenParams.fromWorkerProfile(data)),
                                           ),
                                         ),
                                       );
                                     }
                                   : i == 1
                                   ? () {
-                                      context.pushRoute(
-                                        '/workareas',
-                                        arguments: WorkAreasScreenParams(
-                                          zones: state
-                                              .workerProfileUsecase!
-                                              .data!
-                                              .zones!,
-                                        ),
-                                      );
+                                      context.pushRoute('/workareas', arguments: WorkAreasScreenParams(zones: state.workerProfileUsecase!.data!.zones!));
                                     }
                                   : i == 2
-                                  ? () {
-                                      _openMissionStartLocationScreen();
+                                  ? () async {
+                                      await _openMissionStartLocationScreen();
                                     }
                                   : i == 3
                                   ? () {
-                                      context.pushRoute(
-                                        '/workingtime',
-                                        arguments: WorkingTimeScreenParams(
-                                          defaultWorkingHours: state
-                                              .workerProfileUsecase!
-                                              .data!
-                                              .defaultWorkingHours!,
-                                        ),
-                                      );
+                                      context.pushRoute('/workingtime', arguments: WorkingTimeScreenParams(defaultWorkingHours: state.workerProfileUsecase!.data!.defaultWorkingHours!));
                                     }
                                   : i == 4
                                   ? () {
                                       context.pushRoute('/transactionhistory');
                                     }
                                   : () async {
-                                      await launchUrl(
-                                        Uri.parse(
-                                          'https://wa.me/message/XJOZBNT3VS5SJ1',
-                                        ),
-                                      );
+                                      await launchUrl(Uri.parse('https://wa.me/message/XJOZBNT3VS5SJ1'));
                                     },
                             );
                           },
@@ -255,24 +163,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         decoration: BoxDecoration(
                           color: Color(0xff727791).withAlpha(6),
                           borderRadius: BorderRadius.circular(24),
-                          border: Border.all(
-                            color: Color(0xff727791).withAlpha(52),
-                          ),
+                          border: Border.all(color: Color(0xff727791).withAlpha(52)),
                         ),
                         padding: EdgeInsetsDirectional.symmetric(vertical: 20),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
-                              Icons.logout_rounded,
-                              color: context.primaryContainer,
-                            ),
+                            Icon(Icons.logout_rounded, color: context.primaryContainer),
                             SizedBox(width: 12),
-                            AppText.bodyMedium(
-                              'تسجيل الخروج',
-                              color: context.primaryContainer,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            AppText.bodyMedium('تسجيل الخروج', color: context.primaryContainer, fontWeight: FontWeight.bold),
                           ],
                         ),
                       ),
@@ -311,11 +210,7 @@ class CustomMiniSwitch extends StatefulWidget {
   final bool value;
   final ValueChanged<bool> onChanged;
 
-  const CustomMiniSwitch({
-    super.key,
-    required this.value,
-    required this.onChanged,
-  });
+  const CustomMiniSwitch({super.key, required this.value, required this.onChanged});
 
   @override
   State<CustomMiniSwitch> createState() => _CustomMiniSwitchState();
@@ -331,24 +226,14 @@ class _CustomMiniSwitchState extends State<CustomMiniSwitch> {
         width: 46.w,
         height: 22.h,
         padding: EdgeInsets.symmetric(horizontal: 3.w),
-        decoration: BoxDecoration(
-          color: widget.value
-              ? Colors.green.withAlpha(63)
-              : Colors.grey.shade300,
-          borderRadius: BorderRadius.circular(20.r),
-        ),
+        decoration: BoxDecoration(color: widget.value ? Colors.green.withAlpha(63) : Colors.grey.shade300, borderRadius: BorderRadius.circular(20.r)),
         child: AnimatedAlign(
           duration: const Duration(milliseconds: 200),
-          alignment: widget.value
-              ? Alignment.centerRight
-              : Alignment.centerLeft,
+          alignment: widget.value ? Alignment.centerRight : Alignment.centerLeft,
           child: Container(
             width: 16.w,
             height: 16.h,
-            decoration: BoxDecoration(
-              color: widget.value ? Colors.green : Colors.grey,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: widget.value ? Colors.green : Colors.grey, shape: BoxShape.circle),
           ),
         ),
       ),
