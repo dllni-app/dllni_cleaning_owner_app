@@ -27,7 +27,7 @@ class _WeekCalendarState extends State<WeekCalendar> {
         _buildHeader(),
         SizedBox(height: 12),
         TableCalendar(
-          locale: 'ar',
+          locale: 'en',
           firstDay: DateTime(2020),
           lastDay: DateTime(2100),
           focusedDay: focusedDay,
@@ -46,7 +46,7 @@ class _WeekCalendarState extends State<WeekCalendar> {
               FetchOrdersUsecaseEvent(
                 params: FetchOrdersUsecaseParams(
                   page: 1,
-                  scheduledDate: DateFormat('yyyy-MM-dd').format(selected),
+                  scheduledDate: DateFormat('yyyy-MM-dd', 'en').format(selected),
                 ),
                 isReload: true,
               ),
@@ -90,7 +90,7 @@ class _WeekCalendarState extends State<WeekCalendar> {
     );
     final endOfWeek = startOfWeek.add(Duration(days: 6));
 
-    final monthName = DateFormat.MMMM('ar').format(focusedDay);
+    final monthName = DateFormat.MMMM('en').format(focusedDay);
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16),

@@ -21,7 +21,7 @@ class CalenderScreen extends StatelessWidget {
     return BlocProvider<OrdersBloc>(
       create: (context) =>
           getIt<OrdersBloc>()
-            ..add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, scheduledDate: DateFormat('yyyy-MM-dd').format(DateTime.now())))),
+            ..add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, scheduledDate: DateFormat('yyyy-MM-dd', 'en').format(DateTime.now())))),
       child: SafeArea(
         child: Stack(
           children: [

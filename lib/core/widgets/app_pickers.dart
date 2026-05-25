@@ -6,12 +6,16 @@ class AppPickers {
     final TimeOfDay? res = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
-      builder: (context, child) => Theme(
-        data: ThemeData.light().copyWith(
-          colorScheme: ColorScheme.light(primary: Theme.of(context).primaryColor, onSurface: Colors.black),
-          dialogTheme: DialogThemeData(backgroundColor: Colors.white),
+      builder: (context, child) => Localizations.override(
+        context: context,
+        locale: const Locale('en'),
+        child: Theme(
+          data: ThemeData.light().copyWith(
+            colorScheme: ColorScheme.light(primary: Theme.of(context).primaryColor, onSurface: Colors.black),
+            dialogTheme: DialogThemeData(backgroundColor: Colors.white),
+          ),
+          child: child!,
         ),
-        child: child!,
       ),
     );
 

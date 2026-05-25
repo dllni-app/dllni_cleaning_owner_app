@@ -11,6 +11,7 @@ class SectionCard extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onTap,
+    this.titleTrailing,
   });
 
   final Color containerColor;
@@ -19,6 +20,7 @@ class SectionCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final Function() onTap;
+  final Widget? titleTrailing;
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +31,10 @@ class SectionCard extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), color: containerColor),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: containerColor,
+            ),
             padding: EdgeInsetsDirectional.all(8),
             child: Icon(image, size: 25.sp, color: imageColor),
           ),
@@ -38,9 +43,27 @@ class SectionCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                AppText.bodyMedium(title, fontWeight: FontWeight.bold),
-                SizedBox(height: 4,),
-                AppText.labelLarge(subtitle, fontWeight: FontWeight.w400, color: Color(0xff6B7280), textAlign: TextAlign.start,),
+                Row(
+                  children: [
+                    Expanded(
+                      child: AppText.bodyMedium(
+                        title,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (titleTrailing != null) ...[
+                      SizedBox(width: 8.w),
+                      titleTrailing!,
+                    ],
+                  ],
+                ),
+                SizedBox(height: 4),
+                AppText.labelLarge(
+                  subtitle,
+                  fontWeight: FontWeight.w400,
+                  color: Color(0xff6B7280),
+                  textAlign: TextAlign.start,
+                ),
               ],
             ),
           ),

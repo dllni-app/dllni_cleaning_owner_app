@@ -97,7 +97,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
     if (raw == null || raw.isEmpty) return '-';
     final parsed = DateTime.tryParse('2000-01-01T$raw');
     if (parsed == null) return raw;
-    return DateFormat('hh:mm a').format(parsed);
+    return DateFormat('hh:mm a', 'en').format(parsed);
   }
 
   String _valueOrDash(String? value) {

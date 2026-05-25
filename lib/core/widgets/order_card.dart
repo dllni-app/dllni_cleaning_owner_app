@@ -77,7 +77,7 @@ class OrderCard extends StatelessWidget {
     if (raw == null || raw.isEmpty) return '-';
     final parsed = DateTime.tryParse('2000-01-01T$raw');
     if (parsed == null) return raw;
-    return DateFormat('h:mm a').format(parsed).toLowerCase();
+    return DateFormat('h:mm a', 'en').format(parsed).toLowerCase();
   }
 
   List<String> _attributeLabels() {

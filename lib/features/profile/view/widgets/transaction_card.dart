@@ -90,7 +90,7 @@ class TransactionCard extends StatelessWidget {
                           children: [
                             AppText.bodyLarge(id, fontWeight: FontWeight.w500),
                             AppText.labelLarge(
-                              DateFormat('yyyy-MM-dd').format(DateTime.parse(date)),
+                              DateFormat('yyyy-MM-dd', 'en').format(DateTime.parse(date)),
                               fontWeight: FontWeight.w300,
                               color: Color(0xff8E939E),
                             ),

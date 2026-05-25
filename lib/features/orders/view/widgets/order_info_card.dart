@@ -71,7 +71,7 @@ class OrderInfoCard extends StatelessWidget {
                 ],
               ),
               AppText.labelMedium(
-                order.scheduledTime == null ? '' : DateFormat('hh:mm a').format(DateFormat("HH:mm:ss").parse(order.scheduledTime!)),
+                order.scheduledTime == null ? '' : DateFormat('hh:mm a', 'en').format(DateFormat("HH:mm:ss", 'en').parse(order.scheduledTime!)),
                 fontWeight: FontWeight.w300,
               ),
             ],

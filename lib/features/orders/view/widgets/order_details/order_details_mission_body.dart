@@ -221,7 +221,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     if (raw == null || raw.isEmpty) return '-';
     final date = DateTime.tryParse(raw);
     if (date == null) return raw;
-    return DateFormat('yyyy_MM_dd').format(date);
+    return DateFormat('yyyy_MM_dd', 'en').format(date);
   }
 
   Widget _summaryRow(String title, String value, {bool total = false}) {

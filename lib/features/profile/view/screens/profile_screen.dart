@@ -3,6 +3,7 @@ import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_booking_pusher_service.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/fetch_worker_profile_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/fetch_worker_statistics_use_case.dart';
+import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/mission_start_location_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/update_profile_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/work_areas_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/working_time_screen.dart';
@@ -24,6 +25,60 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  bool _hasMissionStartLocation = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMissionStartLocationSelection();
+  }
+
+  void _loadMissionStartLocationSelection() {
+    final lat = SharedPreferencesHelper.getData(
+      key: MissionStartLocationScreen.latPreferenceKey,
+    );
+    final lng = SharedPreferencesHelper.getData(
+      key: MissionStartLocationScreen.lngPreferenceKey,
+    );
+    final hasLocation = lat is num && lng is num;
+    if (_hasMissionStartLocation == hasLocation) return;
+    setState(() {
+      _hasMissionStartLocation = hasLocation;
+    });
+  }
+
+  Future<void> _openMissionStartLocationScreen() async {
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (_) => const MissionStartLocationScreen(),
+      ),
+    );
+    if (!mounted || saved != true) return;
+    _loadMissionStartLocationSelection();
+  }
+
+  Widget _buildMissionLocationBadge() {
+    final isSelected = _hasMissionStartLocation;
+    final backgroundColor = isSelected
+        ? const Color(0xffDCFCE7)
+        : const Color(0xffFEE2E2);
+    final textColor = isSelected
+        ? const Color(0xff166534)
+        : const Color(0xff991B1B);
+    return Container(
+      padding: EdgeInsetsDirectional.symmetric(horizontal: 8.w, vertical: 3.h),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(9999),
+      ),
+      child: AppText.labelSmall(
+        isSelected ? 'مختار' : 'غير مختار',
+        color: textColor,
+        fontWeight: FontWeight.w700,
+      ),
+    );
+  }
+
   Future<void> _logout(BuildContext context) async {
     await getIt<CleaningBookingPusherService>().disposeAllForSession();
     await SharedPreferencesHelper.clearData();
@@ -36,6 +91,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final List<String> titles = [
       'تعديل ملفي الشخصي',
       'مناطق عملي',
+      'الموقع بدئ المهمة',
       'أوقات العمل',
       'سجل المعاملات',
       'الدعم والمساعدة',
@@ -43,6 +99,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final List<String> subtitles = [
       'لتعديل بيانات العرض',
       'يمكنك إدارة أماكن عملك ',
+      'للمساعدة على حساب تكلفة التنقل',
       'يمكنك تعديل أوقات عملك',
       'يمكنك تتبع أداءك',
       'التواصل مع الدعم الفني',
@@ -50,6 +107,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final List<IconData> images = [
       Icons.person,
       Icons.location_on_outlined,
+      Icons.flag_outlined,
       Icons.alarm,
       Icons.signal_cellular_alt,
       Icons.headphones,
@@ -58,6 +116,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final List<Color> colors = [
       Color(0xff3B82F6),
       Color(0xffEAB308),
+      Color(0xffF97316),
       Color(0xffA855F7),
       Color(0xff22C55E),
       Color(0xff6366F1),
@@ -118,17 +177,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               image: images[i],
                               imageColor: colors[i],
                               subtitle: subtitles[i],
+                              titleTrailing: i == 2
+                                  ? _buildMissionLocationBadge()
+                                  : null,
                               onTap: i == 0
                                   ? () {
-                                      final data = state.workerProfileUsecase?.data;
+                                      final data =
+                                          state.workerProfileUsecase?.data;
                                       if (data == null) return;
-                                      final profileBloc = context.read<ProfileBloc>();
+                                      final profileBloc = context
+                                          .read<ProfileBloc>();
                                       Navigator.of(context).push<void>(
                                         MaterialPageRoute<void>(
                                           builder: (_) => BlocProvider.value(
                                             value: profileBloc,
                                             child: UpdateProfileScreen(
-                                              params: UpdateProfileScreenParams.fromWorkerProfile(data),
+                                              params:
+                                                  UpdateProfileScreenParams.fromWorkerProfile(
+                                                    data,
+                                                  ),
                                             ),
                                           ),
                                         ),
@@ -148,6 +215,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     }
                                   : i == 2
                                   ? () {
+                                      _openMissionStartLocationScreen();
+                                    }
+                                  : i == 3
+                                  ? () {
                                       context.pushRoute(
                                         '/workingtime',
                                         arguments: WorkingTimeScreenParams(
@@ -158,12 +229,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         ),
                                       );
                                     }
-                                  : i == 3
+                                  : i == 4
                                   ? () {
                                       context.pushRoute('/transactionhistory');
                                     }
                                   : () async {
-                                      await launchUrl(Uri.parse('https://wa.me/message/XJOZBNT3VS5SJ1'));
+                                      await launchUrl(
+                                        Uri.parse(
+                                          'https://wa.me/message/XJOZBNT3VS5SJ1',
+                                        ),
+                                      );
                                     },
                             );
                           },

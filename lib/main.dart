@@ -1,12 +1,14 @@
 import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
+import 'package:intl/intl.dart';
 
 import 'app.dart';
 import 'core/di/injection.dart';
 import 'core/session/session_expired_handler.dart';
 
 Future<void> main() async {
+  Intl.defaultLocale = 'en';
   final navigatorKey = GlobalKey<NavigatorState>();
   SessionExpiredHandler.navigatorKey = navigatorKey;
   AppToast.bindNavigatorKey(navigatorKey);

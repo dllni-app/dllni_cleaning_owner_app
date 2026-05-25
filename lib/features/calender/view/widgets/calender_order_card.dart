@@ -20,7 +20,7 @@ class CalenderOrderCard extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(width: 52, child: AppText.labelMedium(DateFormat('hh:mm a').format(DateFormat("HH:mm:ss").parse(date.scheduledTime!)), scrollText: true)),
+        SizedBox(width: 52, child: AppText.labelMedium(DateFormat('hh:mm a', 'en').format(DateFormat("HH:mm:ss", 'en').parse(date.scheduledTime!)), scrollText: true)),
         SizedBox(width: 13),
         Expanded(
           child: InkWell(

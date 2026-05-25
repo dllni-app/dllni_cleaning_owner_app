@@ -6,7 +6,7 @@ String formatCleaningSecurityCodeDateTime(String? raw) {
   if (raw == null || raw.trim().isEmpty) return '';
   final parsed = DateTime.tryParse(raw.trim());
   if (parsed == null) return raw.trim();
-  return DateFormat(cleaningSecurityCodeDateTimePattern).format(parsed.toLocal());
+  return DateFormat(cleaningSecurityCodeDateTimePattern, 'en').format(parsed.toLocal());
 }
 
 String formatCleaningBookingLabel({int? bookingId, String? bookingNumber}) {
