@@ -10,6 +10,9 @@ class OrderLifecyclePolicy {
   static bool isPending(FetchOrdersUsecaseModelDataItem order) =>
       order.status == CleaningBookingStatus.pending;
 
+  static bool isCustomerDataHidden(FetchOrdersUsecaseModelDataItem order) =>
+      isPending(order);
+
   static bool canAcceptReject(FetchOrdersUsecaseModelDataItem order) =>
       isPending(order);
 
@@ -30,8 +33,9 @@ class OrderLifecyclePolicy {
       order.startedTravelAt != null &&
       order.id != null;
 
-  static bool isAwaitingStartVerification(FetchOrdersUsecaseModelDataItem order) =>
-      order.status == CleaningBookingStatus.awaitingStartVerification;
+  static bool isAwaitingStartVerification(
+    FetchOrdersUsecaseModelDataItem order,
+  ) => order.status == CleaningBookingStatus.awaitingStartVerification;
 
   static bool isTravelingToCustomer(FetchOrdersUsecaseModelDataItem order) =>
       order.status == CleaningBookingStatus.workerAssigned &&
@@ -106,8 +110,7 @@ class OrderLifecyclePolicy {
     required OrdersState state,
     required int orderIndex,
     required BlocStatus? actionStatus,
-  }) =>
-      actionStatus == BlocStatus.loading && state.selectedIndex == orderIndex;
+  }) => actionStatus == BlocStatus.loading && state.selectedIndex == orderIndex;
 
   static String statusLabel(FetchOrdersUsecaseModelDataItem order) {
     final status = order.status;

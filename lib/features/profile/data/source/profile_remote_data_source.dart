@@ -17,7 +17,10 @@ import '../../domain/usecases/update_worker_work_areas_use_case.dart';
 import '../models/update_worker_profile_model.dart';
 import '../../domain/usecases/update_worker_profile_use_case.dart';
 import '../models/notification_api_models.dart';
+import '../models/fetch_deposit_account_usecase_model.dart';
+import '../models/fetch_deposit_transactions_usecase_model.dart';
 import '../../domain/usecases/fetch_notifications_use_case.dart';
+import '../../domain/usecases/fetch_deposit_transactions_use_case.dart';
 import '../../domain/usecases/mark_notification_read_use_case.dart';
 
 @lazySingleton
@@ -26,7 +29,9 @@ class ProfileRemoteDataSource with HandlingApiManager {
 
   ProfileRemoteDataSource({required this.dioNetwork});
 
-  Future<FetchWorkerProfileUsecaseModel> fetchWorkerProfileUsecase(FetchWorkerProfileUsecaseParams params) {
+  Future<FetchWorkerProfileUsecaseModel> fetchWorkerProfileUsecase(
+    FetchWorkerProfileUsecaseParams params,
+  ) {
     return wrapHandlingApi(
       tryCall: () => dioNetwork.getData(
         endPoint: '/api/v1/cleaning/worker/profile',
@@ -37,17 +42,28 @@ class ProfileRemoteDataSource with HandlingApiManager {
     );
   }
 
-  Future<FetchDisputesUsecaseModel> fetchDisputesUsecase(FetchDisputesUsecaseParams params) {
+  Future<FetchDisputesUsecaseModel> fetchDisputesUsecase(
+    FetchDisputesUsecaseParams params,
+  ) {
     return wrapHandlingApi(
-      tryCall: () => dioNetwork.getData(endPoint: '/api/v1/disputes', params: params.getParams(), data: params.getBody().isEmpty ? null : params.getBody()),
+      tryCall: () => dioNetwork.getData(
+        endPoint: '/api/v1/disputes',
+        params: params.getParams(),
+        data: params.getBody().isEmpty ? null : params.getBody(),
+      ),
       jsonConvert: fetchDisputesUsecaseModelFromJson,
     );
   }
 
-  Future<FetchDisputeDetailsUsecaseModel> fetchDisputeDetailsUsecase(FetchDisputeDetailsUsecaseParams params) {
+  Future<FetchDisputeDetailsUsecaseModel> fetchDisputeDetailsUsecase(
+    FetchDisputeDetailsUsecaseParams params,
+  ) {
     return wrapHandlingApi(
-      tryCall: () =>
-          dioNetwork.getData(endPoint: '/api/v1/disputes/${params.id}', params: params.getParams(), data: params.getBody().isEmpty ? null : params.getBody()),
+      tryCall: () => dioNetwork.getData(
+        endPoint: '/api/v1/disputes/${params.id}',
+        params: params.getParams(),
+        data: params.getBody().isEmpty ? null : params.getBody(),
+      ),
       jsonConvert: fetchDisputeDetailsUsecaseModelFromJson,
     );
   }
@@ -63,14 +79,22 @@ class ProfileRemoteDataSource with HandlingApiManager {
     );
   }
 
-  Future<FetchWorkerStatisticsModel> fetchWorkerStatistics(FetchWorkerStatisticsParams params) {
+  Future<FetchWorkerStatisticsModel> fetchWorkerStatistics(
+    FetchWorkerStatisticsParams params,
+  ) {
     return wrapHandlingApi(
-      tryCall: () => dioNetwork.getData(endPoint: '/api/v1/cleaning/worker/statistics', params: params.getParams(), data: params.getBody().isEmpty ? null : params.getBody()),
+      tryCall: () => dioNetwork.getData(
+        endPoint: '/api/v1/cleaning/worker/statistics',
+        params: params.getParams(),
+        data: params.getBody().isEmpty ? null : params.getBody(),
+      ),
       jsonConvert: fetchWorkerStatisticsModelFromJson,
     );
   }
 
-  Future<WorkerWorkAreasModel> updateWorkerWorkAreas(UpdateWorkerWorkAreasParams params) {
+  Future<WorkerWorkAreasModel> updateWorkerWorkAreas(
+    UpdateWorkerWorkAreasParams params,
+  ) {
     return wrapHandlingApi(
       tryCall: () => dioNetwork.putData(
         endPoint: '/api/v1/cleaning/worker/account/work-areas',
@@ -81,7 +105,9 @@ class ProfileRemoteDataSource with HandlingApiManager {
     );
   }
 
-  Future<UpdateWorkerProfileModel> updateWorkerProfile(UpdateWorkerProfileParams params) {
+  Future<UpdateWorkerProfileModel> updateWorkerProfile(
+    UpdateWorkerProfileParams params,
+  ) {
     return wrapHandlingApi(
       tryCall: () => dioNetwork.putData(
         endPoint: '/api/v1/cleaning/worker/account/profile',
@@ -92,7 +118,9 @@ class ProfileRemoteDataSource with HandlingApiManager {
     );
   }
 
-  Future<FetchNotificationsPageModel> fetchNotifications(FetchNotificationsParams params) {
+  Future<FetchNotificationsPageModel> fetchNotifications(
+    FetchNotificationsParams params,
+  ) {
     return wrapHandlingApi(
       tryCall: () => dioNetwork.getData(
         endPoint: '/api/v1/notifications',
@@ -100,6 +128,30 @@ class ProfileRemoteDataSource with HandlingApiManager {
         data: params.getBody().isEmpty ? null : params.getBody(),
       ),
       jsonConvert: fetchNotificationsPageModelFromJson,
+    );
+  }
+
+  Future<FetchDepositAccountUsecaseModel> fetchDepositAccount(NoParams params) {
+    return wrapHandlingApi(
+      tryCall: () => dioNetwork.getData(
+        endPoint: '/api/v1/cleaning/worker/account/deposit',
+        params: params.getParams(),
+        data: params.getBody().isEmpty ? null : params.getBody(),
+      ),
+      jsonConvert: fetchDepositAccountUsecaseModelFromJson,
+    );
+  }
+
+  Future<FetchDepositTransactionsUsecaseModel> fetchDepositTransactions(
+    FetchDepositTransactionsParams params,
+  ) {
+    return wrapHandlingApi(
+      tryCall: () => dioNetwork.getData(
+        endPoint: '/api/v1/cleaning/worker/account/deposit/transactions',
+        params: params.getParams(),
+        data: params.getBody().isEmpty ? null : params.getBody(),
+      ),
+      jsonConvert: fetchDepositTransactionsUsecaseModelFromJson,
     );
   }
 
@@ -113,7 +165,9 @@ class ProfileRemoteDataSource with HandlingApiManager {
     );
   }
 
-  Future<ActionResultModel> markNotificationRead(MarkNotificationReadParams params) {
+  Future<ActionResultModel> markNotificationRead(
+    MarkNotificationReadParams params,
+  ) {
     return wrapHandlingApi(
       tryCall: () => dioNetwork.patchData(
         endPoint: '/api/v1/notifications/${params.notificationId}/read',

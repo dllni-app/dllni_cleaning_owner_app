@@ -2,6 +2,7 @@ import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/accept_order_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/reject_order_usecase_use_case.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_lifecycle_policy.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -199,6 +200,9 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       },
       builder: (context, state) {
         final accepting = state.acceptOrderUsecaseStatus == BlocStatus.loading;
+        final hideCustomerData = OrderLifecyclePolicy.isCustomerDataHidden(
+          widget.order,
+        );
 
         return Container(
           height: context.height * .88,
@@ -258,14 +262,16 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                       ),
                       const SizedBox(height: 10),
                       _detailCard(context, [
-                        _orderInfoRow(
-                          label: 'اسم العميل',
-                          value: _valueOrDash(widget.order.customer?.name),
-                        ),
-                        _orderInfoRow(
-                          label: 'رقم الهاتف',
-                          value: _valueOrDash(widget.order.customer?.phone),
-                        ),
+                        if (!hideCustomerData)
+                          _orderInfoRow(
+                            label: 'اسم العميل',
+                            value: _valueOrDash(widget.order.customer?.name),
+                          ),
+                        if (!hideCustomerData)
+                          _orderInfoRow(
+                            label: 'رقم الهاتف',
+                            value: _valueOrDash(widget.order.customer?.phone),
+                          ),
                         _orderInfoRow(
                           label: 'السعر الإجمالي',
                           value: _totalPriceLabel(),

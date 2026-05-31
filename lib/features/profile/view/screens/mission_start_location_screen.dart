@@ -1,5 +1,8 @@
 import 'package:common_package/common_package.dart';
+import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/update_worker_profile_use_case.dart';
+import 'package:dllni_cleaninig_owner_app/features/profile/view/manager/bloc/profile_bloc.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:geolocator/geolocator.dart';
@@ -22,11 +25,27 @@ class _MissionStartLocationScreenState
 
   LatLng? _selectedCenter;
   bool _isLoadingCenter = true;
+  bool _isSaving = false;
+  ProfileBloc? _profileBloc;
 
   @override
   void initState() {
     super.initState();
     _resolveInitialCenter();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _profileBloc ??= _maybeReadProfileBloc();
+  }
+
+  ProfileBloc? _maybeReadProfileBloc() {
+    try {
+      return context.read<ProfileBloc>();
+    } catch (_) {
+      return null;
+    }
   }
 
   LatLng? _readSavedCenter() {
@@ -53,7 +72,7 @@ class _MissionStartLocationScreenState
       return;
     }
 
-    LatLng initialCenter = _fallbackCenter;
+    var initialCenter = _fallbackCenter;
     try {
       final position = await _getCurrentLocation();
       initialCenter = LatLng(position.latitude, position.longitude);
@@ -83,9 +102,65 @@ class _MissionStartLocationScreenState
     );
   }
 
+  String _formatCoordinateAddress(LatLng center) {
+    final lat = center.latitude.toStringAsFixed(6);
+    final lng = center.longitude.toStringAsFixed(6);
+    return '$lat, $lng';
+  }
+
+  Future<BlocStatus?> _waitForUpdateProfileResult() async {
+    final bloc = _profileBloc;
+    if (bloc == null) return null;
+
+    var loadingSeen =
+        bloc.state.updateWorkerProfileStatus == BlocStatus.loading;
+    if (bloc.state.updateWorkerProfileStatus == BlocStatus.success ||
+        bloc.state.updateWorkerProfileStatus == BlocStatus.failed) {
+      loadingSeen = false;
+    }
+
+    final resolvedState = await bloc.stream.firstWhere((state) {
+      final status = state.updateWorkerProfileStatus;
+      if (status == BlocStatus.loading) {
+        loadingSeen = true;
+        return false;
+      }
+      final isTerminal =
+          status == BlocStatus.success || status == BlocStatus.failed;
+      if (!isTerminal) return false;
+      return loadingSeen;
+    });
+    return resolvedState.updateWorkerProfileStatus;
+  }
+
   Future<void> _saveSelection() async {
     final center = _selectedCenter;
-    if (center == null) return;
+    if (center == null || _isSaving) return;
+
+    final profileBloc = _profileBloc;
+    if (profileBloc == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تعذر تهيئة تحديث بيانات الموقع.')),
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    profileBloc.add(
+      UpdateWorkerProfileEvent(
+        params: UpdateWorkerProfileParams(
+          homeLatitude: center.latitude,
+          homeLongitude: center.longitude,
+          homeAddress: _formatCoordinateAddress(center),
+        ),
+      ),
+    );
+
+    final status = await _waitForUpdateProfileResult();
+    if (!mounted) return;
+    setState(() => _isSaving = false);
+    if (status != BlocStatus.success) return;
+
     await SharedPreferencesHelper.saveData(
       key: MissionStartLocationScreen.latPreferenceKey,
       value: center.latitude,
@@ -100,6 +175,8 @@ class _MissionStartLocationScreenState
 
   @override
   Widget build(BuildContext context) {
+    final isSaveDisabled =
+        _isLoadingCenter || _selectedCenter == null || _isSaving;
     return Scaffold(
       backgroundColor: const Color(0xffF3F4F6),
       body: SafeArea(
@@ -121,7 +198,7 @@ class _MissionStartLocationScreenState
                   vertical: 12.h,
                 ),
                 child: AppText.labelMedium(
-                  'حرّك الخريطة واجعل المؤشر في منتصف الموقع المطلوب',
+                  'حرّك الخريطة واجعل المؤشر في منتصف موقع بداية المهمة.',
                   color: const Color(0xff1E3A8A),
                   textAlign: TextAlign.start,
                 ),
@@ -180,12 +257,12 @@ class _MissionStartLocationScreenState
                   Expanded(
                     flex: 3,
                     child: InkWell(
-                      onTap: _isLoadingCenter ? null : _saveSelection,
+                      onTap: isSaveDisabled ? null : _saveSelection,
                       borderRadius: BorderRadius.circular(8.r),
                       child: Container(
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(8.r),
-                          color: _isLoadingCenter
+                          color: isSaveDisabled
                               ? const Color(0xff9CA3AF)
                               : context.primary,
                         ),
@@ -194,7 +271,7 @@ class _MissionStartLocationScreenState
                           vertical: 12.h,
                         ),
                         child: AppText.labelLarge(
-                          'حفظ',
+                          _isSaving ? 'جارٍ الحفظ...' : 'حفظ',
                           color: context.onPrimary,
                           fontWeight: FontWeight.w500,
                           textAlign: TextAlign.center,
@@ -205,9 +282,7 @@ class _MissionStartLocationScreenState
                   10.horizontalSpace,
                   Expanded(
                     child: InkWell(
-                      onTap: () {
-                        Navigator.of(context).pop(false);
-                      },
+                      onTap: () => Navigator.of(context).pop(false),
                       borderRadius: BorderRadius.circular(8.r),
                       child: Container(
                         decoration: BoxDecoration(
@@ -257,9 +332,7 @@ class _MissionStartLocationScreenState
       child: Row(
         children: [
           InkWell(
-            onTap: () {
-              Navigator.of(context).pop(false);
-            },
+            onTap: () => Navigator.of(context).pop(false),
             child: Icon(
               Icons.arrow_back_ios_new,
               color: context.primaryContainer,
@@ -267,7 +340,7 @@ class _MissionStartLocationScreenState
           ),
           10.horizontalSpace,
           AppText.headlineLarge(
-            'الموقع بدئ المهمة',
+            'موقع بدء المهمة',
             color: context.primaryContainer,
             fontWeight: FontWeight.w700,
           ),

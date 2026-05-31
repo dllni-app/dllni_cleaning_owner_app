@@ -74,25 +74,40 @@ Map<String, dynamic> _withTracking(Map<String, dynamic> json) {
   return json;
 }
 
-FetchOrdersUsecaseModel fetchOrdersUsecaseModelFromJson(dynamic json) => FetchOrdersUsecaseModel.fromJson(_toMap(json));
+FetchOrdersUsecaseModel fetchOrdersUsecaseModelFromJson(dynamic json) =>
+    FetchOrdersUsecaseModel.fromJson(_toMap(json));
 
-String fetchOrdersUsecaseModelToJson(FetchOrdersUsecaseModel data) => jsonEncode(data.toJson());
+String fetchOrdersUsecaseModelToJson(FetchOrdersUsecaseModel data) =>
+    jsonEncode(data.toJson());
 
-FetchOrdersUsecaseModelMeta fetchOrdersUsecaseModelMetaFromJson(dynamic json) => FetchOrdersUsecaseModelMeta.fromJson(_toMap(json));
+FetchOrdersUsecaseModelMeta fetchOrdersUsecaseModelMetaFromJson(dynamic json) =>
+    FetchOrdersUsecaseModelMeta.fromJson(_toMap(json));
 
-String fetchOrdersUsecaseModelMetaToJson(FetchOrdersUsecaseModelMeta data) => jsonEncode(data.toJson());
+String fetchOrdersUsecaseModelMetaToJson(FetchOrdersUsecaseModelMeta data) =>
+    jsonEncode(data.toJson());
 
-FetchOrdersUsecaseModelLinks fetchOrdersUsecaseModelLinksFromJson(dynamic json) => FetchOrdersUsecaseModelLinks.fromJson(_toMap(json));
+FetchOrdersUsecaseModelLinks fetchOrdersUsecaseModelLinksFromJson(
+  dynamic json,
+) => FetchOrdersUsecaseModelLinks.fromJson(_toMap(json));
 
-String fetchOrdersUsecaseModelLinksToJson(FetchOrdersUsecaseModelLinks data) => jsonEncode(data.toJson());
+String fetchOrdersUsecaseModelLinksToJson(FetchOrdersUsecaseModelLinks data) =>
+    jsonEncode(data.toJson());
 
-FetchOrdersUsecaseModelDataItem fetchOrdersUsecaseModelDataItemFromJson(dynamic json) => FetchOrdersUsecaseModelDataItem.fromJson(_toMap(json));
+FetchOrdersUsecaseModelDataItem fetchOrdersUsecaseModelDataItemFromJson(
+  dynamic json,
+) => FetchOrdersUsecaseModelDataItem.fromJson(_toMap(json));
 
-String fetchOrdersUsecaseModelDataItemToJson(FetchOrdersUsecaseModelDataItem data) => jsonEncode(data.toJson());
+String fetchOrdersUsecaseModelDataItemToJson(
+  FetchOrdersUsecaseModelDataItem data,
+) => jsonEncode(data.toJson());
 
-FetchOrdersUsecaseModelDataItemCustomer fetchOrdersUsecaseModelDataItemCustomerFromJson(dynamic json) => FetchOrdersUsecaseModelDataItemCustomer.fromJson(_toMap(json));
+FetchOrdersUsecaseModelDataItemCustomer
+fetchOrdersUsecaseModelDataItemCustomerFromJson(dynamic json) =>
+    FetchOrdersUsecaseModelDataItemCustomer.fromJson(_toMap(json));
 
-String fetchOrdersUsecaseModelDataItemCustomerToJson(FetchOrdersUsecaseModelDataItemCustomer data) => jsonEncode(data.toJson());
+String fetchOrdersUsecaseModelDataItemCustomerToJson(
+  FetchOrdersUsecaseModelDataItemCustomer data,
+) => jsonEncode(data.toJson());
 
 class FetchOrdersUsecaseModel {
   final List<FetchOrdersUsecaseModelDataItem>? data;
@@ -103,14 +118,24 @@ class FetchOrdersUsecaseModel {
 
   factory FetchOrdersUsecaseModel.fromJson(Map<String, dynamic> json) {
     return FetchOrdersUsecaseModel(
-      data: _toMapList(json['data']).map(FetchOrdersUsecaseModelDataItem.fromJson).toList(growable: false),
-      links: json['links'] == null ? null : FetchOrdersUsecaseModelLinks.fromJson(_toMap(json['links'])),
-      meta: json['meta'] == null ? null : FetchOrdersUsecaseModelMeta.fromJson(_toMap(json['meta'])),
+      data: _toMapList(
+        json['data'],
+      ).map(FetchOrdersUsecaseModelDataItem.fromJson).toList(growable: false),
+      links: json['links'] == null
+          ? null
+          : FetchOrdersUsecaseModelLinks.fromJson(_toMap(json['links'])),
+      meta: json['meta'] == null
+          ? null
+          : FetchOrdersUsecaseModelMeta.fromJson(_toMap(json['meta'])),
     );
   }
 
   Map<String, dynamic> toJson() {
-    return <String, dynamic>{'data': data?.map((item) => item.toJson()).toList(growable: false), 'links': links?.toJson(), 'meta': meta?.toJson()};
+    return <String, dynamic>{
+      'data': data?.map((item) => item.toJson()).toList(growable: false),
+      'links': links?.toJson(),
+      'meta': meta?.toJson(),
+    };
   }
 }
 
@@ -123,11 +148,21 @@ class FetchOrdersUsecaseModelMeta {
   final int? to;
   final int? total;
 
-  FetchOrdersUsecaseModelMeta({this.currentPage, this.from, this.lastPage, this.path, this.perPage, this.to, this.total});
+  FetchOrdersUsecaseModelMeta({
+    this.currentPage,
+    this.from,
+    this.lastPage,
+    this.path,
+    this.perPage,
+    this.to,
+    this.total,
+  });
 
   factory FetchOrdersUsecaseModelMeta.fromJson(Map<String, dynamic> json) {
     return FetchOrdersUsecaseModelMeta(
-      currentPage: _toInt(_pick(json, const <String>['currentPage', 'current_page'])),
+      currentPage: _toInt(
+        _pick(json, const <String>['currentPage', 'current_page']),
+      ),
       from: _toInt(_pick(json, const <String>['from'])),
       lastPage: _toInt(_pick(json, const <String>['lastPage', 'last_page'])),
       path: _toStringValue(_pick(json, const <String>['path'])),
@@ -138,7 +173,15 @@ class FetchOrdersUsecaseModelMeta {
   }
 
   Map<String, dynamic> toJson() {
-    return <String, dynamic>{'current_page': currentPage, 'from': from, 'last_page': lastPage, 'path': path, 'per_page': perPage, 'to': to, 'total': total};
+    return <String, dynamic>{
+      'current_page': currentPage,
+      'from': from,
+      'last_page': lastPage,
+      'path': path,
+      'per_page': perPage,
+      'to': to,
+      'total': total,
+    };
   }
 }
 
@@ -160,7 +203,12 @@ class FetchOrdersUsecaseModelLinks {
   }
 
   Map<String, dynamic> toJson() {
-    return <String, dynamic>{'first': first, 'last': last, 'prev': prev, 'next': next};
+    return <String, dynamic>{
+      'first': first,
+      'last': last,
+      'prev': prev,
+      'next': next,
+    };
   }
 }
 
@@ -190,8 +238,11 @@ class FetchOrdersUsecaseModelDataItem {
   final double? basePrice;
   final double? addonsTotal;
   final double? travelFee;
+  final double? travelDistanceKm;
+  final double? adminMargin;
   final double? cancellationFee;
   final double? totalPrice;
+  final bool? isPricingFinal;
 
   final double? addressLatitude;
   final double? addressLongitude;
@@ -239,8 +290,11 @@ class FetchOrdersUsecaseModelDataItem {
     this.basePrice,
     this.addonsTotal,
     this.travelFee,
+    this.travelDistanceKm,
+    this.adminMargin,
     this.cancellationFee,
     this.totalPrice,
+    this.isPricingFinal,
     this.addressLatitude,
     this.addressLongitude,
     this.termsAccepted,
@@ -267,43 +321,138 @@ class FetchOrdersUsecaseModelDataItem {
       id: _toInt(_pick(m, const <String>['id'])),
       customerId: _toInt(_pick(m, const <String>['customerId', 'customer_id'])),
       workerId: _toInt(_pick(m, const <String>['workerId', 'worker_id'])),
-      preferredWorkerId: _toInt(_pick(m, const <String>['preferredWorkerId', 'preferred_worker_id'])),
-      cancellationPolicyId: _toInt(_pick(m, const <String>['cancellationPolicyId', 'cancellation_policy_id'])),
-      billingPolicyId: _toInt(_pick(m, const <String>['billingPolicyId', 'billing_policy_id'])),
-      bookingNumber: _toStringValue(_pick(m, const <String>['bookingNumber', 'booking_number'])),
+      preferredWorkerId: _toInt(
+        _pick(m, const <String>['preferredWorkerId', 'preferred_worker_id']),
+      ),
+      cancellationPolicyId: _toInt(
+        _pick(m, const <String>[
+          'cancellationPolicyId',
+          'cancellation_policy_id',
+        ]),
+      ),
+      billingPolicyId: _toInt(
+        _pick(m, const <String>['billingPolicyId', 'billing_policy_id']),
+      ),
+      bookingNumber: _toStringValue(
+        _pick(m, const <String>['bookingNumber', 'booking_number']),
+      ),
       status: _toStringValue(_pick(m, const <String>['status'])),
-      propertyType: _toStringValue(_pick(m, const <String>['propertyType', 'property_type'])),
-      locationName: _toStringValue(_pick(m, const <String>['locationName', 'location_name'])),
-      estimatedSqm: _toStringValue(_pick(m, const <String>['estimatedSqm', 'estimated_sqm'])),
-      scheduledDate: _toStringValue(_pick(m, const <String>['scheduledDate', 'scheduled_date'])),
-      scheduledTime: _toStringValue(_pick(m, const <String>['scheduledTime', 'scheduled_time'])),
-      createdAt: _toStringValue(_pick(m, const <String>['createdAt', 'created_at'])),
-      updatedAt: _toStringValue(_pick(m, const <String>['updatedAt', 'updated_at'])),
-      numberOfRooms: _toInt(_pick(m, const <String>['numberOfRooms', 'number_of_rooms'])),
-      numberOfKitchens: _toInt(_pick(m, const <String>['numberOfKitchens', 'number_of_kitchens'])),
-      estimatedHours: _toDouble(_pick(m, const <String>['estimatedHours', 'estimated_hours'])),
-      totalHours: _toDouble(_pick(m, const <String>['totalHours', 'total_hours'])),
+      propertyType: _toStringValue(
+        _pick(m, const <String>['propertyType', 'property_type']),
+      ),
+      locationName: _toStringValue(
+        _pick(m, const <String>['locationName', 'location_name']),
+      ),
+      estimatedSqm: _toStringValue(
+        _pick(m, const <String>['estimatedSqm', 'estimated_sqm']),
+      ),
+      scheduledDate: _toStringValue(
+        _pick(m, const <String>['scheduledDate', 'scheduled_date']),
+      ),
+      scheduledTime: _toStringValue(
+        _pick(m, const <String>['scheduledTime', 'scheduled_time']),
+      ),
+      createdAt: _toStringValue(
+        _pick(m, const <String>['createdAt', 'created_at']),
+      ),
+      updatedAt: _toStringValue(
+        _pick(m, const <String>['updatedAt', 'updated_at']),
+      ),
+      numberOfRooms: _toInt(
+        _pick(m, const <String>['numberOfRooms', 'number_of_rooms']),
+      ),
+      numberOfKitchens: _toInt(
+        _pick(m, const <String>['numberOfKitchens', 'number_of_kitchens']),
+      ),
+      estimatedHours: _toDouble(
+        _pick(m, const <String>['estimatedHours', 'estimated_hours']),
+      ),
+      totalHours: _toDouble(
+        _pick(m, const <String>['totalHours', 'total_hours']),
+      ),
       basePrice: _toDouble(_pick(m, const <String>['basePrice', 'base_price'])),
-      addonsTotal: _toDouble(_pick(m, const <String>['addonsTotal', 'addons_total'])),
+      addonsTotal: _toDouble(
+        _pick(m, const <String>['addonsTotal', 'addons_total']),
+      ),
       travelFee: _toDouble(_pick(m, const <String>['travelFee', 'travel_fee'])),
-      cancellationFee: _toDouble(_pick(m, const <String>['cancellationFee', 'cancellation_fee'])),
-      totalPrice: _toDouble(_pick(m, const <String>['totalPrice', 'total_price'])),
-      addressLatitude: _toDouble(_pick(m, const <String>['addressLatitude', 'address_latitude', 'latitude'])),
-      addressLongitude: _toDouble(_pick(m, const <String>['addressLongitude', 'address_longitude', 'longitude'])),
-      termsAccepted: _toBool(_pick(m, const <String>['termsAccepted', 'terms_accepted'])),
-      startedTravelAt: _toStringValue(_pick(m, const <String>['startedTravelAt', 'started_travel_at'])),
-      arrivedAt: _toStringValue(_pick(m, const <String>['arrivedAt', 'arrived_at'])),
-      workStartedAt: _toStringValue(_pick(m, const <String>['workStartedAt', 'work_started_at'])),
-      workFinishedAt: _toStringValue(_pick(m, const <String>['workFinishedAt', 'work_finished_at'])),
-      customerConfirmedAt: _toStringValue(_pick(m, const <String>['customerConfirmedAt', 'customer_confirmed_at'])),
-      cancelledAt: _toStringValue(_pick(m, const <String>['cancelledAt', 'cancelled_at'])),
-      cancellationReason: _toStringValue(_pick(m, const <String>['cancellationReason', 'cancellation_reason'])),
-      customer: m['customer'] == null ? null : FetchOrdersUsecaseModelDataItemCustomer.fromJson(_toMap(m['customer'])),
-      worker: m['worker'] == null ? null : WorkerData.fromJson(_toMap(m['worker'])),
-      propertyDetails: (m['propertyDetails'] ?? m['property_details']) == null ? null : PropertyDetailsData.fromJson(_toMap(m['propertyDetails'] ?? m['property_details'])),
-      services: _toMapList(m['services']).map(Service.fromJson).toList(growable: false),
-      addons: _toMapList(m['addons']).map(Addon.fromJson).toList(growable: false),
-      billingPolicy: m['billingPolicy'] is Map ? _toMap(m['billingPolicy']) : (m['billing_policy'] is Map ? _toMap(m['billing_policy']) : null),
+      travelDistanceKm: _toDouble(
+        _pick(m, const <String>['travelDistanceKm', 'travel_distance_km']),
+      ),
+      adminMargin: _toDouble(
+        _pick(m, const <String>['adminMargin', 'admin_margin']),
+      ),
+      cancellationFee: _toDouble(
+        _pick(m, const <String>['cancellationFee', 'cancellation_fee']),
+      ),
+      totalPrice: _toDouble(
+        _pick(m, const <String>['totalPrice', 'total_price']),
+      ),
+      isPricingFinal: _toBool(
+        _pick(m, const <String>['isPricingFinal', 'is_pricing_final']),
+      ),
+      addressLatitude: _toDouble(
+        _pick(m, const <String>[
+          'addressLatitude',
+          'address_latitude',
+          'latitude',
+        ]),
+      ),
+      addressLongitude: _toDouble(
+        _pick(m, const <String>[
+          'addressLongitude',
+          'address_longitude',
+          'longitude',
+        ]),
+      ),
+      termsAccepted: _toBool(
+        _pick(m, const <String>['termsAccepted', 'terms_accepted']),
+      ),
+      startedTravelAt: _toStringValue(
+        _pick(m, const <String>['startedTravelAt', 'started_travel_at']),
+      ),
+      arrivedAt: _toStringValue(
+        _pick(m, const <String>['arrivedAt', 'arrived_at']),
+      ),
+      workStartedAt: _toStringValue(
+        _pick(m, const <String>['workStartedAt', 'work_started_at']),
+      ),
+      workFinishedAt: _toStringValue(
+        _pick(m, const <String>['workFinishedAt', 'work_finished_at']),
+      ),
+      customerConfirmedAt: _toStringValue(
+        _pick(m, const <String>[
+          'customerConfirmedAt',
+          'customer_confirmed_at',
+        ]),
+      ),
+      cancelledAt: _toStringValue(
+        _pick(m, const <String>['cancelledAt', 'cancelled_at']),
+      ),
+      cancellationReason: _toStringValue(
+        _pick(m, const <String>['cancellationReason', 'cancellation_reason']),
+      ),
+      customer: m['customer'] == null
+          ? null
+          : FetchOrdersUsecaseModelDataItemCustomer.fromJson(
+              _toMap(m['customer']),
+            ),
+      worker: m['worker'] == null
+          ? null
+          : WorkerData.fromJson(_toMap(m['worker'])),
+      propertyDetails: (m['propertyDetails'] ?? m['property_details']) == null
+          ? null
+          : PropertyDetailsData.fromJson(
+              _toMap(m['propertyDetails'] ?? m['property_details']),
+            ),
+      services: _toMapList(
+        m['services'],
+      ).map(Service.fromJson).toList(growable: false),
+      addons: _toMapList(
+        m['addons'],
+      ).map(Addon.fromJson).toList(growable: false),
+      billingPolicy: m['billingPolicy'] is Map
+          ? _toMap(m['billingPolicy'])
+          : (m['billing_policy'] is Map ? _toMap(m['billing_policy']) : null),
       timeWarnings: _toDynamicList(m['timeWarnings'] ?? m['time_warnings']),
       disputes: _toDynamicList(m['disputes']),
     );
@@ -333,8 +482,11 @@ class FetchOrdersUsecaseModelDataItem {
       'basePrice': basePrice,
       'addonsTotal': addonsTotal,
       'travelFee': travelFee,
+      'travelDistanceKm': travelDistanceKm,
+      'adminMargin': adminMargin,
       'cancellationFee': cancellationFee,
       'totalPrice': totalPrice,
+      'isPricingFinal': isPricingFinal,
       'addressLatitude': addressLatitude,
       'addressLongitude': addressLongitude,
       'termsAccepted': termsAccepted,
@@ -356,7 +508,14 @@ class FetchOrdersUsecaseModelDataItem {
     };
   }
 
-  FetchOrdersUsecaseModelDataItem withLifecycle({String? status, String? arrivedAt, String? startedTravelAt, String? workStartedAt, String? workFinishedAt, String? customerConfirmedAt}) {
+  FetchOrdersUsecaseModelDataItem withLifecycle({
+    String? status,
+    String? arrivedAt,
+    String? startedTravelAt,
+    String? workStartedAt,
+    String? workFinishedAt,
+    String? customerConfirmedAt,
+  }) {
     return FetchOrdersUsecaseModelDataItem(
       id: id,
       customerId: customerId,
@@ -380,8 +539,11 @@ class FetchOrdersUsecaseModelDataItem {
       basePrice: basePrice,
       addonsTotal: addonsTotal,
       travelFee: travelFee,
+      travelDistanceKm: travelDistanceKm,
+      adminMargin: adminMargin,
       cancellationFee: cancellationFee,
       totalPrice: totalPrice,
+      isPricingFinal: isPricingFinal,
       addressLatitude: addressLatitude,
       addressLongitude: addressLongitude,
       termsAccepted: termsAccepted,
@@ -411,20 +573,38 @@ class WorkerData {
   final double? averageRating;
   final String? avatarUrl;
 
-  WorkerData({this.id, this.firstName, this.phone, this.averageRating, this.avatarUrl});
+  WorkerData({
+    this.id,
+    this.firstName,
+    this.phone,
+    this.averageRating,
+    this.avatarUrl,
+  });
 
   factory WorkerData.fromJson(Map<String, dynamic> json) {
     return WorkerData(
       id: _toInt(_pick(json, const <String>['id'])),
-      firstName: _toStringValue(_pick(json, const <String>['firstName', 'first_name', 'name'])),
+      firstName: _toStringValue(
+        _pick(json, const <String>['firstName', 'first_name', 'name']),
+      ),
       phone: _toStringValue(_pick(json, const <String>['phone'])),
-      averageRating: _toDouble(_pick(json, const <String>['averageRating', 'average_rating'])),
-      avatarUrl: _toStringValue(_pick(json, const <String>['avatarUrl', 'avatar_url'])),
+      averageRating: _toDouble(
+        _pick(json, const <String>['averageRating', 'average_rating']),
+      ),
+      avatarUrl: _toStringValue(
+        _pick(json, const <String>['avatarUrl', 'avatar_url']),
+      ),
     );
   }
 
   Map<String, dynamic> toJson() {
-    return <String, dynamic>{'id': id, 'firstName': firstName, 'phone': phone, 'averageRating': averageRating, 'avatarUrl': avatarUrl};
+    return <String, dynamic>{
+      'id': id,
+      'firstName': firstName,
+      'phone': phone,
+      'averageRating': averageRating,
+      'avatarUrl': avatarUrl,
+    };
   }
 }
 
@@ -439,19 +619,35 @@ class PropertyDetailsData {
   final int? kitchens;
   final String? livingRoomSize;
 
-  PropertyDetailsData({this.locationName, this.address, this.rooms,this.kitchen, this.bedRooms, this.bathrooms, this.kitchenIncluded, this.kitchens, this.livingRoomSize});
+  PropertyDetailsData({
+    this.locationName,
+    this.address,
+    this.rooms,
+    this.kitchen,
+    this.bedRooms,
+    this.bathrooms,
+    this.kitchenIncluded,
+    this.kitchens,
+    this.livingRoomSize,
+  });
 
   factory PropertyDetailsData.fromJson(Map<String, dynamic> json) {
     return PropertyDetailsData(
-      locationName: _toStringValue(_pick(json, const <String>['locationName', 'location_name'])),
+      locationName: _toStringValue(
+        _pick(json, const <String>['locationName', 'location_name']),
+      ),
       address: _toStringValue(_pick(json, const <String>['address'])),
       rooms: _toInt(_pick(json, const <String>['rooms'])),
       kitchen: _toStringValue(_pick(json, const <String>['kitchen'])),
       bedRooms: _toInt(_pick(json, const <String>['bedRooms', 'bedrooms'])),
       bathrooms: _toInt(_pick(json, const <String>['bathrooms'])),
-      kitchenIncluded: _toBool(_pick(json, const <String>['kitchenIncluded', 'kitchen_included'])),
+      kitchenIncluded: _toBool(
+        _pick(json, const <String>['kitchenIncluded', 'kitchen_included']),
+      ),
       kitchens: _toInt(_pick(json, const <String>['kitchens'])),
-      livingRoomSize: _toStringValue(_pick(json, const <String>['livingRoomSize', 'living_room_size'])),
+      livingRoomSize: _toStringValue(
+        _pick(json, const <String>['livingRoomSize', 'living_room_size']),
+      ),
     );
   }
 
@@ -475,9 +671,16 @@ class FetchOrdersUsecaseModelDataItemCustomer {
   final String? email;
   final String? phone;
 
-  FetchOrdersUsecaseModelDataItemCustomer({this.id, this.name, this.email, this.phone});
+  FetchOrdersUsecaseModelDataItemCustomer({
+    this.id,
+    this.name,
+    this.email,
+    this.phone,
+  });
 
-  factory FetchOrdersUsecaseModelDataItemCustomer.fromJson(Map<String, dynamic> json) {
+  factory FetchOrdersUsecaseModelDataItemCustomer.fromJson(
+    Map<String, dynamic> json,
+  ) {
     return FetchOrdersUsecaseModelDataItemCustomer(
       id: _toInt(_pick(json, const <String>['id'])),
       name: _toStringValue(_pick(json, const <String>['name'])),
@@ -487,6 +690,11 @@ class FetchOrdersUsecaseModelDataItemCustomer {
   }
 
   Map<String, dynamic> toJson() {
-    return <String, dynamic>{'id': id, 'name': name, 'email': email, 'phone': phone};
+    return <String, dynamic>{
+      'id': id,
+      'name': name,
+      'email': email,
+      'phone': phone,
+    };
   }
 }

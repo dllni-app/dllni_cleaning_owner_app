@@ -21,8 +21,14 @@ void main() {
     test('pending allows accept reject only', () {
       final order = _order(status: CleaningBookingStatus.pending);
       expect(OrderLifecyclePolicy.canAcceptReject(order), isTrue);
+      expect(OrderLifecyclePolicy.isCustomerDataHidden(order), isTrue);
       expect(OrderLifecyclePolicy.canStartTravel(order), isFalse);
       expect(OrderLifecyclePolicy.detailsStepFor(order), 0);
+    });
+
+    test('customer data remains visible for non-pending statuses', () {
+      final order = _order(status: CleaningBookingStatus.workerAssigned);
+      expect(OrderLifecyclePolicy.isCustomerDataHidden(order), isFalse);
     });
 
     test('assigned without travel allows start travel and cancel', () {

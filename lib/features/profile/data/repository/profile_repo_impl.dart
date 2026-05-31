@@ -19,7 +19,10 @@ import '../models/worker_work_areas_model.dart';
 import '../../domain/usecases/update_worker_profile_use_case.dart';
 import '../models/update_worker_profile_model.dart';
 import '../../domain/usecases/fetch_notifications_use_case.dart';
+import '../../domain/usecases/fetch_deposit_transactions_use_case.dart';
 import '../../domain/usecases/mark_notification_read_use_case.dart';
+import '../models/fetch_deposit_account_usecase_model.dart';
+import '../models/fetch_deposit_transactions_usecase_model.dart';
 import '../models/notification_api_models.dart';
 
 @LazySingleton(as: ProfileRepo)
@@ -29,21 +32,27 @@ class ProfileRepoImpl with HandlingException implements ProfileRepo {
   ProfileRepoImpl({required this.profileRemoteDataSource});
 
   @override
-  DataResponse<FetchWorkerProfileUsecaseModel> fetchWorkerProfileUsecase(FetchWorkerProfileUsecaseParams params) {
+  DataResponse<FetchWorkerProfileUsecaseModel> fetchWorkerProfileUsecase(
+    FetchWorkerProfileUsecaseParams params,
+  ) {
     return wrapHandlingException(
       tryCall: () => profileRemoteDataSource.fetchWorkerProfileUsecase(params),
     );
   }
 
   @override
-  DataResponse<FetchDisputesUsecaseModel> fetchDisputesUsecase(FetchDisputesUsecaseParams params) {
+  DataResponse<FetchDisputesUsecaseModel> fetchDisputesUsecase(
+    FetchDisputesUsecaseParams params,
+  ) {
     return wrapHandlingException(
       tryCall: () => profileRemoteDataSource.fetchDisputesUsecase(params),
     );
   }
 
   @override
-  DataResponse<FetchDisputeDetailsUsecaseModel> fetchDisputeDetailsUsecase(FetchDisputeDetailsUsecaseParams params) {
+  DataResponse<FetchDisputeDetailsUsecaseModel> fetchDisputeDetailsUsecase(
+    FetchDisputeDetailsUsecaseParams params,
+  ) {
     return wrapHandlingException(
       tryCall: () => profileRemoteDataSource.fetchDisputeDetailsUsecase(params),
     );
@@ -57,30 +66,56 @@ class ProfileRepoImpl with HandlingException implements ProfileRepo {
   }
 
   @override
-  DataResponse<FetchWorkerStatisticsModel> fetchWorkerStatistics(FetchWorkerStatisticsParams params) {
+  DataResponse<FetchWorkerStatisticsModel> fetchWorkerStatistics(
+    FetchWorkerStatisticsParams params,
+  ) {
     return wrapHandlingException(
       tryCall: () => profileRemoteDataSource.fetchWorkerStatistics(params),
     );
   }
 
   @override
-  DataResponse<WorkerWorkAreasModel> updateWorkerWorkAreas(UpdateWorkerWorkAreasParams params) {
+  DataResponse<WorkerWorkAreasModel> updateWorkerWorkAreas(
+    UpdateWorkerWorkAreasParams params,
+  ) {
     return wrapHandlingException(
       tryCall: () => profileRemoteDataSource.updateWorkerWorkAreas(params),
     );
   }
 
   @override
-  DataResponse<UpdateWorkerProfileModel> updateWorkerProfile(UpdateWorkerProfileParams params) {
+  DataResponse<UpdateWorkerProfileModel> updateWorkerProfile(
+    UpdateWorkerProfileParams params,
+  ) {
     return wrapHandlingException(
       tryCall: () => profileRemoteDataSource.updateWorkerProfile(params),
     );
   }
 
   @override
-  DataResponse<FetchNotificationsPageModel> fetchNotifications(FetchNotificationsParams params) {
+  DataResponse<FetchNotificationsPageModel> fetchNotifications(
+    FetchNotificationsParams params,
+  ) {
     return wrapHandlingException(
       tryCall: () => profileRemoteDataSource.fetchNotifications(params),
+    );
+  }
+
+  @override
+  DataResponse<FetchDepositAccountUsecaseModel> fetchDepositAccount(
+    NoParams params,
+  ) {
+    return wrapHandlingException(
+      tryCall: () => profileRemoteDataSource.fetchDepositAccount(params),
+    );
+  }
+
+  @override
+  DataResponse<FetchDepositTransactionsUsecaseModel> fetchDepositTransactions(
+    FetchDepositTransactionsParams params,
+  ) {
+    return wrapHandlingException(
+      tryCall: () => profileRemoteDataSource.fetchDepositTransactions(params),
     );
   }
 
@@ -92,7 +127,9 @@ class ProfileRepoImpl with HandlingException implements ProfileRepo {
   }
 
   @override
-  DataResponse<ActionResultModel> markNotificationRead(MarkNotificationReadParams params) {
+  DataResponse<ActionResultModel> markNotificationRead(
+    MarkNotificationReadParams params,
+  ) {
     return wrapHandlingException(
       tryCall: () => profileRemoteDataSource.markNotificationRead(params),
     );

@@ -14,27 +14,54 @@ import '../../data/models/worker_work_areas_model.dart';
 import '../usecases/update_worker_profile_use_case.dart';
 import '../../data/models/update_worker_profile_model.dart';
 import '../usecases/fetch_notifications_use_case.dart';
+import '../usecases/fetch_deposit_transactions_use_case.dart';
 import '../usecases/mark_notification_read_use_case.dart';
+import '../../data/models/fetch_deposit_account_usecase_model.dart';
+import '../../data/models/fetch_deposit_transactions_usecase_model.dart';
 import '../../data/models/notification_api_models.dart';
 
 abstract class ProfileRepo {
-  DataResponse<FetchWorkerProfileUsecaseModel> fetchWorkerProfileUsecase(FetchWorkerProfileUsecaseParams params);
+  DataResponse<FetchWorkerProfileUsecaseModel> fetchWorkerProfileUsecase(
+    FetchWorkerProfileUsecaseParams params,
+  );
 
-  DataResponse<FetchDisputesUsecaseModel> fetchDisputesUsecase(FetchDisputesUsecaseParams params);
+  DataResponse<FetchDisputesUsecaseModel> fetchDisputesUsecase(
+    FetchDisputesUsecaseParams params,
+  );
 
-  DataResponse<FetchDisputeDetailsUsecaseModel> fetchDisputeDetailsUsecase(FetchDisputeDetailsUsecaseParams params);
+  DataResponse<FetchDisputeDetailsUsecaseModel> fetchDisputeDetailsUsecase(
+    FetchDisputeDetailsUsecaseParams params,
+  );
 
   DataResponse<UpdateDisputeModel> updateDispute(UpdateDisputeParams params);
 
-  DataResponse<FetchWorkerStatisticsModel> fetchWorkerStatistics(FetchWorkerStatisticsParams params);
+  DataResponse<FetchWorkerStatisticsModel> fetchWorkerStatistics(
+    FetchWorkerStatisticsParams params,
+  );
 
-  DataResponse<WorkerWorkAreasModel> updateWorkerWorkAreas(UpdateWorkerWorkAreasParams params);
+  DataResponse<WorkerWorkAreasModel> updateWorkerWorkAreas(
+    UpdateWorkerWorkAreasParams params,
+  );
 
-  DataResponse<UpdateWorkerProfileModel> updateWorkerProfile(UpdateWorkerProfileParams params);
+  DataResponse<UpdateWorkerProfileModel> updateWorkerProfile(
+    UpdateWorkerProfileParams params,
+  );
 
-  DataResponse<FetchNotificationsPageModel> fetchNotifications(FetchNotificationsParams params);
+  DataResponse<FetchNotificationsPageModel> fetchNotifications(
+    FetchNotificationsParams params,
+  );
+
+  DataResponse<FetchDepositAccountUsecaseModel> fetchDepositAccount(
+    NoParams params,
+  );
+
+  DataResponse<FetchDepositTransactionsUsecaseModel> fetchDepositTransactions(
+    FetchDepositTransactionsParams params,
+  );
 
   DataResponse<ActionResultModel> markAllNotificationsRead(NoParams params);
 
-  DataResponse<ActionResultModel> markNotificationRead(MarkNotificationReadParams params);
+  DataResponse<ActionResultModel> markNotificationRead(
+    MarkNotificationReadParams params,
+  );
 }

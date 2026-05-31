@@ -48,8 +48,7 @@ class ExtensionRequestsSheet {
                       child: BlocConsumer<OrdersBloc, OrdersState>(
                         bloc: ordersBloc,
                         listener: (context, state) {
-                          if (state.acceptExtensionUsecaseStatus == BlocStatus.success ||
-                              state.rejectExtensionUsecaseStatus == BlocStatus.success) {
+                          if (state.acceptExtensionUsecaseStatus == BlocStatus.success || state.rejectExtensionUsecaseStatus == BlocStatus.success) {
                             onChanged?.call();
                           }
                         },

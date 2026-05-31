@@ -47,6 +47,25 @@ class UpdateWorkerProfileEvent extends ProfileEvent {
   UpdateWorkerProfileEvent({required this.params});
 }
 
+class FetchDepositAccountEvent extends ProfileEvent {}
+
+class FetchDepositTransactionsEvent extends ProfileEvent with EventWithReload {
+  final FetchDepositTransactionsParams params;
+  final String? typeFilter;
+  final bool clearTypeFilter;
+  final bool loadMore;
+  @override
+  final bool isReload;
+
+  FetchDepositTransactionsEvent({
+    required this.params,
+    this.typeFilter,
+    this.clearTypeFilter = false,
+    this.loadMore = false,
+    this.isReload = false,
+  });
+}
+
 class FetchNotificationsEvent extends ProfileEvent with EventWithReload {
   final FetchNotificationsParams params;
   final bool loadMore;

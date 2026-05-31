@@ -74,6 +74,10 @@ import '../../features/profile/data/repository/profile_repo_impl.dart' as _i265;
 import '../../features/profile/data/source/profile_remote_data_source.dart'
     as _i502;
 import '../../features/profile/domain/repository/profile_repo.dart' as _i275;
+import '../../features/profile/domain/usecases/fetch_deposit_account_use_case.dart'
+    as _i38;
+import '../../features/profile/domain/usecases/fetch_deposit_transactions_use_case.dart'
+    as _i547;
 import '../../features/profile/domain/usecases/fetch_dispute_details_usecase_use_case.dart'
     as _i961;
 import '../../features/profile/domain/usecases/fetch_disputes_usecase_use_case.dart'
@@ -119,9 +123,6 @@ _i174.GetIt $initGetIt(
     () => _i931.MainRemoteDataSource(),
   );
   gh.lazySingleton<_i540.MainRepo>(() => _i959.MainRepoImpl());
-  gh.lazySingleton<_i777.AuthRemoteDataSource>(
-    () => _i777.AuthRemoteDataSource(dioNetwork: gh<_i497.DioNetwork>()),
-  );
   gh.lazySingleton<_i557.HomeRemoteDataSource>(
     () => _i557.HomeRemoteDataSource(dioNetwork: gh<_i497.DioNetwork>()),
   );
@@ -137,6 +138,14 @@ _i174.GetIt $initGetIt(
       profileRemoteDataSource: gh<_i502.ProfileRemoteDataSource>(),
     ),
   );
+  gh.lazySingleton<_i38.FetchDepositAccountUseCase>(
+    () => _i38.FetchDepositAccountUseCase(profileRepo: gh<_i275.ProfileRepo>()),
+  );
+  gh.lazySingleton<_i547.FetchDepositTransactionsUseCase>(
+    () => _i547.FetchDepositTransactionsUseCase(
+      profileRepo: gh<_i275.ProfileRepo>(),
+    ),
+  );
   gh.lazySingleton<_i438.FetchNotificationsUseCase>(
     () => _i438.FetchNotificationsUseCase(profileRepo: gh<_i275.ProfileRepo>()),
   );
@@ -148,6 +157,9 @@ _i174.GetIt $initGetIt(
   gh.lazySingleton<_i338.MarkNotificationReadUseCase>(
     () =>
         _i338.MarkNotificationReadUseCase(profileRepo: gh<_i275.ProfileRepo>()),
+  );
+  gh.lazySingleton<_i777.AuthRemoteDataSource>(
+    () => _i777.AuthRemoteDataSource(dioNetwork: gh<_i497.DioNetwork>()),
   );
   gh.lazySingleton<_i132.OrdersRepo>(
     () => _i849.OrdersRepoImpl(
@@ -242,6 +254,22 @@ _i174.GetIt $initGetIt(
   gh.factory<_i648.HomeBloc>(
     () => _i648.HomeBloc(gh<_i1024.FetchHomePageUsecaseUseCase>()),
   );
+  gh.factory<_i821.ProfileBloc>(
+    () => _i821.ProfileBloc(
+      gh<_i338.FetchWorkerProfileUsecaseUseCase>(),
+      gh<_i947.FetchDisputesUsecaseUseCase>(),
+      gh<_i961.FetchDisputeDetailsUsecaseUseCase>(),
+      gh<_i280.FetchWorkerStatisticsUseCase>(),
+      gh<_i780.UpdateWorkerWorkAreasUseCase>(),
+      gh<_i973.UpdateDisputeUseCase>(),
+      gh<_i857.UpdateWorkerProfileUseCase>(),
+      gh<_i38.FetchDepositAccountUseCase>(),
+      gh<_i547.FetchDepositTransactionsUseCase>(),
+      gh<_i438.FetchNotificationsUseCase>(),
+      gh<_i10.MarkAllNotificationsReadUseCase>(),
+      gh<_i338.MarkNotificationReadUseCase>(),
+    ),
+  );
   gh.factory<_i305.OrdersBloc>(
     () => _i305.OrdersBloc(
       gh<_i406.FetchOrdersUsecaseUseCase>(),
@@ -259,20 +287,6 @@ _i174.GetIt $initGetIt(
       gh<_i931.PostBookingLocationUseCase>(),
       gh<_i310.FetchSecurityCodeUseCase>(),
       gh<_i738.StartWorkUseCase>(),
-    ),
-  );
-  gh.factory<_i821.ProfileBloc>(
-    () => _i821.ProfileBloc(
-      gh<_i338.FetchWorkerProfileUsecaseUseCase>(),
-      gh<_i947.FetchDisputesUsecaseUseCase>(),
-      gh<_i961.FetchDisputeDetailsUsecaseUseCase>(),
-      gh<_i280.FetchWorkerStatisticsUseCase>(),
-      gh<_i780.UpdateWorkerWorkAreasUseCase>(),
-      gh<_i973.UpdateDisputeUseCase>(),
-      gh<_i857.UpdateWorkerProfileUseCase>(),
-      gh<_i438.FetchNotificationsUseCase>(),
-      gh<_i10.MarkAllNotificationsReadUseCase>(),
-      gh<_i338.MarkNotificationReadUseCase>(),
     ),
   );
   gh.lazySingleton<_i462.LoginUsecaseUseCase>(

@@ -141,7 +141,10 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
     final response = await _dio.get(
       'http://router.project-osrm.org/route/v1/driving/'
       '${start.longitude},${start.latitude};${end.longitude},${end.latitude}',
-      queryParameters: const <String, dynamic>{'overview': 'full', 'geometries': 'geojson'},
+      queryParameters: const <String, dynamic>{
+        'overview': 'full',
+        'geometries': 'geojson',
+      },
     );
     final routes = response.data['routes'];
     if (routes is! List || routes.isEmpty) {
@@ -155,7 +158,11 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
     if (coordinates is! List) {
       return <LatLng>[];
     }
-    return coordinates.whereType<List>().where((e) => e.length >= 2).map((e) => LatLng((e[1] as num).toDouble(), (e[0] as num).toDouble())).toList();
+    return coordinates
+        .whereType<List>()
+        .where((e) => e.length >= 2)
+        .map((e) => LatLng((e[1] as num).toDouble(), (e[0] as num).toDouble()))
+        .toList();
   }
 
   Future<Position> _getCurrentLocation() async {
@@ -170,7 +177,9 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
     if (permission == LocationPermission.deniedForever) {
       await Geolocator.openAppSettings();
     }
-    return Geolocator.getCurrentPosition(locationSettings: const LocationSettings(accuracy: LocationAccuracy.high));
+    return Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+    );
   }
 
   Future<void> _drawRoad(LatLng start) async {
@@ -189,7 +198,8 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
   }
 
   void _syncLocationTrackingState() {
-    if (_shouldReportLocationFor(widget.bloc.state) && widget.order.id != null) {
+    if (_shouldReportLocationFor(widget.bloc.state) &&
+        widget.order.id != null) {
       _startLocationTracking();
       return;
     }
@@ -222,7 +232,11 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
         }
         widget.bloc.add(
           ReportBookingLocationEvent(
-            params: PostBookingLocationParams(id: id, latitude: pos.latitude, longitude: pos.longitude),
+            params: PostBookingLocationParams(
+              id: id,
+              latitude: pos.latitude,
+              longitude: pos.longitude,
+            ),
           ),
         );
       } catch (_) {}
@@ -277,9 +291,17 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            AppText.titleSmall('بانتظار تأكيد العميل', fontWeight: FontWeight.w700, color: const Color(0xff1E3A8A)),
+            AppText.titleSmall(
+              'بانتظار تأكيد العميل',
+              fontWeight: FontWeight.w700,
+              color: const Color(0xff1E3A8A),
+            ),
             8.verticalSpace,
-            AppText.bodyMedium('أخبر العميل برمز الأمان التالي ليتم التحقق وبدء المهمة.', color: const Color(0xff475569), textAlign: TextAlign.start),
+            AppText.bodyMedium(
+              'أخبر العميل برمز الأمان التالي ليتم التحقق وبدء المهمة.',
+              color: const Color(0xff475569),
+              textAlign: TextAlign.start,
+            ),
             8.verticalSpace,
             AppText.bodySmall(
               'رقم الحجز: $bookingLabel',
@@ -303,12 +325,25 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
                 border: Border.all(color: const Color(0xffD1D5DB)),
               ),
               child: loading
-                  ? const Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)))
+                  ? const Center(
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
                   : Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        AppText.labelLarge('رمز الأمان', color: const Color(0xff6B7280)),
-                        AppText.headlineMedium(code, color: const Color(0xff1E2A78), fontWeight: FontWeight.w700),
+                        AppText.labelLarge(
+                          'رمز الأمان',
+                          color: const Color(0xff6B7280),
+                        ),
+                        AppText.headlineMedium(
+                          code,
+                          color: const Color(0xff1E2A78),
+                          fontWeight: FontWeight.w700,
+                        ),
                       ],
                     ),
             ),
@@ -316,7 +351,9 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
             SizedBox(
               width: context.width,
               child: OutlinedButton.icon(
-                onPressed: loading ? null : () => _requestSecurityCodeIfNeeded(force: true),
+                onPressed: loading
+                    ? null
+                    : () => _requestSecurityCodeIfNeeded(force: true),
                 icon: const Icon(Icons.refresh_rounded),
                 label: AppText.labelLarge('تحديث الرمز'),
               ),
@@ -330,8 +367,16 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
       return Container(
         width: context.width,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), color: const Color(0xffE5E7EB)),
-        child: AppText.labelLarge('جاري التوجه إلى موقع العميل', color: const Color(0xff475569), textAlign: TextAlign.center, fontWeight: FontWeight.w600),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          color: const Color(0xffE5E7EB),
+        ),
+        child: AppText.labelLarge(
+          'جاري التوجه إلى موقع العميل',
+          color: const Color(0xff475569),
+          textAlign: TextAlign.center,
+          fontWeight: FontWeight.w600,
+        ),
       );
     }
 
@@ -355,39 +400,74 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
             },
       child: Container(
         width: context.width,
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), color: context.primary),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          color: context.primary,
+        ),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         child: loading
             ? Center(
-                child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: context.onPrimary)),
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(color: context.onPrimary),
+                ),
               )
-            : AppText.labelLarge('لقد وصلت', color: context.onPrimary, fontWeight: FontWeight.w500),
+            : AppText.labelLarge(
+                'لقد وصلت',
+                color: context.onPrimary,
+                fontWeight: FontWeight.w500,
+              ),
       ),
     );
   }
 
   Widget _buildDraggableBottomSheet(ScrollController scrollController) {
+    final hideCustomerData = OrderLifecyclePolicy.isCustomerDataHidden(
+      widget.order,
+    );
+
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.only(topLeft: Radius.circular(40.r), topRight: Radius.circular(40.r)),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(40.r),
+          topRight: Radius.circular(40.r),
+        ),
         color: context.onPrimary,
-        boxShadow: const <BoxShadow>[BoxShadow(color: Color(0x26000000), blurRadius: 12, offset: Offset(0, -3))],
+        boxShadow: const <BoxShadow>[
+          BoxShadow(
+            color: Color(0x26000000),
+            blurRadius: 12,
+            offset: Offset(0, -3),
+          ),
+        ],
       ),
       padding: EdgeInsetsDirectional.only(top: 16),
       child: ListView(
         controller: scrollController,
-        padding: EdgeInsetsDirectional.only(start: 19.w, end: 19.w, top: 18.h, bottom: MediaQuery.of(context).padding.bottom + 24.h),
+        padding: EdgeInsetsDirectional.only(
+          start: 19.w,
+          end: 19.w,
+          top: 18.h,
+          bottom: MediaQuery.of(context).padding.bottom + 24.h,
+        ),
         children: [
           Center(
             child: Container(
               width: 62.w,
               height: 5.h,
-              decoration: BoxDecoration(color: const Color(0xffA6A6A6), borderRadius: BorderRadius.circular(100)),
+              decoration: BoxDecoration(
+                color: const Color(0xffA6A6A6),
+                borderRadius: BorderRadius.circular(100),
+              ),
             ),
           ),
           16.verticalSpace,
           Container(
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), color: const Color(0xffE4E5EE)),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: const Color(0xffE4E5EE),
+            ),
             padding: EdgeInsetsDirectional.all(16.r),
             child: Column(
               children: [
@@ -403,72 +483,107 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          AppText.bodyMedium(widget.order.locationName ?? '-', color: context.primary, fontWeight: FontWeight.w400),
-                          AppText.labelLarge(widget.order.propertyDetails?.address ?? '-', color: const Color(0xff727791), fontWeight: FontWeight.w400),
+                          AppText.bodyMedium(
+                            widget.order.locationName ?? '-',
+                            color: context.primary,
+                            fontWeight: FontWeight.w400,
+                          ),
+                          AppText.labelLarge(
+                            widget.order.propertyDetails?.address ?? '-',
+                            color: const Color(0xff727791),
+                            fontWeight: FontWeight.w400,
+                          ),
                         ],
                       ),
                     ),
                   ],
                 ),
-                16.verticalSpace,
-                Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: () {
-                          final phone = widget.order.customer?.phone;
-                          if (phone == null || phone.isEmpty) return;
-                          callPhone(phone);
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(color: context.onPrimary, borderRadius: BorderRadius.circular(26)),
-                          child: Row(
-                            children: [
-                              CircleAvatar(
-                                backgroundColor: context.primaryContainer,
-                                radius: 19,
-                                child: Icon(Icons.phone_outlined, color: context.onPrimaryContainer),
-                              ),
-                              12.horizontalSpace,
-                              Expanded(child: AppText.labelMedium(widget.order.customer?.name ?? '-', color: context.primaryContainer)),
-                              12.horizontalSpace,
-                            ],
+                if (!hideCustomerData) ...[
+                  16.verticalSpace,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: () {
+                            final phone = widget.order.customer?.phone;
+                            if (phone == null || phone.isEmpty) return;
+                            callPhone(phone);
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: context.onPrimary,
+                              borderRadius: BorderRadius.circular(26),
+                            ),
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  backgroundColor: context.primaryContainer,
+                                  radius: 19,
+                                  child: Icon(
+                                    Icons.phone_outlined,
+                                    color: context.onPrimaryContainer,
+                                  ),
+                                ),
+                                12.horizontalSpace,
+                                Expanded(
+                                  child: AppText.labelMedium(
+                                    widget.order.customer?.name ?? '-',
+                                    color: context.primaryContainer,
+                                  ),
+                                ),
+                                12.horizontalSpace,
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    10.horizontalSpace,
-                    Expanded(
-                      child: InkWell(
-                        onTap: () {
-                          final phone = widget.order.customer?.phone;
-                          if (phone == null || phone.isEmpty) return;
-                          sendMessage(phone);
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(color: context.onPrimary, borderRadius: BorderRadius.circular(26)),
-                          child: Row(
-                            children: [
-                              CircleAvatar(
-                                backgroundColor: context.primaryContainer,
-                                radius: 19,
-                                child: Icon(Icons.chat_bubble_outlined, color: context.onPrimaryContainer),
-                              ),
-                              12.horizontalSpace,
-                              Expanded(child: AppText.labelMedium(widget.order.customer?.name ?? '-', color: context.primaryContainer)),
-                              12.horizontalSpace,
-                            ],
+                      10.horizontalSpace,
+                      Expanded(
+                        child: InkWell(
+                          onTap: () {
+                            final phone = widget.order.customer?.phone;
+                            if (phone == null || phone.isEmpty) return;
+                            sendMessage(phone);
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: context.onPrimary,
+                              borderRadius: BorderRadius.circular(26),
+                            ),
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  backgroundColor: context.primaryContainer,
+                                  radius: 19,
+                                  child: Icon(
+                                    Icons.chat_bubble_outlined,
+                                    color: context.onPrimaryContainer,
+                                  ),
+                                ),
+                                12.horizontalSpace,
+                                Expanded(
+                                  child: AppText.labelMedium(
+                                    widget.order.customer?.name ?? '-',
+                                    color: context.primaryContainer,
+                                  ),
+                                ),
+                                12.horizontalSpace,
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
           16.verticalSpace,
-          BlocBuilder<OrdersBloc, OrdersState>(bloc: widget.bloc, builder: (context, state) => _buildAction(state)),
+          BlocBuilder<OrdersBloc, OrdersState>(
+            bloc: widget.bloc,
+            builder: (context, state) => _buildAction(state),
+          ),
         ],
       ),
     );
@@ -490,51 +605,78 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
         }
       },
       child: Stack(
-      children: [
-        Positioned.fill(
-          child: _myLocation == null
-              ? const Center(child: CircularProgressIndicator.adaptive())
-              : FlutterMap(
-                  options: MapOptions(initialCenter: _myLocation!, initialZoom: 13),
-                  children: [
-                    TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'com.dllni.clOwner'),
-                    if (_road.isNotEmpty)
-                      PolylineLayer(
-                        polylines: [Polyline(points: _road, strokeWidth: 5, color: Colors.blue)],
+        children: [
+          Positioned.fill(
+            child: _myLocation == null
+                ? const Center(child: CircularProgressIndicator.adaptive())
+                : FlutterMap(
+                    options: MapOptions(
+                      initialCenter: _myLocation!,
+                      initialZoom: 13,
+                    ),
+                    children: [
+                      TileLayer(
+                        urlTemplate:
+                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        userAgentPackageName: 'com.dllni.clOwner',
                       ),
-                    if (_road.isNotEmpty)
-                      MarkerLayer(
-                        markers: [
-                          Marker(
-                            point: _road.first,
-                            width: 40,
-                            height: 40,
-                            child: const Icon(Icons.location_on, color: Colors.red, size: 40),
-                          ),
-                          Marker(
-                            point: _road.last,
-                            width: 40,
-                            height: 40,
-                            child: const Icon(Icons.location_on, color: Colors.red, size: 40),
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
-        ),
-        SafeArea(bottom: false, child: OrderDetailsMapAppBar(orderNum: widget.order.bookingNumber ?? '-')),
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: DraggableScrollableSheet(
-            expand: false,
-            minChildSize: 0.24,
-            initialChildSize: 0.36,
-            maxChildSize: 0.5,
-            builder: (context, scrollController) => _buildDraggableBottomSheet(scrollController),
+                      if (_road.isNotEmpty)
+                        PolylineLayer(
+                          polylines: [
+                            Polyline(
+                              points: _road,
+                              strokeWidth: 5,
+                              color: Colors.blue,
+                            ),
+                          ],
+                        ),
+                      if (_road.isNotEmpty)
+                        MarkerLayer(
+                          markers: [
+                            Marker(
+                              point: _road.first,
+                              width: 40,
+                              height: 40,
+                              child: const Icon(
+                                Icons.location_on,
+                                color: Colors.red,
+                                size: 40,
+                              ),
+                            ),
+                            Marker(
+                              point: _road.last,
+                              width: 40,
+                              height: 40,
+                              child: const Icon(
+                                Icons.location_on,
+                                color: Colors.red,
+                                size: 40,
+                              ),
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
           ),
-        ),
-      ],
-    ),
+          SafeArea(
+            bottom: false,
+            child: OrderDetailsMapAppBar(
+              orderNum: widget.order.bookingNumber ?? '-',
+            ),
+          ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: DraggableScrollableSheet(
+              expand: false,
+              minChildSize: 0.24,
+              initialChildSize: 0.36,
+              maxChildSize: 0.5,
+              builder: (context, scrollController) =>
+                  _buildDraggableBottomSheet(scrollController),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

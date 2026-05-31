@@ -6,13 +6,16 @@ import '../repository/profile_repo.dart';
 import '../../data/models/update_worker_profile_model.dart';
 
 @lazySingleton
-class UpdateWorkerProfileUseCase implements UseCase<UpdateWorkerProfileModel, UpdateWorkerProfileParams> {
+class UpdateWorkerProfileUseCase
+    implements UseCase<UpdateWorkerProfileModel, UpdateWorkerProfileParams> {
   final ProfileRepo profile;
 
   UpdateWorkerProfileUseCase({required this.profile});
 
   @override
-  DataResponse<UpdateWorkerProfileModel> call(UpdateWorkerProfileParams params) {
+  DataResponse<UpdateWorkerProfileModel> call(
+    UpdateWorkerProfileParams params,
+  ) {
     return profile.updateWorkerProfile(params);
   }
 }
@@ -27,8 +30,24 @@ class UpdateWorkerProfileParams with Params {
   final String? gender;
   final String? birthday;
   final String? bio;
+  final double? homeLatitude;
+  final double? homeLongitude;
+  final String? homeAddress;
 
-  UpdateWorkerProfileParams({this.name, this.phone, this.avatar, this.isActive, this.email, this.city, this.gender, this.birthday, this.bio});
+  UpdateWorkerProfileParams({
+    this.name,
+    this.phone,
+    this.avatar,
+    this.isActive,
+    this.email,
+    this.city,
+    this.gender,
+    this.birthday,
+    this.bio,
+    this.homeLatitude,
+    this.homeLongitude,
+    this.homeAddress,
+  });
 
   @override
   Map<String, dynamic> getBody() => {
@@ -41,5 +60,8 @@ class UpdateWorkerProfileParams with Params {
     'gender': gender,
     'birthday': birthday,
     'bio': bio,
+    'homeLatitude': homeLatitude,
+    'homeLongitude': homeLongitude,
+    'homeAddress': homeAddress,
   }..removeWhere((key, val) => val == null);
 }

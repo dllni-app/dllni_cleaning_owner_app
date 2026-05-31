@@ -14,7 +14,13 @@ class ProfileState {
   UpdateDisputeModel? updateDispute;
   BlocStatus? updateWorkerProfileStatus;
   UpdateWorkerProfileModel? updateWorkerProfile;
-  final PaginationStateModel<FetchNotificationsModelDataItem> notificationsPagination;
+  BlocStatus? depositAccountStatus;
+  FetchDepositAccountUsecaseModel? depositAccount;
+  final PaginationStateModel<FetchDepositTransactionsUsecaseModelDataItem>
+  depositTransactionsPagination;
+  final String? depositTransactionsTypeFilter;
+  final PaginationStateModel<FetchNotificationsModelDataItem>
+  notificationsPagination;
   final BlocStatus? markAllNotificationsReadStatus;
   final String? notificationActionError;
   String? errorMessage;
@@ -34,7 +40,17 @@ class ProfileState {
     this.updateDispute,
     this.updateWorkerProfileStatus,
     this.updateWorkerProfile,
-    this.notificationsPagination = const PaginationStateModel<FetchNotificationsModelDataItem>(perPage: 10),
+    this.depositAccountStatus,
+    this.depositAccount,
+    this.depositTransactionsPagination =
+        const PaginationStateModel<
+          FetchDepositTransactionsUsecaseModelDataItem
+        >(perPage: 20),
+    this.depositTransactionsTypeFilter,
+    this.notificationsPagination =
+        const PaginationStateModel<FetchNotificationsModelDataItem>(
+          perPage: 10,
+        ),
     this.markAllNotificationsReadStatus,
     this.notificationActionError,
   });
@@ -54,7 +70,14 @@ class ProfileState {
     UpdateDisputeModel? updateDispute,
     BlocStatus? updateWorkerProfileStatus,
     UpdateWorkerProfileModel? updateWorkerProfile,
-    PaginationStateModel<FetchNotificationsModelDataItem>? notificationsPagination,
+    BlocStatus? depositAccountStatus,
+    FetchDepositAccountUsecaseModel? depositAccount,
+    PaginationStateModel<FetchDepositTransactionsUsecaseModelDataItem>?
+    depositTransactionsPagination,
+    String? depositTransactionsTypeFilter,
+    bool clearDepositTransactionsTypeFilter = false,
+    PaginationStateModel<FetchNotificationsModelDataItem>?
+    notificationsPagination,
     BlocStatus? markAllNotificationsReadStatus,
     bool clearMarkAllNotificationsReadStatus = false,
     String? notificationActionError,
@@ -62,22 +85,35 @@ class ProfileState {
   }) => ProfileState(
     errorMessage: errorMessage ?? this.errorMessage,
     workerProfileUsecase: workerProfileUsecase ?? this.workerProfileUsecase,
-    workerProfileUsecaseStatus: workerProfileUsecaseStatus ?? this.workerProfileUsecaseStatus,
+    workerProfileUsecaseStatus:
+        workerProfileUsecaseStatus ?? this.workerProfileUsecaseStatus,
     disputesUsecase: disputesUsecase ?? this.disputesUsecase,
     disputeDetailsUsecase: disputeDetailsUsecase ?? this.disputeDetailsUsecase,
-    disputeDetailsUsecaseStatus: disputeDetailsUsecaseStatus ?? this.disputeDetailsUsecaseStatus,
+    disputeDetailsUsecaseStatus:
+        disputeDetailsUsecaseStatus ?? this.disputeDetailsUsecaseStatus,
     workerStatistics: workerStatistics ?? this.workerStatistics,
-    workerStatisticsStatus: workerStatisticsStatus ?? this.workerStatisticsStatus,
+    workerStatisticsStatus:
+        workerStatisticsStatus ?? this.workerStatisticsStatus,
     workAreas: workAreas ?? this.workAreas,
     updateWorkAreasStatus: updateWorkAreasStatus ?? this.updateWorkAreasStatus,
     updateDisputeStatus: updateDisputeStatus ?? this.updateDisputeStatus,
     updateDispute: updateDispute ?? this.updateDispute,
-    updateWorkerProfileStatus: updateWorkerProfileStatus ?? this.updateWorkerProfileStatus,
+    updateWorkerProfileStatus:
+        updateWorkerProfileStatus ?? this.updateWorkerProfileStatus,
     updateWorkerProfile: updateWorkerProfile ?? this.updateWorkerProfile,
-    notificationsPagination: notificationsPagination ?? this.notificationsPagination,
+    depositAccountStatus: depositAccountStatus ?? this.depositAccountStatus,
+    depositAccount: depositAccount ?? this.depositAccount,
+    depositTransactionsPagination:
+        depositTransactionsPagination ?? this.depositTransactionsPagination,
+    depositTransactionsTypeFilter: clearDepositTransactionsTypeFilter
+        ? null
+        : (depositTransactionsTypeFilter ?? this.depositTransactionsTypeFilter),
+    notificationsPagination:
+        notificationsPagination ?? this.notificationsPagination,
     markAllNotificationsReadStatus: clearMarkAllNotificationsReadStatus
         ? null
-        : (markAllNotificationsReadStatus ?? this.markAllNotificationsReadStatus),
+        : (markAllNotificationsReadStatus ??
+              this.markAllNotificationsReadStatus),
     notificationActionError: clearNotificationActionError
         ? null
         : (notificationActionError ?? this.notificationActionError),
@@ -85,5 +121,12 @@ class ProfileState {
 
   BlocStatus get notificationsStatus => notificationsPagination.status;
 
-  List<FetchNotificationsModelDataItem> get notifications => notificationsPagination.list;
+  BlocStatus get depositTransactionsStatus =>
+      depositTransactionsPagination.status;
+
+  List<FetchNotificationsModelDataItem> get notifications =>
+      notificationsPagination.list;
+
+  List<FetchDepositTransactionsUsecaseModelDataItem> get depositTransactions =>
+      depositTransactionsPagination.list;
 }

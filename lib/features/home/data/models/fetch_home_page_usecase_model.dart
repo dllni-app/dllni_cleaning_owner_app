@@ -32,50 +32,14 @@ num? _asNum(dynamic value) {
   return null;
 }
 
-bool? _asBool(dynamic value) {
-  if (value == null) return null;
-  if (value is bool) return value;
-  if (value is num) {
-    if (value == 1) return true;
-    if (value == 0) return false;
-  }
-  if (value is String) {
-    final normalized = value.trim().toLowerCase();
-    if (normalized == 'true' || normalized == '1') return true;
-    if (normalized == 'false' || normalized == '0') return false;
-  }
-  return null;
-}
+FetchHomePageUsecaseModel fetchHomePageUsecaseModelFromJson(str) =>
+    FetchHomePageUsecaseModel.fromJson(str);
 
-List<dynamic>? _asDynamicList(dynamic value) {
-  if (value is! List) return null;
-  return value.map(_asDynamic).toList();
-}
-
-dynamic _asDynamic(dynamic value) {
-  if (value == null) return null;
-  if (value is List) {
-    return value.map(_asDynamic).toList();
-  }
-  if (value is Map) {
-    final map = <String, dynamic>{};
-    value.forEach((key, nestedValue) {
-      map['$key'] = _asDynamic(nestedValue);
-    });
-    return map;
-  }
-  if (value is String || value is num || value is bool) {
-    return value;
-  }
-  return value.toString();
-}
-
-FetchHomePageUsecaseModel fetchHomePageUsecaseModelFromJson(str) => FetchHomePageUsecaseModel.fromJson(str);
-
-String fetchHomePageUsecaseModelToJson(FetchHomePageUsecaseModel data) => json.encode(data.toJson());
-
+String fetchHomePageUsecaseModelToJson(FetchHomePageUsecaseModel data) =>
+    json.encode(data.toJson());
 
 class FetchHomePageUsecaseModel {
+  String? date;
   int? totalBookings;
   int? todayCount;
   int? completedCount;
@@ -84,10 +48,15 @@ class FetchHomePageUsecaseModel {
   int? cancelledCount;
   double? totalEarnings;
   double? todayEarnings;
+  double? earningsChangePercent;
   int? newOrdersCount;
   int? pendingExtensionRequestsCount;
+  AmountSummary? amountSummary;
+  List<BookingsWeeklyChartItem>? bookingsWeeklyChart;
+  List<InvoicesFourWeeksChartItem>? invoicesFourWeeksChart;
 
   FetchHomePageUsecaseModel({
+    this.date,
     this.totalBookings,
     this.todayCount,
     this.completedCount,
@@ -96,12 +65,21 @@ class FetchHomePageUsecaseModel {
     this.cancelledCount,
     this.totalEarnings,
     this.todayEarnings,
+    this.earningsChangePercent,
     this.newOrdersCount,
     this.pendingExtensionRequestsCount,
+    this.amountSummary,
+    this.bookingsWeeklyChart,
+    this.invoicesFourWeeksChart,
   });
 
   factory FetchHomePageUsecaseModel.fromJson(Map<String, dynamic> json) {
+    final amountSummaryJson = json['amountSummary'];
+    final bookingsWeeklyChartJson = json['bookingsWeeklyChart'];
+    final invoicesFourWeeksChartJson = json['invoicesFourWeeksChart'];
+
     return FetchHomePageUsecaseModel(
+      date: _asString(json['date']),
       totalBookings: _asInt(json['totalBookings']),
       todayCount: _asInt(json['todayCount']),
       completedCount: _asInt(json['completedCount']),
@@ -110,13 +88,40 @@ class FetchHomePageUsecaseModel {
       cancelledCount: _asInt(json['cancelledCount']),
       totalEarnings: _asDouble(json['totalEarnings']),
       todayEarnings: _asDouble(json['todayEarnings']),
+      earningsChangePercent: _asDouble(json['earningsChangePercent']),
       newOrdersCount: _asInt(json['newOrdersCount']),
-      pendingExtensionRequestsCount: _asInt(json['pendingExtensionRequestsCount']),
+      pendingExtensionRequestsCount: _asInt(
+        json['pendingExtensionRequestsCount'],
+      ),
+      amountSummary: amountSummaryJson is Map
+          ? AmountSummary.fromJson(Map<String, dynamic>.from(amountSummaryJson))
+          : null,
+      bookingsWeeklyChart: bookingsWeeklyChartJson is List
+          ? bookingsWeeklyChartJson
+                .whereType<Map>()
+                .map(
+                  (item) => BookingsWeeklyChartItem.fromJson(
+                    Map<String, dynamic>.from(item),
+                  ),
+                )
+                .toList()
+          : null,
+      invoicesFourWeeksChart: invoicesFourWeeksChartJson is List
+          ? invoicesFourWeeksChartJson
+                .whereType<Map>()
+                .map(
+                  (item) => InvoicesFourWeeksChartItem.fromJson(
+                    Map<String, dynamic>.from(item),
+                  ),
+                )
+                .toList()
+          : null,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
+      'date': date,
       'totalBookings': totalBookings,
       'todayCount': todayCount,
       'completedCount': completedCount,
@@ -125,8 +130,124 @@ class FetchHomePageUsecaseModel {
       'cancelledCount': cancelledCount,
       'totalEarnings': totalEarnings,
       'todayEarnings': todayEarnings,
+      'earningsChangePercent': earningsChangePercent,
       'newOrdersCount': newOrdersCount,
       'pendingExtensionRequestsCount': pendingExtensionRequestsCount,
+      'amountSummary': amountSummary?.toJson(),
+      'bookingsWeeklyChart': bookingsWeeklyChart
+          ?.map((item) => item.toJson())
+          .toList(),
+      'invoicesFourWeeksChart': invoicesFourWeeksChart
+          ?.map((item) => item.toJson())
+          .toList(),
+    };
+  }
+}
+
+class AmountSummary {
+  String? period;
+  String? currency;
+  num? workerAmount;
+  num? adminAmount;
+  num? grossInvoicesAmount;
+
+  AmountSummary({
+    this.period,
+    this.currency,
+    this.workerAmount,
+    this.adminAmount,
+    this.grossInvoicesAmount,
+  });
+
+  factory AmountSummary.fromJson(Map<String, dynamic> json) {
+    return AmountSummary(
+      period: _asString(json['period']),
+      currency: _asString(json['currency']),
+      workerAmount: _asNum(json['workerAmount']),
+      adminAmount: _asNum(json['adminAmount']),
+      grossInvoicesAmount: _asNum(json['grossInvoicesAmount']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'period': period,
+      'currency': currency,
+      'workerAmount': workerAmount,
+      'adminAmount': adminAmount,
+      'grossInvoicesAmount': grossInvoicesAmount,
+    };
+  }
+}
+
+class BookingsWeeklyChartItem {
+  String? date;
+  String? dayKey;
+  String? dayLabelAr;
+  int? bookingsCount;
+
+  BookingsWeeklyChartItem({
+    this.date,
+    this.dayKey,
+    this.dayLabelAr,
+    this.bookingsCount,
+  });
+
+  factory BookingsWeeklyChartItem.fromJson(Map<String, dynamic> json) {
+    return BookingsWeeklyChartItem(
+      date: _asString(json['date']),
+      dayKey: _asString(json['dayKey']),
+      dayLabelAr: _asString(json['dayLabelAr']),
+      bookingsCount: _asInt(json['bookingsCount']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'date': date,
+      'dayKey': dayKey,
+      'dayLabelAr': dayLabelAr,
+      'bookingsCount': bookingsCount,
+    };
+  }
+}
+
+class InvoicesFourWeeksChartItem {
+  int? weekNumber;
+  String? label;
+  String? from;
+  String? to;
+  num? invoiceAmount;
+  num? invoiceAmountThousands;
+
+  InvoicesFourWeeksChartItem({
+    this.weekNumber,
+    this.label,
+    this.from,
+    this.to,
+    this.invoiceAmount,
+    this.invoiceAmountThousands,
+  });
+
+  factory InvoicesFourWeeksChartItem.fromJson(Map<String, dynamic> json) {
+    return InvoicesFourWeeksChartItem(
+      weekNumber: _asInt(json['weekNumber']),
+      label: _asString(json['label']),
+      from: _asString(json['from']),
+      to: _asString(json['to']),
+      invoiceAmount: _asNum(json['invoiceAmount']),
+      invoiceAmountThousands: _asNum(json['invoiceAmountThousands']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'weekNumber': weekNumber,
+      'label': label,
+      'from': from,
+      'to': to,
+      'invoiceAmount': invoiceAmount,
+      'invoiceAmountThousands': invoiceAmountThousands,
     };
   }
 }

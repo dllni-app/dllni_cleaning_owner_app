@@ -158,8 +158,11 @@ class FetchOrderDetailsUsecaseModelData {
   final double? basePrice;
   final double? addonsTotal;
   final double? travelFee;
+  final double? travelDistanceKm;
+  final double? adminMargin;
   final double? cancellationFee;
   final double? totalPrice;
+  final bool? isPricingFinal;
 
   final double? addressLatitude;
   final double? addressLongitude;
@@ -207,8 +210,11 @@ class FetchOrderDetailsUsecaseModelData {
     this.basePrice,
     this.addonsTotal,
     this.travelFee,
+    this.travelDistanceKm,
+    this.adminMargin,
     this.cancellationFee,
     this.totalPrice,
+    this.isPricingFinal,
     this.addressLatitude,
     this.addressLongitude,
     this.termsAccepted,
@@ -291,11 +297,20 @@ class FetchOrderDetailsUsecaseModelData {
         _pick(m, const <String>['addonsTotal', 'addons_total']),
       ),
       travelFee: _toDouble(_pick(m, const <String>['travelFee', 'travel_fee'])),
+      travelDistanceKm: _toDouble(
+        _pick(m, const <String>['travelDistanceKm', 'travel_distance_km']),
+      ),
+      adminMargin: _toDouble(
+        _pick(m, const <String>['adminMargin', 'admin_margin']),
+      ),
       cancellationFee: _toDouble(
         _pick(m, const <String>['cancellationFee', 'cancellation_fee']),
       ),
       totalPrice: _toDouble(
         _pick(m, const <String>['totalPrice', 'total_price']),
+      ),
+      isPricingFinal: _toBool(
+        _pick(m, const <String>['isPricingFinal', 'is_pricing_final']),
       ),
       addressLatitude: _toDouble(
         _pick(m, const <String>[
@@ -393,8 +408,11 @@ class FetchOrderDetailsUsecaseModelData {
       'basePrice': basePrice,
       'addonsTotal': addonsTotal,
       'travelFee': travelFee,
+      'travelDistanceKm': travelDistanceKm,
+      'adminMargin': adminMargin,
       'cancellationFee': cancellationFee,
       'totalPrice': totalPrice,
+      'isPricingFinal': isPricingFinal,
       'addressLatitude': addressLatitude,
       'addressLongitude': addressLongitude,
       'termsAccepted': termsAccepted,

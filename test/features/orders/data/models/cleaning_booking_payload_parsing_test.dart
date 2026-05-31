@@ -15,6 +15,9 @@ void main() {
           'workerId': 22,
           'cancellation_fee': '15.75',
           'total_price': 110.25,
+          'travel_distance_km': '4.125',
+          'admin_margin': 18.5,
+          'is_pricing_final': false,
           'tracking': <String, dynamic>{
             'started_travel_at': '2026-05-17T09:30:00Z',
             'address_latitude': '33.50',
@@ -59,6 +62,9 @@ void main() {
       expect(data.addressLatitude, 33.50);
       expect(data.addressLongitude, 36.30);
       expect(data.cancellationFee, 15.75);
+      expect(data.travelDistanceKm, 4.125);
+      expect(data.adminMargin, 18.5);
+      expect(data.isPricingFinal, isFalse);
       expect(data.customer?.name, 'Ahmad');
       expect(data.worker?.name, 'Sami');
       expect(data.services?.first.name, 'Kitchen');
@@ -78,6 +84,9 @@ void main() {
               'arrived_at': '2026-05-17T10:00:00Z',
               'work_started_at': '2026-05-17T10:05:00Z',
             },
+            'travelDistanceKm': 2.25,
+            'adminMargin': '12.75',
+            'isPricingFinal': 1,
             'customer': <String, dynamic>{'id': 7, 'name': 'Nour'},
           },
         ],
@@ -87,6 +96,9 @@ void main() {
       expect(item.id, 42);
       expect(item.arrivedAt, '2026-05-17T10:00:00Z');
       expect(item.workStartedAt, '2026-05-17T10:05:00Z');
+      expect(item.travelDistanceKm, 2.25);
+      expect(item.adminMargin, 12.75);
+      expect(item.isPricingFinal, isTrue);
       expect(item.customer?.name, 'Nour');
     });
   });
