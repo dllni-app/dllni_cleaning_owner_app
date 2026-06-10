@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/widgets/order_card.dart';
+import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_realtime_contract.dart';
+import 'package:dllni_cleaninig_owner_app/core/realtime/pusher_manager.dart';
 import 'package:dllni_cleaninig_owner_app/features/home/view/widgets/today_overview_card.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/data/models/fetch_worker_profile_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/fetch_worker_profile_usecase_use_case.dart';
@@ -14,7 +17,6 @@ import '../../../../core/di/injection.dart';
 import '../../../main/view/screens/main_screen.dart';
 import '../../../orders/domain/usecases/fetch_orders_usecase_use_case.dart';
 import '../../../orders/view/manager/bloc/orders_bloc.dart';
-import '../../../orders/view/widgets/extension_requests_sheet.dart';
 import '../../../profile/view/manager/bloc/profile_bloc.dart';
 import '../../../profile/view/screens/wallet_screen.dart';
 import '../../domain/usecases/fetch_home_page_usecase_use_case.dart';
@@ -30,16 +32,130 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static const Duration _realtimeRefreshDebounce = Duration(milliseconds: 150);
+
   FetchWorkerProfileUsecaseModel? user;
   bool _isIncompleteDialogOpen = false;
+  late final OrdersBloc _ordersBloc;
+  late final HomeBloc _homeBloc;
+  late final ProfileBloc _profileBloc;
+  final PusherManager _pusherManager = getIt<PusherManager>();
+  RealtimeListenerHandle? _workerRealtimeHandle;
+  Timer? _realtimeRefreshTimer;
+  int? _workerId;
 
   @override
   void initState() {
     super.initState();
     final data = SharedPreferencesHelper.getData(key: 'user');
     if (data != null) {
-      user = fetchWorkerProfileUsecaseModelFromJson(data is String ? json.decode(data) : data);
+      user = fetchWorkerProfileUsecaseModelFromJson(
+        data is String ? json.decode(data) : data,
+      );
     }
+    _homeBloc = getIt<HomeBloc>()
+      ..add(FetchHomePageUsecaseEvent(params: FetchHomePageUsecaseParams()));
+    _ordersBloc = getIt<OrdersBloc>()
+      ..add(
+        FetchOrdersUsecaseEvent(
+          params: FetchOrdersUsecaseParams(page: 1, status: 'pending'),
+        ),
+      );
+    _profileBloc = getIt<ProfileBloc>()
+      ..add(
+        FetchWorkerProfileUsecaseEvent(
+          params: FetchWorkerProfileUsecaseParams(),
+        ),
+      );
+    _workerId = _resolveWorkerId();
+    unawaited(_bindWorkerRealtimeListener());
+  }
+
+  int? _resolveWorkerId() {
+    final raw = SharedPreferencesHelper.getData(key: 'worker_id');
+    if (raw is num) return raw.toInt();
+    return int.tryParse('$raw');
+  }
+
+  Future<void> _bindWorkerRealtimeListener() async {
+    final workerId = _workerId;
+    if (workerId == null || workerId <= 0) return;
+    final handle = await _pusherManager.listen(
+      channelName: '${CleaningRealtimeContract.workerChannelPrefix}$workerId',
+      onEvent: (event) {
+        if (!mounted) return;
+        if (!CleaningRealtimeContract.shouldRefreshPendingOrdersForWorkerEvent(
+          event.eventName,
+          event.payload,
+        )) {
+          return;
+        }
+        _schedulePendingOrdersRefresh();
+      },
+    );
+    if (!mounted) {
+      await handle.dispose();
+      return;
+    }
+    _workerRealtimeHandle = handle;
+  }
+
+  void _dispatchHomeRefresh({bool isReload = true, bool silent = false}) {
+    _homeBloc.add(
+      FetchHomePageUsecaseEvent(params: FetchHomePageUsecaseParams()),
+    );
+    _ordersBloc.add(
+      FetchOrdersUsecaseEvent(
+        params: FetchOrdersUsecaseParams(page: 1, status: 'pending'),
+        isReload: isReload,
+        silent: silent,
+      ),
+    );
+    _profileBloc.add(
+      FetchWorkerProfileUsecaseEvent(params: FetchWorkerProfileUsecaseParams()),
+    );
+  }
+
+  Future<void> _refreshHomeScreen() async {
+    final homeCompletion = _homeBloc.stream
+        .skip(1)
+        .firstWhere(
+          (state) => state.homePageUsecaseStatus != BlocStatus.loading,
+        );
+    final ordersCompletion = _ordersBloc.stream
+        .skip(1)
+        .firstWhere(
+          (state) => state.ordersUsecase!.status != BlocStatus.loading,
+        );
+    final profileCompletion = _profileBloc.stream
+        .skip(1)
+        .firstWhere(
+          (state) => state.workerProfileUsecaseStatus != BlocStatus.loading,
+        );
+
+    _dispatchHomeRefresh(isReload: true);
+
+    await Future.wait([homeCompletion, ordersCompletion, profileCompletion]);
+  }
+
+  void _schedulePendingOrdersRefresh() {
+    _realtimeRefreshTimer?.cancel();
+    _realtimeRefreshTimer = Timer(_realtimeRefreshDebounce, () {
+      if (!mounted) return;
+      _dispatchHomeRefresh(isReload: true, silent: true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _realtimeRefreshTimer?.cancel();
+    final handle = _workerRealtimeHandle;
+    _workerRealtimeHandle = null;
+    unawaited(handle?.dispose());
+    _homeBloc.close();
+    _ordersBloc.close();
+    _profileBloc.close();
+    super.dispose();
   }
 
   Future<void> _showIncompleteDataDialog(List<String> missingSectionsAr) async {
@@ -56,7 +172,10 @@ class _HomeScreenState extends State<HomeScreen> {
           onCompleteNow: () {
             Navigator.of(dialogContext).pop();
             if (!mounted) return;
-            context.pushRouteAndRemoveUntil('/main', arguments: MainScreenParam(returnedPageIndex: 3));
+            context.pushRouteAndRemoveUntil(
+              '/main',
+              arguments: MainScreenParam(returnedPageIndex: 3),
+            );
           },
         );
       },
@@ -68,8 +187,12 @@ class _HomeScreenState extends State<HomeScreen> {
   void _maybePromptIncompleteData(ProfileState state) {
     if (state.workerProfileUsecaseStatus != BlocStatus.success) return;
 
-    final completeness = evaluateWorkerProfileCompleteness(state.workerProfileUsecase?.data);
-    if (!WorkerProfileCompletenessPromptGate.consumeShouldPrompt(completeness)) {
+    final completeness = evaluateWorkerProfileCompleteness(
+      state.workerProfileUsecase?.data,
+    );
+    if (!WorkerProfileCompletenessPromptGate.consumeShouldPrompt(
+      completeness,
+    )) {
       return;
     }
     _showIncompleteDataDialog(completeness.missingSectionsAr);
@@ -79,48 +202,66 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider<HomeBloc>(lazy: false, create: (context) => getIt<HomeBloc>()..add(FetchHomePageUsecaseEvent(params: FetchHomePageUsecaseParams()))),
-        BlocProvider<OrdersBloc>(
-          lazy: false,
-          create: (context) => getIt<OrdersBloc>()..add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: 'pending'))),
-        ),
-        BlocProvider<ProfileBloc>(lazy: false, create: (context) => getIt<ProfileBloc>()..add(FetchWorkerProfileUsecaseEvent(params: FetchWorkerProfileUsecaseParams()))),
+        BlocProvider<HomeBloc>.value(value: _homeBloc),
+        BlocProvider<OrdersBloc>.value(value: _ordersBloc),
+        BlocProvider<ProfileBloc>.value(value: _profileBloc),
       ],
       child: BlocListener<ProfileBloc, ProfileState>(
-        listenWhen: (previous, current) => previous.workerProfileUsecaseStatus != current.workerProfileUsecaseStatus,
+        listenWhen: (previous, current) =>
+            previous.workerProfileUsecaseStatus !=
+            current.workerProfileUsecaseStatus,
         listener: (context, state) => _maybePromptIncompleteData(state),
         child: SafeArea(
           child: Column(
             children: [
               const HomeAppBar(),
               Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsetsDirectional.only(start: 24.w, end: 24.w, bottom: 20.h),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      16.verticalSpace,
-                      AppText.labelLarge('نظرة عامة عن اليوم', fontWeight: FontWeight.w400),
-                      12.verticalSpace,
-                      TodayOverviewCard(),
-                      12.verticalSpace,
-                      Builder(
-                        builder: (innerContext) {
-                          return StatisticsRow(
-                            onStatisticsTap: () {
-                              Navigator.of(innerContext).push<void>(
-                                MaterialPageRoute<void>(
-                                  builder: (_) => BlocProvider.value(value: innerContext.read<ProfileBloc>(), child: const WalletScreen()),
-                                ),
-                              );
-                            },
-                            onStatusTap: (status) {
-                              innerContext.pushRouteAndRemoveUntil('/main', arguments: MainScreenParam(returnedPageIndex: 2, ordersInitialStatus: status));
-                            },
-                          );
-                        },
-                      ),
-                      /*12.verticalSpace,
+                child: RefreshIndicator(
+                  onRefresh: _refreshHomeScreen,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: EdgeInsetsDirectional.only(
+                      start: 24.w,
+                      end: 24.w,
+                      bottom: 20.h,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        16.verticalSpace,
+                        AppText.labelLarge(
+                          'نظرة عامة عن اليوم',
+                          fontWeight: FontWeight.w400,
+                        ),
+                        12.verticalSpace,
+                        TodayOverviewCard(),
+                        12.verticalSpace,
+                        Builder(
+                          builder: (innerContext) {
+                            return StatisticsRow(
+                              onStatisticsTap: () {
+                                Navigator.of(innerContext).push<void>(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => BlocProvider.value(
+                                      value: innerContext.read<ProfileBloc>(),
+                                      child: const WalletScreen(),
+                                    ),
+                                  ),
+                                );
+                              },
+                              onStatusTap: (status) {
+                                innerContext.pushRouteAndRemoveUntil(
+                                  '/main',
+                                  arguments: MainScreenParam(
+                                    returnedPageIndex: 2,
+                                    ordersInitialStatus: status,
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
+                        /*12.verticalSpace,
                       BlocBuilder<HomeBloc, HomeState>(
                         builder: (context, homeState) {
                           final n = homeState.homePageUsecase?.pendingExtensionRequestsCount ?? 0;
@@ -153,49 +294,80 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                         },
                       ),*/
-                      16.verticalSpace,
-                      Row(
-                        children: [
-                          AppText.labelLarge('مهام اليوم', fontWeight: FontWeight.w400),
-                          8.horizontalSpace,
-                          CircleAvatar(
-                            radius: 10.r,
-                            backgroundColor: context.error,
-                            child: BlocBuilder<OrdersBloc, OrdersState>(
-                              builder: (context, state) {
-                                return AppText.labelSmall(state.ordersUsecase!.isSuccess ? state.ordersUsecase!.list.length.toString() : '0', color: context.onError);
+                        16.verticalSpace,
+                        Row(
+                          children: [
+                            AppText.labelLarge(
+                              'مهام اليوم',
+                              fontWeight: FontWeight.w400,
+                            ),
+                            8.horizontalSpace,
+                            CircleAvatar(
+                              radius: 10.r,
+                              backgroundColor: context.error,
+                              child: BlocBuilder<OrdersBloc, OrdersState>(
+                                builder: (context, state) {
+                                  return AppText.labelSmall(
+                                    state.ordersUsecase!.isSuccess
+                                        ? state.ordersUsecase!.list.length
+                                              .toString()
+                                        : '0',
+                                    color: context.onError,
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        8.verticalSpace,
+                        BlocBuilder<OrdersBloc, OrdersState>(
+                          buildWhen: (previous, current) =>
+                              previous.ordersUsecase != current.ordersUsecase,
+                          builder: (context, state) {
+                            return state.ordersUsecase!.builder(
+                              loadingWidget: Padding(
+                                padding: EdgeInsetsDirectional.only(top: 40.h),
+                                child: const Center(
+                                  child: CircularProgressIndicator.adaptive(),
+                                ),
+                              ),
+                              emptyWidget: AppText.labelMedium(
+                                'لا يوجد مهام',
+                                fontWeight: FontWeight.w400,
+                              ),
+                              successWidget: () {
+                                return ListView.separated(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemBuilder: (context, index) => OrderCard(
+                                    data: state.ordersUsecase!.list[index],
+                                    bloc: context.read<OrdersBloc>(),
+                                    index: index,
+                                  ),
+                                  separatorBuilder: (context, index) =>
+                                      16.verticalSpace,
+                                  itemCount: state.ordersUsecase!.list.length,
+                                );
                               },
-                            ),
-                          ),
-                        ],
-                      ),
-                      8.verticalSpace,
-                      BlocBuilder<OrdersBloc, OrdersState>(
-                        buildWhen: (previous, current) => previous.ordersUsecase != current.ordersUsecase,
-                        builder: (context, state) {
-                          return state.ordersUsecase!.builder(
-                            loadingWidget: Padding(
-                              padding: EdgeInsetsDirectional.only(top: 40.h),
-                              child: const Center(child: CircularProgressIndicator.adaptive()),
-                            ),
-                            emptyWidget: AppText.labelMedium('لا يوجد مهام', fontWeight: FontWeight.w400),
-                            successWidget: () {
-                              return ListView.separated(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemBuilder: (context, index) => OrderCard(data: state.ordersUsecase!.list[index], bloc: context.read<OrdersBloc>(), index: index),
-                                separatorBuilder: (context, index) => 16.verticalSpace,
-                                itemCount: state.ordersUsecase!.list.length,
-                              );
-                            },
-                            failedWidget: AppText.labelLarge(state.errorMessage ?? 'حدث خطأ ما', color: context.error),
-                            onTapRetry: () {
-                              context.read<OrdersBloc>().add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: 'worker_assigned')));
-                            },
-                          );
-                        },
-                      ),
-                    ],
+                              failedWidget: AppText.labelLarge(
+                                state.errorMessage ?? 'حدث خطأ ما',
+                                color: context.error,
+                              ),
+                              onTapRetry: () {
+                                context.read<OrdersBloc>().add(
+                                  FetchOrdersUsecaseEvent(
+                                    params: FetchOrdersUsecaseParams(
+                                      page: 1,
+                                      status: 'worker_assigned',
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

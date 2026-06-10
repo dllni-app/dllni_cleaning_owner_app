@@ -130,6 +130,30 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
   ) async {
     _lastOrdersStatusFilter = event.params.status ?? _lastOrdersStatusFilter;
     if (!state.ordersUsecase!.isEndPage || event.isReload) {
+      if (event.silent) {
+        final res = await fetchOrdersUsecaseUseCase(event.params);
+        res.fold(
+          (l) {
+            AppToast.showErrorGlobal(l.message);
+            emit(
+              state.copyWith(
+                errorMessage: l.message,
+              ),
+            );
+          },
+          (r) {
+            emit(
+              state.copyWith(
+                ordersUsecase: state.ordersUsecase!.setSuccessReplace(
+                  data: r.data!,
+                ),
+              ),
+            );
+          },
+        );
+        return;
+      }
+
       emit(
         state.copyWith(
           ordersUsecase: state.ordersUsecase!.setLoading(
@@ -223,6 +247,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
               status: CleaningBookingStatus.pending,
             ),
             isReload: true,
+            silent: true,
           ),
         );
         emit(
@@ -230,6 +255,9 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
             acceptOrderUsecaseStatus: BlocStatus.success,
             acceptOrderUsecase: r,
             currentStep: 1,
+            ordersUsecase: state.ordersUsecase!.removeWhere(
+              (order) => order.id == event.params.id,
+            ),
           ),
         );
       },
@@ -270,6 +298,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
               status: CleaningBookingStatus.workerAssigned,
             ),
             isReload: true,
+            silent: true,
           ),
         );
         emit(
@@ -317,6 +346,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
               status: CleaningBookingStatus.inProgress,
             ),
             isReload: true,
+            silent: true,
           ),
         );
         add(
@@ -326,6 +356,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
               status: CleaningBookingStatus.workerAssigned,
             ),
             isReload: true,
+            silent: true,
           ),
         );
         emit(
@@ -368,10 +399,17 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
               status: _lastOrdersStatusFilter,
             ),
             isReload: true,
+            silent: true,
           ),
         );
         emit(
-          state.copyWith(cancelOrderStatus: BlocStatus.success, cancelOrder: r),
+          state.copyWith(
+            cancelOrderStatus: BlocStatus.success,
+            cancelOrder: r,
+            ordersUsecase: state.ordersUsecase!.removeWhere(
+              (order) => order.id == event.params.id,
+            ),
+          ),
         );
       },
     );
@@ -540,12 +578,16 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
               status: CleaningBookingStatus.pending,
             ),
             isReload: true,
+            silent: true,
           ),
         );
         emit(
           state.copyWith(
             rejectOrderUsecaseStatus: BlocStatus.success,
             rejectOrderUsecase: r,
+            ordersUsecase: state.ordersUsecase!.removeWhere(
+              (order) => order.id == event.params.id,
+            ),
           ),
         );
       },
@@ -587,6 +629,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
               status: CleaningBookingStatus.workerAssigned,
             ),
             isReload: true,
+            silent: true,
           ),
         );
         add(
@@ -770,6 +813,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
               status: CleaningBookingStatus.inProgress,
             ),
             isReload: true,
+            silent: true,
           ),
         );
         emit(
@@ -811,6 +855,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
           status: _lastOrdersStatusFilter,
         ),
         isReload: true,
+        silent: true,
       ),
     );
   }

@@ -69,7 +69,7 @@ class _WorkAreasScreenState extends State<WorkAreasScreen> {
 
   List<_WorkAreaItem> filteredAreas = [];
   List<_WorkAreaItem> selectedAreas = [];
-
+  bool get _allAreasSelected => _areas.every((area) => area.selected);
 
   @override
   void initState() {
@@ -89,6 +89,19 @@ class _WorkAreasScreenState extends State<WorkAreasScreen> {
     super.dispose();
   }
 
+  void _toggleSelectAllAreas() {
+    setState(() {
+      final shouldSelectAll = !_allAreasSelected;
+      selectedAreas.clear();
+      for (final area in _areas) {
+        area.selected = shouldSelectAll;
+        if (shouldSelectAll) {
+          selectedAreas.add(area);
+        }
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider<ProfileBloc>(
@@ -106,27 +119,52 @@ class _WorkAreasScreenState extends State<WorkAreasScreen> {
                   16.verticalSpace,
                   Expanded(
                     child: SingleChildScrollView(
-                      padding: EdgeInsetsDirectional.symmetric(horizontal: 18.w),
+                      padding: EdgeInsetsDirectional.symmetric(
+                        horizontal: 18.w,
+                      ),
                       child: Container(
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(24.r),
                           border: Border.all(color: const Color(0xffE5E7EB)),
-                          boxShadow: [BoxShadow(color: Colors.black.withAlpha(10), blurRadius: 16, spreadRadius: -2, offset: const Offset(0, 4))],
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withAlpha(10),
+                              blurRadius: 16,
+                              spreadRadius: -2,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                        padding: EdgeInsetsDirectional.fromSTEB(16.w, 20.h, 16.w, 16.h),
+                        padding: EdgeInsetsDirectional.fromSTEB(
+                          16.w,
+                          20.h,
+                          16.w,
+                          16.h,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
-                                AppText.bodyLarge('تحديد مناطق العمل', color: context.primaryContainer, fontWeight: FontWeight.w700),
+                                AppText.bodyLarge(
+                                  'تحديد مناطق العمل',
+                                  color: context.primaryContainer,
+                                  fontWeight: FontWeight.w700,
+                                ),
                                 const Spacer(),
                                 Container(
                                   width: 34.w,
                                   height: 34.w,
-                                  decoration: const BoxDecoration(color: Color(0xffE0F2FE), shape: BoxShape.circle),
-                                  child: Icon(Icons.location_on_rounded, color: context.primaryContainer, size: 20.sp),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xffE0F2FE),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.location_on_rounded,
+                                    color: context.primaryContainer,
+                                    size: 20.sp,
+                                  ),
                                 ),
                               ],
                             ),
@@ -136,13 +174,22 @@ class _WorkAreasScreenState extends State<WorkAreasScreen> {
                               decoration: BoxDecoration(
                                 color: const Color(0xffEEF2FF),
                                 borderRadius: BorderRadius.circular(14.r),
-                                border: Border.all(color: const Color(0xffA5B4FC)),
+                                border: Border.all(
+                                  color: const Color(0xffA5B4FC),
+                                ),
                               ),
-                              padding: EdgeInsetsDirectional.symmetric(horizontal: 10.w, vertical: 12.h),
+                              padding: EdgeInsetsDirectional.symmetric(
+                                horizontal: 10.w,
+                                vertical: 12.h,
+                              ),
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Icon(Icons.lightbulb_rounded, size: 16.sp, color: const Color(0xff1E3A8A)),
+                                  Icon(
+                                    Icons.lightbulb_rounded,
+                                    size: 16.sp,
+                                    color: const Color(0xff1E3A8A),
+                                  ),
                                   6.horizontalSpace,
                                   Expanded(
                                     child: AppText.labelMedium(
@@ -155,7 +202,41 @@ class _WorkAreasScreenState extends State<WorkAreasScreen> {
                               ),
                             ),
                             16.verticalSpace,
-                            AppText.bodyMedium('اختيار المناطق', color: const Color(0xff374151), fontWeight: FontWeight.w700),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: AppText.bodyMedium(
+                                    'اختيار المناطق',
+                                    color: const Color(0xff374151),
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                InkWell(
+                                  onTap: _toggleSelectAllAreas,
+                                  borderRadius: BorderRadius.circular(8.r),
+                                  child: Container(
+                                    padding: EdgeInsetsDirectional.symmetric(
+                                      horizontal: 10.w,
+                                      vertical: 6.h,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xffEFF6FF),
+                                      borderRadius: BorderRadius.circular(8.r),
+                                      border: Border.all(
+                                        color: const Color(0xffBFDBFE),
+                                      ),
+                                    ),
+                                    child: AppText.labelMedium(
+                                      _allAreasSelected
+                                          ? 'إلغاء الكل'
+                                          : 'تحديد الكل',
+                                      color: const Color(0xff1D4ED8),
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                             10.verticalSpace,
                             TextField(
                               controller: _searchController,
@@ -164,25 +245,45 @@ class _WorkAreasScreenState extends State<WorkAreasScreen> {
                                   if (value.isEmpty) {
                                     filteredAreas = List.from(_areas);
                                   } else {
-                                    filteredAreas = _areas.where((area) => area.name.contains(value)).toList();
+                                    filteredAreas = _areas
+                                        .where(
+                                          (area) => area.name.contains(value),
+                                        )
+                                        .toList();
                                   }
                                 });
                               },
-                              style: context.textTheme.labelLarge!.copyWith(color: Colors.black),
+                              style: context.textTheme.labelLarge!.copyWith(
+                                color: Colors.black,
+                              ),
                               decoration: InputDecoration(
                                 hintText: 'ابحث عن منطقة...',
-                                hintStyle: TextStyle(color: const Color(0xff9CA3AF), fontSize: 14.sp),
-                                prefixIcon: Icon(Icons.search_rounded, color: const Color(0xff9CA3AF), size: 20.sp),
+                                hintStyle: TextStyle(
+                                  color: const Color(0xff9CA3AF),
+                                  fontSize: 14.sp,
+                                ),
+                                prefixIcon: Icon(
+                                  Icons.search_rounded,
+                                  color: const Color(0xff9CA3AF),
+                                  size: 20.sp,
+                                ),
                                 filled: true,
                                 fillColor: const Color(0xffF9FAFB),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 12.w,
+                                  vertical: 12.h,
+                                ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12.r),
-                                  borderSide: const BorderSide(color: Color(0xffD1D5DB)),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xffD1D5DB),
+                                  ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12.r),
-                                  borderSide: BorderSide(color: context.primaryContainer),
+                                  borderSide: BorderSide(
+                                    color: context.primaryContainer,
+                                  ),
                                 ),
                               ),
                             ),
@@ -191,7 +292,10 @@ class _WorkAreasScreenState extends State<WorkAreasScreen> {
                               Center(
                                 child: Padding(
                                   padding: EdgeInsets.symmetric(vertical: 24.h),
-                                  child: AppText.labelLarge('لا توجد نتائج مطابقة', color: const Color(0xff6B7280)),
+                                  child: AppText.labelLarge(
+                                    'لا توجد نتائج مطابقة',
+                                    color: const Color(0xff6B7280),
+                                  ),
                                 ),
                               )
                             else
@@ -203,15 +307,25 @@ class _WorkAreasScreenState extends State<WorkAreasScreen> {
                   ),
                   12.verticalSpace,
                   Padding(
-                    padding: EdgeInsetsDirectional.fromSTEB(20.w, 0, 20.w, 14.h),
+                    padding: EdgeInsetsDirectional.fromSTEB(
+                      20.w,
+                      0,
+                      20.w,
+                      14.h,
+                    ),
                     child: BlocConsumer<ProfileBloc, ProfileState>(
                       listener: (context, state) {
                         if (state.updateWorkAreasStatus == BlocStatus.success) {
                           Loading.close();
-                          context.pushRouteAndRemoveUntil('/main', arguments: MainScreenParam(returnedPageIndex: 3));
-                        } else if (state.updateWorkAreasStatus == BlocStatus.loading) {
+                          context.pushRouteAndRemoveUntil(
+                            '/main',
+                            arguments: MainScreenParam(returnedPageIndex: 3),
+                          );
+                        } else if (state.updateWorkAreasStatus ==
+                            BlocStatus.loading) {
                           Loading.show(context);
-                        } else if (state.updateWorkAreasStatus == BlocStatus.failed) {
+                        } else if (state.updateWorkAreasStatus ==
+                            BlocStatus.failed) {
                           Loading.close();
                         }
                       },
@@ -222,13 +336,36 @@ class _WorkAreasScreenState extends State<WorkAreasScreen> {
                               flex: 3,
                               child: InkWell(
                                 onTap: () {
-                                  final zones = selectedAreas.map((e) => WorkAreaZoneUpdateItem(name: e.name, isActive: e.selected)).toList();
-                                  context.read<ProfileBloc>().add(UpdateWorkerWorkAreasEvent(params: UpdateWorkerWorkAreasParams(zones: zones)));
+                                  final zones = selectedAreas
+                                      .map(
+                                        (e) => WorkAreaZoneUpdateItem(
+                                          name: e.name,
+                                          isActive: e.selected,
+                                        ),
+                                      )
+                                      .toList();
+                                  context.read<ProfileBloc>().add(
+                                    UpdateWorkerWorkAreasEvent(
+                                      params: UpdateWorkerWorkAreasParams(
+                                        zones: zones,
+                                      ),
+                                    ),
+                                  );
                                 },
                                 child: Container(
-                                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(8.r), color: context.primary),
-                                  padding: EdgeInsetsDirectional.symmetric(horizontal: 12.w, vertical: 8.h),
-                                  child: AppText.labelLarge('حفظ التغييرات', color: context.onPrimary, fontWeight: FontWeight.w500),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(8.r),
+                                    color: context.primary,
+                                  ),
+                                  padding: EdgeInsetsDirectional.symmetric(
+                                    horizontal: 12.w,
+                                    vertical: 8.h,
+                                  ),
+                                  child: AppText.labelLarge(
+                                    'حفظ التغييرات',
+                                    color: context.onPrimary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ),
                             ),
@@ -244,8 +381,15 @@ class _WorkAreasScreenState extends State<WorkAreasScreen> {
                                     color: context.error.withAlpha(50),
                                     border: Border.all(color: context.error),
                                   ),
-                                  padding: EdgeInsetsDirectional.symmetric(horizontal: 6.w, vertical: 8.h),
-                                  child: AppText.labelLarge('إلغاء', color: context.error, fontWeight: FontWeight.w500),
+                                  padding: EdgeInsetsDirectional.symmetric(
+                                    horizontal: 6.w,
+                                    vertical: 8.h,
+                                  ),
+                                  child: AppText.labelLarge(
+                                    'إلغاء',
+                                    color: context.error,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ),
                             ),
@@ -268,20 +412,35 @@ class _WorkAreasScreenState extends State<WorkAreasScreen> {
       width: context.width,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.only(bottomLeft: Radius.circular(24.r), bottomRight: Radius.circular(24.r)),
-        border: Border(bottom: BorderSide(color: context.primaryContainer, width: 2)),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(24.r),
+          bottomRight: Radius.circular(24.r),
+        ),
+        border: Border(
+          bottom: BorderSide(color: context.primaryContainer, width: 2),
+        ),
       ),
-      padding: EdgeInsetsDirectional.symmetric(horizontal: 22.w, vertical: 16.h),
+      padding: EdgeInsetsDirectional.symmetric(
+        horizontal: 22.w,
+        vertical: 16.h,
+      ),
       child: Row(
         children: [
           InkWell(
             onTap: () {
               context.pop();
             },
-            child: Icon(Icons.arrow_back_ios_new, color: context.primaryContainer),
+            child: Icon(
+              Icons.arrow_back_ios_new,
+              color: context.primaryContainer,
+            ),
           ),
           10.horizontalSpace,
-          AppText.headlineLarge('مناطق العمل', color: context.primaryContainer, fontWeight: FontWeight.w700),
+          AppText.headlineLarge(
+            'مناطق العمل',
+            color: context.primaryContainer,
+            fontWeight: FontWeight.w700,
+          ),
         ],
       ),
     );
@@ -305,23 +464,46 @@ class _WorkAreasScreenState extends State<WorkAreasScreen> {
         child: Container(
           width: context.width,
           decoration: BoxDecoration(
-            color: item.selected ? const Color(0xffE0F2F1) : const Color(0xffF9FAFB),
+            color: item.selected
+                ? const Color(0xffE0F2F1)
+                : const Color(0xffF9FAFB),
             borderRadius: BorderRadius.circular(14.r),
-            border: Border.all(color: item.selected ? context.primaryContainer : const Color(0xffE5E7EB)),
+            border: Border.all(
+              color: item.selected
+                  ? context.primaryContainer
+                  : const Color(0xffE5E7EB),
+            ),
           ),
-          padding: EdgeInsetsDirectional.symmetric(horizontal: 10.w, vertical: 10.h),
+          padding: EdgeInsetsDirectional.symmetric(
+            horizontal: 10.w,
+            vertical: 10.h,
+          ),
           child: Row(
             children: [
               _SelectionBox(isSelected: item.selected),
               10.horizontalSpace,
               Expanded(
-                child: AppText.bodySmall(item.name, color: const Color(0xff111827), fontWeight: FontWeight.w700, textAlign: TextAlign.start),
+                child: AppText.bodySmall(
+                  item.name,
+                  color: const Color(0xff111827),
+                  fontWeight: FontWeight.w700,
+                  textAlign: TextAlign.start,
+                ),
               ),
               Container(
                 width: 34.w,
                 height: 34.w,
-                decoration: const BoxDecoration(color: Color(0xffF3F4F6), borderRadius: BorderRadius.all(Radius.circular(8))),
-                child: Icon(Icons.location_on_rounded, size: 18.sp, color: item.selected ? context.primaryContainer : const Color(0xffD1D5DB)),
+                decoration: const BoxDecoration(
+                  color: Color(0xffF3F4F6),
+                  borderRadius: BorderRadius.all(Radius.circular(8)),
+                ),
+                child: Icon(
+                  Icons.location_on_rounded,
+                  size: 18.sp,
+                  color: item.selected
+                      ? context.primaryContainer
+                      : const Color(0xffD1D5DB),
+                ),
               ),
             ],
           ),
@@ -345,9 +527,16 @@ class _SelectionBox extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(6.r),
         color: isSelected ? context.primaryContainer : Colors.transparent,
-        border: Border.all(color: isSelected ? context.primaryContainer : const Color(0xffC7CDD4), width: 1.7),
+        border: Border.all(
+          color: isSelected
+              ? context.primaryContainer
+              : const Color(0xffC7CDD4),
+          width: 1.7,
+        ),
       ),
-      child: isSelected ? Icon(Icons.check_rounded, color: Colors.white, size: 16.sp) : null,
+      child: isSelected
+          ? Icon(Icons.check_rounded, color: Colors.white, size: 16.sp)
+          : null,
     );
   }
 }

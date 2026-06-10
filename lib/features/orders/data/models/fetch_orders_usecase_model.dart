@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'arrive_model.dart';
+import 'cleaning_booking_status.dart';
+import 'cleaning_team_models.dart';
 
 Map<String, dynamic> _toMap(dynamic value) {
   if (value is Map<String, dynamic>) return value;
@@ -266,6 +268,12 @@ class FetchOrdersUsecaseModelDataItem {
   final Map<String, dynamic>? billingPolicy;
   final List<dynamic>? timeWarnings;
   final List<dynamic>? disputes;
+  final String? assignmentMode;
+  final int? numberOfWorkers;
+  final CleaningWorkerAcceptanceModel? workerAcceptance;
+  final List<CleaningWorkerAssignmentModel>? workerAssignments;
+  final List<CleaningRoomAssignmentModel>? roomAssignments;
+  final CleaningMyAssignmentModel? myAssignment;
 
   FetchOrdersUsecaseModelDataItem({
     this.id,
@@ -313,6 +321,12 @@ class FetchOrdersUsecaseModelDataItem {
     this.billingPolicy,
     this.timeWarnings,
     this.disputes,
+    this.assignmentMode,
+    this.numberOfWorkers,
+    this.workerAcceptance,
+    this.workerAssignments,
+    this.roomAssignments,
+    this.myAssignment,
   });
 
   factory FetchOrdersUsecaseModelDataItem.fromJson(Map<String, dynamic> json) {
@@ -455,7 +469,65 @@ class FetchOrdersUsecaseModelDataItem {
           : (m['billing_policy'] is Map ? _toMap(m['billing_policy']) : null),
       timeWarnings: _toDynamicList(m['timeWarnings'] ?? m['time_warnings']),
       disputes: _toDynamicList(m['disputes']),
+      assignmentMode: _toStringValue(
+        _pick(m, const <String>['assignmentMode', 'assignment_mode']),
+      ),
+      numberOfWorkers: _toInt(
+        _pick(m, const <String>['numberOfWorkers', 'number_of_workers']),
+      ),
+      workerAcceptance: m['workerAcceptance'] == null &&
+              m['worker_acceptance'] == null
+          ? null
+          : CleaningWorkerAcceptanceModel.fromJson(
+              _toMap(m['workerAcceptance'] ?? m['worker_acceptance']),
+            ),
+      workerAssignments: _toMapList(
+        m['workerAssignments'] ?? m['worker_assignments'],
+      )
+          .map(CleaningWorkerAssignmentModel.fromJson)
+          .toList(growable: false),
+      roomAssignments: _toMapList(
+        m['roomAssignments'] ?? m['room_assignments'],
+      )
+          .map(CleaningRoomAssignmentModel.fromJson)
+          .toList(growable: false),
+      myAssignment: m['myAssignment'] == null && m['my_assignment'] == null
+          ? null
+          : CleaningMyAssignmentModel.fromJson(
+              _toMap(m['myAssignment'] ?? m['my_assignment']),
+            ),
     );
+  }
+
+  bool get isMultiWorkerTeam =>
+      (assignmentMode ?? '').toLowerCase() == 'open_count' ||
+      (numberOfWorkers ?? 1) > 1;
+
+  bool get isSearchingForWorkers {
+    final statusNorm = (status ?? '').toLowerCase();
+    if (statusNorm != CleaningBookingStatus.pending) return false;
+    final acceptance = workerAcceptance;
+    if (acceptance == null) return isMultiWorkerTeam;
+    return acceptance.isFulfilled != true;
+  }
+
+  List<CleaningRoomAssignmentModel> get myAssignedRooms {
+    final assignment = myAssignment;
+    final rooms = roomAssignments ?? const <CleaningRoomAssignmentModel>[];
+    if (assignment == null) return const [];
+
+    final roomIds = assignment.roomIds ?? const <int>[];
+    if (roomIds.isNotEmpty) {
+      return rooms
+          .where((room) => roomIds.contains(room.id))
+          .toList(growable: false);
+    }
+
+    final workerId = assignment.workerId;
+    if (workerId == null) return const [];
+    return rooms
+        .where((room) => room.assignedWorkerId == workerId)
+        .toList(growable: false);
   }
 
   Map<String, dynamic> toJson() {
@@ -505,7 +577,76 @@ class FetchOrdersUsecaseModelDataItem {
       'billingPolicy': billingPolicy,
       'timeWarnings': timeWarnings,
       'disputes': disputes,
+      'assignmentMode': assignmentMode,
+      'numberOfWorkers': numberOfWorkers,
+      'workerAcceptance': workerAcceptance,
+      'workerAssignments': workerAssignments,
+      'roomAssignments': roomAssignments,
+      'myAssignment': myAssignment,
     };
+  }
+
+  FetchOrdersUsecaseModelDataItem withTeamData({
+    String? assignmentMode,
+    int? numberOfWorkers,
+    CleaningWorkerAcceptanceModel? workerAcceptance,
+    List<CleaningWorkerAssignmentModel>? workerAssignments,
+    List<CleaningRoomAssignmentModel>? roomAssignments,
+    CleaningMyAssignmentModel? myAssignment,
+  }) {
+    return FetchOrdersUsecaseModelDataItem(
+      id: id,
+      customerId: customerId,
+      workerId: workerId,
+      preferredWorkerId: preferredWorkerId,
+      cancellationPolicyId: cancellationPolicyId,
+      billingPolicyId: billingPolicyId,
+      bookingNumber: bookingNumber,
+      status: status,
+      propertyType: propertyType,
+      locationName: locationName,
+      estimatedSqm: estimatedSqm,
+      scheduledDate: scheduledDate,
+      scheduledTime: scheduledTime,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      numberOfRooms: numberOfRooms,
+      numberOfKitchens: numberOfKitchens,
+      estimatedHours: estimatedHours,
+      totalHours: totalHours,
+      basePrice: basePrice,
+      addonsTotal: addonsTotal,
+      travelFee: travelFee,
+      travelDistanceKm: travelDistanceKm,
+      adminMargin: adminMargin,
+      cancellationFee: cancellationFee,
+      totalPrice: totalPrice,
+      isPricingFinal: isPricingFinal,
+      addressLatitude: addressLatitude,
+      addressLongitude: addressLongitude,
+      termsAccepted: termsAccepted,
+      startedTravelAt: startedTravelAt,
+      arrivedAt: arrivedAt,
+      workStartedAt: workStartedAt,
+      workFinishedAt: workFinishedAt,
+      customerConfirmedAt: customerConfirmedAt,
+      cancelledAt: cancelledAt,
+      cancellationReason: cancellationReason,
+      customer: customer,
+      worker: worker,
+      propertyDetails: propertyDetails,
+      services: services,
+      addons: addons,
+      billingPolicy: billingPolicy,
+      timeWarnings: timeWarnings,
+      disputes: disputes,
+      assignmentMode: assignmentMode ?? this.assignmentMode,
+      numberOfWorkers: numberOfWorkers ?? this.numberOfWorkers,
+      workerAcceptance: workerAcceptance ?? this.workerAcceptance,
+      workerAssignments: workerAssignments ?? this.workerAssignments,
+      roomAssignments: roomAssignments ?? this.roomAssignments,
+      myAssignment: myAssignment ?? this.myAssignment,
+    );
   }
 
   FetchOrdersUsecaseModelDataItem withLifecycle({
@@ -562,6 +703,12 @@ class FetchOrdersUsecaseModelDataItem {
       billingPolicy: billingPolicy,
       timeWarnings: timeWarnings,
       disputes: disputes,
+      assignmentMode: assignmentMode,
+      numberOfWorkers: numberOfWorkers,
+      workerAcceptance: workerAcceptance,
+      workerAssignments: workerAssignments,
+      roomAssignments: roomAssignments,
+      myAssignment: myAssignment,
     );
   }
 }

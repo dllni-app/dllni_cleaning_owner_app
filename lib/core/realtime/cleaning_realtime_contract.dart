@@ -17,6 +17,7 @@ class CleaningRealtimeContract {
   static const String completionDecisionMade = 'CompletionDecisionMade';
   static const String serviceExtensionRequested = 'ServiceExtensionRequested';
   static const String trackingUpdated = 'CleaningBookingTrackingUpdated';
+  static const String teamUpdated = 'cleaning_booking.team_updated';
 
   static const Map<String, String> legacyEventAliases = <String, String>{
     'SecurityCodeIssued': awaitingStartVerification,
@@ -57,6 +58,7 @@ class CleaningRealtimeContract {
       completionDecisionMade,
       serviceExtensionRequested,
       trackingUpdated,
+      teamUpdated,
     };
     for (final eventName in canonicalEvents) {
       addAlias(eventName, eventName);
@@ -116,7 +118,19 @@ class CleaningRealtimeContract {
         normalized == awaitingCustomerCompletion ||
         normalized == completionDecisionMade ||
         normalized == serviceExtensionRequested ||
-        normalized == trackingUpdated;
+        normalized == trackingUpdated ||
+        normalized == teamUpdated;
+  }
+
+  static bool shouldRefreshPendingOrdersForWorkerEvent(
+    String eventName,
+    Map<String, dynamic> payload,
+  ) {
+    if (isLifecycleRefreshEvent(eventName)) {
+      return true;
+    }
+    final unwrapped = unwrapPayload(payload);
+    return extractTrackingStatus(unwrapped) == CleaningBookingStatus.pending;
   }
 
   static String? extractTrackingStatus(Map<String, dynamic> payload) {

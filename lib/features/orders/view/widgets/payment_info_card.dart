@@ -9,6 +9,30 @@ class PaymentInfoCard extends StatelessWidget {
 
   final FetchOrdersUsecaseModelDataItem order;
 
+  bool get _usesWorkerShare => order.myAssignment != null;
+
+  String? get _serviceShareLabel {
+    final amount = order.myAssignment?.serviceShareAmount;
+    if (amount == null) return null;
+    return amount.toString();
+  }
+
+  String? get _travelFeeLabel {
+    final amount = order.myAssignment?.travelFee ?? order.travelFee;
+    if (amount == null) return null;
+    return amount.toString();
+  }
+
+  String get _totalLabel {
+    if (_usesWorkerShare) {
+      final amount = order.myAssignment?.workerAmount;
+      if (amount == null) return '';
+      final currency = order.myAssignment?.currency;
+      return currency == null || currency.isEmpty ? '\$$amount' : '$amount $currency';
+    }
+    return order.totalPrice == null ? '' : '\$${order.totalPrice}';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -17,14 +41,31 @@ class PaymentInfoCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppText.labelMedium("تفاصيل الدفع", fontWeight: FontWeight.w400),
+          AppText.labelMedium(
+            _usesWorkerShare ? 'أرباحك من الطلب' : 'تفاصيل الدفع',
+            fontWeight: FontWeight.w400,
+          ),
           12.verticalSpace,
           Divider(color: Colors.black.withAlpha(42)),
           12.verticalSpace,
-          _buildPriceRow(title: "سعر الخدمة الأساس", price: order.basePrice == null ? '' : order.basePrice.toString()),
-          12.verticalSpace,
-          _buildPriceRow(title: "رسوم توصيل", price: order.travelFee == null ? '' : order.travelFee.toString(), titleColor: context.primaryContainer, priceColor: context.primaryContainer),
-          18.verticalSpace,
+          if (_usesWorkerShare && _serviceShareLabel != null) ...[
+            _buildPriceRow(title: 'حصة الخدمة', price: _serviceShareLabel!),
+            12.verticalSpace,
+          ] else ...[
+            _buildPriceRow(
+              title: 'سعر الخدمة الأساس',
+              price: order.basePrice == null ? '' : order.basePrice.toString(),
+            ),
+            12.verticalSpace,
+          ],
+          if (_travelFeeLabel != null)
+            _buildPriceRow(
+              title: 'رسوم توصيل',
+              price: _travelFeeLabel!,
+              titleColor: context.primaryContainer,
+              priceColor: context.primaryContainer,
+            ),
+          if (_travelFeeLabel != null) 18.verticalSpace,
           LayoutBuilder(
             builder: (context, constraints) {
               final dashWidth = 6.0.w;
@@ -42,8 +83,11 @@ class PaymentInfoCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              AppText.labelMedium("المبلغ الكلي :", fontWeight: FontWeight.w500),
-              AppText.labelMedium(order.totalPrice == null ? '' : '\$${order.totalPrice}', fontWeight: FontWeight.w600),
+              AppText.labelMedium(
+                _usesWorkerShare ? 'صافي أرباحك :' : 'المبلغ الكلي :',
+                fontWeight: FontWeight.w500,
+              ),
+              AppText.labelMedium(_totalLabel, fontWeight: FontWeight.w600),
             ],
           ),
         ],

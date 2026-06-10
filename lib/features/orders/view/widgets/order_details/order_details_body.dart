@@ -8,12 +8,14 @@ import '../../../../../core/widgets/cancel_order_dialog.dart';
 import '../../../data/models/fetch_orders_usecase_model.dart';
 import '../../../domain/usecases/reject_order_usecase_use_case.dart';
 import '../../../domain/usecases/start_travel_usecase_use_case.dart';
+import '../../helpers/order_address_visibility_helper.dart';
 import '../../helpers/order_lifecycle_policy.dart';
 import '../../manager/bloc/orders_bloc.dart';
 import '../accept_order_bottom_sheet.dart';
 import '../estate_info_card.dart';
 import '../order_info_card.dart';
 import '../payment_info_card.dart';
+import '../worker_room_assignments_card.dart';
 
 class OrderDetailsBody extends StatefulWidget {
   const OrderDetailsBody({
@@ -128,6 +130,13 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                   SizedBox(height: 14),
                   EstateInfoCard(order: widget.order),
                   SizedBox(height: 14),
+                  _buildOrderAddressCard(context),
+                  SizedBox(height: 14),
+                  WorkerTeamStatusCard(order: widget.order),
+                  if (widget.order.isSearchingForWorkers) SizedBox(height: 14),
+                  WorkerRoomAssignmentsCard(order: widget.order),
+                  if (widget.order.myAssignedRooms.isNotEmpty)
+                    SizedBox(height: 14),
                   PaymentInfoCard(order: widget.order),
                   SizedBox(height: 10),
                   if (canAcceptReject) _buildAcceptRejectActions(context),
@@ -137,6 +146,49 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                 ],
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrderAddressCard(BuildContext context) {
+    final address = visibleOrderAddress(
+      address:
+          widget.order.propertyDetails?.address ?? widget.order.locationName,
+      status: widget.order.status,
+    );
+
+    return Container(
+      width: context.width,
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Color(0xffF4F5F7),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppText.labelMedium('عنوان العقار', fontWeight: FontWeight.w400),
+          SizedBox(height: 12),
+          Divider(color: Colors.black.withAlpha(42)),
+          SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(
+                Icons.location_on_outlined,
+                color: context.secondary,
+                size: 18,
+              ),
+              SizedBox(width: 6),
+              Expanded(
+                child: AppText.labelMedium(
+                  address,
+                  fontWeight: FontWeight.w300,
+                  textAlign: TextAlign.start,
+                ),
+              ),
+            ],
           ),
         ],
       ),

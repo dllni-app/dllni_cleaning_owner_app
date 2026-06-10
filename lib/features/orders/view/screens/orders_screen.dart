@@ -93,7 +93,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
         eventHandledAtMs: DateTime.now().millisecondsSinceEpoch,
         fallbackReason: reason,
       );
-      _ordersBloc.add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: orderNotifier.status.value), isReload: true));
+      _ordersBloc.add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: orderNotifier.status.value), isReload: true, silent: true));
     });
   }
 

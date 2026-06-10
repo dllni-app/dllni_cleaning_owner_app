@@ -10,6 +10,7 @@ import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/transact
 import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/transaction_history_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/update_profile_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/work_areas_screen.dart';
+import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/worker_reviews_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/working_time_screen.dart';
 
 class GeneratedAppRoutes {
@@ -77,6 +78,11 @@ class GeneratedAppRoutes {
           );
         }
         return _errorRoute(settings);
+      case '/workerreviews':
+        return MaterialPageRoute(
+          builder: (_) => WorkerReviewsScreen(),
+          settings: settings,
+        );
       case '/workingtime':
         if (args is WorkingTimeScreenParams) {
           return MaterialPageRoute(

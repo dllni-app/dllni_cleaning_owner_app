@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'arrive_model.dart';
+import 'cleaning_team_models.dart';
 
 Map<String, dynamic> _toMap(dynamic value) {
   if (value is Map<String, dynamic>) return value;
@@ -186,6 +187,12 @@ class FetchOrderDetailsUsecaseModelData {
   final FetchOrderDetailsUsecaseModelDataBillingPolicy? billingPolicy;
   final List<dynamic>? timeWarnings;
   final List<dynamic>? disputes;
+  final String? assignmentMode;
+  final int? numberOfWorkers;
+  final CleaningWorkerAcceptanceModel? workerAcceptance;
+  final List<CleaningWorkerAssignmentModel>? workerAssignments;
+  final List<CleaningRoomAssignmentModel>? roomAssignments;
+  final CleaningMyAssignmentModel? myAssignment;
 
   FetchOrderDetailsUsecaseModelData({
     this.id,
@@ -233,6 +240,12 @@ class FetchOrderDetailsUsecaseModelData {
     this.billingPolicy,
     this.timeWarnings,
     this.disputes,
+    this.assignmentMode,
+    this.numberOfWorkers,
+    this.workerAcceptance,
+    this.workerAssignments,
+    this.roomAssignments,
+    this.myAssignment,
   });
 
   factory FetchOrderDetailsUsecaseModelData.fromJson(
@@ -381,6 +394,33 @@ class FetchOrderDetailsUsecaseModelData {
           : null,
       timeWarnings: _toDynamicList(m['timeWarnings'] ?? m['time_warnings']),
       disputes: _toDynamicList(m['disputes']),
+      assignmentMode: _toStringValue(
+        _pick(m, const <String>['assignmentMode', 'assignment_mode']),
+      ),
+      numberOfWorkers: _toInt(
+        _pick(m, const <String>['numberOfWorkers', 'number_of_workers']),
+      ),
+      workerAcceptance: m['workerAcceptance'] == null &&
+              m['worker_acceptance'] == null
+          ? null
+          : CleaningWorkerAcceptanceModel.fromJson(
+              _toMap(m['workerAcceptance'] ?? m['worker_acceptance']),
+            ),
+      workerAssignments: _toMapList(
+        m['workerAssignments'] ?? m['worker_assignments'],
+      )
+          .map(CleaningWorkerAssignmentModel.fromJson)
+          .toList(growable: false),
+      roomAssignments: _toMapList(
+        m['roomAssignments'] ?? m['room_assignments'],
+      )
+          .map(CleaningRoomAssignmentModel.fromJson)
+          .toList(growable: false),
+      myAssignment: m['myAssignment'] == null && m['my_assignment'] == null
+          ? null
+          : CleaningMyAssignmentModel.fromJson(
+              _toMap(m['myAssignment'] ?? m['my_assignment']),
+            ),
     );
   }
 
@@ -431,6 +471,12 @@ class FetchOrderDetailsUsecaseModelData {
       'billingPolicy': billingPolicy?.toJson(),
       'timeWarnings': timeWarnings,
       'disputes': disputes,
+      'assignmentMode': assignmentMode,
+      'numberOfWorkers': numberOfWorkers,
+      'workerAcceptance': workerAcceptance,
+      'workerAssignments': workerAssignments,
+      'roomAssignments': roomAssignments,
+      'myAssignment': myAssignment,
     };
   }
 }

@@ -2,6 +2,7 @@ import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/fetch_disputes_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/manager/profile_notifier.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -69,7 +70,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                                 title: state.disputesUsecase!.list[index].category!,
                                 id: state.disputesUsecase!.list[index].ticketNumber!,
                                 disputeId: state.disputesUsecase!.list[index].id!,
-                                date: state.disputesUsecase!.list[index].booking!.scheduledDate!,
+                                date: state.disputesUsecase!.list[index].booking!.scheduledDate ?? DateFormat('yyyy-MM-dd').format(DateTime.now()),
                               );
                             },
                             separatorBuilder: (context, index) => SizedBox(height: 16),

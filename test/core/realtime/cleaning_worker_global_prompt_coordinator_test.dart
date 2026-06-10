@@ -221,7 +221,7 @@ void main() {
     });
 
     test(
-      'pollPendingExtensionPrompts opens pending order accept prompt',
+      'pollPendingExtensionPrompts does not auto-open pending order accept prompt',
       () async {
         final shown = <WorkerPendingOrderPromptData>[];
         final coordinator =
@@ -245,13 +245,12 @@ void main() {
 
         await coordinator.pollPendingExtensionPrompts();
 
-        expect(shown.length, 1);
-        expect(shown.first.order.id, 321);
+        expect(shown, isEmpty);
       },
     );
 
     test(
-      'pollPendingExtensionPrompts prioritizes pending order prompt over extension prompt',
+      'pollPendingExtensionPrompts still opens extension prompt when pending orders also exist',
       () async {
         final pendingShown = <WorkerPendingOrderPromptData>[];
         final extensionShown = <WorkerExtensionPromptData>[];
@@ -288,13 +287,14 @@ void main() {
 
         await coordinator.pollPendingExtensionPrompts();
 
-        expect(pendingShown.length, 1);
-        expect(extensionShown, isEmpty);
+        expect(pendingShown, isEmpty);
+        expect(extensionShown.length, 1);
+        expect(extensionShown.first.warningId, 7777);
       },
     );
 
     test(
-      'pollPendingExtensionPrompts does not duplicate pending order prompt in same session',
+      'pollPendingExtensionPrompts ignores pending orders across repeated polls',
       () async {
         var presentedCount = 0;
         final coordinator =
@@ -319,7 +319,7 @@ void main() {
         await coordinator.pollPendingExtensionPrompts();
         await coordinator.pollPendingExtensionPrompts();
 
-        expect(presentedCount, 1);
+        expect(presentedCount, 0);
       },
     );
 

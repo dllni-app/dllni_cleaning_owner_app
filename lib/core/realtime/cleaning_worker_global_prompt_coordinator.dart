@@ -209,16 +209,14 @@ class CleaningWorkerGlobalPromptCoordinator {
   }
 
   /// Polls `GET /cleaning-bookings?filter[status]=time_extension_requested` and
-  /// pending time-warning records, then opens the appropriate prompt:
-  /// [AcceptOrderBottomSheet] for pending orders, [ExtensionRequestActionSheet]
-  /// for extension requests.
+  /// pending time-warning records, then opens [ExtensionRequestActionSheet]
+  /// prompts for extension requests.
   Future<void> pollPendingExtensionPrompts() async {
     if (!_started || (!_authBypassForTest && !_hasToken())) return;
     if (_extensionPollInFlight || _promptSheetOpen) return;
 
     _extensionPollInFlight = true;
     try {
-      if (await _promptFirstPendingOrder()) return;
       if (await _promptFirstPendingExtensionRequest()) return;
       await _promptExtensionsFromTimeExtensionOrders();
     } finally {

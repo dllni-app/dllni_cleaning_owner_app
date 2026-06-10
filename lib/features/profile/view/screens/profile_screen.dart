@@ -3,12 +3,14 @@ import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_booking_pusher_service.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/data/models/fetch_worker_profile_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/fetch_worker_profile_usecase_use_case.dart';
+import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/update_worker_profile_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/helpers/worker_profile_completeness_helper.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/mission_start_location_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/update_profile_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/wallet_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/work_areas_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/working_time_screen.dart';
+import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/worker_reviews_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
@@ -57,6 +59,106 @@ class _ProfileScreenState extends State<ProfileScreen> {
     context.pushRouteAndRemoveUntil('/login');
   }
 
+  Future<bool> _confirmDeactivateAccount() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('تعطيل الحساب'),
+        content: const Text(
+          'في حال تعطيل حسابك لن تستقبل الطلبات حتى تعيد تفعيل الحساب',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('تعطيل'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
+  Future<void> _onAccountActiveChanged(BuildContext context, bool value) async {
+    if (value) {
+      context.read<ProfileBloc>().add(
+        UpdateWorkerProfileEvent(
+          params: UpdateWorkerProfileParams(isActive: 1),
+          showFeedback: false,
+        ),
+      );
+      return;
+    }
+
+    final confirmed = await _confirmDeactivateAccount();
+    if (!confirmed || !context.mounted) return;
+
+    context.read<ProfileBloc>().add(
+      UpdateWorkerProfileEvent(
+        params: UpdateWorkerProfileParams(isActive: 0),
+        showFeedback: false,
+      ),
+    );
+  }
+
+  Widget _buildAccountActiveToggle(BuildContext context, ProfileState state) {
+    final isActive = state.workerProfileUsecase?.data?.isActive ?? false;
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16.r),
+        color: const Color(0xff10B981).withAlpha(27),
+      ),
+      padding: EdgeInsetsDirectional.symmetric(horizontal: 12.w, vertical: 12.h),
+      child: Row(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: const Color(0xff10B981).withAlpha(27),
+            ),
+            padding: EdgeInsetsDirectional.all(8),
+            child: Icon(
+              Icons.power_settings_new,
+              size: 25.sp,
+              color: const Color(0xff10B981),
+            ),
+          ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AppText.bodyMedium(
+                  'تفعيل الحساب',
+                  fontWeight: FontWeight.bold,
+                  textAlign: TextAlign.start,
+                ),
+                SizedBox(height: 4.h),
+                AppText.labelLarge(
+                  isActive
+                      ? 'حسابك مفعل ويمكنك استقبال الطلبات'
+                      : 'حسابك معطل ولن تستقبل طلبات',
+                  fontWeight: FontWeight.w400,
+                  color: const Color(0xff6B7280),
+                  textAlign: TextAlign.start,
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 12.w),
+          CustomMiniSwitch(
+            value: isActive,
+            onChanged: (value) => _onAccountActiveChanged(context, value),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     const titles = <String>[
@@ -66,6 +168,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       'أوقات العمل',
       'سجل المعاملات',
       'الدعم والمساعدة',
+      'التقييمات والتعليقات',
     ];
     const subtitles = <String>[
       'لتعديل بيانات العرض',
@@ -74,6 +177,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       'يمكنك تعديل أوقات عملك',
       'يمكنك تتبع أدائك',
       'التواصل مع الدعم الفني',
+      'للاطلاع على تقييمات العملاء وتعليقاتهم',
     ];
     const images = <IconData>[
       Icons.person,
@@ -82,6 +186,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       Icons.alarm,
       Icons.signal_cellular_alt,
       Icons.headphones,
+      Icons.star_outline_rounded,
     ];
 
     const colors = <Color>[
@@ -91,6 +196,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       Color(0xffA855F7),
       Color(0xff22C55E),
       Color(0xff6366F1),
+      Color(0xffF59E0B),
     ];
 
     return BlocProvider<ProfileBloc>(
@@ -225,10 +331,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ? () {
                                       context.pushRoute('/transactionhistory');
                                     }
-                                  : () async {
+                                  : i == 5
+                                  ? () async {
                                       await launchUrl(
                                         Uri.parse(
                                           'https://wa.me/message/XJOZBNT3VS5SJ1',
+                                        ),
+                                      );
+                                    }
+                                  : () {
+                                      Navigator.of(context).push<void>(
+                                        MaterialPageRoute<void>(
+                                          builder: (_) => BlocProvider.value(
+                                            value: profileBloc,
+                                            child: const WorkerReviewsScreen(),
+                                          ),
                                         ),
                                       );
                                     },
@@ -236,6 +353,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           },
                         ),
                       ),
+                    ),
+                    12.verticalSpace,
+                    BlocBuilder<ProfileBloc, ProfileState>(
+                      builder: (context, state) {
+                        return _buildAccountActiveToggle(context, state);
+                      },
                     ),
                     12.verticalSpace,
                     InkWell(

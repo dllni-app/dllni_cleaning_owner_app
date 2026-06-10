@@ -25,6 +25,8 @@ import '../../../domain/usecases/fetch_deposit_transactions_use_case.dart';
 import '../../../domain/usecases/fetch_notifications_use_case.dart';
 import '../../../domain/usecases/mark_all_notifications_read_use_case.dart';
 import '../../../domain/usecases/mark_notification_read_use_case.dart';
+import '../../../domain/usecases/fetch_worker_reviews_use_case.dart';
+import '../../../data/models/fetch_worker_reviews_model.dart';
 part 'profile_event.dart';
 
 part 'profile_state.dart';
@@ -43,6 +45,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   final FetchNotificationsUseCase fetchNotificationsUseCase;
   final MarkAllNotificationsReadUseCase markAllNotificationsReadUseCase;
   final MarkNotificationReadUseCase markNotificationReadUseCase;
+  final FetchWorkerReviewsUseCase fetchWorkerReviewsUseCase;
 
   ProfileBloc(
     this.fetchWorkerProfileUsecaseUseCase,
@@ -57,6 +60,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     this.fetchNotificationsUseCase,
     this.markAllNotificationsReadUseCase,
     this.markNotificationReadUseCase,
+    this.fetchWorkerReviewsUseCase,
   ) : super(ProfileState()) {
     on<FetchWorkerProfileUsecaseEvent>(_fetchWorkerProfileUsecase);
     on<FetchDisputesUsecaseEvent>(
@@ -79,6 +83,10 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     );
     on<MarkAllNotificationsReadEvent>(_markAllNotificationsRead);
     on<MarkNotificationReadEvent>(_markNotificationRead);
+    on<FetchWorkerReviewsEvent>(
+      _fetchWorkerReviews,
+      transformer: droppableProMax(),
+    );
   }
 
   FutureOr<void> _fetchWorkerProfileUsecase(
@@ -275,20 +283,26 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     UpdateWorkerProfileEvent event,
     Emitter<ProfileState> emit,
   ) async {
-    emit(state.copyWith(updateWorkerProfileStatus: BlocStatus.loading));
+    if (event.showFeedback) {
+      emit(state.copyWith(updateWorkerProfileStatus: BlocStatus.loading));
+    }
     final res = await updateWorkerProfileUseCase(event.params);
     res.fold(
       (l) {
-        AppToast.showErrorGlobal(l.message);
-        emit(
-          state.copyWith(
-            updateWorkerProfileStatus: BlocStatus.failed,
-            errorMessage: l.message,
-          ),
-        );
+        if (event.showFeedback) {
+          AppToast.showErrorGlobal(l.message);
+          emit(
+            state.copyWith(
+              updateWorkerProfileStatus: BlocStatus.failed,
+              errorMessage: l.message,
+            ),
+          );
+        }
       },
       (r) {
-        AppToast.showSuccessGlobal('تم تحديث الملف الشخصي');
+        if (event.showFeedback) {
+          AppToast.showSuccessGlobal('تم تحديث الملف الشخصي');
+        }
 
         FetchWorkerProfileUsecaseModel? refreshedProfile;
         if (r.data != null) {
@@ -301,7 +315,9 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
 
         emit(
           state.copyWith(
-            updateWorkerProfileStatus: BlocStatus.success,
+            updateWorkerProfileStatus: event.showFeedback
+                ? BlocStatus.success
+                : state.updateWorkerProfileStatus,
             updateWorkerProfile: r,
             workerProfileUsecase:
                 refreshedProfile ?? state.workerProfileUsecase,
@@ -309,11 +325,13 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
           ),
         );
 
-        add(
-          FetchWorkerProfileUsecaseEvent(
-            params: FetchWorkerProfileUsecaseParams(),
-          ),
-        );
+        if (event.showFeedback) {
+          add(
+            FetchWorkerProfileUsecaseEvent(
+              params: FetchWorkerProfileUsecaseParams(),
+            ),
+          );
+        }
       },
     );
   }
@@ -535,6 +553,61 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       priority: item.priority,
       canonicalType: item.canonicalType,
       data: item.data,
+    );
+  }
+
+  FutureOr<void> _fetchWorkerReviews(
+    FetchWorkerReviewsEvent event,
+    Emitter<ProfileState> emit,
+  ) async {
+    final currentReviews = state.workerReviews;
+    final currentMeta = currentReviews?.meta;
+    final isLoadMore = event.loadMore && !event.isReload;
+    if (isLoadMore) {
+      final currentPage = currentMeta?.currentPage;
+      final lastPage = currentMeta?.lastPage;
+      if (state.workerReviewsStatus == BlocStatus.loading ||
+          currentPage == null ||
+          lastPage == null ||
+          currentPage >= lastPage) {
+        return;
+      }
+    }
+
+    emit(state.copyWith(workerReviewsStatus: BlocStatus.loading));
+    final page = isLoadMore
+        ? (currentMeta!.currentPage! + 1)
+        : event.params.page;
+    final res = await fetchWorkerReviewsUseCase(
+      FetchWorkerReviewsParams(page: page, perPage: event.params.perPage),
+    );
+    res.fold(
+      (failure) {
+        emit(
+          state.copyWith(
+            workerReviewsStatus: BlocStatus.failed,
+            errorMessage: failure.message,
+          ),
+        );
+      },
+      (result) {
+        final reviews = result.data ?? const <WorkerReview>[];
+        final mergedReviews = isLoadMore
+            ? <WorkerReview>[
+                ...(currentReviews?.data ?? const <WorkerReview>[]),
+                ...reviews,
+              ]
+            : reviews;
+        emit(
+          state.copyWith(
+            workerReviewsStatus: BlocStatus.success,
+            workerReviews: FetchWorkerReviewsModel(
+              data: mergedReviews,
+              meta: result.meta,
+            ),
+          ),
+        );
+      },
     );
   }
 }

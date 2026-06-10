@@ -76,13 +76,19 @@ class AppPhoneNumberFieldState extends State<AppPhoneNumberField> {
       hintText: widget.hintText,
       hintStyle: TextStyle(
         color: Colors.grey.shade400,
-        fontSize: widget.variant == AppPhoneFieldVariant.ownerLogin ? 14 : 14.sp,
+        fontSize: widget.variant == AppPhoneFieldVariant.ownerLogin
+            ? 14
+            : 14.sp,
       ),
       filled: true,
       fillColor: fillColor,
       contentPadding: EdgeInsets.symmetric(
-        horizontal: widget.variant == AppPhoneFieldVariant.ownerLogin ? 16.w : 14.w,
-        vertical: widget.variant == AppPhoneFieldVariant.ownerLogin ? 16.h : 12.h,
+        horizontal: widget.variant == AppPhoneFieldVariant.ownerLogin
+            ? 16.w
+            : 14.w,
+        vertical: widget.variant == AppPhoneFieldVariant.ownerLogin
+            ? 16.h
+            : 12.h,
       ),
       prefixIcon: Icon(
         Icons.phone_outlined,
@@ -147,10 +153,12 @@ class AppPhoneNumberFieldState extends State<AppPhoneNumberField> {
         ),
         textStyle: TextStyle(
           color: const Color(0xff2F2B3D),
-          fontSize: widget.variant == AppPhoneFieldVariant.ownerLogin ? 14 : 14.sp,
+          fontSize: widget.variant == AppPhoneFieldVariant.ownerLogin
+              ? 14
+              : 14.sp,
           fontWeight: FontWeight.w400,
         ),
-        countries: const ['SY', 'SA', 'AE', 'JO', 'EG', 'LB', 'IQ', 'KW', 'QA', 'BH', 'OM'],
+        countries: const [defaultPhoneIsoCode],
         validator: (value) => validatePhoneNumberText(value),
         isEnabled: widget.enabled,
         locale: 'ar',

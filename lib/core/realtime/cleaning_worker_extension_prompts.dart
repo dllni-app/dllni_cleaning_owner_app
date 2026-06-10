@@ -16,8 +16,8 @@ class CleaningWorkerExtensionPrompts {
     await active.handleRealtimeEvent(eventName, payload);
   }
 
-  /// Polls pending orders and extension-request orders, then opens the
-  /// corresponding worker prompt sheet when needed (fallback when Pusher misses).
+  /// Polls extension-request orders, then opens the corresponding worker
+  /// extension prompt sheet when needed (fallback when Pusher misses).
   static Future<void> pollPendingExtensions() async {
     final active = coordinator;
     if (active == null) return;

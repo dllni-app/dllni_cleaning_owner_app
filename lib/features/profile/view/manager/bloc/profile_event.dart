@@ -43,8 +43,9 @@ class UpdateWorkerWorkAreasEvent extends ProfileEvent {
 
 class UpdateWorkerProfileEvent extends ProfileEvent {
   final UpdateWorkerProfileParams params;
+  final bool showFeedback;
 
-  UpdateWorkerProfileEvent({required this.params});
+  UpdateWorkerProfileEvent({required this.params, this.showFeedback = true});
 }
 
 class FetchDepositAccountEvent extends ProfileEvent {}
@@ -85,4 +86,17 @@ class MarkNotificationReadEvent extends ProfileEvent {
   final String id;
 
   MarkNotificationReadEvent({required this.id});
+}
+
+class FetchWorkerReviewsEvent extends ProfileEvent with EventWithReload {
+  final FetchWorkerReviewsParams params;
+  final bool loadMore;
+  @override
+  final bool isReload;
+
+  FetchWorkerReviewsEvent({
+    required this.params,
+    this.loadMore = false,
+    this.isReload = false,
+  });
 }

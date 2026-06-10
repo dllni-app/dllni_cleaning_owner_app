@@ -65,9 +65,19 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
 
   void _initTasks() {
     _taskState.clear();
-    for (final task in _tasks) {
-      _taskState.putIfAbsent(task.label, () => false);
+    for (final entry in _tasks.asMap().entries) {
+      _taskState.putIfAbsent(_taskKey(entry.value, entry.key), () => false);
     }
+  }
+
+  String _taskKey(_TaskItem task, int index) => '${task.label}-$index';
+
+  bool get _allTasksChecked {
+    final tasks = _tasks;
+    return tasks.isNotEmpty &&
+        tasks.asMap().entries.every(
+          (entry) => _taskState[_taskKey(entry.value, entry.key)] ?? false,
+        );
   }
 
   List<_TaskItem> get _tasks {
@@ -110,12 +120,15 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     return (widget.order.status ?? '').toLowerCase();
   }
 
-  bool get _isWaitingCustomer => OrderLifecyclePolicy.isAwaitingCustomerCompletion(
+  bool get _isWaitingCustomer =>
+      OrderLifecyclePolicy.isAwaitingCustomerCompletion(
         _effectiveStatus(widget.bloc.state),
       );
 
   bool _isWaitingFromState(OrdersState state) =>
-      OrderLifecyclePolicy.isAwaitingCustomerCompletion(_effectiveStatus(state));
+      OrderLifecyclePolicy.isAwaitingCustomerCompletion(
+        _effectiveStatus(state),
+      );
 
   bool get _canFinish =>
       widget.order.id != null &&
@@ -356,8 +369,10 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                             color: const Color(0xff6B7280),
                           ),
                           12.verticalSpace,
-                          ..._tasks.map((task) {
-                            final checked = _taskState[task.label] ?? false;
+                          ..._tasks.asMap().entries.map((entry) {
+                            final task = entry.value;
+                            final taskKey = _taskKey(task, entry.key);
+                            final checked = _taskState[taskKey] ?? false;
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 10),
                               child: Container(
@@ -378,8 +393,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                                       value: checked,
                                       onChanged: (value) {
                                         setState(() {
-                                          _taskState[task.label] =
-                                              value ?? false;
+                                          _taskState[taskKey] = value ?? false;
                                         });
                                       },
                                       shape: RoundedRectangleBorder(
@@ -411,6 +425,13 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                               ),
                             );
                           }),
+                          if (!_allTasksChecked && !_isWaitingCustomer) ...[
+                            2.verticalSpace,
+                            AppText.bodySmall(
+                              'يرجى تحديد جميع المهام قبل إنهاء العمل',
+                              color: context.error,
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -503,8 +524,10 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                         final loading =
                             state.completeOrderUsecaseStatus ==
                             BlocStatus.loading;
+                        final canSendFinishRequest =
+                            _canFinish && _allTasksChecked && !loading;
                         return FilledButton(
-                          onPressed: !_canFinish || loading
+                          onPressed: !canSendFinishRequest
                               ? null
                               : () {
                                   widget.bloc.add(

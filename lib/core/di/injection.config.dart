@@ -86,6 +86,8 @@ import '../../features/profile/domain/usecases/fetch_notifications_use_case.dart
     as _i438;
 import '../../features/profile/domain/usecases/fetch_worker_profile_usecase_use_case.dart'
     as _i338;
+import '../../features/profile/domain/usecases/fetch_worker_reviews_use_case.dart'
+    as _i959;
 import '../../features/profile/domain/usecases/fetch_worker_statistics_use_case.dart'
     as _i280;
 import '../../features/profile/domain/usecases/mark_all_notifications_read_use_case.dart'
@@ -148,6 +150,9 @@ _i174.GetIt $initGetIt(
   );
   gh.lazySingleton<_i438.FetchNotificationsUseCase>(
     () => _i438.FetchNotificationsUseCase(profileRepo: gh<_i275.ProfileRepo>()),
+  );
+  gh.lazySingleton<_i959.FetchWorkerReviewsUseCase>(
+    () => _i959.FetchWorkerReviewsUseCase(profileRepo: gh<_i275.ProfileRepo>()),
   );
   gh.lazySingleton<_i10.MarkAllNotificationsReadUseCase>(
     () => _i10.MarkAllNotificationsReadUseCase(
@@ -251,9 +256,6 @@ _i174.GetIt $initGetIt(
   gh.lazySingleton<_i1024.FetchHomePageUsecaseUseCase>(
     () => _i1024.FetchHomePageUsecaseUseCase(home: gh<_i396.HomeRepo>()),
   );
-  gh.factory<_i648.HomeBloc>(
-    () => _i648.HomeBloc(gh<_i1024.FetchHomePageUsecaseUseCase>()),
-  );
   gh.factory<_i821.ProfileBloc>(
     () => _i821.ProfileBloc(
       gh<_i338.FetchWorkerProfileUsecaseUseCase>(),
@@ -268,7 +270,11 @@ _i174.GetIt $initGetIt(
       gh<_i438.FetchNotificationsUseCase>(),
       gh<_i10.MarkAllNotificationsReadUseCase>(),
       gh<_i338.MarkNotificationReadUseCase>(),
+      gh<_i959.FetchWorkerReviewsUseCase>(),
     ),
+  );
+  gh.factory<_i648.HomeBloc>(
+    () => _i648.HomeBloc(gh<_i1024.FetchHomePageUsecaseUseCase>()),
   );
   gh.factory<_i305.OrdersBloc>(
     () => _i305.OrdersBloc(

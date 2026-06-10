@@ -46,6 +46,17 @@ class PaginationStateModel<T> {
   PaginationStateModel<T> setSuccessReverse({required List<T> data, int? perPage}) =>
       copyWith(list: List.of(data)..addAll(list), perPage: perPage, isEndPage: data.length < (perPage ?? this.perPage), status: BlocStatus.success);
 
+  PaginationStateModel<T> setSuccessReplace({required List<T> data, int? perPage}) =>
+      copyWith(
+        list: List.of(data),
+        perPage: perPage,
+        isEndPage: data.length < (perPage ?? this.perPage),
+        status: BlocStatus.success,
+      );
+
+  PaginationStateModel<T> removeWhere(bool Function(T) test) =>
+      copyWith(list: List.of(list)..removeWhere(test));
+
   PaginationStateModel<T> resetData() => PaginationStateModel<T>(isEndPage: false, errorMessage: "", perPage: 1, status: BlocStatus.init, list: []);
 
   Widget builder({

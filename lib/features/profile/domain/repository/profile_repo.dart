@@ -19,6 +19,8 @@ import '../usecases/mark_notification_read_use_case.dart';
 import '../../data/models/fetch_deposit_account_usecase_model.dart';
 import '../../data/models/fetch_deposit_transactions_usecase_model.dart';
 import '../../data/models/notification_api_models.dart';
+import '../usecases/fetch_worker_reviews_use_case.dart';
+import '../../data/models/fetch_worker_reviews_model.dart';
 
 abstract class ProfileRepo {
   DataResponse<FetchWorkerProfileUsecaseModel> fetchWorkerProfileUsecase(
@@ -63,5 +65,9 @@ abstract class ProfileRepo {
 
   DataResponse<ActionResultModel> markNotificationRead(
     MarkNotificationReadParams params,
+  );
+
+  DataResponse<FetchWorkerReviewsModel> fetchWorkerReviews(
+    FetchWorkerReviewsParams params,
   );
 }

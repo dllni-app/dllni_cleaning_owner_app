@@ -24,6 +24,8 @@ import '../../domain/usecases/mark_notification_read_use_case.dart';
 import '../models/fetch_deposit_account_usecase_model.dart';
 import '../models/fetch_deposit_transactions_usecase_model.dart';
 import '../models/notification_api_models.dart';
+import '../../domain/usecases/fetch_worker_reviews_use_case.dart';
+import '../models/fetch_worker_reviews_model.dart';
 
 @LazySingleton(as: ProfileRepo)
 class ProfileRepoImpl with HandlingException implements ProfileRepo {
@@ -132,6 +134,15 @@ class ProfileRepoImpl with HandlingException implements ProfileRepo {
   ) {
     return wrapHandlingException(
       tryCall: () => profileRemoteDataSource.markNotificationRead(params),
+    );
+  }
+
+  @override
+  DataResponse<FetchWorkerReviewsModel> fetchWorkerReviews(
+    FetchWorkerReviewsParams params,
+  ) {
+    return wrapHandlingException(
+      tryCall: () => profileRemoteDataSource.fetchWorkerReviews(params),
     );
   }
 }

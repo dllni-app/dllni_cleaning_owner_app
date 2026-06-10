@@ -2,6 +2,7 @@ import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/accept_order_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/reject_order_usecase_use_case.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_address_visibility_helper.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_lifecycle_policy.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
 import 'package:flutter/material.dart';
@@ -402,9 +403,12 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                       const SizedBox(height: 10),
                       _detailCard(context, [
                         AppText.bodyMedium(
-                          widget.order.propertyDetails?.address ??
-                              widget.order.locationName ??
-                              '-',
+                          visibleOrderAddress(
+                            address:
+                                widget.order.propertyDetails?.address ??
+                                widget.order.locationName,
+                            status: widget.order.status,
+                          ),
                           textAlign: TextAlign.start,
                         ),
                       ]),

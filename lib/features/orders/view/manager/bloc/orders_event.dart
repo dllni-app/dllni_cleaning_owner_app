@@ -8,7 +8,13 @@ class FetchOrdersUsecaseEvent extends OrdersEvent with EventWithReload {
   @override
   final bool isReload;
 
-  FetchOrdersUsecaseEvent({required this.params, this.isReload = false});
+  final bool silent;
+
+  FetchOrdersUsecaseEvent({
+    required this.params,
+    this.isReload = false,
+    this.silent = false,
+  });
 }
 
 class FetchOrderDetailsUsecaseEvent extends OrdersEvent {

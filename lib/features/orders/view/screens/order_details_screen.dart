@@ -166,9 +166,12 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         customerConfirmedAt: customerConfirmedAt,
       );
     });
-    widget.params.bloc.add(
-      ChangeDetailsCurrentStep(step: _stepFor(_order)),
-    );
+    final computedStep = _stepFor(_order);
+    final blocStep = widget.params.bloc.state.currentStep;
+    final nextStep = (blocStep != null && blocStep > computedStep)
+        ? blocStep
+        : computedStep;
+    widget.params.bloc.add(ChangeDetailsCurrentStep(step: nextStep));
   }
 
   void _onBlocStateChanged(OrdersState state, OrdersState? previous) {
@@ -179,13 +182,28 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         state.orderDetailsUsecase != previous.orderDetailsUsecase) {
       final details = state.orderDetailsUsecase?.data;
       if (details != null && details.id == oid) {
-        _applyLifecyclePatch(
-          status: details.status,
-          arrivedAt: details.arrivedAt,
-          startedTravelAt: details.startedTravelAt,
-          workStartedAt: details.workStartedAt,
-          workFinishedAt: details.workFinishedAt,
-          customerConfirmedAt: details.customerConfirmedAt,
+        if (!mounted) return;
+        setState(() {
+          _order = _order
+              .withLifecycle(
+                status: details.status,
+                arrivedAt: details.arrivedAt,
+                startedTravelAt: details.startedTravelAt,
+                workStartedAt: details.workStartedAt,
+                workFinishedAt: details.workFinishedAt,
+                customerConfirmedAt: details.customerConfirmedAt,
+              )
+              .withTeamData(
+                assignmentMode: details.assignmentMode,
+                numberOfWorkers: details.numberOfWorkers,
+                workerAcceptance: details.workerAcceptance,
+                workerAssignments: details.workerAssignments,
+                roomAssignments: details.roomAssignments,
+                myAssignment: details.myAssignment,
+              );
+        });
+        widget.params.bloc.add(
+          ChangeDetailsCurrentStep(step: _stepFor(_order)),
         );
       }
     }
@@ -207,7 +225,11 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     if (previous == null || state.startTravelUsecase != previous.startTravelUsecase) {
       final st = state.startTravelUsecase?.data;
       if (st != null && st.id == oid && st.status != null) {
-        _applyLifecyclePatch(status: st.status);
+        _applyLifecyclePatch(
+          status: st.status,
+          startedTravelAt:
+              _order.startedTravelAt ?? DateTime.now().toUtc().toIso8601String(),
+        );
       }
     }
 

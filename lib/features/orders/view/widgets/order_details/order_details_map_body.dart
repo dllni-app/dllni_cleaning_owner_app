@@ -15,6 +15,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../data/models/fetch_orders_usecase_model.dart';
+import '../../helpers/order_address_visibility_helper.dart';
 import '../../helpers/order_lifecycle_policy.dart';
 import '../../manager/bloc/orders_bloc.dart';
 import '../order_details_map_app_bar.dart';
@@ -50,6 +51,9 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
   LatLng? _myLocation;
   bool _requestedSecurityCode = false;
   bool _suppressLocationReporting = false;
+  bool _isVerificationDialogOpen = false;
+  bool _autoVerificationDialogShown = false;
+  BuildContext? _verificationDialogContext;
 
   bool get _isAwaitingVerification =>
       OrderLifecyclePolicy.isAwaitingStartVerification(widget.order);
@@ -91,15 +95,20 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
       if (_isAwaitingVerification) {
         _requestSecurityCodeIfNeeded();
       }
+      _maybeShowVerificationDialog(widget.bloc.state);
     });
   }
 
   @override
   void didUpdateWidget(covariant OrderDetailsMapBody oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!_isAwaitingVerification) {
+      _closeVerificationDialogIfOpen();
+    }
     if (oldWidget.order.id != widget.order.id) {
       _requestedSecurityCode = false;
       _suppressLocationReporting = false;
+      _autoVerificationDialogShown = false;
     }
     if (oldWidget.order.status != widget.order.status &&
         _isAwaitingVerification) {
@@ -115,11 +124,19 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
         oldWidget.order.id != widget.order.id) {
       _syncLocationTrackingState();
     }
+    if (oldWidget.order.status != widget.order.status &&
+        _isAwaitingVerification) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _maybeShowVerificationDialog(widget.bloc.state);
+      });
+    }
   }
 
   @override
   void dispose() {
     _locationTimer?.cancel();
+    _closeVerificationDialogIfOpen();
     super.dispose();
   }
 
@@ -246,7 +263,11 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
   void _requestSecurityCodeIfNeeded({bool force = false}) {
     final id = widget.order.id;
     if (id == null) return;
-    if (!_isAwaitingVerification && !force) return;
+    if (!_isAwaitingVerification &&
+        !_shouldShowVerificationUi(widget.bloc.state) &&
+        !force) {
+      return;
+    }
     if (_requestedSecurityCode && !force) return;
 
     final blocState = widget.bloc.state;
@@ -269,98 +290,107 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
     );
   }
 
+  Future<void> _showVerificationDialog({bool manual = false}) async {
+    if (!mounted || !_shouldShowVerificationUi(widget.bloc.state)) return;
+    if (_isVerificationDialogOpen) return;
+    if (!manual && _autoVerificationDialogShown) return;
+
+    if (!manual) {
+      _autoVerificationDialogShown = true;
+    }
+
+    _isVerificationDialogOpen = true;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        _verificationDialogContext = dialogContext;
+        return Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          insetPadding: EdgeInsets.symmetric(horizontal: 20.w),
+          child: BlocBuilder<OrdersBloc, OrdersState>(
+            bloc: widget.bloc,
+            builder: (_, state) {
+              return _CustomerVerificationContent(
+                state: state,
+                order: widget.order,
+                onRefresh: () => _requestSecurityCodeIfNeeded(force: true),
+                onClose: () => Navigator.of(dialogContext).pop(),
+              );
+            },
+          ),
+        );
+      },
+    );
+
+    if (mounted) {
+      setState(() => _isVerificationDialogOpen = false);
+    } else {
+      _isVerificationDialogOpen = false;
+    }
+    _verificationDialogContext = null;
+  }
+
+  void _closeVerificationDialogIfOpen() {
+    if (!_isVerificationDialogOpen) return;
+    final dialogContext = _verificationDialogContext;
+    _verificationDialogContext = null;
+    _isVerificationDialogOpen = false;
+    if (dialogContext != null && dialogContext.mounted) {
+      Navigator.of(dialogContext).pop();
+    }
+  }
+
+  void _maybeShowVerificationDialog(OrdersState state) {
+    if (!_shouldShowVerificationUi(state)) {
+      _autoVerificationDialogShown = false;
+      _closeVerificationDialogIfOpen();
+      return;
+    }
+    if (_isVerificationDialogOpen) return;
+    unawaited(_showVerificationDialog());
+  }
+
+  Widget _buildVerificationReminderAction() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          width: context.width,
+          padding: EdgeInsetsDirectional.all(12.r),
+          decoration: BoxDecoration(
+            color: const Color(0xffEEF2FF),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xffC7D2FE)),
+          ),
+          child: AppText.bodySmall(
+            'بانتظار تأكيد العميل — اعرض رمز الأمان للعميل لبدء المهمة.',
+            color: const Color(0xff475569),
+            textAlign: TextAlign.start,
+          ),
+        ),
+        10.verticalSpace,
+        SizedBox(
+          width: context.width,
+          child: FilledButton.icon(
+            onPressed: () => _showVerificationDialog(manual: true),
+            icon: const Icon(Icons.pin_outlined),
+            label: AppText.labelLarge(
+              'عرض رمز الأمان',
+              color: context.onPrimary,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildAction(OrdersState state) {
     if (_shouldShowVerificationUi(state)) {
-      final code = state.securityCode?.data?.securityCode ?? '----';
-      final expiresAt = state.securityCode?.data?.expiresAt;
-      final formattedExpiry = formatCleaningSecurityCodeDateTime(expiresAt);
-      final bookingLabel = formatCleaningBookingLabel(
-        bookingId: widget.order.id,
-        bookingNumber: widget.order.bookingNumber,
-      );
-      final loading = state.securityCodeStatus == BlocStatus.loading;
-
-      return Container(
-        width: context.width,
-        padding: EdgeInsetsDirectional.all(14.r),
-        decoration: BoxDecoration(
-          color: const Color(0xffEEF2FF),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xffC7D2FE)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AppText.titleSmall(
-              'بانتظار تأكيد العميل',
-              fontWeight: FontWeight.w700,
-              color: const Color(0xff1E3A8A),
-            ),
-            8.verticalSpace,
-            AppText.bodyMedium(
-              'أخبر العميل برمز الأمان التالي ليتم التحقق وبدء المهمة.',
-              color: const Color(0xff475569),
-              textAlign: TextAlign.start,
-            ),
-            8.verticalSpace,
-            AppText.bodySmall(
-              'رقم الحجز: $bookingLabel',
-              color: const Color(0xff374151),
-              fontWeight: FontWeight.w600,
-            ),
-            if (formattedExpiry.isNotEmpty) ...[
-              4.verticalSpace,
-              AppText.bodySmall(
-                'صالح حتى: $formattedExpiry',
-                color: const Color(0xff64748B),
-              ),
-            ],
-            10.verticalSpace,
-            Container(
-              width: context.width,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xffD1D5DB)),
-              ),
-              child: loading
-                  ? const Center(
-                      child: SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    )
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        AppText.labelLarge(
-                          'رمز الأمان',
-                          color: const Color(0xff6B7280),
-                        ),
-                        AppText.headlineMedium(
-                          code,
-                          color: const Color(0xff1E2A78),
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ],
-                    ),
-            ),
-            10.verticalSpace,
-            SizedBox(
-              width: context.width,
-              child: OutlinedButton.icon(
-                onPressed: loading
-                    ? null
-                    : () => _requestSecurityCodeIfNeeded(force: true),
-                icon: const Icon(Icons.refresh_rounded),
-                label: AppText.labelLarge('تحديث الرمز'),
-              ),
-            ),
-          ],
-        ),
-      );
+      return _buildVerificationReminderAction();
     }
 
     if (!_canArrive || widget.order.id == null) {
@@ -397,6 +427,8 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
                   index: widget.index,
                 ),
               );
+              _requestSecurityCodeIfNeeded(force: true);
+              unawaited(_showVerificationDialog(manual: true));
             },
       child: Container(
         width: context.width,
@@ -489,7 +521,10 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
                             fontWeight: FontWeight.w400,
                           ),
                           AppText.labelLarge(
-                            widget.order.propertyDetails?.address ?? '-',
+                            visibleOrderAddress(
+                              address: widget.order.propertyDetails?.address,
+                              status: widget.order.status,
+                            ),
                             color: const Color(0xff727791),
                             fontWeight: FontWeight.w400,
                           ),
@@ -603,6 +638,7 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
             _isAwaitingVerificationAfterArrive(state)) {
           _requestSecurityCodeIfNeeded();
         }
+        _maybeShowVerificationDialog(state);
       },
       child: Stack(
         children: [
@@ -696,5 +732,114 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
       return;
     }
     throw 'Could not launch $url';
+  }
+}
+
+class _CustomerVerificationContent extends StatelessWidget {
+  const _CustomerVerificationContent({
+    required this.state,
+    required this.order,
+    required this.onRefresh,
+    required this.onClose,
+  });
+
+  final OrdersState state;
+  final FetchOrdersUsecaseModelDataItem order;
+  final VoidCallback onRefresh;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final code = state.securityCode?.data?.securityCode ?? '----';
+    final expiresAt = state.securityCode?.data?.expiresAt;
+    final formattedExpiry = formatCleaningSecurityCodeDateTime(expiresAt);
+    final bookingLabel = formatCleaningBookingLabel(
+      bookingId: order.id,
+      bookingNumber: order.bookingNumber,
+    );
+    final loading = state.securityCodeStatus == BlocStatus.loading;
+
+    return SingleChildScrollView(
+      child: Padding(
+        padding: EdgeInsetsDirectional.fromSTEB(16.w, 14.h, 16.w, 16.h),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: AppText.titleSmall(
+                    'بانتظار تأكيد العميل',
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xff1E3A8A),
+                  ),
+                ),
+                IconButton(
+                  onPressed: onClose,
+                  icon: const Icon(Icons.close_rounded),
+                  color: const Color(0xff64748B),
+                ),
+              ],
+            ),
+            AppText.bodyMedium(
+              'أخبر العميل برمز الأمان التالي ليتم التحقق وبدء المهمة.',
+              color: const Color(0xff475569),
+              textAlign: TextAlign.start,
+            ),
+            8.verticalSpace,
+            AppText.bodySmall(
+              'رقم الحجز: $bookingLabel',
+              color: const Color(0xff374151),
+              fontWeight: FontWeight.w600,
+            ),
+            if (formattedExpiry.isNotEmpty) ...[
+              4.verticalSpace,
+              AppText.bodySmall(
+                'صالح حتى: $formattedExpiry',
+                color: const Color(0xff64748B),
+              ),
+            ],
+            12.verticalSpace,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xffEEF2FF),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xffC7D2FE)),
+              ),
+              child: loading
+                  ? const Center(
+                      child: SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        AppText.labelLarge(
+                          'رمز الأمان',
+                          color: const Color(0xff6B7280),
+                        ),
+                        AppText.headlineLarge(
+                          code,
+                          color: const Color(0xff1E2A78),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ],
+                    ),
+            ),
+            12.verticalSpace,
+            OutlinedButton.icon(
+              onPressed: loading ? null : onRefresh,
+              icon: const Icon(Icons.refresh_rounded),
+              label: AppText.labelLarge('تحديث الرمز'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

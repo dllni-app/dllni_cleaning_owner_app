@@ -23,6 +23,8 @@ class ProfileState {
   notificationsPagination;
   final BlocStatus? markAllNotificationsReadStatus;
   final String? notificationActionError;
+  BlocStatus? workerReviewsStatus;
+  FetchWorkerReviewsModel? workerReviews;
   String? errorMessage;
 
   ProfileState({
@@ -53,6 +55,8 @@ class ProfileState {
         ),
     this.markAllNotificationsReadStatus,
     this.notificationActionError,
+    this.workerReviewsStatus,
+    this.workerReviews,
   });
 
   ProfileState copyWith({
@@ -82,6 +86,8 @@ class ProfileState {
     bool clearMarkAllNotificationsReadStatus = false,
     String? notificationActionError,
     bool clearNotificationActionError = false,
+    BlocStatus? workerReviewsStatus,
+    FetchWorkerReviewsModel? workerReviews,
   }) => ProfileState(
     errorMessage: errorMessage ?? this.errorMessage,
     workerProfileUsecase: workerProfileUsecase ?? this.workerProfileUsecase,
@@ -117,6 +123,8 @@ class ProfileState {
     notificationActionError: clearNotificationActionError
         ? null
         : (notificationActionError ?? this.notificationActionError),
+    workerReviewsStatus: workerReviewsStatus ?? this.workerReviewsStatus,
+    workerReviews: workerReviews ?? this.workerReviews,
   );
 
   BlocStatus get notificationsStatus => notificationsPagination.status;

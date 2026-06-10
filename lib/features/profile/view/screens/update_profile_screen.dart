@@ -40,10 +40,6 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
   PhoneNumber? _initialPhone;
   bool _isLoadingPhone = true;
 
-  String? _selectedGender;
-
-  final List<String> _genderOptions = ['ذكر', 'أنثى'];
-
   File? selectedImage;
 
   @override
@@ -51,10 +47,11 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     super.initState();
     _nameController = TextEditingController(text: widget.params.name);
     _emailController = TextEditingController(text: widget.params.email ?? '');
-    _dateOfBirthController = TextEditingController(text: widget.params.birth ?? '');
+    _dateOfBirthController = TextEditingController(
+      text: widget.params.birth ?? '',
+    );
     _aboutMeController = TextEditingController(text: widget.params.bio ?? '');
     _cityMeController = TextEditingController(text: widget.params.city ?? '');
-    _selectedGender = 'ذكر';
     _loadInitialPhone();
   }
 
@@ -79,7 +76,9 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
   }
 
   Future<void> _selectDate() async {
-    _dateOfBirthController.text = await AppPickers.showAppDatePicker(context: context);
+    _dateOfBirthController.text = await AppPickers.showAppDatePicker(
+      context: context,
+    );
     setState(() {});
   }
 
@@ -88,7 +87,11 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
       return context.read<ProfileBloc>();
     } catch (_) {
       final bloc = getIt<ProfileBloc>();
-      bloc.add(FetchWorkerProfileUsecaseEvent(params: FetchWorkerProfileUsecaseParams()));
+      bloc.add(
+        FetchWorkerProfileUsecaseEvent(
+          params: FetchWorkerProfileUsecaseParams(),
+        ),
+      );
       return bloc;
     }
   }
@@ -106,24 +109,49 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
               Container(
                 decoration: BoxDecoration(
                   color: context.onPrimary,
-                  borderRadius: BorderRadius.only(bottomRight: Radius.circular(24), bottomLeft: Radius.circular(24)),
-                  border: Border(bottom: BorderSide(color: context.primaryContainer, width: 5)),
-                  boxShadow: [BoxShadow(color: Colors.black.withAlpha(27), offset: Offset(0, -2), blurRadius: 12, spreadRadius: 0)],
+                  borderRadius: BorderRadius.only(
+                    bottomRight: Radius.circular(24),
+                    bottomLeft: Radius.circular(24),
+                  ),
+                  border: Border(
+                    bottom: BorderSide(
+                      color: context.primaryContainer,
+                      width: 5,
+                    ),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(27),
+                      offset: Offset(0, -2),
+                      blurRadius: 12,
+                      spreadRadius: 0,
+                    ),
+                  ],
                 ),
                 width: context.width,
                 height: 80,
-                padding: EdgeInsetsDirectional.symmetric(horizontal: 24, vertical: 16),
+                padding: EdgeInsetsDirectional.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
                 child: Row(
                   children: [
                     InkWell(
                       onTap: () {
                         context.pop();
                       },
-                      child: Icon(Icons.arrow_back_ios_new, color: context.primary),
+                      child: Icon(
+                        Icons.arrow_back_ios_new,
+                        color: context.primary,
+                      ),
                     ),
                     SizedBox(width: 12),
                     Expanded(
-                      child: AppText.headlineLarge('التفاصيل الشخصية', fontWeight: FontWeight.w700, textAlign: TextAlign.start),
+                      child: AppText.headlineLarge(
+                        'التفاصيل الشخصية',
+                        fontWeight: FontWeight.w700,
+                        textAlign: TextAlign.start,
+                      ),
                     ),
                   ],
                 ),
@@ -131,7 +159,12 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
               24.verticalSpace,
               Expanded(
                 child: SingleChildScrollView(
-                  padding: EdgeInsetsDirectional.fromSTEB(20.w, 16.h, 20.w, 24.h),
+                  padding: EdgeInsetsDirectional.fromSTEB(
+                    20.w,
+                    16.h,
+                    20.w,
+                    24.h,
+                  ),
                   child: Form(
                     key: _formKey,
                     child: Column(
@@ -142,18 +175,22 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                           title: 'الصورة الشخصية',
                           child: Column(
                             children: [
-                              CircleAvatar(
-                                radius: 40.r,
-                                backgroundColor: const Color(0xffE5E7EB),
-                                backgroundImage: selectedImage == null ? null : FileImage(selectedImage!),
-                              ),
+                              _buildProfileAvatar(),
                               16.verticalSpace,
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  _buildPhotoAction(icon: Icons.image_outlined, title: 'اختيار من المعرض', source: ImageSource.gallery),
+                                  _buildPhotoAction(
+                                    icon: Icons.image_outlined,
+                                    title: 'اختيار من المعرض',
+                                    source: ImageSource.gallery,
+                                  ),
                                   12.horizontalSpace,
-                                  _buildPhotoAction(icon: Icons.camera_alt_outlined, title: 'التقاط صورة', source: ImageSource.camera),
+                                  _buildPhotoAction(
+                                    icon: Icons.camera_alt_outlined,
+                                    title: 'التقاط صورة',
+                                    source: ImageSource.camera,
+                                  ),
                                 ],
                               ),
                             ],
@@ -165,7 +202,11 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                           title: 'معلومات الحساب',
                           child: Column(
                             children: [
-                              _buildField(label: 'الاسم الكامل', controller: _nameController, isRequired: true),
+                              _buildField(
+                                label: 'الاسم الكامل',
+                                controller: _nameController,
+                                isRequired: true,
+                              ),
                               14.verticalSpace,
                               if (_isLoadingPhone)
                                 const Center(child: CircularProgressIndicator())
@@ -183,10 +224,14 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                                 label: 'البريد الإلكتروني',
                                 controller: _emailController,
                                 keyboardType: TextInputType.emailAddress,
-                                isRequired: true,
+                                isRequired: false,
                               ),
                               14.verticalSpace,
-                              _buildField(label: 'المدينة', controller: _cityMeController, isRequired: true),
+                              _buildField(
+                                label: 'المدينة',
+                                controller: _cityMeController,
+                                isRequired: true,
+                              ),
                             ],
                           ),
                         ),
@@ -196,20 +241,15 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                           title: 'معلومات إضافية',
                           child: Column(
                             children: [
-                              _buildDropdownField(
-                                label: 'الجنس',
-                                value: _selectedGender,
-                                items: _genderOptions,
-                                onChanged: (value) {
-                                  setState(() {
-                                    _selectedGender = value;
-                                  });
-                                },
+                              _buildDateField(
+                                label: 'تاريخ الميلاد',
+                                controller: _dateOfBirthController,
                               ),
                               14.verticalSpace,
-                              _buildDateField(label: 'تاريخ الميلاد', controller: _dateOfBirthController),
-                              14.verticalSpace,
-                              _buildTextAreaField(label: 'نبذة عني', controller: _aboutMeController),
+                              _buildTextAreaField(
+                                label: 'نبذة عني',
+                                controller: _aboutMeController,
+                              ),
                             ],
                           ),
                         ),
@@ -223,31 +263,39 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                                     previous.updateWorkerProfileStatus !=
                                     current.updateWorkerProfileStatus,
                                 listener: (context, state) {
-                                  if (state.updateWorkerProfileStatus == BlocStatus.success) {
+                                  if (state.updateWorkerProfileStatus ==
+                                      BlocStatus.success) {
                                     Loading.close();
-                                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                                      if (!context.mounted) return;
-                                      context.maybePop(true);
-                                    });
-                                  } else if (state.updateWorkerProfileStatus == BlocStatus.failed) {
+                                    WidgetsBinding.instance
+                                        .addPostFrameCallback((_) {
+                                          if (!context.mounted) return;
+                                          context.maybePop(true);
+                                        });
+                                  } else if (state.updateWorkerProfileStatus ==
+                                      BlocStatus.failed) {
                                     Loading.close();
-                                  } else if (state.updateWorkerProfileStatus == BlocStatus.loading) {
+                                  } else if (state.updateWorkerProfileStatus ==
+                                      BlocStatus.loading) {
                                     Loading.show(context);
                                   }
                                 },
                                 builder: (context, state) {
                                   return ElevatedButton(
                                     onPressed: () async {
-                                      if (!(_formKey.currentState?.validate() ?? false)) {
+                                      if (!(_formKey.currentState?.validate() ??
+                                          false)) {
                                         return;
                                       }
 
-                                      final phoneError =
-                                          await _phoneFieldKey.currentState?.validate();
+                                      final phoneError = await _phoneFieldKey
+                                          .currentState
+                                          ?.validate();
                                       if (phoneError != null) return;
 
                                       final phone = formatPhoneForApi(_phone);
                                       if (phone == null) return;
+                                      final email = _emailController.text
+                                          .trim();
 
                                       if (!context.mounted) return;
                                       context.read<ProfileBloc>().add(
@@ -255,10 +303,10 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                                           params: UpdateWorkerProfileParams(
                                             avatar: selectedImage,
                                             bio: _aboutMeController.text,
-                                            birthday: _dateOfBirthController.text,
+                                            birthday:
+                                                _dateOfBirthController.text,
                                             city: _cityMeController.text,
-                                            email: _emailController.text,
-                                            gender: _selectedGender,
+                                            email: email.isEmpty ? '' : email,
                                             isActive: 1,
                                             name: _nameController.text,
                                             phone: phone,
@@ -270,10 +318,20 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                                       backgroundColor: const Color(0xff1E3A8A),
                                       foregroundColor: Colors.white,
                                       elevation: 0,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
-                                      padding: EdgeInsets.symmetric(vertical: 12.h),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          10.r,
+                                        ),
+                                      ),
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 12.h,
+                                      ),
                                     ),
-                                    child: AppText.labelLarge('حفظ التغييرات', color: Colors.white, fontWeight: FontWeight.w700),
+                                    child: AppText.labelLarge(
+                                      'حفظ التغييرات',
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                    ),
                                   );
                                 },
                               ),
@@ -283,11 +341,21 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                               child: OutlinedButton(
                                 onPressed: () => context.maybePop(),
                                 style: OutlinedButton.styleFrom(
-                                  side: BorderSide(color: const Color(0xffE11D48).withAlpha(150)),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                                  side: BorderSide(
+                                    color: const Color(
+                                      0xffE11D48,
+                                    ).withAlpha(150),
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10.r),
+                                  ),
                                   padding: EdgeInsets.symmetric(vertical: 12.h),
                                 ),
-                                child: AppText.labelLarge('إلغاء', color: const Color(0xffE11D48), fontWeight: FontWeight.w600),
+                                child: AppText.labelLarge(
+                                  'إلغاء',
+                                  color: const Color(0xffE11D48),
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ],
@@ -304,12 +372,23 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     );
   }
 
-  Widget _buildSectionCard({required String sectionNumber, required String title, required Widget child}) {
+  Widget _buildSectionCard({
+    required String sectionNumber,
+    required String title,
+    required Widget child,
+  }) {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(26.r),
         color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withAlpha(12), offset: const Offset(0, 4), blurRadius: 18, spreadRadius: -2)],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(12),
+            offset: const Offset(0, 4),
+            blurRadius: 18,
+            spreadRadius: -2,
+          ),
+        ],
       ),
       padding: EdgeInsets.all(18.w),
       child: Column(
@@ -320,10 +399,18 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
               CircleAvatar(
                 backgroundColor: context.primary,
                 radius: 15.r,
-                child: AppText.labelLarge(sectionNumber, color: context.onPrimary, fontWeight: FontWeight.w700),
+                child: AppText.labelLarge(
+                  sectionNumber,
+                  color: context.onPrimary,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               10.horizontalSpace,
-              AppText.titleLarge(title, color: context.primary, fontWeight: FontWeight.w700),
+              AppText.titleLarge(
+                title,
+                color: context.primary,
+                fontWeight: FontWeight.w700,
+              ),
             ],
           ),
           16.verticalSpace,
@@ -346,7 +433,40 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     return null;
   }
 
-  Widget _buildPhotoAction({required IconData icon, required String title, required ImageSource source}) {
+  Widget _buildProfileAvatar() {
+    final radius = 40.r;
+    final size = radius * 2;
+
+    if (selectedImage != null) {
+      return CircleAvatar(
+        radius: radius,
+        backgroundColor: const Color(0xffE5E7EB),
+        backgroundImage: FileImage(selectedImage!),
+      );
+    }
+
+    final avatarUrl = widget.params.avatarUrl;
+    if (avatarUrl != null && avatarUrl.isNotEmpty) {
+      return AppImage.network(
+        avatarUrl,
+        borderRadius: BorderRadius.circular(radius),
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+      );
+    }
+
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: const Color(0xffE5E7EB),
+    );
+  }
+
+  Widget _buildPhotoAction({
+    required IconData icon,
+    required String title,
+    required ImageSource source,
+  }) {
     return InkWell(
       onTap: () async {
         selectedImage = await pickSingleImage(source);
@@ -359,32 +479,53 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
           children: [
             Icon(icon, size: 16.sp, color: const Color(0xff1F2A5A)),
             6.horizontalSpace,
-            AppText.bodySmall(title, color: const Color(0xff1F2A5A), fontWeight: FontWeight.w500),
+            AppText.bodySmall(
+              title,
+              color: const Color(0xff1F2A5A),
+              fontWeight: FontWeight.w500,
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildField({required String label, required TextEditingController controller, TextInputType? keyboardType, bool isRequired = false}) {
+  Widget _buildField({
+    required String label,
+    required TextEditingController controller,
+    TextInputType? keyboardType,
+    bool isRequired = false,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
             AppText.bodyMedium(label, fontWeight: FontWeight.w500),
-            if (isRequired) AppText.bodyMedium('*', color: context.error, fontWeight: FontWeight.w500),
+            if (isRequired)
+              AppText.bodyMedium(
+                '*',
+                color: context.error,
+                fontWeight: FontWeight.w500,
+              ),
           ],
         ),
         8.verticalSpace,
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
-          style: TextStyle(color: const Color(0xff2F2B3D), fontSize: 14.sp, fontWeight: FontWeight.w400),
+          style: TextStyle(
+            color: const Color(0xff2F2B3D),
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w400,
+          ),
           decoration: InputDecoration(
             filled: true,
             fillColor: const Color(0xffF9FAFB),
-            contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 14.w,
+              vertical: 12.h,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14.r),
               borderSide: const BorderSide(color: Color(0xffE5E7EB), width: 1),
@@ -403,7 +544,10 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     );
   }
 
-  Widget _buildDateField({required String label, required TextEditingController controller}) {
+  Widget _buildDateField({
+    required String label,
+    required TextEditingController controller,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -413,12 +557,23 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
           controller: controller,
           readOnly: true,
           onTap: _selectDate,
-          style: TextStyle(color: const Color(0xff2F2B3D), fontSize: 14.sp, fontWeight: FontWeight.w400),
+          style: TextStyle(
+            color: const Color(0xff2F2B3D),
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w400,
+          ),
           decoration: InputDecoration(
             filled: true,
             fillColor: const Color(0xffF9FAFB),
-            contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
-            suffixIcon: Icon(Icons.calendar_today, size: 18.sp, color: const Color(0xff6B7280)),
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 14.w,
+              vertical: 12.h,
+            ),
+            suffixIcon: Icon(
+              Icons.calendar_today,
+              size: 18.sp,
+              color: const Color(0xff6B7280),
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14.r),
               borderSide: const BorderSide(color: Color(0xffE5E7EB), width: 1),
@@ -437,43 +592,10 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     );
   }
 
-  Widget _buildDropdownField({required String label, required String? value, required List<String> items, required Function(String?) onChanged}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AppText.bodyMedium(label, fontWeight: FontWeight.w500),
-        8.verticalSpace,
-        DropdownButtonFormField<String>(
-          initialValue: value,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: const Color(0xffF9FAFB),
-            contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14.r),
-              borderSide: const BorderSide(color: Color(0xffE5E7EB), width: 1),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14.r),
-              borderSide: const BorderSide(color: Color(0xffE5E7EB), width: 1),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14.r),
-              borderSide: BorderSide(color: context.primary, width: 1.1.w),
-            ),
-          ),
-          icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xff6B7280)),
-          style: TextStyle(color: const Color(0xff2F2B3D), fontSize: 14.sp),
-          items: items.map((String item) {
-            return DropdownMenuItem<String>(value: item, child: Text(item));
-          }).toList(),
-          onChanged: onChanged,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTextAreaField({required String label, required TextEditingController controller}) {
+  Widget _buildTextAreaField({
+    required String label,
+    required TextEditingController controller,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -482,11 +604,18 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
         TextFormField(
           controller: controller,
           maxLines: 4,
-          style: TextStyle(color: const Color(0xff2F2B3D), fontSize: 14.sp, fontWeight: FontWeight.w400),
+          style: TextStyle(
+            color: const Color(0xff2F2B3D),
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w400,
+          ),
           decoration: InputDecoration(
             filled: true,
             fillColor: const Color(0xffF9FAFB),
-            contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 14.w,
+              vertical: 12.h,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14.r),
               borderSide: const BorderSide(color: Color(0xffE5E7EB), width: 1),
@@ -515,6 +644,7 @@ class UpdateProfileScreenParams {
     this.birth,
     this.city,
     this.bio,
+    this.avatarUrl,
   });
 
   factory UpdateProfileScreenParams.fromWorkerProfile(
@@ -526,6 +656,7 @@ class UpdateProfileScreenParams {
       phone: data.user?.phone,
       bio: data.bio,
       city: data.homeAddress,
+      avatarUrl: data.avatar?.url,
     );
   }
 
@@ -536,4 +667,5 @@ class UpdateProfileScreenParams {
   final String? birth;
   final String? city;
   final String? bio;
+  final String? avatarUrl;
 }
