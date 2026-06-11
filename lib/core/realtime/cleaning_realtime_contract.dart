@@ -9,6 +9,9 @@ class CleaningRealtimeContract {
 
   static const String workerLocationUpdated = 'WorkerLocationUpdated';
   static const String workerArrived = 'WorkerArrived';
+  static const String securityCodeIssued = 'SecurityCodeIssued';
+  static const String securityCodeIssuedScoped =
+      'cleaning_order.security_code_issued';
   static const String awaitingStartVerification =
       'cleaning_order.awaiting_start_verification';
   static const String arrivalVerified = 'ArrivalVerified';
@@ -20,10 +23,15 @@ class CleaningRealtimeContract {
   static const String teamUpdated = 'cleaning_booking.team_updated';
 
   static const Map<String, String> legacyEventAliases = <String, String>{
-    'SecurityCodeIssued': awaitingStartVerification,
-    'cleaning_order.security_code_issued': awaitingStartVerification,
+    securityCodeIssued: awaitingStartVerification,
+    securityCodeIssuedScoped: awaitingStartVerification,
     'ArrivalVerificationRequested': awaitingStartVerification,
+    'arrival_verification_requested': awaitingStartVerification,
+    'cleaning_order.arrival_verification_requested': awaitingStartVerification,
+    'worker_arrived': workerArrived,
+    'cleaning_order.worker_arrived': workerArrived,
     'cleaning_order.arrival_verified': arrivalVerified,
+    'arrival_verified': arrivalVerified,
     'CompletionReviewRequested': awaitingCustomerCompletion,
     'completion_review_requested': awaitingCustomerCompletion,
     'cleaning_order.completion_review_requested': awaitingCustomerCompletion,
@@ -38,11 +46,17 @@ class CleaningRealtimeContract {
 
   static Map<String, String> _buildNormalizedEventAliases() {
     final aliases = <String, String>{};
-    void addAlias(String key, String value) {
+    void addAlias(String key, String value, {bool overrideExisting = true}) {
       final trimmed = key.trim();
       if (trimmed.isEmpty) return;
-      aliases[trimmed] = value;
-      aliases[trimmed.toLowerCase()] = value;
+      final lower = trimmed.toLowerCase();
+      if (overrideExisting) {
+        aliases[trimmed] = value;
+        aliases[lower] = value;
+        return;
+      }
+      aliases.putIfAbsent(trimmed, () => value);
+      aliases.putIfAbsent(lower, () => value);
     }
 
     for (final entry in legacyEventAliases.entries) {
@@ -52,6 +66,8 @@ class CleaningRealtimeContract {
     const canonicalEvents = <String>{
       workerLocationUpdated,
       workerArrived,
+      securityCodeIssued,
+      securityCodeIssuedScoped,
       awaitingStartVerification,
       arrivalVerified,
       awaitingCustomerCompletion,
@@ -61,7 +77,7 @@ class CleaningRealtimeContract {
       teamUpdated,
     };
     for (final eventName in canonicalEvents) {
-      addAlias(eventName, eventName);
+      addAlias(eventName, eventName, overrideExisting: false);
     }
     return aliases;
   }
@@ -134,39 +150,65 @@ class CleaningRealtimeContract {
   }
 
   static String? extractTrackingStatus(Map<String, dynamic> payload) {
-    final tracking = payload['tracking'];
-    final trackingMap = tracking is Map
-        ? tracking.map((key, value) => MapEntry(key.toString(), value))
-        : const <String, dynamic>{};
-    final raw = trackingMap['status'] ?? payload['status'];
+    final unwrapped = unwrapPayload(payload);
+    final trackingMap = _asStringMap(unwrapped['tracking']);
+    final bookingMap = _asStringMap(unwrapped['booking']);
+    final cleaningOrderMap = _nestedBookingMap(unwrapped);
+    final raw = trackingMap['status'] ??
+        bookingMap['status'] ??
+        cleaningOrderMap['status'] ??
+        unwrapped['status'];
     if (raw == null) return null;
     final normalized = raw.toString().trim().toLowerCase();
     return normalized.isEmpty ? null : normalized;
   }
 
+  static ({String? arrivedAt, String? workStartedAt}) extractLifecycleTimestamps(
+    Map<String, dynamic> payload,
+  ) {
+    final unwrapped = unwrapPayload(payload);
+    final sources = <Map<String, dynamic>>[
+      unwrapped,
+      _asStringMap(unwrapped['tracking']),
+      _asStringMap(unwrapped['booking']),
+      _nestedBookingMap(unwrapped),
+    ];
+
+    String? pick(String camel, String snake) {
+      for (final source in sources) {
+        final value = source[camel] ?? source[snake];
+        if (value == null) continue;
+        final text = value.toString().trim();
+        if (text.isNotEmpty) return text;
+      }
+      return null;
+    }
+
+    return (
+      arrivedAt: pick('arrivedAt', 'arrived_at'),
+      workStartedAt: pick('workStartedAt', 'work_started_at'),
+    );
+  }
+
   static int? extractBookingId(Map<String, dynamic> payload) {
     final unwrapped = unwrapPayload(payload);
-    final tracking = unwrapped['tracking'];
-    final trackingMap = tracking is Map
-        ? tracking.map((k, v) => MapEntry(k.toString(), v))
-        : const <String, dynamic>{};
+    final trackingMap = _asStringMap(unwrapped['tracking']);
+    final cleaningOrderMap = _nestedBookingMap(unwrapped);
+    final orderMap = _asStringMap(unwrapped['order']);
     final bookingMap = _asStringMap(unwrapped['booking']);
-    return _asInt(
-          trackingMap['cleaningBookingId'] ??
-              trackingMap['bookingId'] ??
-              trackingMap['booking_id'] ??
-              trackingMap['cleaning_booking_id'] ??
-              trackingMap['id'],
-        ) ??
-        _asInt(
-          bookingMap['id'] ??
-              bookingMap['bookingId'] ??
-              bookingMap['booking_id'],
-        ) ??
+
+    return _extractIdFromMap(trackingMap) ??
+        _extractIdFromMap(cleaningOrderMap) ??
+        _extractIdFromMap(orderMap) ??
+        _extractIdFromMap(bookingMap) ??
+        _extractIdFromMap(unwrapped) ??
         _asInt(
           unwrapped['cleaningBookingId'] ??
+              unwrapped['cleaning_bookingId'] ??
               unwrapped['bookingId'] ??
               unwrapped['booking_id'] ??
+              unwrapped['cleaningOrderId'] ??
+              unwrapped['cleaning_order_id'] ??
               unwrapped['cleaning_booking_id'] ??
               unwrapped['id'] ??
               unwrapped['orderId'] ??
@@ -174,9 +216,37 @@ class CleaningRealtimeContract {
         );
   }
 
+  static Map<String, dynamic> _nestedBookingMap(Map<String, dynamic> source) {
+    return _asStringMap(
+      source['cleaningOrder'] ??
+          source['cleaning_order'] ??
+          source['cleaningBooking'] ??
+          source['cleaning_booking'],
+    );
+  }
+
   static Map<String, dynamic> _asStringMap(dynamic value) {
-    if (value is! Map) return const <String, dynamic>{};
-    return value.map((key, nested) => MapEntry(key.toString(), nested));
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) {
+      return value.map((key, nested) => MapEntry(key.toString(), nested));
+    }
+    return const <String, dynamic>{};
+  }
+
+  static int? _extractIdFromMap(Map<String, dynamic> source) {
+    if (source.isEmpty) return null;
+    return _asInt(
+      source['id'] ??
+          source['cleaningBookingId'] ??
+          source['cleaning_bookingId'] ??
+          source['bookingId'] ??
+          source['booking_id'] ??
+          source['cleaningOrderId'] ??
+          source['cleaning_order_id'] ??
+          source['cleaning_booking_id'] ??
+          source['orderId'] ??
+          source['order_id'],
+    );
   }
 
   static String? statusFromDecision(String? decision) {
@@ -194,11 +264,12 @@ class CleaningRealtimeContract {
   }
 
   static CleaningRealtimeLocation? parseLocation(Map<String, dynamic> payload) {
-    final latitude = _asDouble(payload['latitude'] ?? payload['lat']);
-    final longitude = _asDouble(payload['longitude'] ?? payload['lng']);
+    final unwrapped = unwrapPayload(payload);
+    final latitude = _asDouble(unwrapped['latitude'] ?? unwrapped['lat']);
+    final longitude = _asDouble(unwrapped['longitude'] ?? unwrapped['lng']);
     if (latitude == null || longitude == null) return null;
-    final workerId = _asInt(payload['workerId'] ?? payload['worker_id']);
-    final updatedAt = (payload['updatedAt'] ?? payload['updated_at'])
+    final workerId = _asInt(unwrapped['workerId'] ?? unwrapped['worker_id']);
+    final updatedAt = (unwrapped['updatedAt'] ?? unwrapped['updated_at'])
         ?.toString();
     return CleaningRealtimeLocation(
       latitude: latitude,

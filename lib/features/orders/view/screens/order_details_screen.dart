@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:common_package/common_package.dart';
+import 'package:common_package/helpers/shared_preferences_helper.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
-import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_booking_pusher_service.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_realtime_contract.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_worker_extension_prompts.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/pusher_manager.dart';
@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../manager/bloc/orders_bloc.dart';
+import '../helpers/order_details_realtime_policy.dart';
 import '../helpers/order_lifecycle_policy.dart';
 import '../widgets/order_details/order_details_map_body.dart';
 
@@ -29,15 +30,30 @@ class OrderDetailsScreen extends StatefulWidget {
 
 class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   static const Duration _fallbackDebounce = Duration(milliseconds: 150);
+  static const Duration _awaitingVerificationPollInterval =
+      Duration(seconds: 12);
 
   late FetchOrdersUsecaseModelDataItem _order;
-  bool _subscribedToRealtime = false;
-  bool _realtimeAuthWarningShown = false;
+  final PusherManager _pusherManager = getIt<PusherManager>();
+  RealtimeListenerHandle? _bookingListenerHandle;
+  RealtimeListenerHandle? _workerListenerHandle;
   Timer? _syncFallbackDebounce;
+  Timer? _awaitingVerificationPoll;
   OrdersState? _previousBlocState;
 
   int _stepFor(FetchOrdersUsecaseModelDataItem o) =>
       OrderLifecyclePolicy.detailsStepFor(o);
+
+  bool get _isAwaitingStartVerification =>
+      OrderLifecyclePolicy.isAwaitingStartVerification(_order);
+
+  int? _resolveWorkerId() {
+    final fromOrder = _order.workerId;
+    if (fromOrder != null && fromOrder > 0) return fromOrder;
+    final raw = SharedPreferencesHelper.getData(key: 'worker_id');
+    if (raw is num) return raw.toInt();
+    return int.tryParse('$raw');
+  }
 
   @override
   void initState() {
@@ -51,54 +67,124 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           params: FetchOrderDetailsUsecaseParams(id: id),
         ),
       );
-      final pusher = getIt<CleaningBookingPusherService>();
-      pusher.setBookingHandler(id, (eventName, payload) {
-        final normalizedEvent = CleaningRealtimeContract.normalizeEventName(
-          eventName,
+      unawaited(_bindRealtimeListeners());
+      _syncAwaitingVerificationPoll();
+    }
+  }
+
+  Future<void> _bindRealtimeListeners() async {
+    final bookingId = _order.id;
+    if (bookingId == null) return;
+
+    await _detachRealtimeListeners();
+
+    _bookingListenerHandle = await _pusherManager.listen(
+      channelName: '${CleaningRealtimeContract.bookingChannelPrefix}$bookingId',
+      onEvent: (event) {
+        _handleRealtimeEvent(
+          eventName: event.eventName,
+          payload: event.payload,
+          bookingId: bookingId,
+          fromWorkerChannel: false,
         );
-        if (!mounted) return;
+      },
+      onChannelError: _onRealtimeChannelError,
+    );
 
-        if (normalizedEvent ==
-                CleaningRealtimeContract.serviceExtensionRequested ||
-            (normalizedEvent ==
-                    CleaningRealtimeContract.completionDecisionMade &&
-                (payload['decision'] ?? '')
-                        .toString()
-                        .trim()
-                        .toLowerCase() ==
-                    'extension_requested')) {
-          unawaited(
-            CleaningWorkerExtensionPrompts.dispatchRealtimeEvent(
-              eventName,
-              payload,
-            ),
+    final workerId = _resolveWorkerId();
+    if (workerId != null && workerId > 0) {
+      _workerListenerHandle = await _pusherManager.listen(
+        channelName:
+            '${CleaningRealtimeContract.workerChannelPrefix}$workerId',
+        onEvent: (event) {
+          _handleRealtimeEvent(
+            eventName: event.eventName,
+            payload: event.payload,
+            bookingId: bookingId,
+            fromWorkerChannel: true,
           );
-        }
+        },
+        onChannelError: _onRealtimeChannelError,
+      );
+    }
 
-        if (normalizedEvent == CleaningRealtimeContract.arrivalVerified ||
-            normalizedEvent == CleaningRealtimeContract.trackingUpdated) {
-          final status = CleaningRealtimeContract.extractTrackingStatus(
-            payload,
-          );
-          if (status != null &&
-              OrderLifecyclePolicy.shouldPreferIncomingStatus(
-                _order.status,
-                status,
-              )) {
-            _applyLifecyclePatch(status: status);
-          }
-        }
+    if (!mounted) {
+      await _detachRealtimeListeners();
+    }
+  }
 
-        if (CleaningRealtimeContract.isLifecycleRefreshEvent(normalizedEvent)) {
-          _scheduleSyncFallback(
-            bookingId: id,
-            reason: 'owner_details_lifecycle_event_refresh',
-          );
-        }
-      });
-      pusher.setBookingErrorHandler(id, _onRealtimeChannelError);
-      pusher.subscribeBookingChannel(id);
-      _subscribedToRealtime = true;
+  Future<void> _detachRealtimeListeners() async {
+    final bookingHandle = _bookingListenerHandle;
+    final workerHandle = _workerListenerHandle;
+    _bookingListenerHandle = null;
+    _workerListenerHandle = null;
+    await bookingHandle?.dispose();
+    await workerHandle?.dispose();
+  }
+
+  void _handleRealtimeEvent({
+    required String eventName,
+    required Map<String, dynamic> payload,
+    required int bookingId,
+    required bool fromWorkerChannel,
+  }) {
+    if (!mounted) return;
+
+    if (fromWorkerChannel &&
+        !OrderDetailsRealtimePolicy.shouldHandleWorkerChannelEvent(
+          currentBookingId: bookingId,
+          payload: payload,
+        )) {
+      return;
+    }
+
+    final normalizedEvent = CleaningRealtimeContract.normalizeEventName(
+      eventName,
+    );
+
+    if (normalizedEvent ==
+            CleaningRealtimeContract.serviceExtensionRequested ||
+        (normalizedEvent == CleaningRealtimeContract.completionDecisionMade &&
+            (payload['decision'] ?? '').toString().trim().toLowerCase() ==
+                'extension_requested')) {
+      unawaited(
+        CleaningWorkerExtensionPrompts.dispatchRealtimeEvent(eventName, payload),
+      );
+    }
+
+    if (normalizedEvent == CleaningRealtimeContract.arrivalVerified) {
+      final patch = OrderDetailsRealtimePolicy.patchFromArrivalVerified(
+        currentStatus: _order.status,
+        payload: payload,
+      );
+      if (patch != null) {
+        _applyLifecyclePatch(
+          status: patch.status,
+          arrivedAt: patch.arrivedAt,
+          workStartedAt: patch.workStartedAt,
+        );
+      }
+    } else if (normalizedEvent == CleaningRealtimeContract.trackingUpdated) {
+      final patch = OrderDetailsRealtimePolicy.patchFromTrackingUpdate(
+        currentStatus: _order.status,
+        payload: payload,
+      );
+      if (patch != null) {
+        _applyLifecyclePatch(
+          status: patch.status,
+          arrivedAt: patch.arrivedAt,
+          workStartedAt: patch.workStartedAt,
+        );
+      }
+    }
+
+    if (CleaningRealtimeContract.isLifecycleRefreshEvent(normalizedEvent)) {
+      _scheduleSyncFallback(
+        bookingId: bookingId,
+        reason: fromWorkerChannel
+            ? 'owner_details_worker_lifecycle_event_refresh'
+            : 'owner_details_lifecycle_event_refresh',
+      );
     }
   }
 
@@ -111,15 +197,6 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         reason: 'owner_details_channel_auth_403_refresh',
       );
     }
-    if (_realtimeAuthWarningShown || !mounted) return;
-    _realtimeAuthWarningShown = true;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'تعذر استقبال التحديث المباشر حالياً. تتم مزامنة الطلب في الخلفية.',
-        ),
-      ),
-    );
   }
 
   void _scheduleSyncFallback({required int bookingId, required String reason}) {
@@ -135,6 +212,31 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       );
       widget.params.bloc.add(SyncOrderFromRealtimeEvent(bookingId: bookingId));
     });
+  }
+
+  void _syncAwaitingVerificationPoll() {
+    if (!mounted) return;
+    if (!_isAwaitingStartVerification) {
+      _awaitingVerificationPoll?.cancel();
+      _awaitingVerificationPoll = null;
+      return;
+    }
+    if (_awaitingVerificationPoll?.isActive == true) return;
+    _awaitingVerificationPoll = Timer.periodic(
+      _awaitingVerificationPollInterval,
+      (_) => _pollOrderDetailsForVerificationAdvance(),
+    );
+  }
+
+  void _pollOrderDetailsForVerificationAdvance() {
+    if (!mounted || !_isAwaitingStartVerification) {
+      _awaitingVerificationPoll?.cancel();
+      _awaitingVerificationPoll = null;
+      return;
+    }
+    final bookingId = _order.id;
+    if (bookingId == null) return;
+    widget.params.bloc.add(SyncOrderFromRealtimeEvent(bookingId: bookingId));
   }
 
   void _applyLifecyclePatch({
@@ -172,6 +274,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         ? blocStep
         : computedStep;
     widget.params.bloc.add(ChangeDetailsCurrentStep(step: nextStep));
+    _syncAwaitingVerificationPoll();
   }
 
   void _onBlocStateChanged(OrdersState state, OrdersState? previous) {
@@ -205,6 +308,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         widget.params.bloc.add(
           ChangeDetailsCurrentStep(step: _stepFor(_order)),
         );
+        _syncAwaitingVerificationPoll();
       }
     }
 
@@ -266,15 +370,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   @override
   void dispose() {
     _syncFallbackDebounce?.cancel();
-    if (_subscribedToRealtime) {
-      final id = _order.id;
-      if (id != null) {
-        final pusher = getIt<CleaningBookingPusherService>();
-        pusher.setBookingHandler(id, null);
-        pusher.setBookingErrorHandler(id, null);
-        pusher.unsubscribeBookingChannel(id);
-      }
-    }
+    _awaitingVerificationPoll?.cancel();
+    unawaited(_detachRealtimeListeners());
     super.dispose();
   }
 

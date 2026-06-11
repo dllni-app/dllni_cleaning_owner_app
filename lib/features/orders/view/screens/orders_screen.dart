@@ -34,7 +34,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
   final OrderNotifier orderNotifier = OrderNotifier();
   late final OrdersBloc _ordersBloc;
   int? _workerId;
-  bool _workerRealtimeAuthWarningShown = false;
   Timer? _fallbackRefreshDebounce;
 
   int? _resolveWorkerId() {
@@ -77,9 +76,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
   void _onWorkerRealtimeError(RealtimeChannelError error) {
     if (error.statusCode != 403) return;
     _scheduleFallbackRefresh(reason: 'worker_channel_auth_403_refresh');
-    if (_workerRealtimeAuthWarningShown || !mounted) return;
-    _workerRealtimeAuthWarningShown = true;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تعذر استقبال التحديث المباشر حالياً. سيتم تحديث الطلبات تلقائياً في الخلفية.')));
   }
 
   void _scheduleFallbackRefresh({required String reason}) {

@@ -15,6 +15,7 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
 import '../../../../core/di/injection.dart';
 import '../../../main/view/screens/main_screen.dart';
+import '../../../orders/data/models/cleaning_booking_status.dart';
 import '../../../orders/domain/usecases/fetch_orders_usecase_use_case.dart';
 import '../../../orders/view/manager/bloc/orders_bloc.dart';
 import '../../../profile/view/manager/bloc/profile_bloc.dart';
@@ -58,7 +59,10 @@ class _HomeScreenState extends State<HomeScreen> {
     _ordersBloc = getIt<OrdersBloc>()
       ..add(
         FetchOrdersUsecaseEvent(
-          params: FetchOrdersUsecaseParams(page: 1, status: 'pending'),
+          params: FetchOrdersUsecaseParams(
+            page: 1,
+            status: CleaningBookingStatus.pending,
+          ),
         ),
       );
     _profileBloc = getIt<ProfileBloc>()
@@ -92,6 +96,10 @@ class _HomeScreenState extends State<HomeScreen> {
         }
         _schedulePendingOrdersRefresh();
       },
+      onChannelError: (error) {
+        if (!mounted || error.statusCode != 403) return;
+        _schedulePendingOrdersRefresh();
+      },
     );
     if (!mounted) {
       await handle.dispose();
@@ -106,7 +114,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     _ordersBloc.add(
       FetchOrdersUsecaseEvent(
-        params: FetchOrdersUsecaseParams(page: 1, status: 'pending'),
+        params: FetchOrdersUsecaseParams(
+          page: 1,
+          status: CleaningBookingStatus.pending,
+        ),
         isReload: isReload,
         silent: silent,
       ),
@@ -358,7 +369,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   FetchOrdersUsecaseEvent(
                                     params: FetchOrdersUsecaseParams(
                                       page: 1,
-                                      status: 'worker_assigned',
+                                      status: CleaningBookingStatus.pending,
                                     ),
                                   ),
                                 );
