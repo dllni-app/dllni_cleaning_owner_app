@@ -4,6 +4,7 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
 import '../../data/models/cleaning_team_models.dart';
 import '../../data/models/fetch_orders_usecase_model.dart';
+import '../helpers/order_lifecycle_policy.dart';
 
 class WorkerRoomAssignmentsCard extends StatelessWidget {
   const WorkerRoomAssignmentsCard({super.key, required this.order});
@@ -52,6 +53,9 @@ class WorkerTeamStatusCard extends StatelessWidget {
     final acceptance = order.workerAcceptance;
     final accepted = acceptance?.accepted ?? 0;
     final required = acceptance?.required ?? order.numberOfWorkers ?? 0;
+    final currentWorkerAccepted = OrderLifecyclePolicy.hasCurrentWorkerAccepted(
+      order,
+    );
 
     return Container(
       width: double.infinity,
@@ -62,9 +66,11 @@ class WorkerTeamStatusCard extends StatelessWidget {
         border: Border.all(color: context.primaryContainer.withAlpha(80)),
       ),
       child: AppText.bodyMedium(
-        required > 0
-            ? 'تم قبول $accepted من $required عمال'
-            : 'جاري البحث عن عمال',
+        currentWorkerAccepted
+            ? OrderLifecyclePolicy.acceptedWaitingMessage(order)
+            : (required > 0
+                  ? 'تم قبول $accepted من $required عمال'
+                  : 'جاري البحث عن عمال'),
         color: context.primary,
         fontWeight: FontWeight.w600,
         textAlign: TextAlign.center,

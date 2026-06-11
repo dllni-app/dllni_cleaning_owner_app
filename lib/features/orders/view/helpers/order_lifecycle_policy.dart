@@ -13,8 +13,18 @@ class OrderLifecyclePolicy {
   static bool isCustomerDataHidden(FetchOrdersUsecaseModelDataItem order) =>
       isPending(order);
 
+  static bool hasCurrentWorkerAccepted(FetchOrdersUsecaseModelDataItem order) {
+    final assignment = order.myAssignment;
+    if (assignment == null) return false;
+    final status = assignment.status?.trim().toLowerCase();
+    return status == 'accepted' || (assignment.acceptedAt?.isNotEmpty ?? false);
+  }
+
+  static bool isAcceptedWaiting(FetchOrdersUsecaseModelDataItem order) =>
+      isPending(order) && hasCurrentWorkerAccepted(order);
+
   static bool canAcceptReject(FetchOrdersUsecaseModelDataItem order) =>
-      isPending(order);
+      isPending(order) && !hasCurrentWorkerAccepted(order);
 
   static bool canStartTravel(FetchOrdersUsecaseModelDataItem order) =>
       order.status == CleaningBookingStatus.workerAssigned &&
@@ -27,6 +37,26 @@ class OrderLifecyclePolicy {
 
   static bool showFollowOnly(FetchOrdersUsecaseModelDataItem order) =>
       !canAcceptReject(order) && !canStartTravel(order);
+
+  static String acceptedWaitingLabel(FetchOrdersUsecaseModelDataItem order) {
+    if (order.isSearchingForWorkers) {
+      return 'تم قبولك - بانتظار اكتمال الفريق';
+    }
+    return 'تم قبولك - بانتظار بدء الطلب';
+  }
+
+  static String acceptedWaitingMessage(FetchOrdersUsecaseModelDataItem order) {
+    final acceptance = order.workerAcceptance;
+    final accepted = acceptance?.accepted;
+    final required = acceptance?.required ?? order.numberOfWorkers;
+    if (order.isSearchingForWorkers && required != null && required > 0) {
+      return 'تم قبولك في هذا الطلب. تم قبول ${accepted ?? 0} من $required عمال، وسيبدأ الطلب بعد اكتمال العدد المطلوب.';
+    }
+    if (order.isSearchingForWorkers) {
+      return 'تم قبولك في هذا الطلب. ننتظر اكتمال عدد العمال المطلوب لبدء الطلب.';
+    }
+    return 'تم قبولك في هذا الطلب. بانتظار العميل أو النظام للانتقال إلى مرحلة بدء الخدمة.';
+  }
 
   static bool canArrive(FetchOrdersUsecaseModelDataItem order) =>
       order.status == CleaningBookingStatus.workerAssigned &&
@@ -114,6 +144,7 @@ class OrderLifecyclePolicy {
 
   static String statusLabel(FetchOrdersUsecaseModelDataItem order) {
     final status = order.status;
+    if (isAcceptedWaiting(order)) return acceptedWaitingLabel(order);
     if (status == CleaningBookingStatus.pending) return 'طلب جديد';
     if (status == CleaningBookingStatus.workerAssigned) {
       return order.startedTravelAt == null ? 'طلب مؤكد' : 'في الطريق';

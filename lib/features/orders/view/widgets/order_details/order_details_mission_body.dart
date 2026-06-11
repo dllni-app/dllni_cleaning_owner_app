@@ -7,9 +7,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../../core/widgets/provisional_pricing_notice.dart';
 import '../../../data/models/arrive_model.dart';
 import '../../../data/models/fetch_orders_usecase_model.dart';
 import '../../../domain/usecases/complete_order_usecase_use_case.dart';
+import '../../helpers/event_assistance_order_helper.dart';
 import '../../helpers/order_lifecycle_policy.dart';
 
 class OrderDetailsMissionBody extends StatefulWidget {
@@ -80,6 +82,9 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
         );
   }
 
+  bool get _isEventAssistance =>
+      EventAssistanceOrderHelper.isEventAssistance(widget.order.propertyType);
+
   List<_TaskItem> get _tasks {
     final items = <_TaskItem>[];
     for (final service in widget.services) {
@@ -105,6 +110,27 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     if (items.isNotEmpty) {
       return items;
     }
+
+    if (_isEventAssistance) {
+      final task = widget.order.propertyDetails?.customService?.trim();
+      if (task != null && task.isNotEmpty) {
+        final hours = EventAssistanceOrderHelper.resolveBookedHours(
+          propertyHours: widget.order.propertyDetails?.hours,
+          totalHours: widget.order.totalHours,
+          estimatedHours: widget.order.estimatedHours,
+        );
+        return <_TaskItem>[
+          _TaskItem(
+            label: task,
+            detail: hours == null
+                ? null
+                : EventAssistanceOrderHelper.formatHoursDetail(hours),
+          ),
+        ];
+      }
+      return const <_TaskItem>[];
+    }
+
     return const <_TaskItem>[
       _TaskItem(label: 'تنظيف غرفة النوم', detail: 'x 2'),
       _TaskItem(label: 'تنظيف الحمامات', detail: 'x 2'),
@@ -475,6 +501,10 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                             '${widget.order.totalPrice ?? 0} ل.س',
                             total: true,
                           ),
+                          if (widget.order.isPricingFinal == false) ...[
+                            10.verticalSpace,
+                            const ProvisionalPricingNotice(),
+                          ],
                           10.verticalSpace,
                           Row(
                             children: [

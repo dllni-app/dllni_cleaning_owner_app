@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
 import '../../data/models/fetch_orders_usecase_model.dart';
+import '../helpers/event_assistance_order_helper.dart';
 
 class EstateInfoCard extends StatefulWidget {
   const EstateInfoCard({super.key, required this.order});
@@ -15,13 +16,41 @@ class EstateInfoCard extends StatefulWidget {
 
 class _EstateInfoCardState extends State<EstateInfoCard> {
   List<String> attributes = [];
+
+  bool get _isEventAssistance =>
+      EventAssistanceOrderHelper.isEventAssistance(widget.order.propertyType);
+
   @override
   void initState() {
     super.initState();
+    _refreshAttributes();
+  }
+
+  void _refreshAttributes() {
+    if (_isEventAssistance) {
+      attributes = <String>[];
+      final guests = widget.order.propertyDetails?.guestCount;
+      final venue = widget.order.propertyDetails?.venueType;
+      final hours = EventAssistanceOrderHelper.resolveBookedHours(
+        propertyHours: widget.order.propertyDetails?.hours,
+        totalHours: widget.order.totalHours,
+        estimatedHours: widget.order.estimatedHours,
+      );
+      if (guests != null) attributes.add('$guests ضيف');
+      if (venue != null && venue.isNotEmpty) {
+        attributes.add(EventAssistanceOrderHelper.venueTypeLabelAr(venue));
+      }
+      if (hours != null) {
+        attributes.add(EventAssistanceOrderHelper.formatHours(hours));
+      }
+      return;
+    }
+
     attributes = [
       '${widget.order.propertyDetails?.bathrooms ?? 0} حمام',
       '${widget.order.propertyDetails?.bedRooms ?? 0} غرف نوم',
-      if (widget.order.propertyDetails?.kitchen == true) 'مطبخ',
+      if (widget.order.propertyDetails?.kitchenIncluded == true ||
+          widget.order.propertyDetails?.kitchen != null) 'مطبخ',
     ];
   }
 
@@ -29,13 +58,21 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.all(16.r),
-      decoration: BoxDecoration(color: Color(0xffF4F5F7), borderRadius: BorderRadius.circular(20.r)),
+      decoration: BoxDecoration(
+        color: Color(0xffF4F5F7),
+        borderRadius: BorderRadius.circular(20.r),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [AppText.labelMedium("معلومات العقار", fontWeight: FontWeight.w400)],
+            children: [
+              AppText.labelMedium(
+                _isEventAssistance ? 'تفاصيل المناسبة' : 'معلومات العقار',
+                fontWeight: FontWeight.w400,
+              ),
+            ],
           ),
           12.verticalSpace,
           Divider(color: Colors.black.withAlpha(42)),
@@ -47,10 +84,20 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
                 children: [
                   Icon(Icons.apartment, color: context.secondary, size: 18.sp),
                   6.horizontalSpace,
-                  AppText.labelMedium("نوع العقار", fontWeight: FontWeight.w400),
+                  AppText.labelMedium(
+                    _isEventAssistance ? 'نوع المناسبة' : 'نوع العقار',
+                    fontWeight: FontWeight.w400,
+                  ),
                 ],
               ),
-              AppText.labelMedium(widget.order.locationName ?? '', fontWeight: FontWeight.w300),
+              AppText.labelMedium(
+                _isEventAssistance
+                    ? EventAssistanceOrderHelper.eventTypeLabelAr(
+                        widget.order.propertyDetails?.eventType,
+                      )
+                    : (widget.order.locationName ?? ''),
+                fontWeight: FontWeight.w300,
+              ),
             ],
           ),
           14.verticalSpace,
@@ -59,20 +106,45 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
             children: [
               Row(
                 children: [
-                  Icon(Icons.square_foot, color: context.secondary, size: 18.sp),
+                  Icon(
+                    _isEventAssistance
+                        ? Icons.schedule
+                        : Icons.square_foot,
+                    color: context.secondary,
+                    size: 18.sp,
+                  ),
                   6.horizontalSpace,
-                  AppText.labelMedium("المساحة التقديرية", fontWeight: FontWeight.w400),
+                  AppText.labelMedium(
+                    _isEventAssistance ? 'مدة الحجز' : 'المساحة التقديرية',
+                    fontWeight: FontWeight.w400,
+                  ),
                 ],
               ),
-              AppText.labelMedium('${widget.order.estimatedSqm} متر مربع', fontWeight: FontWeight.w300),
+              AppText.labelMedium(
+                _isEventAssistance
+                    ? EventAssistanceOrderHelper.formatHoursDetail(
+                        EventAssistanceOrderHelper.resolveBookedHours(
+                          propertyHours: widget.order.propertyDetails?.hours,
+                          totalHours: widget.order.totalHours,
+                          estimatedHours: widget.order.estimatedHours,
+                        ),
+                      )
+                    : '${widget.order.estimatedSqm} متر مربع',
+                fontWeight: FontWeight.w300,
+              ),
             ],
           ),
-          18.verticalSpace,
-          Wrap(
-            spacing: 12.w,
-            runSpacing: 12.h,
-            children: List.generate(attributes.length, (i) => _buildFeatureChip(attributes[i], context)),
-          ),
+          if (attributes.isNotEmpty) ...[
+            18.verticalSpace,
+            Wrap(
+              spacing: 12.w,
+              runSpacing: 12.h,
+              children: List.generate(
+                attributes.length,
+                (i) => _buildFeatureChip(attributes[i], context),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -81,8 +153,15 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
   Widget _buildFeatureChip(String text, BuildContext context) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-      decoration: BoxDecoration(color: context.secondary.withAlpha(40), borderRadius: BorderRadius.circular(12.r)),
-      child: AppText.labelMedium(text, fontWeight: FontWeight.w300, color: context.secondary),
+      decoration: BoxDecoration(
+        color: context.secondary.withAlpha(40),
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: AppText.labelMedium(
+        text,
+        fontWeight: FontWeight.w300,
+        color: context.secondary,
+      ),
     );
   }
 }

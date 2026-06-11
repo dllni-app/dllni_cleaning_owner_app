@@ -584,6 +584,13 @@ class FetchOrderDetailsUsecaseModelDataPropertyDetails {
   final bool? kitchenIncluded;
   final int? kitchens;
   final String? livingRoomSize;
+  final String? eventType;
+  final int? guestCount;
+  final String? venueType;
+  final String? customService;
+  final double? hours;
+  final String? specialRequirement;
+  final String? notes;
 
   FetchOrderDetailsUsecaseModelDataPropertyDetails({
     this.locationName,
@@ -594,6 +601,13 @@ class FetchOrderDetailsUsecaseModelDataPropertyDetails {
     this.kitchenIncluded,
     this.kitchens,
     this.livingRoomSize,
+    this.eventType,
+    this.guestCount,
+    this.venueType,
+    this.customService,
+    this.hours,
+    this.specialRequirement,
+    this.notes,
   });
 
   factory FetchOrderDetailsUsecaseModelDataPropertyDetails.fromJson(
@@ -614,6 +628,23 @@ class FetchOrderDetailsUsecaseModelDataPropertyDetails {
       livingRoomSize: _toStringValue(
         _pick(json, const <String>['livingRoomSize', 'living_room_size']),
       ),
+      eventType: _toStringValue(
+        _pick(json, const <String>['event_type', 'eventType']),
+      ),
+      guestCount: _toInt(
+        _pick(json, const <String>['guest_count', 'guestCount']),
+      ),
+      venueType: _toStringValue(
+        _pick(json, const <String>['venue_type', 'venueType']),
+      ),
+      customService: _toStringValue(
+        _pick(json, const <String>['custom_service', 'customService']),
+      ),
+      hours: _toDouble(_pick(json, const <String>['hours'])),
+      specialRequirement: _toStringValue(
+        _pick(json, const <String>['special_requirement', 'specialRequirement']),
+      ),
+      notes: _toStringValue(_pick(json, const <String>['notes'])),
     );
   }
 
@@ -627,6 +658,13 @@ class FetchOrderDetailsUsecaseModelDataPropertyDetails {
       'kitchen_included': kitchenIncluded,
       'kitchens': kitchens,
       'living_room_size': livingRoomSize,
+      'event_type': eventType,
+      'guest_count': guestCount,
+      'venue_type': venueType,
+      'custom_service': customService,
+      'hours': hours,
+      'special_requirement': specialRequirement,
+      'notes': notes,
     };
   }
 }

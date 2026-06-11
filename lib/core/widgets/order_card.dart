@@ -5,6 +5,7 @@ import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orde
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/reject_order_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/start_travel_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/event_assistance_order_helper.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_lifecycle_policy.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/screens/order_details_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/accept_order_bottom_sheet.dart';
@@ -24,25 +25,22 @@ class OrderCard extends StatelessWidget {
   final OrdersBloc bloc;
   final int index;
 
+  bool get _isEventAssistance =>
+      EventAssistanceOrderHelper.isEventAssistance(data.propertyType);
+
   String _serviceName() {
-    final type = (data.propertyType ?? '').toLowerCase();
-    switch (type) {
-      case 'apartment':
-        return 'خدمة تنظيف شقة';
-      case 'house':
-        return 'خدمة تنظيف منزل';
-      case 'villa':
-        return 'خدمة تنظيف فيلا';
-      case 'studio':
-        return 'خدمة تنظيف ستوديو';
-      default:
-        return 'خدمة تنظيف منزل';
-    }
+    return EventAssistanceOrderHelper.serviceTitle(
+      propertyType: data.propertyType,
+      customService: data.propertyDetails?.customService,
+    );
   }
 
   String _statusLabel() => OrderLifecyclePolicy.statusLabel(data);
 
   Color _statusColor(BuildContext context) {
+    if (OrderLifecyclePolicy.isAcceptedWaiting(data)) {
+      return const Color(0xff0EA5E9);
+    }
     final status = data.status;
     if (status == CleaningBookingStatus.pending) return const Color(0xff1E2A78);
     if (status == CleaningBookingStatus.workerAssigned) {
@@ -64,6 +62,30 @@ class OrderCard extends StatelessWidget {
     return const Color(0xff64748B);
   }
 
+  Widget _acceptedWaitingBanner(BuildContext context) {
+    if (!OrderLifecyclePolicy.isAcceptedWaiting(data)) {
+      return const SizedBox.shrink();
+    }
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsetsDirectional.symmetric(
+        horizontal: 12,
+        vertical: 10,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xffE0F2FE),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xff7DD3FC)),
+      ),
+      child: AppText.bodySmall(
+        OrderLifecyclePolicy.acceptedWaitingMessage(data),
+        color: const Color(0xff075985),
+        fontWeight: FontWeight.w700,
+        textAlign: TextAlign.start,
+      ),
+    );
+  }
+
   String _formatDate() {
     final raw = data.scheduledDate;
     if (raw == null || raw.isEmpty) return '-';
@@ -81,6 +103,25 @@ class OrderCard extends StatelessWidget {
   }
 
   List<String> _attributeLabels() {
+    if (_isEventAssistance) {
+      final labels = <String>[];
+      final guests = data.propertyDetails?.guestCount;
+      final venue = data.propertyDetails?.venueType;
+      final hours = EventAssistanceOrderHelper.resolveBookedHours(
+        propertyHours: data.propertyDetails?.hours,
+        totalHours: data.totalHours,
+        estimatedHours: data.estimatedHours,
+      );
+      if (guests != null) labels.add('$guests ضيف');
+      if (venue != null && venue.isNotEmpty) {
+        labels.add(EventAssistanceOrderHelper.venueTypeLabelAr(venue));
+      }
+      if (hours != null) {
+        labels.add(EventAssistanceOrderHelper.formatHours(hours));
+      }
+      return labels;
+    }
+
     final labels = <String>[];
     final baths = data.propertyDetails?.bathrooms;
     final beds = data.propertyDetails?.bedRooms;
@@ -269,9 +310,19 @@ class OrderCard extends StatelessWidget {
             const SizedBox(height: 8),
             _metaTile(
               context: context,
-              title: 'المساحة التقديرية',
-              value: '${data.estimatedSqm ?? '-'} متر مربع',
-              icon: Icons.square_foot_rounded,
+              title: _isEventAssistance ? 'مدة الحجز' : 'المساحة التقديرية',
+              value: _isEventAssistance
+                  ? EventAssistanceOrderHelper.formatHours(
+                      EventAssistanceOrderHelper.resolveBookedHours(
+                        propertyHours: data.propertyDetails?.hours,
+                        totalHours: data.totalHours,
+                        estimatedHours: data.estimatedHours,
+                      ),
+                    )
+                  : '${data.estimatedSqm ?? '-'} متر مربع',
+              icon: _isEventAssistance
+                  ? Icons.schedule_rounded
+                  : Icons.square_foot_rounded,
             ),
             if (attributes.isNotEmpty) ...[
               const SizedBox(height: 10),
@@ -298,6 +349,10 @@ class OrderCard extends StatelessWidget {
                     )
                     .toList(),
               ),
+            ],
+            if (OrderLifecyclePolicy.isAcceptedWaiting(data)) ...[
+              const SizedBox(height: 10),
+              _acceptedWaitingBanner(context),
             ],
             const SizedBox(height: 12),
             if (OrderLifecyclePolicy.canAcceptReject(data))

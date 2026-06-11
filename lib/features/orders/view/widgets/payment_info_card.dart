@@ -2,6 +2,7 @@ import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
+import '../../../../core/widgets/provisional_pricing_notice.dart';
 import '../../data/models/fetch_orders_usecase_model.dart';
 
 class PaymentInfoCard extends StatelessWidget {
@@ -90,6 +91,10 @@ class PaymentInfoCard extends StatelessWidget {
               AppText.labelMedium(_totalLabel, fontWeight: FontWeight.w600),
             ],
           ),
+          if (order.isPricingFinal == false) ...[
+            12.verticalSpace,
+            const ProvisionalPricingNotice(),
+          ],
         ],
       ),
     );

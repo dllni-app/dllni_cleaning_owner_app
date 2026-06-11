@@ -2,6 +2,7 @@ import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/accept_order_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/reject_order_usecase_use_case.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/event_assistance_order_helper.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_address_visibility_helper.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_lifecycle_policy.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
@@ -70,20 +71,14 @@ class AcceptOrderBottomSheet extends StatefulWidget {
 }
 
 class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
+  bool get _isEventAssistance =>
+      EventAssistanceOrderHelper.isEventAssistance(widget.order.propertyType);
+
   String _serviceName() {
-    final type = (widget.order.propertyType ?? '').toLowerCase();
-    switch (type) {
-      case 'apartment':
-        return 'تنظيف شقة';
-      case 'house':
-        return 'تنظيف منزل';
-      case 'villa':
-        return 'تنظيف فيلا';
-      case 'studio':
-        return 'تنظيف ستوديو';
-      default:
-        return 'تنظيف منزل';
-    }
+    return EventAssistanceOrderHelper.serviceTitle(
+      propertyType: widget.order.propertyType,
+      customService: widget.order.propertyDetails?.customService,
+    );
   }
 
   String _formatDate() {
@@ -347,7 +342,40 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                       ),
                       const SizedBox(height: 10),
                       _detailCard(context, [
-                        if ((widget.order.services ?? []).isEmpty &&
+                        if (_isEventAssistance) ...[
+                          AppText.bodyMedium(
+                            _serviceName(),
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xff111827),
+                          ),
+                          if (widget.order.propertyDetails?.guestCount != null) ...[
+                            const SizedBox(height: 8),
+                            AppText.bodySmall(
+                              'عدد الضيوف: ${widget.order.propertyDetails!.guestCount}',
+                              color: const Color(0xff6B7280),
+                            ),
+                          ],
+                          if ((widget.order.propertyDetails?.venueType ?? '')
+                              .isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            AppText.bodySmall(
+                              'نوع المكان: ${EventAssistanceOrderHelper.venueTypeLabelAr(widget.order.propertyDetails?.venueType)}',
+                              color: const Color(0xff6B7280),
+                            ),
+                          ],
+                          const SizedBox(height: 8),
+                          AppText.bodySmall(
+                            'مدة الحجز: ${EventAssistanceOrderHelper.formatHoursDetail(
+                              EventAssistanceOrderHelper.resolveBookedHours(
+                                propertyHours:
+                                    widget.order.propertyDetails?.hours,
+                                totalHours: widget.order.totalHours,
+                                estimatedHours: widget.order.estimatedHours,
+                              ),
+                            )}',
+                            color: const Color(0xff6B7280),
+                          ),
+                        ] else if ((widget.order.services ?? []).isEmpty &&
                             (widget.order.addons ?? []).isEmpty)
                           AppText.bodySmall(
                             'لا توجد بنود خدمة مفصلة',

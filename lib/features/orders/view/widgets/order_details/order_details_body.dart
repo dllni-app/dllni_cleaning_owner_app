@@ -8,6 +8,7 @@ import '../../../../../core/widgets/cancel_order_dialog.dart';
 import '../../../data/models/fetch_orders_usecase_model.dart';
 import '../../../domain/usecases/reject_order_usecase_use_case.dart';
 import '../../../domain/usecases/start_travel_usecase_use_case.dart';
+import '../../helpers/event_assistance_order_helper.dart';
 import '../../helpers/order_address_visibility_helper.dart';
 import '../../helpers/order_lifecycle_policy.dart';
 import '../../manager/bloc/orders_bloc.dart';
@@ -34,21 +35,75 @@ class OrderDetailsBody extends StatefulWidget {
 }
 
 class _OrderDetailsBodyState extends State<OrderDetailsBody> {
-  final List<String> titles = [
-    'إجمالي عدد\nساعات العمل',
-    'المساحة\nالتقديرية',
-    'السعر\nالإجمالي',
-  ];
+  bool get _isEventAssistance =>
+      EventAssistanceOrderHelper.isEventAssistance(widget.order.propertyType);
+
+  List<String> get titles => _isEventAssistance
+      ? [
+          'إجمالي عدد\nساعات العمل',
+          'عدد\nالضيوف',
+          'السعر\nالإجمالي',
+        ]
+      : [
+          'إجمالي عدد\nساعات العمل',
+          'المساحة\nالتقديرية',
+          'السعر\nالإجمالي',
+        ];
+
   late List<String> val;
+
+  String _formatHours(double? hours) {
+    if (hours == null) return '-';
+    return hours % 1 == 0 ? hours.toInt().toString() : hours.toString();
+  }
 
   @override
   void initState() {
     super.initState();
+    final bookedHours = EventAssistanceOrderHelper.resolveBookedHours(
+      propertyHours: widget.order.propertyDetails?.hours,
+      totalHours: widget.order.totalHours,
+      estimatedHours: widget.order.estimatedHours,
+    );
     val = [
-      widget.order.totalHours.toString(),
-      widget.order.estimatedSqm.toString(),
+      _formatHours(bookedHours),
+      _isEventAssistance
+          ? '${widget.order.propertyDetails?.guestCount ?? '-'}'
+          : widget.order.estimatedSqm.toString(),
       '\$${widget.order.totalPrice.toString()}',
     ];
+  }
+
+  Widget _buildAcceptedWaitingBanner(BuildContext context) {
+    if (!OrderLifecyclePolicy.isAcceptedWaiting(widget.order)) {
+      return const SizedBox.shrink();
+    }
+    return Container(
+      width: context.width,
+      padding: EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xffE0F2FE),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xff7DD3FC)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppText.labelLarge(
+            OrderLifecyclePolicy.acceptedWaitingLabel(widget.order),
+            color: const Color(0xff075985),
+            fontWeight: FontWeight.w800,
+          ),
+          SizedBox(height: 8),
+          AppText.bodySmall(
+            OrderLifecyclePolicy.acceptedWaitingMessage(widget.order),
+            color: const Color(0xff0C4A6E),
+            fontWeight: FontWeight.w600,
+            textAlign: TextAlign.start,
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -132,6 +187,9 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                   SizedBox(height: 14),
                   _buildOrderAddressCard(context),
                   SizedBox(height: 14),
+                  _buildAcceptedWaitingBanner(context),
+                  if (OrderLifecyclePolicy.isAcceptedWaiting(widget.order))
+                    SizedBox(height: 14),
                   WorkerTeamStatusCard(order: widget.order),
                   if (widget.order.isSearchingForWorkers) SizedBox(height: 14),
                   WorkerRoomAssignmentsCard(order: widget.order),
