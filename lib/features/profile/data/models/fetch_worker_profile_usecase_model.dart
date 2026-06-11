@@ -87,6 +87,7 @@ class FetchWorkerProfileUsecaseModelData {
   FetchWorkerProfileUsecaseModelDataUser? user;
   List<Zone>? zones;
   List<Availability>? availability;
+  String? preferredWorkType;
   String? createdAt;
   String? updatedAt;
 
@@ -112,6 +113,7 @@ class FetchWorkerProfileUsecaseModelData {
     this.user,
     this.zones,
     this.availability,
+    this.preferredWorkType,
     this.createdAt,
     this.updatedAt,
   });
@@ -143,6 +145,9 @@ class FetchWorkerProfileUsecaseModelData {
       availability: json['availability'] is List
           ? (json['availability'] as List).whereType<Map>().map((e) => Availability.fromJson(Map<String, dynamic>.from(e))).toList()
           : null,
+      preferredWorkType: _asString(
+        json['preferred_work_type'] ?? json['preferredWorkType'],
+      ),
       createdAt: _asString(json['createdAt']),
       updatedAt: _asString(json['updatedAt']),
     );
@@ -170,6 +175,7 @@ class FetchWorkerProfileUsecaseModelData {
     'user': user?.toJson(),
     'zones': zones?.map((e) => e.toJson()).toList(),
     'availability': availability?.map((e) => e.toJson()).toList(),
+    'preferred_work_type': preferredWorkType,
     'createdAt': createdAt,
     'updatedAt': updatedAt,
   };

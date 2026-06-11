@@ -10,6 +10,9 @@ class OrderLifecyclePolicy {
   static bool isPending(FetchOrdersUsecaseModelDataItem order) =>
       order.status == CleaningBookingStatus.pending;
 
+  static bool isTimeExtensionRequested(FetchOrdersUsecaseModelDataItem order) =>
+      order.status == CleaningBookingStatus.timeExtensionRequested;
+
   static bool isCustomerDataHidden(FetchOrdersUsecaseModelDataItem order) =>
       isPending(order);
 
@@ -67,6 +70,10 @@ class OrderLifecyclePolicy {
     FetchOrdersUsecaseModelDataItem order,
   ) => order.status == CleaningBookingStatus.awaitingStartVerification;
 
+  static bool isAwaitingWorkerStartConfirmation(
+    FetchOrdersUsecaseModelDataItem order,
+  ) => order.status == CleaningBookingStatus.awaitingWorkerStartConfirmation;
+
   static bool isTravelingToCustomer(FetchOrdersUsecaseModelDataItem order) =>
       order.status == CleaningBookingStatus.workerAssigned &&
       order.startedTravelAt != null &&
@@ -90,6 +97,9 @@ class OrderLifecyclePolicy {
     if (normalized == CleaningBookingStatus.workerAssigned) return 10;
     if (normalized == CleaningBookingStatus.awaitingStartVerification) {
       return 20;
+    }
+    if (normalized == CleaningBookingStatus.awaitingWorkerStartConfirmation) {
+      return 25;
     }
     if (normalized == CleaningBookingStatus.inProgress) return 30;
     if (normalized == CleaningBookingStatus.timeExtensionRequested) {
@@ -127,6 +137,9 @@ class OrderLifecyclePolicy {
     if (isAwaitingStartVerification(order)) {
       return 2;
     }
+    if (isAwaitingWorkerStartConfirmation(order)) {
+      return 2;
+    }
     if (order.status == CleaningBookingStatus.inProgress ||
         order.status == CleaningBookingStatus.timeExtensionRequested ||
         order.status == CleaningBookingStatus.awaitingCustomerCompletion) {
@@ -151,6 +164,9 @@ class OrderLifecyclePolicy {
     }
     if (status == CleaningBookingStatus.awaitingStartVerification) {
       return 'بانتظار التحقق';
+    }
+    if (status == CleaningBookingStatus.awaitingWorkerStartConfirmation) {
+      return 'تم تحقق العميل - ابدأ العمل';
     }
     if (status == CleaningBookingStatus.inProgress) return 'قيد التنفيذ';
     if (status == CleaningBookingStatus.awaitingCustomerCompletion) {

@@ -43,6 +43,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final PusherManager _pusherManager = getIt<PusherManager>();
   RealtimeListenerHandle? _workerRealtimeHandle;
   Timer? _realtimeRefreshTimer;
+  final List<({String eventName, Map<String, dynamic> payload})>
+  _pendingOrderSyncQueue = [];
   int? _workerId;
 
   @override
@@ -88,17 +90,26 @@ class _HomeScreenState extends State<HomeScreen> {
       channelName: '${CleaningRealtimeContract.workerChannelPrefix}$workerId',
       onEvent: (event) {
         if (!mounted) return;
-        if (!CleaningRealtimeContract.shouldRefreshPendingOrdersForWorkerEvent(
-          event.eventName,
-          event.payload,
-        )) {
+        final hasBookingId =
+            CleaningRealtimeContract.extractBookingId(event.payload) != null;
+        final shouldSync =
+            CleaningRealtimeContract.shouldRefreshPendingOrdersForWorkerEvent(
+              event.eventName,
+              event.payload,
+            );
+        if (!shouldSync &&
+            (!hasBookingId ||
+                CleaningRealtimeContract.isLocationEvent(event.eventName))) {
           return;
         }
-        _schedulePendingOrdersRefresh();
+        _schedulePendingOrderSync(
+          eventName: event.eventName,
+          payload: event.payload,
+        );
       },
       onChannelError: (error) {
         if (!mounted || error.statusCode != 403) return;
-        _schedulePendingOrdersRefresh();
+        _schedulePendingOrderSync(eventName: '', payload: const {});
       },
     );
     if (!mounted) {
@@ -110,7 +121,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _dispatchHomeRefresh({bool isReload = true, bool silent = false}) {
     _homeBloc.add(
-      FetchHomePageUsecaseEvent(params: FetchHomePageUsecaseParams()),
+      FetchHomePageUsecaseEvent(
+        params: FetchHomePageUsecaseParams(),
+        silent: silent,
+      ),
     );
     _ordersBloc.add(
       FetchOrdersUsecaseEvent(
@@ -149,17 +163,37 @@ class _HomeScreenState extends State<HomeScreen> {
     await Future.wait([homeCompletion, ordersCompletion, profileCompletion]);
   }
 
-  void _schedulePendingOrdersRefresh() {
+  void _schedulePendingOrderSync({
+    required String eventName,
+    required Map<String, dynamic> payload,
+  }) {
+    _pendingOrderSyncQueue.add((eventName: eventName, payload: payload));
     _realtimeRefreshTimer?.cancel();
     _realtimeRefreshTimer = Timer(_realtimeRefreshDebounce, () {
       if (!mounted) return;
-      _dispatchHomeRefresh(isReload: true, silent: true);
+      final queued = List.of(_pendingOrderSyncQueue);
+      _pendingOrderSyncQueue.clear();
+      for (final request in queued) {
+        _ordersBloc.add(
+          SyncPendingOrderFromRealtimeEvent(
+            eventName: request.eventName,
+            payload: request.payload,
+          ),
+        );
+      }
+      _homeBloc.add(
+        FetchHomePageUsecaseEvent(
+          params: FetchHomePageUsecaseParams(),
+          silent: true,
+        ),
+      );
     });
   }
 
   @override
   void dispose() {
     _realtimeRefreshTimer?.cancel();
+    _pendingOrderSyncQueue.clear();
     final handle = _workerRealtimeHandle;
     _workerRealtimeHandle = null;
     unawaited(handle?.dispose());

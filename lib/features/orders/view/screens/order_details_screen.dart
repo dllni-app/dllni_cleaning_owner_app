@@ -47,6 +47,10 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   bool get _isAwaitingStartVerification =>
       OrderLifecyclePolicy.isAwaitingStartVerification(_order);
 
+  bool get _shouldPollLifecycleAdvance =>
+      _isAwaitingStartVerification ||
+      OrderLifecyclePolicy.isAwaitingWorkerStartConfirmation(_order);
+
   int? _resolveWorkerId() {
     final fromOrder = _order.workerId;
     if (fromOrder != null && fromOrder > 0) return fromOrder;
@@ -216,7 +220,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 
   void _syncAwaitingVerificationPoll() {
     if (!mounted) return;
-    if (!_isAwaitingStartVerification) {
+    if (!_shouldPollLifecycleAdvance) {
       _awaitingVerificationPoll?.cancel();
       _awaitingVerificationPoll = null;
       return;
@@ -229,7 +233,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }
 
   void _pollOrderDetailsForVerificationAdvance() {
-    if (!mounted || !_isAwaitingStartVerification) {
+    if (!mounted || !_shouldPollLifecycleAdvance) {
       _awaitingVerificationPoll?.cancel();
       _awaitingVerificationPoll = null;
       return;

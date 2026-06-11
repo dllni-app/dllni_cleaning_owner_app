@@ -152,3 +152,13 @@ class HydrateOrderDetailsFromRealtimeEvent extends OrdersEvent {
     required this.payload,
   });
 }
+
+class SyncPendingOrderFromRealtimeEvent extends OrdersEvent {
+  final String eventName;
+  final Map<String, dynamic> payload;
+
+  SyncPendingOrderFromRealtimeEvent({
+    required this.eventName,
+    required this.payload,
+  });
+}

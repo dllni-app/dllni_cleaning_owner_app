@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/widgets/cancel_order_dialog.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/fetch_extension_requests_usecas_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/reject_order_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/start_travel_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
@@ -9,6 +12,7 @@ import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/event_ass
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_lifecycle_policy.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/screens/order_details_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/accept_order_bottom_sheet.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/extension_request_action_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -48,6 +52,9 @@ class OrderCard extends StatelessWidget {
     }
     if (status == CleaningBookingStatus.awaitingStartVerification) {
       return const Color(0xffF59E0B);
+    }
+    if (status == CleaningBookingStatus.awaitingWorkerStartConfirmation) {
+      return const Color(0xff059669);
     }
     if (status == CleaningBookingStatus.inProgress ||
         status == CleaningBookingStatus.timeExtensionRequested) {
@@ -133,6 +140,10 @@ class OrderCard extends StatelessWidget {
   }
 
   void _openDetails(BuildContext context) {
+    if (OrderLifecyclePolicy.isTimeExtensionRequested(data)) {
+      unawaited(_openExtensionRequestActionSheet(context));
+      return;
+    }
     context.pushRoute(
       '/orderdetails',
       arguments: OrderDetailsScreenParams(
@@ -142,6 +153,145 @@ class OrderCard extends StatelessWidget {
         index: index,
       ),
     );
+  }
+
+  Future<void> _openExtensionRequestActionSheet(BuildContext context) async {
+    final request =
+        _resolveExtensionRequest() ??
+        await _fetchAndResolveExtensionRequest(context);
+    if (!context.mounted) return;
+    if (request == null) {
+      AppToast.showErrorGlobal('تعذر فتح طلب تمديد الوقت حالياً');
+      return;
+    }
+    ExtensionRequestActionSheet.show(
+      context,
+      bloc: bloc,
+      warningId: request.warningId,
+      bookingId: request.bookingId ?? data.id,
+      requestedMinutes: request.requestedMinutes,
+      customerName: request.customerName ?? data.customer?.name,
+      additionalAmount: request.additionalAmount,
+      currency: request.currency,
+      paymentMethod: request.paymentMethod,
+    );
+  }
+
+  Future<_CardExtensionRequest?> _fetchAndResolveExtensionRequest(
+    BuildContext context,
+  ) async {
+    final bookingId = data.id;
+    if (bookingId == null) return null;
+
+    bloc.add(
+      FetchExtensionRequestsUsecasEvent(
+        params: FetchExtensionRequestsUsecasParams(),
+        isReload: true,
+      ),
+    );
+
+    final completedState = await bloc.stream.firstWhere((state) {
+      final status = state.extensionRequestsUsecas?.status;
+      return status != BlocStatus.loading;
+    });
+    if (!context.mounted) return null;
+
+    return _resolveExtensionRequestFromFetchedRequests(completedState);
+  }
+
+  _CardExtensionRequest? _resolveExtensionRequestFromFetchedRequests(
+    OrdersState state,
+  ) {
+    final bookingId = data.id;
+    if (bookingId == null) return null;
+    final requests = state.extensionRequestsUsecas?.list ?? const [];
+    for (final request in requests) {
+      if (request.bookingId != bookingId) continue;
+      if (!request.isPendingWorkerResponse) continue;
+      final warningId = request.id;
+      if (warningId == null) continue;
+      return _CardExtensionRequest(
+        warningId: warningId,
+        bookingId: request.bookingId,
+        requestedMinutes: request.resolvedAdditionalMinutes,
+        customerName: data.customer?.name,
+      );
+    }
+    return null;
+  }
+
+  _CardExtensionRequest? _resolveExtensionRequest() {
+    final warnings = data.timeWarnings ?? const <dynamic>[];
+    for (final warning in warnings) {
+      final map = _asStringMap(warning);
+      if (map.isEmpty) continue;
+      if (!_isPendingExtensionWarning(map)) continue;
+      final warningId = _toInt(
+        _pick(map, const <String>['id', 'warningId', 'warning_id']),
+      );
+      if (warningId == null) continue;
+      return _CardExtensionRequest(
+        warningId: warningId,
+        bookingId: _toInt(
+          _pick(map, const <String>[
+            'bookingId',
+            'booking_id',
+            'cleaningBookingId',
+            'cleaning_booking_id',
+          ]),
+        ),
+        requestedMinutes: _toInt(
+          _pick(map, const <String>[
+            'additionalMinutes',
+            'additional_minutes',
+            'requestedMinutes',
+            'requested_minutes',
+          ]),
+        ),
+        customerName: _toStringValue(
+          _pick(map, const <String>['customerName', 'customer_name']) ??
+              _pick(_asStringMap(map['customer']), const <String>['name']),
+        ),
+        additionalAmount: _toDouble(
+          _pick(map, const <String>[
+            'additionalAmount',
+            'additional_amount',
+            'amount',
+          ]),
+        ),
+        currency: _toStringValue(_pick(map, const <String>['currency'])),
+        paymentMethod: _toStringValue(
+          _pick(map, const <String>['paymentMethod', 'payment_method']),
+        ),
+      );
+    }
+    return null;
+  }
+
+  bool _isPendingExtensionWarning(Map<String, dynamic> map) {
+    final responseStatus = _toStringValue(
+      _pick(map, const <String>['responseStatus', 'response_status', 'status']),
+    )?.trim().toLowerCase();
+    if (responseStatus == 'accepted' ||
+        responseStatus == 'rejected' ||
+        responseStatus == 'resolved' ||
+        responseStatus == 'closed') {
+      return false;
+    }
+    final workerResponse = _toStringValue(
+      _pick(map, const <String>['workerResponse', 'worker_response']),
+    )?.trim().toLowerCase();
+    if (workerResponse == 'accept' ||
+        workerResponse == 'accepted' ||
+        workerResponse == 'reject' ||
+        workerResponse == 'rejected' ||
+        workerResponse == 'commit_current_time') {
+      return false;
+    }
+    final respondedAt = _toStringValue(
+      _pick(map, const <String>['workerRespondedAt', 'worker_responded_at']),
+    );
+    return respondedAt == null || respondedAt.trim().isEmpty;
   }
 
   Widget _metaTile({
@@ -571,7 +721,13 @@ class OrderCard extends StatelessWidget {
               )
             else
               InkWell(
-                onTap: () => _openDetails(context),
+                onTap: () {
+                  if (OrderLifecyclePolicy.isTimeExtensionRequested(data)) {
+                    unawaited(_openExtensionRequestActionSheet(context));
+                    return;
+                  }
+                  _openDetails(context);
+                },
                 borderRadius: BorderRadius.circular(10),
                 child: Container(
                   height: 44,
@@ -593,4 +749,59 @@ class OrderCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _CardExtensionRequest {
+  const _CardExtensionRequest({
+    required this.warningId,
+    this.bookingId,
+    this.requestedMinutes,
+    this.customerName,
+    this.additionalAmount,
+    this.currency,
+    this.paymentMethod,
+  });
+
+  final int warningId;
+  final int? bookingId;
+  final int? requestedMinutes;
+  final String? customerName;
+  final double? additionalAmount;
+  final String? currency;
+  final String? paymentMethod;
+}
+
+Map<String, dynamic> _asStringMap(dynamic value) {
+  if (value is Map<String, dynamic>) return value;
+  if (value is Map) {
+    return value.map((key, val) => MapEntry(key.toString(), val));
+  }
+  return const <String, dynamic>{};
+}
+
+dynamic _pick(Map<String, dynamic> map, List<String> keys) {
+  for (final key in keys) {
+    if (!map.containsKey(key)) continue;
+    final value = map[key];
+    if (value != null) return value;
+  }
+  return null;
+}
+
+int? _toInt(dynamic value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '');
+}
+
+double? _toDouble(dynamic value) {
+  if (value is double) return value;
+  if (value is num) return value.toDouble();
+  return double.tryParse(value?.toString() ?? '');
+}
+
+String? _toStringValue(dynamic value) {
+  if (value == null) return null;
+  final text = value.toString();
+  return text.isEmpty ? null : text;
 }

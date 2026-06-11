@@ -17,16 +17,39 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     on<FetchHomePageUsecaseEvent>(_fetchHomePageUsecase);
   }
 
-  FutureOr<void> _fetchHomePageUsecase(FetchHomePageUsecaseEvent event, Emitter<HomeState> emit) async {
-    emit(state.copyWith(homePageUsecaseStatus: BlocStatus.loading));
+  FutureOr<void> _fetchHomePageUsecase(
+    FetchHomePageUsecaseEvent event,
+    Emitter<HomeState> emit,
+  ) async {
+    final hasExistingData =
+        state.homePageUsecaseStatus == BlocStatus.success &&
+        state.homePageUsecase != null;
+
+    if (!event.silent || !hasExistingData) {
+      emit(state.copyWith(homePageUsecaseStatus: BlocStatus.loading));
+    }
+
     final res = await fetchHomePageUsecaseUseCase(event.params);
     res.fold(
       (l) {
+        if (event.silent && hasExistingData) {
+          return;
+        }
         AppToast.showErrorGlobal(l.message);
-        emit(state.copyWith(homePageUsecaseStatus: BlocStatus.failed, errorMessage: l.message));
+        emit(
+          state.copyWith(
+            homePageUsecaseStatus: BlocStatus.failed,
+            errorMessage: l.message,
+          ),
+        );
       },
       (r) {
-        emit(state.copyWith(homePageUsecaseStatus: BlocStatus.success, homePageUsecase: r));
+        emit(
+          state.copyWith(
+            homePageUsecaseStatus: BlocStatus.success,
+            homePageUsecase: r,
+          ),
+        );
       },
     );
   }

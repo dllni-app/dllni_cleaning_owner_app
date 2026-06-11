@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('OrderDetailsRealtimePolicy', () {
     test(
-      'advances to in_progress when arrival verified payload omits status',
+      'advances to worker start confirmation when arrival verified omits status',
       () {
         final patch = OrderDetailsRealtimePolicy.patchFromArrivalVerified(
           currentStatus: CleaningBookingStatus.awaitingStartVerification,
@@ -17,12 +17,12 @@ void main() {
         );
 
         expect(patch, isNotNull);
-        expect(patch!.status, CleaningBookingStatus.inProgress);
-        expect(patch.arrivedAt, '2026-05-17T10:00:00Z');
         expect(
-          OrderLifecyclePolicy.detailsStepForStatus(patch.status),
-          3,
+          patch!.status,
+          CleaningBookingStatus.awaitingWorkerStartConfirmation,
         );
+        expect(patch.arrivedAt, '2026-05-17T10:00:00Z');
+        expect(OrderLifecyclePolicy.detailsStepForStatus(patch.status), 2);
       },
     );
 
@@ -30,14 +30,17 @@ void main() {
       final patch = OrderDetailsRealtimePolicy.patchFromArrivalVerified(
         currentStatus: CleaningBookingStatus.awaitingStartVerification,
         payload: const <String, dynamic>{
-          'status': CleaningBookingStatus.inProgress,
-          'work_started_at': '2026-05-17T10:05:00Z',
+          'status': CleaningBookingStatus.awaitingWorkerStartConfirmation,
+          'customer_confirmed_at': '2026-05-17T10:05:00Z',
         },
       );
 
       expect(patch, isNotNull);
-      expect(patch!.status, CleaningBookingStatus.inProgress);
-      expect(patch.workStartedAt, '2026-05-17T10:05:00Z');
+      expect(
+        patch!.status,
+        CleaningBookingStatus.awaitingWorkerStartConfirmation,
+      );
+      expect(patch.workStartedAt, isNull);
     });
 
     test('does not downgrade lifecycle on arrival verified', () {
@@ -64,6 +67,27 @@ void main() {
       expect(patch, isNotNull);
       expect(patch!.status, CleaningBookingStatus.inProgress);
     });
+
+    test(
+      'tracking update applies awaiting worker start confirmation status',
+      () {
+        final patch = OrderDetailsRealtimePolicy.patchFromTrackingUpdate(
+          currentStatus: CleaningBookingStatus.awaitingStartVerification,
+          payload: const <String, dynamic>{
+            'tracking': <String, dynamic>{
+              'status': CleaningBookingStatus.awaitingWorkerStartConfirmation,
+            },
+          },
+        );
+
+        expect(patch, isNotNull);
+        expect(
+          patch!.status,
+          CleaningBookingStatus.awaitingWorkerStartConfirmation,
+        );
+        expect(OrderLifecyclePolicy.detailsStepForStatus(patch.status), 2);
+      },
+    );
 
     test(
       'shouldHandleWorkerChannelEvent accepts matching booking id payloads',
@@ -110,12 +134,13 @@ void main() {
     );
 
     test(
-      'worker-channel arrival verified without status advances to mission step',
+      'worker-channel arrival verified without status waits for start action',
       () {
-        final handles = OrderDetailsRealtimePolicy.shouldHandleWorkerChannelEvent(
-          currentBookingId: 42,
-          payload: const <String, dynamic>{'bookingId': 42},
-        );
+        final handles =
+            OrderDetailsRealtimePolicy.shouldHandleWorkerChannelEvent(
+              currentBookingId: 42,
+              payload: const <String, dynamic>{'bookingId': 42},
+            );
         expect(handles, isTrue);
 
         final patch = OrderDetailsRealtimePolicy.patchFromArrivalVerified(
@@ -126,8 +151,11 @@ void main() {
           },
         );
 
-        expect(patch?.status, CleaningBookingStatus.inProgress);
-        expect(OrderLifecyclePolicy.detailsStepForStatus(patch!.status), 3);
+        expect(
+          patch?.status,
+          CleaningBookingStatus.awaitingWorkerStartConfirmation,
+        );
+        expect(OrderLifecyclePolicy.detailsStepForStatus(patch!.status), 2);
       },
     );
   });

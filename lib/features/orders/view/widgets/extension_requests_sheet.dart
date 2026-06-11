@@ -9,9 +9,18 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import '../manager/bloc/orders_bloc.dart';
 
 class ExtensionRequestsSheet {
-  static Future<void> show(BuildContext context, {VoidCallback? onChanged}) async {
-    final ordersBloc = context.read<OrdersBloc>();
-    ordersBloc.add(FetchExtensionRequestsUsecasEvent(params: FetchExtensionRequestsUsecasParams(), isReload: true));
+  static Future<void> show(
+    BuildContext context, {
+    OrdersBloc? bloc,
+    VoidCallback? onChanged,
+  }) async {
+    final ordersBloc = bloc ?? context.read<OrdersBloc>();
+    ordersBloc.add(
+      FetchExtensionRequestsUsecasEvent(
+        params: FetchExtensionRequestsUsecasParams(),
+        isReload: true,
+      ),
+    );
 
     await showModalBottomSheet<void>(
       context: context,
@@ -35,32 +44,50 @@ class ExtensionRequestsSheet {
                       child: Container(
                         width: 40.w,
                         height: 4.h,
-                        decoration: BoxDecoration(color: Colors.grey.shade400, borderRadius: BorderRadius.circular(2)),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade400,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
                     16.verticalSpace,
                     Padding(
-                      padding: EdgeInsetsDirectional.symmetric(horizontal: 20.w),
-                      child: AppText.titleMedium('طلبات تمديد الوقت', fontWeight: FontWeight.bold),
+                      padding: EdgeInsetsDirectional.symmetric(
+                        horizontal: 20.w,
+                      ),
+                      child: AppText.titleMedium(
+                        'طلبات تمديد الوقت',
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     12.verticalSpace,
                     Expanded(
                       child: BlocConsumer<OrdersBloc, OrdersState>(
                         bloc: ordersBloc,
                         listener: (context, state) {
-                          if (state.acceptExtensionUsecaseStatus == BlocStatus.success || state.rejectExtensionUsecaseStatus == BlocStatus.success) {
+                          if (state.acceptExtensionUsecaseStatus ==
+                                  BlocStatus.success ||
+                              state.rejectExtensionUsecaseStatus ==
+                                  BlocStatus.success) {
                             onChanged?.call();
                           }
                         },
                         builder: (context, state) {
                           return state.extensionRequestsUsecas!.builder(
-                            loadingWidget: Center(child: CircularProgressIndicator.adaptive()),
-                            emptyWidget: Center(child: AppText.bodyMedium('لا توجد طلبات')),
+                            loadingWidget: Center(
+                              child: CircularProgressIndicator.adaptive(),
+                            ),
+                            emptyWidget: Center(
+                              child: AppText.bodyMedium('لا توجد طلبات'),
+                            ),
                             successWidget: () {
                               final list = state.extensionRequestsUsecas!.list;
                               return ListView.builder(
                                 controller: scrollController,
-                                padding: EdgeInsetsDirectional.symmetric(horizontal: 16.w, vertical: 8.h),
+                                padding: EdgeInsetsDirectional.symmetric(
+                                  horizontal: 16.w,
+                                  vertical: 8.h,
+                                ),
                                 itemCount: list.length,
                                 itemBuilder: (context, index) {
                                   final item = list[index];
@@ -69,31 +96,60 @@ class ExtensionRequestsSheet {
                                     child: Padding(
                                       padding: EdgeInsetsDirectional.all(12.w),
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
-                                          AppText.bodyMedium('حجز #${item.bookingId} — ${item.requestedMinutes} دقيقة'),
+                                          AppText.bodyMedium(
+                                            'حجز #${item.bookingId} — ${item.requestedMinutes} دقيقة',
+                                          ),
                                           12.verticalSpace,
                                           Row(
                                             children: [
                                               Expanded(
                                                 child: OutlinedButton(
-                                                  onPressed: wid == null || state.rejectExtensionUsecaseStatus == BlocStatus.loading
+                                                  onPressed:
+                                                      wid == null ||
+                                                          state.rejectExtensionUsecaseStatus ==
+                                                              BlocStatus.loading
                                                       ? null
                                                       : () {
-                                                          ordersBloc.add(RejectExtensionUsecaseEvent(params: RejectExtensionUsecaseParams(id: wid)));
+                                                          ordersBloc.add(
+                                                            RejectExtensionUsecaseEvent(
+                                                              params:
+                                                                  RejectExtensionUsecaseParams(
+                                                                    id: wid,
+                                                                  ),
+                                                            ),
+                                                          );
                                                         },
-                                                  child: AppText.labelLarge('رفض', color: context.error),
+                                                  child: AppText.labelLarge(
+                                                    'رفض',
+                                                    color: context.error,
+                                                  ),
                                                 ),
                                               ),
                                               12.horizontalSpace,
                                               Expanded(
                                                 child: FilledButton(
-                                                  onPressed: wid == null || state.acceptExtensionUsecaseStatus == BlocStatus.loading
+                                                  onPressed:
+                                                      wid == null ||
+                                                          state.acceptExtensionUsecaseStatus ==
+                                                              BlocStatus.loading
                                                       ? null
                                                       : () {
-                                                          ordersBloc.add(AcceptExtensionUsecaseEvent(params: AcceptExtensionUsecaseParams(id: wid)));
+                                                          ordersBloc.add(
+                                                            AcceptExtensionUsecaseEvent(
+                                                              params:
+                                                                  AcceptExtensionUsecaseParams(
+                                                                    id: wid,
+                                                                  ),
+                                                            ),
+                                                          );
                                                         },
-                                                  child: AppText.labelLarge('قبول', color: context.onPrimary),
+                                                  child: AppText.labelLarge(
+                                                    'قبول',
+                                                    color: context.onPrimary,
+                                                  ),
                                                 ),
                                               ),
                                             ],
@@ -105,9 +161,17 @@ class ExtensionRequestsSheet {
                                 },
                               );
                             },
-                            failedWidget: AppText.bodyMedium(state.errorMessage ?? 'خطأ', color: context.error),
+                            failedWidget: AppText.bodyMedium(
+                              state.errorMessage ?? 'خطأ',
+                              color: context.error,
+                            ),
                             onTapRetry: () {
-                              ordersBloc.add(FetchExtensionRequestsUsecasEvent(params: FetchExtensionRequestsUsecasParams(), isReload: true));
+                              ordersBloc.add(
+                                FetchExtensionRequestsUsecasEvent(
+                                  params: FetchExtensionRequestsUsecasParams(),
+                                  isReload: true,
+                                ),
+                              );
                             },
                           );
                         },

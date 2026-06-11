@@ -4,6 +4,10 @@ abstract class HomeEvent {}
 
 class FetchHomePageUsecaseEvent extends HomeEvent {
   final FetchHomePageUsecaseParams params;
+  final bool silent;
 
-  FetchHomePageUsecaseEvent({required this.params});
+  FetchHomePageUsecaseEvent({
+    required this.params,
+    this.silent = false,
+  });
 }

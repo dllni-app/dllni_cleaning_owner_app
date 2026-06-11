@@ -124,6 +124,30 @@ void main() {
       );
     });
 
+    test('awaiting worker start confirmation stays on map step', () {
+      final order = _order(
+        status: CleaningBookingStatus.awaitingWorkerStartConfirmation,
+      );
+
+      expect(OrderLifecyclePolicy.isAwaitingStartVerification(order), isFalse);
+      expect(
+        OrderLifecyclePolicy.isAwaitingWorkerStartConfirmation(order),
+        isTrue,
+      );
+      expect(OrderLifecyclePolicy.detailsStepFor(order), 2);
+      expect(
+        OrderLifecyclePolicy.statusLabel(order),
+        'تم تحقق العميل - ابدأ العمل',
+      );
+      expect(
+        OrderLifecyclePolicy.shouldPreferIncomingStatus(
+          CleaningBookingStatus.awaitingStartVerification,
+          CleaningBookingStatus.awaitingWorkerStartConfirmation,
+        ),
+        isTrue,
+      );
+    });
+
     test('does not downgrade from in_progress to awaiting verification', () {
       expect(
         OrderLifecyclePolicy.shouldPreferIncomingStatus(

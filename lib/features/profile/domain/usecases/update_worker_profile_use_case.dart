@@ -33,6 +33,7 @@ class UpdateWorkerProfileParams with Params {
   final double? homeLatitude;
   final double? homeLongitude;
   final String? homeAddress;
+  final String? preferredWorkType;
 
   UpdateWorkerProfileParams({
     this.name,
@@ -47,6 +48,7 @@ class UpdateWorkerProfileParams with Params {
     this.homeLatitude,
     this.homeLongitude,
     this.homeAddress,
+    this.preferredWorkType,
   });
 
   @override
@@ -63,5 +65,6 @@ class UpdateWorkerProfileParams with Params {
     'homeLatitude': homeLatitude,
     'homeLongitude': homeLongitude,
     'homeAddress': homeAddress,
+    'preferred_work_type': preferredWorkType,
   }..removeWhere((key, val) => val == null);
 }

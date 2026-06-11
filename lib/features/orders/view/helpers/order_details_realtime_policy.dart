@@ -8,10 +8,9 @@ class OrderDetailsRealtimePolicy {
 
   /// Patch to apply when [CleaningRealtimeContract.arrivalVerified] is received.
   ///
-  /// Backend may omit `status` and only send `bookingId`, `arrivedAt`, and
-  /// `version`. In that case we optimistically advance to [in_progress] so the
-  /// worker reaches the mission step immediately; API refresh remains source of
-  /// truth via [SyncOrderFromRealtimeEvent].
+  /// Backend should send `status: awaiting_worker_start_confirmation` after
+  /// customer code verification. If the status is omitted, keep the worker on
+  /// the start-confirmation step instead of starting work optimistically.
   static ({
     String status,
     String? arrivedAt,
@@ -42,10 +41,10 @@ class OrderDetailsRealtimePolicy {
     if (explicitStatus == null &&
         OrderLifecyclePolicy.shouldPreferIncomingStatus(
           currentStatus,
-          CleaningBookingStatus.inProgress,
+          CleaningBookingStatus.awaitingWorkerStartConfirmation,
         )) {
       return (
-        status: CleaningBookingStatus.inProgress,
+        status: CleaningBookingStatus.awaitingWorkerStartConfirmation,
         arrivedAt: timestamps.arrivedAt,
         workStartedAt: timestamps.workStartedAt,
       );

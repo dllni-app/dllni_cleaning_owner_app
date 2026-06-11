@@ -34,6 +34,7 @@ import '../../../domain/usecases/fetch_security_code_use_case.dart';
 import '../../../data/models/security_code_model.dart';
 import '../../../domain/usecases/start_work_use_case.dart';
 import '../../../data/models/start_work_model.dart';
+import '../../helpers/order_details_to_list_item_mapper.dart';
 import '../../helpers/order_lifecycle_policy.dart';
 import '../../widgets/order_details/location_reporting_policy.dart';
 
@@ -109,6 +110,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     on<SyncOrderFromRealtimeEvent>(_syncOrderFromRealtime);
     on<HydrateOrderListFromRealtimeEvent>(_hydrateOrderListFromRealtime);
     on<HydrateOrderDetailsFromRealtimeEvent>(_hydrateOrderDetailsFromRealtime);
+    on<SyncPendingOrderFromRealtimeEvent>(_syncPendingOrderFromRealtime);
   }
 
   EventTransformer<T> droppableProMax<T extends EventWithReload>() {
@@ -133,14 +135,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
       if (event.silent) {
         final res = await fetchOrdersUsecaseUseCase(event.params);
         res.fold(
-          (l) {
-            AppToast.showErrorGlobal(l.message);
-            emit(
-              state.copyWith(
-                errorMessage: l.message,
-              ),
-            );
-          },
+          (l) {},
           (r) {
             emit(
               state.copyWith(
@@ -643,13 +638,9 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
             : SecurityCodeModel.tryFromBookingPayload(r.data!.toJson());
         final hasEmbeddedCode = embeddedCode?.data?.hasCode == true;
         final status = r.data?.status;
-        final step = status == CleaningBookingStatus.awaitingStartVerification
+        final step = status == null
             ? 2
-            : status == CleaningBookingStatus.inProgress ||
-                  status == CleaningBookingStatus.awaitingCustomerCompletion ||
-                  status == CleaningBookingStatus.timeExtensionRequested
-            ? 3
-            : 2;
+            : OrderLifecyclePolicy.detailsStepForStatus(status);
         emit(
           state.copyWith(
             arriveStatus: BlocStatus.success,
@@ -664,7 +655,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
 
         if (hasEmbeddedCode) {
           _securityCodeLoadedForBookingId = bookingId;
-        } else {
+        } else if (status == CleaningBookingStatus.awaitingStartVerification) {
           add(
             FetchSecurityCodeEvent(
               params: FetchSecurityCodeParams(id: bookingId),
@@ -871,6 +862,88 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
       return;
     }
     add(SyncOrderFromRealtimeEvent(bookingId: event.bookingId));
+  }
+
+  FutureOr<void> _syncPendingOrderFromRealtime(
+    SyncPendingOrderFromRealtimeEvent event,
+    Emitter<OrdersState> emit,
+  ) async {
+    final bookingId = CleaningRealtimeContract.extractBookingId(event.payload);
+    final shouldSync =
+        CleaningRealtimeContract.shouldRefreshPendingOrdersForWorkerEvent(
+      event.eventName,
+      event.payload,
+        );
+    if (!shouldSync &&
+        (bookingId == null ||
+            CleaningRealtimeContract.isLocationEvent(event.eventName))) {
+      return;
+    }
+
+    if (bookingId == null) {
+      add(
+        FetchOrdersUsecaseEvent(
+          params: FetchOrdersUsecaseParams(
+            page: 1,
+            status: CleaningBookingStatus.pending,
+          ),
+          isReload: true,
+          silent: true,
+        ),
+      );
+      return;
+    }
+
+    final res = await fetchOrderDetailsUsecaseUseCase(
+      FetchOrderDetailsUsecaseParams(id: bookingId),
+    );
+    res.fold(
+      (_) {},
+      (response) {
+        final details = response.data;
+        if (details == null) return;
+
+        final status = (details.status ?? '').trim().toLowerCase();
+        if (status == CleaningBookingStatus.pending) {
+          final listItem = OrderDetailsToListItemMapper.fromDetails(details);
+          emit(
+            state.copyWith(
+              ordersUsecase: _upsertPendingOrderListItem(
+                state.ordersUsecase!,
+                listItem,
+              ),
+            ),
+          );
+          return;
+        }
+
+        emit(
+          state.copyWith(
+            ordersUsecase: state.ordersUsecase!.removeWhere(
+              (order) => order.id == bookingId,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  PaginationStateModel<FetchOrdersUsecaseModelDataItem>
+  _upsertPendingOrderListItem(
+    PaginationStateModel<FetchOrdersUsecaseModelDataItem> pagination,
+    FetchOrdersUsecaseModelDataItem item,
+  ) {
+    final updated = List<FetchOrdersUsecaseModelDataItem>.of(pagination.list);
+    final index = updated.indexWhere((order) => order.id == item.id);
+    if (index >= 0) {
+      updated[index] = item;
+    } else {
+      updated.insert(0, item);
+    }
+    return pagination.copyWith(
+      list: updated,
+      status: BlocStatus.success,
+    );
   }
 
   String _mapLifecycleFailureMessage(

@@ -6,6 +6,7 @@ import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_b
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/arrive_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/fetch_security_code_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/post_booking_location_use_case.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/start_work_use_case.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -58,21 +59,33 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
   bool get _isAwaitingVerification =>
       OrderLifecyclePolicy.isAwaitingStartVerification(widget.order);
 
+  bool get _isAwaitingWorkerStartConfirmation =>
+      OrderLifecyclePolicy.isAwaitingWorkerStartConfirmation(widget.order);
+
   bool _isAwaitingVerificationAfterArrive(OrdersState state) {
-    if (_suppressLocationReporting) return true;
-    if (state.arriveStatus == BlocStatus.loading) return true;
+    if (_isAwaitingWorkerStartConfirmation) return false;
+
+    if (state.arriveStatus == BlocStatus.loading) {
+      return _isAwaitingVerification || _suppressLocationReporting;
+    }
+
     final arrive = state.arrive?.data;
     if (state.arriveStatus != BlocStatus.success || arrive == null) {
-      return false;
+      return _suppressLocationReporting && _isAwaitingVerification;
     }
     if (arrive.id != widget.order.id) return false;
     final status = (arrive.status ?? widget.order.status ?? '').toLowerCase();
+    if (status == CleaningBookingStatus.awaitingWorkerStartConfirmation) {
+      return false;
+    }
     return status.isEmpty ||
         status == CleaningBookingStatus.awaitingStartVerification;
   }
 
-  bool _shouldShowVerificationUi(OrdersState state) =>
-      _isAwaitingVerification || _isAwaitingVerificationAfterArrive(state);
+  bool _shouldShowVerificationUi(OrdersState state) {
+    if (_isAwaitingWorkerStartConfirmation) return false;
+    return _isAwaitingVerification || _isAwaitingVerificationAfterArrive(state);
+  }
 
   bool get _canArrive => OrderLifecyclePolicy.canArrive(widget.order);
 
@@ -117,6 +130,8 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
     if (oldWidget.order.status != widget.order.status &&
         !_isAwaitingVerification) {
       _requestedSecurityCode = false;
+      _suppressLocationReporting = false;
+      _autoVerificationDialogShown = false;
     }
     if (oldWidget.order.status != widget.order.status ||
         oldWidget.order.startedTravelAt != widget.order.startedTravelAt ||
@@ -388,9 +403,62 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
     );
   }
 
+  Widget _buildStartWorkConfirmationAction(OrdersState state) {
+    final id = widget.order.id;
+    final loading = state.startWorkStatus == BlocStatus.loading;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          width: context.width,
+          padding: EdgeInsetsDirectional.all(12.r),
+          decoration: BoxDecoration(
+            color: const Color(0xffECFDF5),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xffA7F3D0)),
+          ),
+          child: AppText.bodySmall(
+            'تم تحقق العميل من رمز الأمان. اضغط بدء العمل للانتقال إلى تنفيذ المهمة.',
+            color: const Color(0xff047857),
+            textAlign: TextAlign.start,
+          ),
+        ),
+        10.verticalSpace,
+        SizedBox(
+          width: context.width,
+          child: FilledButton.icon(
+            onPressed: loading || id == null
+                ? null
+                : () {
+                    widget.bloc.add(
+                      StartWorkEvent(params: StartWorkParams(id: id)),
+                    );
+                  },
+            icon: loading
+                ? SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      color: context.onPrimary,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Icon(Icons.play_arrow_rounded),
+            label: AppText.labelLarge('بدء العمل', color: context.onPrimary),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildAction(OrdersState state) {
     if (_shouldShowVerificationUi(state)) {
       return _buildVerificationReminderAction();
+    }
+
+    if (_isAwaitingWorkerStartConfirmation) {
+      return _buildStartWorkConfirmationAction(state);
     }
 
     if (!_canArrive || widget.order.id == null) {

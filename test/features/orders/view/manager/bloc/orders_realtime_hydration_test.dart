@@ -1,3 +1,4 @@
+import 'package:common_package/common_package.dart';
 import 'package:common_package/helpers/typedef.dart';
 import 'package:dartz/dartz.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/accept_extension_usecase_model.dart';
@@ -195,6 +196,234 @@ void main() {
         await bloc.close();
       },
     );
+
+    group('pending order background sync', () {
+      test(
+        'sync with booking id fetches details and updates list item',
+        () async {
+          final repo = _FakeOrdersRepo(
+            listStatuses: const <String>[CleaningBookingStatus.pending],
+            detailsStatuses: const <String>[CleaningBookingStatus.pending],
+            detailsBookingNumbers: const <String>['CLN-1-UPDATED'],
+          );
+          final bloc = _buildBloc(repo);
+
+          bloc.add(
+            FetchOrdersUsecaseEvent(
+              params: FetchOrdersUsecaseParams(
+                page: 1,
+                status: CleaningBookingStatus.pending,
+              ),
+              isReload: true,
+            ),
+          );
+          await _flushBlocQueue();
+
+          expect(repo.fetchOrdersCalls, 1);
+          expect(repo.fetchOrderDetailsCalls, 0);
+          expect(
+            bloc.state.ordersUsecase?.list.first.status,
+            CleaningBookingStatus.pending,
+          );
+
+          bloc.add(
+            SyncPendingOrderFromRealtimeEvent(
+              eventName: 'cleaning_booking.team_updated',
+              payload: const <String, dynamic>{'cleaningBookingId': 42},
+            ),
+          );
+          await _flushBlocQueue();
+
+          expect(repo.fetchOrdersCalls, 1);
+          expect(repo.fetchOrderDetailsCalls, 1);
+          expect(bloc.state.ordersUsecase?.status, BlocStatus.success);
+          expect(bloc.state.ordersUsecase?.list, hasLength(1));
+          expect(
+            bloc.state.ordersUsecase?.list.first.status,
+            CleaningBookingStatus.pending,
+          );
+          expect(
+            bloc.state.ordersUsecase?.list.first.bookingNumber,
+            'CLN-1-UPDATED',
+          );
+          await bloc.close();
+        },
+      );
+
+      test(
+        'sync removes order when it is no longer pending',
+        () async {
+          final repo = _FakeOrdersRepo(
+            listStatuses: const <String>[CleaningBookingStatus.pending],
+            detailsStatuses: const <String>[
+              CleaningBookingStatus.workerAssigned,
+            ],
+          );
+          final bloc = _buildBloc(repo);
+
+          bloc.add(
+            FetchOrdersUsecaseEvent(
+              params: FetchOrdersUsecaseParams(
+                page: 1,
+                status: CleaningBookingStatus.pending,
+              ),
+              isReload: true,
+            ),
+          );
+          await _flushBlocQueue();
+          expect(bloc.state.ordersUsecase?.list, hasLength(1));
+
+          bloc.add(
+            SyncPendingOrderFromRealtimeEvent(
+              eventName: 'WorkerArrived',
+              payload: const <String, dynamic>{'cleaningBookingId': 42},
+            ),
+          );
+          await _flushBlocQueue();
+
+          expect(repo.fetchOrdersCalls, 1);
+          expect(repo.fetchOrderDetailsCalls, 1);
+          expect(bloc.state.ordersUsecase?.list, isEmpty);
+          await bloc.close();
+        },
+      );
+
+      test(
+        'sync without booking id falls back to silent list refetch',
+        () async {
+          final repo = _FakeOrdersRepo(
+            listStatuses: const <String>[
+              CleaningBookingStatus.pending,
+              CleaningBookingStatus.pending,
+            ],
+          );
+          final bloc = _buildBloc(repo);
+
+          bloc.add(
+            FetchOrdersUsecaseEvent(
+              params: FetchOrdersUsecaseParams(
+                page: 1,
+                status: CleaningBookingStatus.pending,
+              ),
+              isReload: true,
+            ),
+          );
+          await _flushBlocQueue();
+          expect(repo.fetchOrdersCalls, 1);
+
+          bloc.add(
+            SyncPendingOrderFromRealtimeEvent(
+              eventName: 'cleaning_booking.team_updated',
+              payload: const <String, dynamic>{'status': 'pending'},
+            ),
+          );
+          await _flushBlocQueue();
+
+          expect(repo.fetchOrdersCalls, 2);
+          expect(repo.fetchOrderDetailsCalls, 0);
+          await bloc.close();
+        },
+      );
+
+      test(
+        'sync with unknown booking event fetches details by booking id',
+        () async {
+          final repo = _FakeOrdersRepo(
+            listStatuses: const <String>[],
+            detailsStatuses: const <String>[CleaningBookingStatus.pending],
+            detailsBookingNumbers: const <String>['CLN-NEW'],
+          );
+          final bloc = _buildBloc(repo);
+
+          bloc.add(
+            SyncPendingOrderFromRealtimeEvent(
+              eventName: 'CleaningBookingCreated',
+              payload: const <String, dynamic>{'bookingId': 42},
+            ),
+          );
+          await _flushBlocQueue();
+
+          expect(repo.fetchOrdersCalls, 0);
+          expect(repo.fetchOrderDetailsCalls, 1);
+          expect(bloc.state.ordersUsecase?.list, hasLength(1));
+          expect(
+            bloc.state.ordersUsecase?.list.first.status,
+            CleaningBookingStatus.pending,
+          );
+          expect(
+            bloc.state.ordersUsecase?.list.first.bookingNumber,
+            'CLN-NEW',
+          );
+          await bloc.close();
+        },
+      );
+
+      test(
+        'silent fallback failure preserves existing pending list',
+        () async {
+          final repo = _FakeOrdersRepo(
+            listStatuses: const <String>[CleaningBookingStatus.pending],
+            failFetchOrders: true,
+          );
+          final bloc = _buildBloc(repo);
+
+          bloc.add(
+            FetchOrdersUsecaseEvent(
+              params: FetchOrdersUsecaseParams(
+                page: 1,
+                status: CleaningBookingStatus.pending,
+              ),
+              isReload: true,
+            ),
+          );
+          await _flushBlocQueue();
+          expect(bloc.state.ordersUsecase?.list, hasLength(1));
+
+          bloc.add(
+            SyncPendingOrderFromRealtimeEvent(
+              eventName: 'cleaning_booking.team_updated',
+              payload: const <String, dynamic>{'status': 'pending'},
+            ),
+          );
+          await _flushBlocQueue();
+
+          expect(repo.fetchOrdersCalls, 2);
+          expect(bloc.state.ordersUsecase?.status, BlocStatus.success);
+          expect(bloc.state.ordersUsecase?.list, hasLength(1));
+          await bloc.close();
+        },
+      );
+
+      test('sync ignores non-relevant events', () async {
+        final repo = _FakeOrdersRepo(
+          listStatuses: const <String>[CleaningBookingStatus.pending],
+        );
+        final bloc = _buildBloc(repo);
+
+        bloc.add(
+          FetchOrdersUsecaseEvent(
+            params: FetchOrdersUsecaseParams(
+              page: 1,
+              status: CleaningBookingStatus.pending,
+            ),
+            isReload: true,
+          ),
+        );
+        await _flushBlocQueue();
+
+        bloc.add(
+          SyncPendingOrderFromRealtimeEvent(
+            eventName: 'WorkerLocationUpdated',
+            payload: const <String, dynamic>{'cleaningBookingId': 42},
+          ),
+        );
+        await _flushBlocQueue();
+
+        expect(repo.fetchOrdersCalls, 1);
+        expect(repo.fetchOrderDetailsCalls, 0);
+        await bloc.close();
+      });
+    });
   });
 }
 
@@ -224,15 +453,22 @@ Future<void> _flushBlocQueue() async {
 }
 
 class _FakeOrdersRepo implements OrdersRepo {
-  _FakeOrdersRepo({List<String>? listStatuses, List<String>? detailsStatuses})
-    : _listStatuses =
-          listStatuses ?? const <String>[CleaningBookingStatus.workerAssigned],
-      _detailsStatuses =
-          detailsStatuses ??
-          const <String>[CleaningBookingStatus.workerAssigned];
+  _FakeOrdersRepo({
+    List<String>? listStatuses,
+    List<String>? detailsStatuses,
+    List<String>? detailsBookingNumbers,
+    this.failFetchOrders = false,
+  })  : _listStatuses =
+            listStatuses ?? const <String>[CleaningBookingStatus.workerAssigned],
+        _detailsStatuses =
+            detailsStatuses ??
+            const <String>[CleaningBookingStatus.workerAssigned],
+        _detailsBookingNumbers = detailsBookingNumbers;
 
   final List<String> _listStatuses;
   final List<String> _detailsStatuses;
+  final List<String>? _detailsBookingNumbers;
+  final bool failFetchOrders;
 
   int fetchOrdersCalls = 0;
   int fetchOrderDetailsCalls = 0;
@@ -288,10 +524,18 @@ class _FakeOrdersRepo implements OrdersRepo {
     FetchOrderDetailsUsecaseParams params,
   ) async {
     final status = _statusAt(_detailsStatuses, fetchOrderDetailsCalls);
+    final detailsBookingNumbers = _detailsBookingNumbers;
+    final bookingNumber = detailsBookingNumbers == null
+        ? null
+        : _statusAt(detailsBookingNumbers, fetchOrderDetailsCalls);
     fetchOrderDetailsCalls++;
     return Right(
       FetchOrderDetailsUsecaseModel(
-        data: FetchOrderDetailsUsecaseModelData(id: 42, status: status),
+        data: FetchOrderDetailsUsecaseModelData(
+          id: 42,
+          status: status,
+          bookingNumber: bookingNumber,
+        ),
       ),
     );
   }
@@ -300,6 +544,10 @@ class _FakeOrdersRepo implements OrdersRepo {
   DataResponse<FetchOrdersUsecaseModel> fetchOrdersUsecase(
     FetchOrdersUsecaseParams params,
   ) async {
+    if (failFetchOrders && fetchOrdersCalls > 0) {
+      fetchOrdersCalls++;
+      return const Left(ServerFailure(message: 'network error'));
+    }
     final status = _statusAt(_listStatuses, fetchOrdersCalls);
     fetchOrdersCalls++;
     return Right(

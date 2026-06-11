@@ -41,6 +41,32 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
   bool _isLoadingPhone = true;
 
   File? selectedImage;
+  String _preferredWorkType = 'both';
+
+  static const List<({String value, String title, String subtitle, IconData icon, Color color})>
+      _workTypeOptions = [
+    (
+      value: 'cleaning',
+      title: 'طلبات التنظيف فقط',
+      subtitle: 'استقبال طلبات تنظيف المنازل والمكاتب فقط',
+      icon: Icons.cleaning_services_outlined,
+      color: Color(0xff3B82F6),
+    ),
+    (
+      value: 'events',
+      title: 'طلبات الفعاليات فقط',
+      subtitle: 'استقبال طلبات مساعدة وتنظيف الفعاليات فقط',
+      icon: Icons.event_outlined,
+      color: Color(0xffA855F7),
+    ),
+    (
+      value: 'both',
+      title: 'كلا النوعين',
+      subtitle: 'استقبال طلبات التنظيف وطلبات الفعاليات معاً',
+      icon: Icons.all_inclusive,
+      color: Color(0xff22C55E),
+    ),
+  ];
 
   @override
   void initState() {
@@ -52,6 +78,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     );
     _aboutMeController = TextEditingController(text: widget.params.bio ?? '');
     _cityMeController = TextEditingController(text: widget.params.city ?? '');
+    _preferredWorkType = widget.params.preferredWorkType ?? 'both';
     _loadInitialPhone();
   }
 
@@ -253,6 +280,19 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                             ],
                           ),
                         ),
+                        16.verticalSpace,
+                        _buildSectionCard(
+                          sectionNumber: '4',
+                          title: 'نوع الطلبات المفضلة',
+                          child: Column(
+                            children: [
+                              for (var i = 0; i < _workTypeOptions.length; i++) ...[
+                                if (i > 0) 12.verticalSpace,
+                                _buildWorkTypeOption(_workTypeOptions[i]),
+                              ],
+                            ],
+                          ),
+                        ),
                         32.verticalSpace,
                         Row(
                           children: [
@@ -310,6 +350,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                                             isActive: 1,
                                             name: _nameController.text,
                                             phone: phone,
+                                            preferredWorkType: _preferredWorkType,
                                           ),
                                         ),
                                       );
@@ -490,6 +531,73 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     );
   }
 
+  Widget _buildWorkTypeOption(
+    ({String value, String title, String subtitle, IconData icon, Color color})
+        option,
+  ) {
+    final isSelected = _preferredWorkType == option.value;
+    return InkWell(
+      onTap: () => setState(() => _preferredWorkType = option.value),
+      borderRadius: BorderRadius.circular(14.r),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14.r),
+          color: isSelected
+              ? option.color.withAlpha(20)
+              : const Color(0xffF9FAFB),
+          border: Border.all(
+            color: isSelected ? option.color : const Color(0xffE5E7EB),
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        padding: EdgeInsetsDirectional.symmetric(
+          horizontal: 14.w,
+          vertical: 14.h,
+        ),
+        child: Row(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12.r),
+                color: option.color.withAlpha(27),
+              ),
+              padding: EdgeInsetsDirectional.all(8.w),
+              child: Icon(option.icon, size: 22.sp, color: option.color),
+            ),
+            12.horizontalSpace,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppText.bodyMedium(
+                    option.title,
+                    fontWeight: FontWeight.bold,
+                    textAlign: TextAlign.start,
+                  ),
+                  4.verticalSpace,
+                  AppText.labelLarge(
+                    option.subtitle,
+                    fontWeight: FontWeight.w400,
+                    color: const Color(0xff6B7280),
+                    textAlign: TextAlign.start,
+                  ),
+                ],
+              ),
+            ),
+            8.horizontalSpace,
+            Icon(
+              isSelected
+                  ? Icons.radio_button_checked
+                  : Icons.radio_button_off,
+              color: isSelected ? option.color : const Color(0xff9CA3AF),
+              size: 22.sp,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildField({
     required String label,
     required TextEditingController controller,
@@ -645,6 +753,7 @@ class UpdateProfileScreenParams {
     this.city,
     this.bio,
     this.avatarUrl,
+    this.preferredWorkType,
   });
 
   factory UpdateProfileScreenParams.fromWorkerProfile(
@@ -657,6 +766,7 @@ class UpdateProfileScreenParams {
       bio: data.bio,
       city: data.homeAddress,
       avatarUrl: data.avatar?.url,
+      preferredWorkType: data.preferredWorkType ?? 'both',
     );
   }
 
@@ -668,4 +778,5 @@ class UpdateProfileScreenParams {
   final String? city;
   final String? bio;
   final String? avatarUrl;
+  final String? preferredWorkType;
 }

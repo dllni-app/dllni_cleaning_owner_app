@@ -12,13 +12,14 @@ const List<OrdersStatusTab> ordersStatusTabs = <OrdersStatusTab>[
     status: CleaningBookingStatus.pending,
     label: 'جديدة',
   ),*/
-  OrdersStatusTab(
-    status: CleaningBookingStatus.workerAssigned,
-    label: 'مؤكدة',
-  ),
+  OrdersStatusTab(status: CleaningBookingStatus.workerAssigned, label: 'مؤكدة'),
   OrdersStatusTab(
     status: CleaningBookingStatus.awaitingStartVerification,
     label: 'بانتظار التحقق',
+  ),
+  OrdersStatusTab(
+    status: CleaningBookingStatus.awaitingWorkerStartConfirmation,
+    label: 'جاهز للبدء',
   ),
   OrdersStatusTab(
     status: CleaningBookingStatus.inProgress,
@@ -32,12 +33,6 @@ const List<OrdersStatusTab> ordersStatusTabs = <OrdersStatusTab>[
     status: CleaningBookingStatus.timeExtensionRequested,
     label: 'تمديد الوقت',
   ),
-  OrdersStatusTab(
-    status: CleaningBookingStatus.completed,
-    label: 'مكتملة',
-  ),
-  OrdersStatusTab(
-    status: CleaningBookingStatus.cancelled,
-    label: 'ملغية',
-  ),
+  OrdersStatusTab(status: CleaningBookingStatus.completed, label: 'مكتملة'),
+  OrdersStatusTab(status: CleaningBookingStatus.cancelled, label: 'ملغية'),
 ];

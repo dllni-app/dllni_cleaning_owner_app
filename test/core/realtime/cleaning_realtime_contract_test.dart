@@ -35,6 +35,12 @@ void main() {
         ),
         CleaningRealtimeContract.awaitingStartVerification,
       );
+      expect(
+        CleaningRealtimeContract.normalizeEventName(
+          'cleaning_order.awaiting_worker_start_confirmation',
+        ),
+        CleaningRealtimeContract.awaitingWorkerStartConfirmation,
+      );
     });
 
     test('extracts booking id from nested payload aliases', () {
@@ -119,6 +125,12 @@ void main() {
       expect(
         CleaningRealtimeContract.isLifecycleRefreshEvent(
           'cleaning_order.arrival_verified',
+        ),
+        isTrue,
+      );
+      expect(
+        CleaningRealtimeContract.isLifecycleRefreshEvent(
+          'cleaning_order.awaiting_worker_start_confirmation',
         ),
         isTrue,
       );
