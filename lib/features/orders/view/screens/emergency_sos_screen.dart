@@ -69,10 +69,41 @@ class _EmergencySosScreenState extends State<EmergencySosScreen> {
     return null;
   }
 
+  Future<void> _showLocationServicesDialog() async {
+    final shouldOpenSettings = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('تفعيل الموقع'),
+          content: const Text(
+            'يرجى تفعيل خدمات الموقع لإرسال طلب SOS مع موقعك الحالي.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('فتح الإعدادات'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldOpenSettings == true) {
+      await Geolocator.openLocationSettings();
+    }
+  }
+
   Future<({double? latitude, double? longitude})> _resolveLocation() async {
     try {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
+        if (mounted) {
+          await _showLocationServicesDialog();
+        }
         return (latitude: null, longitude: null);
       }
       var permission = await Geolocator.checkPermission();
@@ -110,6 +141,12 @@ class _EmergencySosScreenState extends State<EmergencySosScreen> {
     setState(() => _submitting = true);
 
     final location = await _resolveLocation();
+    if (!mounted) return;
+    if (location.latitude == null || location.longitude == null) {
+      setState(() => _submitting = false);
+      return;
+    }
+
     final result = await getIt<CreateCleaningBookingSosUseCase>()(
       CreateCleaningBookingSosParams(
         orderId: widget.params.bookingId,
