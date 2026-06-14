@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
-import 'dart:io';
 
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:common_package/extensions/route_extensions.dart';
@@ -14,6 +13,7 @@ typedef NotificationTapCallback =
     FutureOr<void> Function(RemoteMessage message);
 typedef NotificationRouteArgumentsBuilder =
     Object? Function(String route, Map<String, dynamic> argsMap);
+typedef FcmTokenAvailableCallback = FutureOr<void> Function(String token);
 
 class _ResolvedRoute {
   final String route;
@@ -23,10 +23,28 @@ class _ResolvedRoute {
 }
 
 const String _lifecycleMarkerKey = '_notification_lifecycle';
+const String _basicChannelKey = 'basic_channel';
+
+List<NotificationChannel> get _basicNotificationChannels => [
+  NotificationChannel(
+    channelKey: _basicChannelKey,
+    channelName: 'Basic Notifications',
+    importance: NotificationImportance.High,
+    defaultColor: const Color(0xffBF956B),
+    onlyAlertOnce: false,
+    channelShowBadge: true,
+    channelDescription: 'Basic Instant Notification',
+  ),
+];
+
+Future<void> _initializeAwesomeNotificationsInIsolate() async {
+  await AwesomeNotifications().initialize(null, _basicNotificationChannels);
+}
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
+  await _initializeAwesomeNotificationsInIsolate();
   final payload = message.data.map(
     (k, v) => MapEntry(k.toString(), v.toString()),
   );
@@ -36,7 +54,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await AwesomeNotifications().createNotification(
     content: NotificationContent(
       id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
-      channelKey: 'basic_channel',
+      channelKey: _basicChannelKey,
       title:
           message.notification?.title ??
           message.data['title'] ??
@@ -67,6 +85,7 @@ class NotificationHelper {
   static NotificationTapCallback? _onBackgroundTap;
   static NotificationTapCallback? _onForegroundTap;
   static NotificationRouteArgumentsBuilder? _routeArgumentsBuilder;
+  static FcmTokenAvailableCallback? _onFcmTokenAvailable;
 
   static String? _lastTapFingerprint;
   static DateTime? _lastTapAt;
@@ -81,12 +100,14 @@ class NotificationHelper {
     NotificationTapCallback? onBackgroundTap,
     NotificationTapCallback? onForegroundTap,
     NotificationRouteArgumentsBuilder? routeArgumentsBuilder,
+    FcmTokenAvailableCallback? onFcmTokenAvailable,
   }) async {
     _navigatorKey = navigatorKey;
     _onTerminatedTap = onTerminatedTap;
     _onBackgroundTap = onBackgroundTap;
     _onForegroundTap = onForegroundTap;
     _routeArgumentsBuilder = routeArgumentsBuilder;
+    _onFcmTokenAvailable = onFcmTokenAvailable;
 
     await _initFirebase(tokenKey);
     await _initAwesomeNotifications();
@@ -97,14 +118,27 @@ class NotificationHelper {
     await _checkInitialAwesomeAction();
   }
 
+  /// Registers the stored FCM token with the backend when the user is authenticated.
+  static Future<void> syncStoredToken({required String tokenKey}) async {
+    final raw = SharedPreferencesHelper.getData(key: tokenKey);
+    if (raw == null) return;
+    final token = raw.toString().trim();
+    if (token.isEmpty) return;
+    await _notifyTokenAvailable(token);
+  }
+
   static Future<void> _initFirebase(String tokenKey) async {
     await Firebase.initializeApp();
     await _requestMessagingPermission();
-    await getToken(tokenKey);
     _registerTokenRefreshListener(tokenKey);
+    unawaited(_fetchAndPersistToken(tokenKey));
   }
 
   static Future<void> getToken(String tokenKey) async {
+    await _fetchAndPersistToken(tokenKey);
+  }
+
+  static Future<void> _fetchAndPersistToken(String tokenKey) async {
     final token = await _fetchTokenWithRetry();
     if (token != null && token.isNotEmpty) {
       await _persistToken(tokenKey, token);
@@ -130,9 +164,7 @@ class NotificationHelper {
   static Future<String?> _fetchTokenWithRetry() async {
     for (var attempt = 1; attempt <= _maxTokenFetchAttempts; attempt++) {
       try {
-        final token = Platform.isIOS
-            ? await FirebaseMessaging.instance.getAPNSToken()
-            : await FirebaseMessaging.instance.getToken();
+        final token = await FirebaseMessaging.instance.getToken();
         if (token != null && token.isNotEmpty) {
           return token;
         }
@@ -190,20 +222,24 @@ class NotificationHelper {
   static Future<void> _persistToken(String tokenKey, String token) async {
     await SharedPreferencesHelper.saveData(key: tokenKey, value: token);
     log('FCM Token: $token');
+    await _notifyTokenAvailable(token);
+  }
+
+  static Future<void> _notifyTokenAvailable(String token) async {
+    final callback = _onFcmTokenAvailable;
+    if (callback == null) return;
+    try {
+      await Future.sync(() => callback.call(token));
+    } catch (error, stackTrace) {
+      log(
+        'FCM token registration callback failed: $error',
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   static Future<void> _initAwesomeNotifications() async {
-    await _awesome.initialize(null, [
-      NotificationChannel(
-        channelKey: 'basic_channel',
-        channelName: 'Basic Notifications',
-        importance: NotificationImportance.High,
-        defaultColor: const Color(0xffBF956B),
-        onlyAlertOnce: true,
-        channelShowBadge: true,
-        channelDescription: 'Basic Instant Notification',
-      ),
-    ]);
+    await _awesome.initialize(null, _basicNotificationChannels);
   }
 
   static Future<void> _ensurePermission() async {
@@ -238,7 +274,7 @@ class NotificationHelper {
     await _awesome.createNotification(
       content: NotificationContent(
         id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
-        channelKey: 'basic_channel',
+        channelKey: _basicChannelKey,
         title: message.notification?.title ?? message.data['title'] ?? '',
         body: message.notification?.body ?? message.data['body'] ?? '',
         payload: payload,

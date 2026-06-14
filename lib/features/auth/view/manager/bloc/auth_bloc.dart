@@ -22,8 +22,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(state.copyWith(loginUsecaseStatus: BlocStatus.loading));
     final res = await loginUsecaseUseCase(event.params);
-    res.fold(
-      (l) {
+    await res.fold(
+      (l) async {
         AppToast.showErrorGlobal(l.message);
         emit(
           state.copyWith(
@@ -32,12 +32,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           ),
         );
       },
-      (r) {
-        SharedPreferencesHelper.saveData(key: 'token', value: r.token!);
+      (r) async {
+        await SharedPreferencesHelper.saveData(key: 'token', value: r.token!);
         final workerId = r.user?.workerId ?? r.user?.id;
         if (workerId != null) {
-          SharedPreferencesHelper.saveData(key: 'worker_id', value: workerId);
+          await SharedPreferencesHelper.saveData(key: 'worker_id', value: workerId);
         }
+        await NotificationHelper.syncStoredToken(
+          tokenKey: LoginUsecaseParams.fcmTokenPrefsKey,
+        );
         AppToast.showSuccessGlobal('تم تسجيل الدخول بنجاح');
         emit(
           state.copyWith(

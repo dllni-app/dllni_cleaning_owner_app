@@ -12,6 +12,7 @@ import 'package:dllni_cleaninig_owner_app/features/profile/view/helpers/worker_p
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../core/di/injection.dart';
 import '../../../main/view/screens/main_screen.dart';
@@ -24,6 +25,20 @@ import '../../domain/usecases/fetch_home_page_usecase_use_case.dart';
 import '../manager/bloc/home_bloc.dart';
 import '../widgets/home_app_bar.dart';
 import '../widgets/statistics_row.dart';
+
+enum HomeOrdersTab { newOrders, todayOrders }
+
+extension HomeOrdersTabX on HomeOrdersTab {
+  String get label => switch (this) {
+    HomeOrdersTab.newOrders => 'طلبات جديدة',
+    HomeOrdersTab.todayOrders => 'طلبات اليوم',
+  };
+
+  String get emptyMessage => switch (this) {
+    HomeOrdersTab.newOrders => 'لا توجد طلبات جديدة',
+    HomeOrdersTab.todayOrders => 'لا توجد طلبات اليوم',
+  };
+}
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -46,6 +61,43 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<({String eventName, Map<String, dynamic> payload})>
   _pendingOrderSyncQueue = [];
   int? _workerId;
+  HomeOrdersTab _selectedHomeOrdersTab = HomeOrdersTab.newOrders;
+
+  String get _todayScheduledDate =>
+      DateFormat('yyyy-MM-dd', 'en').format(DateTime.now());
+
+  FetchOrdersUsecaseParams _homeOrdersFetchParams({int page = 1}) {
+    return switch (_selectedHomeOrdersTab) {
+      HomeOrdersTab.newOrders => FetchOrdersUsecaseParams(
+        page: page,
+        status: CleaningBookingStatus.pending,
+      ),
+      HomeOrdersTab.todayOrders => FetchOrdersUsecaseParams(
+        page: page,
+        status: CleaningBookingStatus.workerAssigned,
+        scheduledDate: _todayScheduledDate,
+      ),
+    };
+  }
+
+  void _fetchOrdersForSelectedTab({
+    bool isReload = false,
+    bool silent = false,
+  }) {
+    _ordersBloc.add(
+      FetchOrdersUsecaseEvent(
+        params: _homeOrdersFetchParams(),
+        isReload: isReload,
+        silent: silent,
+      ),
+    );
+  }
+
+  void _onHomeOrdersTabSelected(HomeOrdersTab tab) {
+    if (_selectedHomeOrdersTab == tab) return;
+    setState(() => _selectedHomeOrdersTab = tab);
+    _fetchOrdersForSelectedTab(isReload: true);
+  }
 
   @override
   void initState() {
@@ -58,15 +110,8 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     _homeBloc = getIt<HomeBloc>()
       ..add(FetchHomePageUsecaseEvent(params: FetchHomePageUsecaseParams()));
-    _ordersBloc = getIt<OrdersBloc>()
-      ..add(
-        FetchOrdersUsecaseEvent(
-          params: FetchOrdersUsecaseParams(
-            page: 1,
-            status: CleaningBookingStatus.pending,
-          ),
-        ),
-      );
+    _ordersBloc = getIt<OrdersBloc>();
+    _fetchOrdersForSelectedTab();
     _profileBloc = getIt<ProfileBloc>()
       ..add(
         FetchWorkerProfileUsecaseEvent(
@@ -126,16 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
         silent: silent,
       ),
     );
-    _ordersBloc.add(
-      FetchOrdersUsecaseEvent(
-        params: FetchOrdersUsecaseParams(
-          page: 1,
-          status: CleaningBookingStatus.pending,
-        ),
-        isReload: isReload,
-        silent: silent,
-      ),
-    );
+    _fetchOrdersForSelectedTab(isReload: isReload, silent: silent);
     _profileBloc.add(
       FetchWorkerProfileUsecaseEvent(params: FetchWorkerProfileUsecaseParams()),
     );
@@ -173,13 +209,17 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
       final queued = List.of(_pendingOrderSyncQueue);
       _pendingOrderSyncQueue.clear();
-      for (final request in queued) {
-        _ordersBloc.add(
-          SyncPendingOrderFromRealtimeEvent(
-            eventName: request.eventName,
-            payload: request.payload,
-          ),
-        );
+      if (_selectedHomeOrdersTab == HomeOrdersTab.newOrders) {
+        for (final request in queued) {
+          _ordersBloc.add(
+            SyncPendingOrderFromRealtimeEvent(
+              eventName: request.eventName,
+              payload: request.payload,
+            ),
+          );
+        }
+      } else {
+        _fetchOrdersForSelectedTab(isReload: true, silent: true);
       }
       _homeBloc.add(
         FetchHomePageUsecaseEvent(
@@ -340,74 +380,130 @@ class _HomeScreenState extends State<HomeScreen> {
                         },
                       ),*/
                         16.verticalSpace,
-                        Row(
-                          children: [
-                            AppText.labelLarge(
-                              'مهام اليوم',
-                              fontWeight: FontWeight.w400,
-                            ),
-                            8.horizontalSpace,
-                            CircleAvatar(
-                              radius: 10.r,
-                              backgroundColor: context.error,
-                              child: BlocBuilder<OrdersBloc, OrdersState>(
-                                builder: (context, state) {
-                                  return AppText.labelSmall(
-                                    state.ordersUsecase!.isSuccess
-                                        ? state.ordersUsecase!.list.length
-                                              .toString()
-                                        : '0',
-                                    color: context.onError,
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                        8.verticalSpace,
                         BlocBuilder<OrdersBloc, OrdersState>(
                           buildWhen: (previous, current) =>
                               previous.ordersUsecase != current.ordersUsecase,
                           builder: (context, state) {
-                            return state.ordersUsecase!.builder(
-                              loadingWidget: Padding(
-                                padding: EdgeInsetsDirectional.only(top: 40.h),
-                                child: const Center(
-                                  child: CircularProgressIndicator.adaptive(),
+                            final ordersCount = state.ordersUsecase!.isSuccess
+                                ? state.ordersUsecase!.list.length
+                                : 0;
+
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: HomeOrdersTab.values.map((tab) {
+                                    final isSelected =
+                                        _selectedHomeOrdersTab == tab;
+                                    return Expanded(
+                                      child: InkWell(
+                                        onTap: () =>
+                                            _onHomeOrdersTabSelected(tab),
+                                        borderRadius: BorderRadius.circular(
+                                          8.r,
+                                        ),
+                                        child: Padding(
+                                          padding: EdgeInsetsDirectional.only(
+                                            bottom: 8.h,
+                                          ),
+                                          child: Column(
+                                            children: [
+                                              Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  AppText.labelLarge(
+                                                    tab.label,
+                                                    fontWeight: isSelected
+                                                        ? FontWeight.w600
+                                                        : FontWeight.w400,
+                                                    color: isSelected
+                                                        ? context.primary
+                                                        : context
+                                                              .colorScheme
+                                                              .outline,
+                                                  ),
+                                                  if (isSelected) ...[
+                                                    8.horizontalSpace,
+                                                    CircleAvatar(
+                                                      radius: 10.r,
+                                                      backgroundColor:
+                                                          context.error,
+                                                      child: AppText.labelSmall(
+                                                        ordersCount.toString(),
+                                                        color: context.onError,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ],
+                                              ),
+                                              6.verticalSpace,
+                                              AnimatedContainer(
+                                                duration: const Duration(
+                                                  milliseconds: 200,
+                                                ),
+                                                height: 2.h,
+                                                width: double.infinity,
+                                                decoration: BoxDecoration(
+                                                  color: isSelected
+                                                      ? context.primary
+                                                      : Colors.transparent,
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                        2.r,
+                                                      ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(growable: false),
                                 ),
-                              ),
-                              emptyWidget: AppText.labelMedium(
-                                'لا يوجد مهام',
-                                fontWeight: FontWeight.w400,
-                              ),
-                              successWidget: () {
-                                return ListView.separated(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  itemBuilder: (context, index) => OrderCard(
-                                    data: state.ordersUsecase!.list[index],
-                                    bloc: context.read<OrdersBloc>(),
-                                    index: index,
-                                  ),
-                                  separatorBuilder: (context, index) =>
-                                      16.verticalSpace,
-                                  itemCount: state.ordersUsecase!.list.length,
-                                );
-                              },
-                              failedWidget: AppText.labelLarge(
-                                state.errorMessage ?? 'حدث خطأ ما',
-                                color: context.error,
-                              ),
-                              onTapRetry: () {
-                                context.read<OrdersBloc>().add(
-                                  FetchOrdersUsecaseEvent(
-                                    params: FetchOrdersUsecaseParams(
-                                      page: 1,
-                                      status: CleaningBookingStatus.pending,
+                                8.verticalSpace,
+                                state.ordersUsecase!.builder(
+                                  loadingWidget: Padding(
+                                    padding: EdgeInsetsDirectional.only(
+                                      top: 40.h,
+                                    ),
+                                    child: const Center(
+                                      child: CircularProgressIndicator
+                                          .adaptive(),
                                     ),
                                   ),
-                                );
-                              },
+                                  emptyWidget: AppText.labelMedium(
+                                    _selectedHomeOrdersTab.emptyMessage,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                  successWidget: () {
+                                    return ListView.separated(
+                                      shrinkWrap: true,
+                                      physics:
+                                          const NeverScrollableScrollPhysics(),
+                                      itemBuilder: (context, index) =>
+                                          OrderCard(
+                                            data: state
+                                                .ordersUsecase!
+                                                .list[index],
+                                            bloc: context.read<OrdersBloc>(),
+                                            index: index,
+                                          ),
+                                      separatorBuilder: (context, index) =>
+                                          16.verticalSpace,
+                                      itemCount:
+                                          state.ordersUsecase!.list.length,
+                                    );
+                                  },
+                                  failedWidget: AppText.labelLarge(
+                                    state.errorMessage ?? 'حدث خطأ ما',
+                                    color: context.error,
+                                  ),
+                                  onTapRetry: () {
+                                    _fetchOrdersForSelectedTab(isReload: true);
+                                  },
+                                ),
+                              ],
                             );
                           },
                         ),

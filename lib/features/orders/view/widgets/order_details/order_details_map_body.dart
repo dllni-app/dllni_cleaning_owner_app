@@ -526,6 +526,14 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
     final hideCustomerData = OrderLifecyclePolicy.isCustomerDataHidden(
       widget.order,
     );
+    final visibleLocationName = visibleOrderAddress(
+      address: widget.order.locationName,
+      status: widget.order.status,
+    );
+    final visibleAddress = visibleOrderAddress(
+      address: widget.order.propertyDetails?.address,
+      status: widget.order.status,
+    );
 
     return Container(
       decoration: BoxDecoration(
@@ -584,15 +592,12 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           AppText.bodyMedium(
-                            widget.order.locationName ?? '-',
+                            visibleLocationName,
                             color: context.primary,
                             fontWeight: FontWeight.w400,
                           ),
                           AppText.labelLarge(
-                            visibleOrderAddress(
-                              address: widget.order.propertyDetails?.address,
-                              status: widget.order.status,
-                            ),
+                            visibleAddress,
                             color: const Color(0xff727791),
                             fontWeight: FontWeight.w400,
                           ),

@@ -19,6 +19,7 @@ class AppBootstrapConfig {
     this.onBackgroundTap,
     this.onForegroundTap,
     this.routeArgumentsBuilder,
+    this.onFcmTokenAvailable,
   });
 
   final GlobalKey<NavigatorState> navigatorKey;
@@ -34,6 +35,7 @@ class AppBootstrapConfig {
   final NotificationTapCallback? onBackgroundTap;
   final NotificationTapCallback? onForegroundTap;
   final NotificationRouteArgumentsBuilder? routeArgumentsBuilder;
+  final FcmTokenAvailableCallback? onFcmTokenAvailable;
 }
 
 Future<void> bootstrapApp(AppBootstrapConfig config) async {
@@ -58,6 +60,7 @@ Future<void> bootstrapApp(AppBootstrapConfig config) async {
       onBackgroundTap: config.onBackgroundTap,
       onForegroundTap: config.onForegroundTap,
       routeArgumentsBuilder: config.routeArgumentsBuilder,
+      onFcmTokenAvailable: config.onFcmTokenAvailable,
     );
   }
 

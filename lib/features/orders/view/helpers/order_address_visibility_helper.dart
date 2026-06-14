@@ -14,11 +14,11 @@ String visibleOrderAddress({
   if (!isPending) return trimmedAddress;
 
   final parts = trimmedAddress
-      .split(RegExp(r'[,،]'))
+      .split(RegExp(r'[,،]|\s+[-–—]\s+'))
       .map((part) => part.trim())
       .where((part) => part.isNotEmpty)
       .toList(growable: false);
 
   if (parts.isEmpty) return trimmedAddress;
-  return parts.first;
+  return parts.take(2).join(' - ');
 }

@@ -38,12 +38,85 @@ FetchSosAlertsModel fetchSosAlertsModelFromJson(dynamic json) {
   return FetchSosAlertsModel.fromJson(_toMap(json));
 }
 
+CleaningSosAlertModel cleaningSosAlertModelFromJson(dynamic json) {
+  return CleaningSosAlertModel.fromJson(_toMap(json));
+}
+
 SosAlertModel sosAlertModelFromJson(dynamic json) {
   final map = _toMap(json);
   if (map.containsKey('data')) {
     return SosAlertModel.fromJson(_toMap(map['data']));
   }
   return SosAlertModel.fromJson(map);
+}
+
+double? _toDouble(dynamic value) {
+  if (value is double) return value;
+  if (value is num) return value.toDouble();
+  return double.tryParse(value?.toString() ?? '');
+}
+
+class CleaningSosAlertModel {
+  final int? id;
+  final int? bookingId;
+  final String? emergencyType;
+  final String? message;
+  final String? source;
+  final String? status;
+  final double? latitude;
+  final double? longitude;
+  final String? triggeredAt;
+  final String? acknowledgedAt;
+  final String? resolvedAt;
+  final String? createdAt;
+  final String? updatedAt;
+
+  CleaningSosAlertModel({
+    this.id,
+    this.bookingId,
+    this.emergencyType,
+    this.message,
+    this.source,
+    this.status,
+    this.latitude,
+    this.longitude,
+    this.triggeredAt,
+    this.acknowledgedAt,
+    this.resolvedAt,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  factory CleaningSosAlertModel.fromJson(Map<String, dynamic> json) {
+    final data = json.containsKey('data') ? _toMap(json['data']) : json;
+    return CleaningSosAlertModel(
+      id: _toInt(_pick(data, const <String>['id'])),
+      bookingId: _toInt(_pick(data, const <String>['bookingId', 'booking_id'])),
+      emergencyType: _toStringValue(
+        _pick(data, const <String>['emergencyType', 'emergency_type']),
+      ),
+      message: _toStringValue(_pick(data, const <String>['message'])),
+      source: _toStringValue(_pick(data, const <String>['source'])),
+      status: _toStringValue(_pick(data, const <String>['status'])),
+      latitude: _toDouble(_pick(data, const <String>['latitude'])),
+      longitude: _toDouble(_pick(data, const <String>['longitude'])),
+      triggeredAt: _toStringValue(
+        _pick(data, const <String>['triggeredAt', 'triggered_at']),
+      ),
+      acknowledgedAt: _toStringValue(
+        _pick(data, const <String>['acknowledgedAt', 'acknowledged_at']),
+      ),
+      resolvedAt: _toStringValue(
+        _pick(data, const <String>['resolvedAt', 'resolved_at']),
+      ),
+      createdAt: _toStringValue(
+        _pick(data, const <String>['createdAt', 'created_at']),
+      ),
+      updatedAt: _toStringValue(
+        _pick(data, const <String>['updatedAt', 'updated_at']),
+      ),
+    );
+  }
 }
 
 class FetchSosAlertsModel {

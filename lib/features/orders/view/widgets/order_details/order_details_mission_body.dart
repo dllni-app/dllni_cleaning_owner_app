@@ -13,6 +13,7 @@ import '../../../data/models/fetch_orders_usecase_model.dart';
 import '../../../domain/usecases/complete_order_usecase_use_case.dart';
 import '../../helpers/event_assistance_order_helper.dart';
 import '../../helpers/order_lifecycle_policy.dart';
+import '../../screens/emergency_sos_screen.dart';
 
 class OrderDetailsMissionBody extends StatefulWidget {
   const OrderDetailsMissionBody({
@@ -594,7 +595,14 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                     ),
                     10.verticalSpace,
                     FilledButton(
-                      onPressed: () => context.pushRoute('/emergencysos'),
+                      onPressed: widget.order.id == null
+                          ? null
+                          : () => context.pushRoute(
+                              '/emergencysos',
+                              arguments: EmergencySosScreenParams(
+                                bookingId: widget.order.id!,
+                              ),
+                            ),
                       style: FilledButton.styleFrom(
                         backgroundColor: context.error,
                         foregroundColor: context.onError,

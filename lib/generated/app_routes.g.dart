@@ -32,10 +32,13 @@ class GeneratedAppRoutes {
         }
         return _errorRoute(settings);
       case '/emergencysos':
-        return MaterialPageRoute(
-          builder: (_) => EmergencySosScreen(),
-          settings: settings,
-        );
+        if (args is EmergencySosScreenParams) {
+          return MaterialPageRoute(
+            builder: (_) => EmergencySosScreen(params: args),
+            settings: settings,
+          );
+        }
+        return _errorRoute(settings);
       case '/orderdetails':
         if (args is OrderDetailsScreenParams) {
           return MaterialPageRoute(

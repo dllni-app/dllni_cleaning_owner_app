@@ -49,6 +49,8 @@ import '../../features/orders/domain/usecases/cancel_order_use_case.dart'
     as _i1;
 import '../../features/orders/domain/usecases/complete_order_usecase_use_case.dart'
     as _i199;
+import '../../features/orders/domain/usecases/create_cleaning_booking_sos_use_case.dart'
+    as _i458;
 import '../../features/orders/domain/usecases/fetch_extension_requests_usecas_use_case.dart'
     as _i717;
 import '../../features/orders/domain/usecases/fetch_order_details_usecase_use_case.dart'
@@ -190,6 +192,9 @@ _i174.GetIt $initGetIt(
   );
   gh.lazySingleton<_i199.CompleteOrderUsecaseUseCase>(
     () => _i199.CompleteOrderUsecaseUseCase(orders: gh<_i132.OrdersRepo>()),
+  );
+  gh.lazySingleton<_i458.CreateCleaningBookingSosUseCase>(
+    () => _i458.CreateCleaningBookingSosUseCase(orders: gh<_i132.OrdersRepo>()),
   );
   gh.lazySingleton<_i717.FetchExtensionRequestsUsecasUseCase>(
     () => _i717.FetchExtensionRequestsUsecasUseCase(

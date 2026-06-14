@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import 'app.dart';
 import 'core/di/injection.dart';
+import 'core/notifications/fcm_token_registrar.dart';
 import 'core/session/session_expired_handler.dart';
 
 Future<void> main() async {
@@ -29,6 +30,7 @@ Future<void> main() async {
       supportedLocales: const <Locale>[Locale('en'), Locale('ar')],
       translationsAssetPath: 'assets/translations',
       fcmTokenKey: 'fcm',
+      onFcmTokenAvailable: FcmTokenRegistrar.registerIfAuthenticated,
     ),
   );
 }

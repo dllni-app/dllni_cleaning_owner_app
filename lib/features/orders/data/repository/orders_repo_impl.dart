@@ -34,6 +34,8 @@ import '../../domain/usecases/fetch_security_code_use_case.dart';
 import '../models/security_code_model.dart';
 import '../../domain/usecases/start_work_use_case.dart';
 import '../models/start_work_model.dart';
+import '../../domain/usecases/create_cleaning_booking_sos_use_case.dart';
+import '../models/sos_alert_models.dart';
 
 @LazySingleton(as: OrdersRepo)
 class OrdersRepoImpl with HandlingException implements OrdersRepo {
@@ -143,6 +145,15 @@ class OrdersRepoImpl with HandlingException implements OrdersRepo {
   DataResponse<StartWorkModel> startWork(StartWorkParams params) {
     return wrapHandlingException(
       tryCall: () => ordersRemoteDataSource.startWork(params),
+    );
+  }
+
+  @override
+  DataResponse<CleaningSosAlertModel> createCleaningBookingSos(
+    CreateCleaningBookingSosParams params,
+  ) {
+    return wrapHandlingException(
+      tryCall: () => ordersRemoteDataSource.createCleaningBookingSos(params),
     );
   }
 }
