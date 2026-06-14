@@ -91,15 +91,17 @@ class CleaningSosAlertModel {
     final data = json.containsKey('data') ? _toMap(json['data']) : json;
     return CleaningSosAlertModel(
       id: _toInt(_pick(data, const <String>['id'])),
-      bookingId: _toInt(_pick(data, const <String>['bookingId', 'booking_id'])),
+      bookingId: _toInt(
+        _pick(data, const <String>['bookingId', 'booking_id', 'order_id']),
+      ),
       emergencyType: _toStringValue(
         _pick(data, const <String>['emergencyType', 'emergency_type']),
       ),
       message: _toStringValue(_pick(data, const <String>['message'])),
       source: _toStringValue(_pick(data, const <String>['source'])),
       status: _toStringValue(_pick(data, const <String>['status'])),
-      latitude: _toDouble(_pick(data, const <String>['latitude'])),
-      longitude: _toDouble(_pick(data, const <String>['longitude'])),
+      latitude: _toDouble(_pick(data, const <String>['latitude', 'lat'])),
+      longitude: _toDouble(_pick(data, const <String>['longitude', 'lng'])),
       triggeredAt: _toStringValue(
         _pick(data, const <String>['triggeredAt', 'triggered_at']),
       ),

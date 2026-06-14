@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/sos_alert_models.dart';
@@ -27,40 +25,21 @@ class EmergencySosScreen extends StatefulWidget {
 class _EmergencySosScreenState extends State<EmergencySosScreen> {
   static const List<({String type, String label})> _options =
       <({String type, String label})>[
-    (type: 'safety_threat', label: 'أشعر بعدم الأمان / تهديد'),
-    (type: 'medical_emergency', label: 'حدثت حالة طبية طارئة'),
-    (type: 'severe_conflict', label: 'هنالك خلاف حاد'),
-  ];
+        (type: 'safety_threat', label: 'أشعر بعدم الأمان / تهديد'),
+        (type: 'medical_emergency', label: 'حدثت حالة طبية طارئة'),
+        (type: 'severe_conflict', label: 'هنالك خلاف حاد'),
+      ];
 
   final TextEditingController _messageController = TextEditingController();
-  late final String _clientRequestId;
   String? _selectedEmergencyType;
+  String? _messageError;
   bool _submitting = false;
   CleaningSosAlertModel? _submittedAlert;
-
-  @override
-  void initState() {
-    super.initState();
-    _clientRequestId = _generateClientRequestId();
-  }
 
   @override
   void dispose() {
     _messageController.dispose();
     super.dispose();
-  }
-
-  String _generateClientRequestId() {
-    final random = Random.secure();
-    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
-    bytes[6] = (bytes[6] & 0x0f) | 0x40;
-    bytes[8] = (bytes[8] & 0x3f) | 0x80;
-    String hex(int index) => bytes[index].toRadixString(16).padLeft(2, '0');
-    return '${hex(0)}${hex(1)}${hex(2)}${hex(3)}-'
-        '${hex(4)}${hex(5)}-'
-        '${hex(6)}${hex(7)}-'
-        '${hex(8)}${hex(9)}-'
-        '${hex(10)}${hex(11)}${hex(12)}${hex(13)}${hex(14)}${hex(15)}';
   }
 
   String _statusLabel(String? status) {
@@ -69,10 +48,25 @@ class _EmergencySosScreenState extends State<EmergencySosScreen> {
         return 'الدعم يتعامل مع الطلب';
       case 'resolved':
         return 'تم إغلاق الطلب';
+      case 'pending':
       case 'triggered':
       default:
         return 'تم الإرسال إلى الدعم';
     }
+  }
+
+  String? _validateMessage() {
+    final message = _messageController.text.trim();
+    if (message.isEmpty) {
+      return 'يرجى وصف المشكلة قبل إرسال SOS';
+    }
+    if (message.length < 3) {
+      return 'يرجى كتابة 3 أحرف على الأقل';
+    }
+    if (message.length > 1000) {
+      return 'يجب ألا تتجاوز الرسالة 1000 حرف';
+    }
+    return null;
   }
 
   Future<({double? latitude, double? longitude})> _resolveLocation() async {
@@ -109,17 +103,20 @@ class _EmergencySosScreenState extends State<EmergencySosScreen> {
       return;
     }
 
+    final validationError = _validateMessage();
+    setState(() => _messageError = validationError);
+    if (validationError != null) return;
+
     setState(() => _submitting = true);
 
     final location = await _resolveLocation();
     final result = await getIt<CreateCleaningBookingSosUseCase>()(
       CreateCleaningBookingSosParams(
-        bookingId: widget.params.bookingId,
+        orderId: widget.params.bookingId,
         emergencyType: emergencyType,
         message: _messageController.text,
         latitude: location.latitude,
         longitude: location.longitude,
-        clientRequestId: _clientRequestId,
       ),
     );
 
@@ -334,7 +331,7 @@ class _EmergencySosScreenState extends State<EmergencySosScreen> {
               }),
               8.verticalSpace,
               AppText.bodyMedium(
-                'رسالة اختيارية',
+                'رسالة الطوارئ',
                 textAlign: TextAlign.start,
                 fontWeight: FontWeight.w600,
               ),
@@ -344,8 +341,14 @@ class _EmergencySosScreenState extends State<EmergencySosScreen> {
                 enabled: !_submitting,
                 maxLength: 1000,
                 maxLines: 3,
+                onChanged: (_) {
+                  if (_messageError != null) {
+                    setState(() => _messageError = _validateMessage());
+                  }
+                },
                 decoration: InputDecoration(
-                  hintText: 'صف الموقف باختصار (اختياري)',
+                  hintText: 'صف الموقف باختصار',
+                  errorText: _messageError,
                   filled: true,
                   fillColor: const Color(0xffF3F4F6),
                   border: OutlineInputBorder(
@@ -394,9 +397,7 @@ class _EmergencySosScreenState extends State<EmergencySosScreen> {
             ),
             12.horizontalSpace,
             Icon(
-              isSelected
-                  ? Icons.radio_button_checked
-                  : Icons.radio_button_off,
+              isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
               color: isSelected ? context.error : Colors.grey,
             ),
           ],

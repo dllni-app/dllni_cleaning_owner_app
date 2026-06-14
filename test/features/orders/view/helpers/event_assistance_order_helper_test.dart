@@ -1,5 +1,6 @@
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/sos_alert_models.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/create_cleaning_booking_sos_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/event_assistance_order_helper.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -44,11 +45,31 @@ void main() {
   });
 
   group('SosAlertModel', () {
+    test('builds worker SOS body with contract field names', () {
+      final body = CreateCleaningBookingSosParams(
+        bookingId: 101,
+        emergencyType: 'severe_conflict',
+        message: '  Need urgent help  ',
+        latitude: 33.5138,
+        longitude: 36.2765,
+      ).getBody();
+
+      expect(body, <String, dynamic>{
+        'emergency_type': 'severe_conflict',
+        'message': 'Need urgent help',
+        'lat': 33.5138,
+        'lng': 36.2765,
+      });
+    });
+
     test('parses list timestamp and dynamic booking map', () {
       final alert = SosAlertModel.fromJson(<String, dynamic>{
         'id': 7,
         'created_at': '2026-06-11 20:15:30',
-        'booking': <String, dynamic>{'id': 101, 'propertyType': 'event_assistance'},
+        'booking': <String, dynamic>{
+          'id': 101,
+          'propertyType': 'event_assistance',
+        },
       });
 
       expect(alert.id, 7);
