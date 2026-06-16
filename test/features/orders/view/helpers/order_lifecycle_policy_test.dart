@@ -8,6 +8,8 @@ FetchOrdersUsecaseModelDataItem _order({
   String? status,
   String? startedTravelAt,
   String? bookingNumber,
+  String? scheduledDate,
+  String? scheduledTime,
   String? assignmentMode,
   int? numberOfWorkers,
   CleaningWorkerAcceptanceModel? workerAcceptance,
@@ -18,6 +20,8 @@ FetchOrdersUsecaseModelDataItem _order({
     status: status,
     startedTravelAt: startedTravelAt,
     bookingNumber: bookingNumber ?? 'CLN-1',
+    scheduledDate: scheduledDate,
+    scheduledTime: scheduledTime,
     assignmentMode: assignmentMode,
     numberOfWorkers: numberOfWorkers,
     workerAcceptance: workerAcceptance,
@@ -100,6 +104,38 @@ void main() {
       expect(OrderLifecyclePolicy.canStartTravel(order), isTrue);
       expect(OrderLifecyclePolicy.canCancel(order), isTrue);
       expect(OrderLifecyclePolicy.detailsStepFor(order), 1);
+    });
+
+    test('start travel is blocked more than one hour before schedule', () {
+      final order = _order(
+        status: CleaningBookingStatus.workerAssigned,
+        scheduledDate: '2026-06-17',
+        scheduledTime: '10:00:00',
+      );
+
+      expect(
+        OrderLifecyclePolicy.isStartTravelWithinAllowedWindow(
+          order,
+          now: DateTime(2026, 6, 16, 10),
+        ),
+        isFalse,
+      );
+    });
+
+    test('start travel is allowed within one hour before schedule', () {
+      final order = _order(
+        status: CleaningBookingStatus.workerAssigned,
+        scheduledDate: '2026-06-16',
+        scheduledTime: '10:30:00',
+      );
+
+      expect(
+        OrderLifecyclePolicy.isStartTravelWithinAllowedWindow(
+          order,
+          now: DateTime(2026, 6, 16, 9, 30),
+        ),
+        isTrue,
+      );
     });
 
     test('traveling allows arrive on map step', () {

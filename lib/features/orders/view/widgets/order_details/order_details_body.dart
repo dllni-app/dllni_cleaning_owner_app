@@ -39,16 +39,8 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
       EventAssistanceOrderHelper.isEventAssistance(widget.order.propertyType);
 
   List<String> get titles => _isEventAssistance
-      ? [
-          'إجمالي عدد\nساعات العمل',
-          'عدد\nالضيوف',
-          'السعر\nالإجمالي',
-        ]
-      : [
-          'إجمالي عدد\nساعات العمل',
-          'المساحة\nالتقديرية',
-          'السعر\nالإجمالي',
-        ];
+      ? ['إجمالي عدد\nساعات العمل', 'عدد\nالضيوف', 'السعر\nالإجمالي']
+      : ['إجمالي عدد\nساعات العمل', 'المساحة\nالتقديرية', 'السعر\nالإجمالي'];
 
   late List<String> val;
 
@@ -375,6 +367,14 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
               onTap: loading || widget.order.id == null
                   ? null
                   : () {
+                      if (!OrderLifecyclePolicy.isStartTravelWithinAllowedWindow(
+                        widget.order,
+                      )) {
+                        AppToast.showErrorGlobal(
+                          OrderLifecyclePolicy.startTravelUnavailableMessage,
+                        );
+                        return;
+                      }
                       widget.bloc.add(
                         StartTravelUsecaseEvent(
                           params: StartTravelUsecaseParams(

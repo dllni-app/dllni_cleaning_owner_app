@@ -7,6 +7,9 @@ import 'package:common_package/common_package.dart';
 class OrderLifecyclePolicy {
   OrderLifecyclePolicy._();
 
+  static const String startTravelUnavailableMessage =
+      'لا يمكنك اجراء هذه العملية حاليا';
+
   static bool isPending(FetchOrdersUsecaseModelDataItem order) =>
       order.status == CleaningBookingStatus.pending;
 
@@ -32,6 +35,31 @@ class OrderLifecyclePolicy {
   static bool canStartTravel(FetchOrdersUsecaseModelDataItem order) =>
       order.status == CleaningBookingStatus.workerAssigned &&
       order.startedTravelAt == null;
+
+  static bool isStartTravelWithinAllowedWindow(
+    FetchOrdersUsecaseModelDataItem order, {
+    DateTime? now,
+  }) {
+    final scheduledAt = _scheduledDateTime(order);
+    if (scheduledAt == null) return true;
+
+    final currentTime = now ?? DateTime.now();
+    return !scheduledAt.isAfter(currentTime.add(const Duration(hours: 1)));
+  }
+
+  static DateTime? _scheduledDateTime(FetchOrdersUsecaseModelDataItem order) {
+    final rawDate = order.scheduledDate?.trim();
+    if (rawDate == null || rawDate.isEmpty) return null;
+
+    final rawTime = order.scheduledTime?.trim();
+    if (rawTime == null || rawTime.isEmpty) {
+      return DateTime.tryParse(rawDate);
+    }
+
+    final datePart = rawDate.split(RegExp(r'[T ]')).first;
+    final timePart = rawTime.contains('T') ? rawTime.split('T').last : rawTime;
+    return DateTime.tryParse('${datePart}T$timePart');
+  }
 
   static bool canCancel(FetchOrdersUsecaseModelDataItem order) =>
       canStartTravel(order) &&

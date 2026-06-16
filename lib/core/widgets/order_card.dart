@@ -648,6 +648,15 @@ class OrderCard extends StatelessWidget {
                               ? null
                               : () {
                                   if (data.id == null) return;
+                                  if (!OrderLifecyclePolicy.isStartTravelWithinAllowedWindow(
+                                    data,
+                                  )) {
+                                    AppToast.showErrorGlobal(
+                                      OrderLifecyclePolicy
+                                          .startTravelUnavailableMessage,
+                                    );
+                                    return;
+                                  }
                                   bloc.add(
                                     StartTravelUsecaseEvent(
                                       params: StartTravelUsecaseParams(
