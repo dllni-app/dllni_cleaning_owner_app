@@ -39,8 +39,8 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
       EventAssistanceOrderHelper.isEventAssistance(widget.order.propertyType);
 
   List<String> get titles => _isEventAssistance
-      ? ['إجمالي عدد\nساعات العمل', 'عدد\nالضيوف', 'السعر\nالإجمالي']
-      : ['إجمالي عدد\nساعات العمل', 'المساحة\nالتقديرية', 'السعر\nالإجمالي'];
+      ? ['إجمالي ساعات العمل : ', 'عدد الضيوف', 'السعر الإجمالي ']
+      : ['إجمالي ساعات العمل : ', 'المساحة التقديرية : ', 'السعر الإجمالي : '];
 
   late List<String> val;
 
@@ -62,7 +62,7 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
       _isEventAssistance
           ? '${widget.order.propertyDetails?.guestCount ?? '-'}'
           : widget.order.estimatedSqm.toString(),
-      '\$${widget.order.totalPrice.toString()}',
+      '${widget.order.totalPrice.toString()} ل.س',
     ];
   }
 
@@ -147,26 +147,26 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                         horizontal: 10,
                         vertical: 16,
                       ),
-                      child: Row(
-                        spacing: 30,
+                      child: Column(
                         children: List.generate(
                           3,
-                          (i) => Expanded(
-                            child: Column(
-                              children: [
-                                AppText.headlineMedium(
-                                  val[i],
-                                  color: context.primary,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                SizedBox(height: 8),
-                                AppText.labelLarge(
-                                  titles[i],
-                                  color: context.primary,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ],
-                            ),
+                          (i) => Row(
+                            children: [
+                              AppText.labelLarge(
+                                titles[i],
+                                color: context.primary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              SizedBox(height: 8),
+
+                              AppText.headlineSmall(
+                                val[i],
+                                color: context.primary,
+                                fontWeight: FontWeight.w500,
+
+                              ),
+
+                            ],
                           ),
                         ),
                       ),

@@ -94,7 +94,7 @@ class StatisticsRow extends StatelessWidget {
                           );
                         case BlocStatus.success:
                           final value = i == 0
-                              ? ''
+                              ? state.homePageUsecase!.totalBookings
                               : i == 1
                               ? state.homePageUsecase!.inProgressCount
                               : state.homePageUsecase!.completedCount;

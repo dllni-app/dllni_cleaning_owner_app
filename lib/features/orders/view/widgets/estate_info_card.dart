@@ -85,7 +85,7 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
                   Icon(Icons.apartment, color: context.secondary, size: 18.sp),
                   6.horizontalSpace,
                   AppText.labelMedium(
-                    _isEventAssistance ? 'نوع المناسبة' : 'نوع العقار',
+                    _isEventAssistance ? 'مكان المناسبة' : 'مكان العقار',
                     fontWeight: FontWeight.w400,
                   ),
                 ],
