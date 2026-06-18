@@ -117,6 +117,7 @@ void main() {
         OrderLifecyclePolicy.isStartTravelWithinAllowedWindow(
           order,
           now: DateTime(2026, 6, 16, 10),
+          enforceWindow: true,
         ),
         isFalse,
       );
@@ -133,6 +134,7 @@ void main() {
         OrderLifecyclePolicy.isStartTravelWithinAllowedWindow(
           order,
           now: DateTime(2026, 6, 16, 9, 30),
+          enforceWindow: true,
         ),
         isTrue,
       );

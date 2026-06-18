@@ -29,7 +29,11 @@ class TodayOverviewCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                AppText.labelLarge('إجمالي الايرادات', color: context.onPrimary, fontWeight: FontWeight.w400),
+                AppText.labelLarge(
+                  'إجمالي الايرادات',
+                  color: context.onPrimary,
+                  fontWeight: FontWeight.w400,
+                ),
                 SizedBox(height: 14),
                 BlocBuilder<HomeBloc, HomeState>(
                   builder: (context, state) {
@@ -38,31 +42,54 @@ class TodayOverviewCard extends StatelessWidget {
                         return Shimmer.fromColors(
                           baseColor: context.onPrimary,
                           highlightColor: context.primary,
-                          child: Container(color: context.surface, height: 10, width: 100),
+                          child: Container(
+                            color: context.surface,
+                            height: 10,
+                            width: 100,
+                          ),
                         );
                       case BlocStatus.failed:
-                        return AppText.labelMedium(state.errorMessage!, color: context.error);
+                        return AppText.labelMedium(
+                          state.errorMessage!,
+                          color: context.error,
+                        );
                       case BlocStatus.success:
                         return Row(
                           crossAxisAlignment: CrossAxisAlignment.baseline,
                           textBaseline: TextBaseline.alphabetic,
                           children: [
-                            AppText.displaySmall('${state.homePageUsecase?.totalEarnings}', color: context.onPrimary, fontWeight: FontWeight.bold),
-                            SizedBox(width: 14,),
-                            AppText.labelLarge('ل.س', color: context.primaryContainer, fontWeight: FontWeight.w400),
+                            AppText.displaySmall(
+                              '${state.homePageUsecase?.totalEarnings?.toStringAsFixed(2)}',
+                              color: context.onPrimary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            SizedBox(width: 14),
+                            AppText.labelLarge(
+                              'ل.س',
+                              color: context.primaryContainer,
+                              fontWeight: FontWeight.w400,
+                            ),
                           ],
                         );
                       case BlocStatus.loading:
                         return Shimmer.fromColors(
                           baseColor: context.onPrimary,
                           highlightColor: context.primary,
-                          child: Container(color: context.surface, height: 10, width: 100),
+                          child: Container(
+                            color: context.surface,
+                            height: 10,
+                            width: 100,
+                          ),
                         );
                       case BlocStatus.init:
                         return Shimmer.fromColors(
                           baseColor: context.onPrimary,
                           highlightColor: context.primary,
-                          child: Container(color: context.surface, height: 10, width: 100),
+                          child: Container(
+                            color: context.surface,
+                            height: 10,
+                            width: 100,
+                          ),
                         );
                     }
                   },
@@ -71,7 +98,7 @@ class TodayOverviewCard extends StatelessWidget {
               ],
             ),
           ),
-          AppImage.asset(Assets.images.homeEarningIcon.path, size: 60,),
+          AppImage.asset(Assets.images.homeEarningIcon.path, size: 60),
         ],
       ),
     );

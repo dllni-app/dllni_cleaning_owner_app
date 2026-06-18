@@ -384,33 +384,29 @@ class _HomeScreenState extends State<HomeScreen> {
                           buildWhen: (previous, current) =>
                               previous.ordersUsecase != current.ordersUsecase,
                           builder: (context, state) {
-                            final ordersCount = state.ordersUsecase!.isSuccess
-                                ? state.ordersUsecase!.list.length
-                                : 0;
+                            final orders = state.ordersUsecase!;
 
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
-                                  children: HomeOrdersTab.values.map((tab) {
-                                    final isSelected =
-                                        _selectedHomeOrdersTab == tab;
-                                    return Expanded(
-                                      child: InkWell(
-                                        onTap: () =>
-                                            _onHomeOrdersTabSelected(tab),
-                                        borderRadius: BorderRadius.circular(
-                                          8.r,
-                                        ),
-                                        child: Padding(
-                                          padding: EdgeInsetsDirectional.only(
-                                            bottom: 8.h,
-                                          ),
-                                          child: Column(
-                                            children: [
-                                              Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
+                                  children: HomeOrdersTab.values
+                                      .map((tab) {
+                                        final isSelected =
+                                            _selectedHomeOrdersTab == tab;
+                                        return Expanded(
+                                          child: InkWell(
+                                            onTap: () =>
+                                                _onHomeOrdersTabSelected(tab),
+                                            borderRadius: BorderRadius.circular(
+                                              8.r,
+                                            ),
+                                            child: Padding(
+                                              padding:
+                                                  EdgeInsetsDirectional.only(
+                                                    bottom: 8.h,
+                                                  ),
+                                              child: Column(
                                                 children: [
                                                   AppText.labelLarge(
                                                     tab.label,
@@ -423,53 +419,40 @@ class _HomeScreenState extends State<HomeScreen> {
                                                               .colorScheme
                                                               .outline,
                                                   ),
-                                                  if (isSelected) ...[
-                                                    8.horizontalSpace,
-                                                    CircleAvatar(
-                                                      radius: 10.r,
-                                                      backgroundColor:
-                                                          context.error,
-                                                      child: AppText.labelSmall(
-                                                        ordersCount.toString(),
-                                                        color: context.onError,
-                                                      ),
+                                                  6.verticalSpace,
+                                                  AnimatedContainer(
+                                                    duration: const Duration(
+                                                      milliseconds: 200,
                                                     ),
-                                                  ],
+                                                    height: 2.h,
+                                                    width: double.infinity,
+                                                    decoration: BoxDecoration(
+                                                      color: isSelected
+                                                          ? context.primary
+                                                          : Colors.transparent,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            2.r,
+                                                          ),
+                                                    ),
+                                                  ),
                                                 ],
                                               ),
-                                              6.verticalSpace,
-                                              AnimatedContainer(
-                                                duration: const Duration(
-                                                  milliseconds: 200,
-                                                ),
-                                                height: 2.h,
-                                                width: double.infinity,
-                                                decoration: BoxDecoration(
-                                                  color: isSelected
-                                                      ? context.primary
-                                                      : Colors.transparent,
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                        2.r,
-                                                      ),
-                                                ),
-                                              ),
-                                            ],
+                                            ),
                                           ),
-                                        ),
-                                      ),
-                                    );
-                                  }).toList(growable: false),
+                                        );
+                                      })
+                                      .toList(growable: false),
                                 ),
                                 8.verticalSpace,
-                                state.ordersUsecase!.builder(
+                                orders.builder(
                                   loadingWidget: Padding(
                                     padding: EdgeInsetsDirectional.only(
                                       top: 40.h,
                                     ),
                                     child: const Center(
-                                      child: CircularProgressIndicator
-                                          .adaptive(),
+                                      child:
+                                          CircularProgressIndicator.adaptive(),
                                     ),
                                   ),
                                   emptyWidget: AppText.labelMedium(
@@ -481,18 +464,40 @@ class _HomeScreenState extends State<HomeScreen> {
                                       shrinkWrap: true,
                                       physics:
                                           const NeverScrollableScrollPhysics(),
-                                      itemBuilder: (context, index) =>
-                                          OrderCard(
-                                            data: state
-                                                .ordersUsecase!
-                                                .list[index],
-                                            bloc: context.read<OrdersBloc>(),
-                                            index: index,
-                                          ),
+                                      itemBuilder: (context, index) {
+                                        if (orders.length <= index) {
+                                          if (orders.length == index) {
+                                            context.read<OrdersBloc>().add(
+                                              FetchOrdersUsecaseEvent(
+                                                isReload: false,
+                                                params:
+                                                    _homeOrdersFetchParams(
+                                                  page: orders.pageNumber,
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                          return SizedBox(
+                                            width: 30.w,
+                                            height: 30.h,
+                                            child: FittedBox(
+                                              child:
+                                                  CircularProgressIndicator
+                                                      .adaptive(
+                                                strokeWidth: 3,
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                        return OrderCard(
+                                          data: orders.list[index],
+                                          bloc: context.read<OrdersBloc>(),
+                                          index: index,
+                                        );
+                                      },
                                       separatorBuilder: (context, index) =>
                                           16.verticalSpace,
-                                      itemCount:
-                                          state.ordersUsecase!.list.length,
+                                      itemCount: orders.listLength(1),
                                     );
                                   },
                                   failedWidget: AppText.labelLarge(

@@ -1,7 +1,9 @@
+import 'package:common_package/common_package.dart';
+import 'package:dllni_cleaninig_owner_app/core/app_config.dart';
+
 import '../../data/models/cleaning_booking_status.dart';
 import '../../data/models/fetch_orders_usecase_model.dart';
 import '../manager/bloc/orders_bloc.dart';
-import 'package:common_package/common_package.dart';
 
 /// Single source of truth for order action visibility (card + details screens).
 class OrderLifecyclePolicy {
@@ -39,7 +41,10 @@ class OrderLifecyclePolicy {
   static bool isStartTravelWithinAllowedWindow(
     FetchOrdersUsecaseModelDataItem order, {
     DateTime? now,
+    bool? enforceWindow,
   }) {
+    if (!(enforceWindow ?? AppConfig.enforceStartTravelWindow)) return true;
+
     final scheduledAt = _scheduledDateTime(order);
     if (scheduledAt == null) return true;
 

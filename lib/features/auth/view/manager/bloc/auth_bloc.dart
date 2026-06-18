@@ -21,6 +21,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     emit(state.copyWith(loginUsecaseStatus: BlocStatus.loading));
+    await NotificationHelper.getToken(LoginUsecaseParams.fcmTokenPrefsKey);
     final res = await loginUsecaseUseCase(event.params);
     await res.fold(
       (l) async {
@@ -36,7 +37,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         await SharedPreferencesHelper.saveData(key: 'token', value: r.token!);
         final workerId = r.user?.workerId ?? r.user?.id;
         if (workerId != null) {
-          await SharedPreferencesHelper.saveData(key: 'worker_id', value: workerId);
+          await SharedPreferencesHelper.saveData(
+            key: 'worker_id',
+            value: workerId,
+          );
         }
         await NotificationHelper.syncStoredToken(
           tokenKey: LoginUsecaseParams.fcmTokenPrefsKey,
