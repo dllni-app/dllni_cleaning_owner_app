@@ -41,7 +41,7 @@ class OrderInfoCard extends StatelessWidget {
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
                 decoration: BoxDecoration(color: Color(0xff00BA10).withAlpha(75), borderRadius: BorderRadius.circular(8.r)),
-                child: AppText.labelMedium(order.status ?? '', fontWeight: FontWeight.w300),
+                child: AppText.labelMedium(order.statusNameValue ?? '', fontWeight: FontWeight.w300),
               ),
             ],
           ),

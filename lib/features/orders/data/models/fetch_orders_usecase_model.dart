@@ -275,6 +275,9 @@ class FetchOrdersUsecaseModelDataItem {
   final List<CleaningRoomAssignmentModel>? roomAssignments;
   final CleaningMyAssignmentModel? myAssignment;
 
+
+  String get statusNameValue =>
+      CleaningBookingStatus.toArabic(status ?? '');
   FetchOrdersUsecaseModelDataItem({
     this.id,
     this.customerId,

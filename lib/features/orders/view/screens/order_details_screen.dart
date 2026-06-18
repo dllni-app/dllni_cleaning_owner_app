@@ -131,7 +131,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     required Map<String, dynamic> payload,
     required int bookingId,
     required bool fromWorkerChannel,
-  }) {
+  })
+  {
     if (!mounted) return;
 
     if (fromWorkerChannel &&

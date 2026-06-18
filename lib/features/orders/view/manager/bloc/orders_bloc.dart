@@ -505,12 +505,16 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
             isReload: true,
           ),
         );
+
         emit(
           state.copyWith(
             rejectExtensionUsecaseStatus: BlocStatus.success,
             rejectExtensionUsecase: r,
           ),
         );
+
+
+
       },
     );
   }
@@ -546,7 +550,8 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
   FutureOr<void> _rejectOrderUsecase(
     RejectOrderUsecaseEvent event,
     Emitter<OrdersState> emit,
-  ) async {
+  )
+  async {
     emit(
       state.copyWith(
         rejectOrderUsecaseStatus: BlocStatus.loading,

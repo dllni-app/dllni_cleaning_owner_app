@@ -154,23 +154,62 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       return ValueListenableBuilder(
                         valueListenable: orderNotifier.status,
                         builder: (context, status, _) => ListView.separated(
-                          padding: EdgeInsetsDirectional.only(start: 24, end: 24, bottom: 20),
+                          padding: const EdgeInsetsDirectional.only(
+                            start: 24,
+                            end: 24,
+                            bottom: 20,
+                          ),
+                          itemCount: orders.listLength(1),
+                          separatorBuilder: (context, index) => const SizedBox(height: 16),
                           itemBuilder: (context, index) {
                             if (orders.length <= index) {
                               if (orders.length == index) {
                                 context.read<OrdersBloc>().add(
                                   FetchOrdersUsecaseEvent(
                                     isReload: false,
-                                    params: FetchOrdersUsecaseParams(page: orders.pageNumber, status: status),
+                                    params: FetchOrdersUsecaseParams(
+                                      page: orders.pageNumber,
+                                      status: status,
+                                    ),
                                   ),
                                 );
                               }
-                              return SizedBox(width: 30, height: 30, child: FittedBox(child: CircularProgressIndicator.adaptive(strokeWidth: 3)));
+
+                              return const SizedBox(
+                                width: 30,
+                                height: 30,
+                                child: FittedBox(
+                                  child: CircularProgressIndicator.adaptive(
+                                    strokeWidth: 3,
+                                  ),
+                                ),
+                              );
                             }
-                            return OrderCard(data: orders.list[index], bloc: context.read<OrdersBloc>(), index: index);
+
+                            final item = orders.list[index];
+
+                            return AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 500),
+                              transitionBuilder: (child, animation) {
+                                return FadeTransition(
+                                  opacity: animation,
+                                  child: SlideTransition(
+                                    position: Tween<Offset>(
+                                      begin: const Offset(0, 0.03),
+                                      end: Offset.zero,
+                                    ).animate(animation),
+                                    child: child,
+                                  ),
+                                );
+                              },
+                              child: OrderCard(
+                                key: ValueKey(item.id),
+                                data: item,
+                                bloc: context.read<OrdersBloc>(),
+                                index: index,
+                              ),
+                            );
                           },
-                          separatorBuilder: (context, index) => SizedBox(height: 16),
-                          itemCount: orders.listLength(1),
                         ),
                       );
                     },

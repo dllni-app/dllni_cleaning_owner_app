@@ -9,4 +9,38 @@ abstract class CleaningBookingStatus {
   static const timeExtensionRequested = 'time_extension_requested';
   static const completed = 'completed';
   static const cancelled = 'cancelled';
+
+  static String toArabic(String status) {
+    switch (status) {
+      case pending:
+        return 'قيد الانتظار';
+
+      case workerAssigned:
+        return 'تم تعيين العامل';
+
+      case awaitingStartVerification:
+        return 'بانتظار التحقق من بدء الخدمة';
+
+      case awaitingWorkerStartConfirmation:
+        return 'بانتظار تأكيد العامل لبدء الخدمة';
+
+      case inProgress:
+        return 'قيد التنفيذ';
+
+      case awaitingCustomerCompletion:
+        return 'بانتظار تأكيد العميل لإتمام الخدمة';
+
+      case timeExtensionRequested:
+        return 'تم طلب تمديد الوقت';
+
+      case completed:
+        return 'مكتمل';
+
+      case cancelled:
+        return 'ملغي';
+
+      default:
+        return status;
+    }
+  }
 }

@@ -202,7 +202,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void _schedulePendingOrderSync({
     required String eventName,
     required Map<String, dynamic> payload,
-  }) {
+  })
+  {
     _pendingOrderSyncQueue.add((eventName: eventName, payload: payload));
     _realtimeRefreshTimer?.cancel();
     _realtimeRefreshTimer = Timer(_realtimeRefreshDebounce, () {
@@ -462,42 +463,57 @@ class _HomeScreenState extends State<HomeScreen> {
                                   successWidget: () {
                                     return ListView.separated(
                                       shrinkWrap: true,
-                                      physics:
-                                          const NeverScrollableScrollPhysics(),
+                                      physics: const NeverScrollableScrollPhysics(),
+                                      itemCount: orders.listLength(1),
+                                      separatorBuilder: (context, index) => 16.verticalSpace,
                                       itemBuilder: (context, index) {
                                         if (orders.length <= index) {
                                           if (orders.length == index) {
                                             context.read<OrdersBloc>().add(
                                               FetchOrdersUsecaseEvent(
                                                 isReload: false,
-                                                params:
-                                                    _homeOrdersFetchParams(
+                                                params: _homeOrdersFetchParams(
                                                   page: orders.pageNumber,
                                                 ),
                                               ),
                                             );
                                           }
+
                                           return SizedBox(
                                             width: 30.w,
                                             height: 30.h,
                                             child: FittedBox(
-                                              child:
-                                                  CircularProgressIndicator
-                                                      .adaptive(
+                                              child: CircularProgressIndicator.adaptive(
                                                 strokeWidth: 3,
                                               ),
                                             ),
                                           );
                                         }
-                                        return OrderCard(
-                                          data: orders.list[index],
-                                          bloc: context.read<OrdersBloc>(),
-                                          index: index,
+
+                                        final item = orders.list[index];
+
+                                        return AnimatedSwitcher(
+                                          duration: const Duration(milliseconds: 500),
+                                          transitionBuilder: (child, animation) {
+                                            return FadeTransition(
+                                              opacity: animation,
+                                              child: SlideTransition(
+                                                position: Tween<Offset>(
+                                                  begin: const Offset(0, 0.03),
+                                                  end: Offset.zero,
+                                                ).animate(animation),
+                                                child: child,
+                                              ),
+                                            );
+                                          },
+                                          child: OrderCard(
+                                            key: ValueKey(item.id),
+                                            data: item,
+                                            bloc: context.read<OrdersBloc>(),
+                                            index: index,
+                                          ),
                                         );
                                       },
-                                      separatorBuilder: (context, index) =>
-                                          16.verticalSpace,
-                                      itemCount: orders.listLength(1),
                                     );
                                   },
                                   failedWidget: AppText.labelLarge(

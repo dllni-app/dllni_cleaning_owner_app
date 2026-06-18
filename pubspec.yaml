@@ -43,6 +43,7 @@ dependencies:
   flutter_launcher_icons: ^0.14.4
   flutter_svg: ^2.0.10
   pusher_channels_flutter: ^2.2.0
+  animated_list_plus: ^0.5.2
 
 
 dev_dependencies:
