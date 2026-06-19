@@ -4,6 +4,7 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
 import '../../data/models/cleaning_team_models.dart';
 import '../../data/models/fetch_orders_usecase_model.dart';
+import '../helpers/cleaning_enum_translations.dart';
 import '../helpers/order_lifecycle_policy.dart';
 
 class WorkerRoomAssignmentsCard extends StatelessWidget {
@@ -14,9 +15,6 @@ class WorkerRoomAssignmentsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rooms = order.myAssignedRooms;
-    if (rooms.isEmpty) {
-      return const SizedBox.shrink();
-    }
 
     return Container(
       padding: EdgeInsets.all(16.r),
@@ -27,12 +25,19 @@ class WorkerRoomAssignmentsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppText.labelMedium('الغرف المخصصة لك', fontWeight: FontWeight.w600),
+          AppText.labelMedium('الغرفة المخصصة لك', fontWeight: FontWeight.w600),
           12.verticalSpace,
-          for (var i = 0; i < rooms.length; i++) ...[
-            if (i > 0) 8.verticalSpace,
-            _RoomTile(room: rooms[i]),
-          ],
+          if (rooms.isEmpty)
+            AppText.bodySmall(
+              'لم يتم تخصيص غرفة لك بعد',
+              color: const Color(0xff6B7280),
+              textAlign: TextAlign.start,
+            )
+          else
+            for (var i = 0; i < rooms.length; i++) ...[
+              if (i > 0) 8.verticalSpace,
+              _RoomTile(room: rooms[i]),
+            ],
         ],
       ),
     );
@@ -86,11 +91,11 @@ class _RoomTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = room.displayLabel ??
-        [
-          room.roomType,
-          room.roomSize,
-        ].whereType<String>().where((part) => part.isNotEmpty).join(' - ');
+    final typeLabel = CleaningEnumTranslations.roomType(room.roomType);
+    final sizeLabel = CleaningEnumTranslations.roomSize(room.roomSize);
+    final label = room.displayLabel?.trim().isNotEmpty == true
+        ? room.displayLabel!.trim()
+        : typeLabel;
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
@@ -104,9 +109,20 @@ class _RoomTile extends StatelessWidget {
           Icon(Icons.meeting_room_outlined, size: 18.r, color: context.primary),
           8.horizontalSpace,
           Expanded(
-            child: AppText.labelMedium(
-              label.isEmpty ? 'غرفة' : label,
-              fontWeight: FontWeight.w500,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AppText.labelMedium(
+                  label.isEmpty ? 'غرفة' : label,
+                  fontWeight: FontWeight.w500,
+                ),
+                4.verticalSpace,
+                AppText.bodySmall(
+                  'النوع: $typeLabel - الحجم: $sizeLabel',
+                  color: const Color(0xff6B7280),
+                  textAlign: TextAlign.start,
+                ),
+              ],
             ),
           ),
         ],
