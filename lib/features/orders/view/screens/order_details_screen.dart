@@ -8,6 +8,7 @@ import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_worker_extensio
 import 'package:dllni_cleaninig_owner_app/core/realtime/pusher_manager.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/fetch_order_details_usecase_use_case.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_details_to_list_item_mapper.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/order_details/order_details_body.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/order_details/order_details_mission_body.dart';
 import 'package:flutter/material.dart';
@@ -282,6 +283,19 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     _syncAwaitingVerificationPoll();
   }
 
+  FetchOrdersUsecaseModelDataItem _mergeDetailsIntoOrder(
+    FetchOrdersUsecaseModelData details,
+  ) {
+    return OrderDetailsToListItemMapper.fromDetails(details).withTeamData(
+      assignmentMode: details.assignmentMode,
+      numberOfWorkers: details.numberOfWorkers,
+      workerAcceptance: details.workerAcceptance,
+      workerAssignments: details.workerAssignments,
+      roomAssignments: details.roomAssignments,
+      myAssignment: details.myAssignment,
+    );
+  }
+
   void _onBlocStateChanged(OrdersState state, OrdersState? previous) {
     final oid = _order.id;
     if (oid == null) return;
@@ -292,23 +306,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       if (details != null && details.id == oid) {
         if (!mounted) return;
         setState(() {
-          _order = _order
-              .withLifecycle(
-                status: details.status,
-                arrivedAt: details.arrivedAt,
-                startedTravelAt: details.startedTravelAt,
-                workStartedAt: details.workStartedAt,
-                workFinishedAt: details.workFinishedAt,
-                customerConfirmedAt: details.customerConfirmedAt,
-              )
-              .withTeamData(
-                assignmentMode: details.assignmentMode,
-                numberOfWorkers: details.numberOfWorkers,
-                workerAcceptance: details.workerAcceptance,
-                workerAssignments: details.workerAssignments,
-                roomAssignments: details.roomAssignments,
-                myAssignment: details.myAssignment,
-              );
+          _order = _mergeDetailsIntoOrder(details);
         });
         widget.params.bloc.add(
           ChangeDetailsCurrentStep(step: _stepFor(_order)),
