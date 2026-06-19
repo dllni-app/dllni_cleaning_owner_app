@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
 import '../../data/models/fetch_orders_usecase_model.dart';
+import '../helpers/cleaning_enum_translations.dart';
 import '../helpers/event_assistance_order_helper.dart';
 
 class EstateInfoCard extends StatefulWidget {
@@ -38,7 +39,7 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
       );
       if (guests != null) attributes.add('$guests ضيف');
       if (venue != null && venue.isNotEmpty) {
-        attributes.add(EventAssistanceOrderHelper.venueTypeLabelAr(venue));
+        attributes.add(CleaningEnumTranslations.venueType(venue));
       }
       if (hours != null) {
         attributes.add(EventAssistanceOrderHelper.formatHours(hours));
@@ -46,11 +47,16 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
       return;
     }
 
+    final property = widget.order.propertyDetails;
     attributes = [
-      '${widget.order.propertyDetails?.bathrooms ?? 0} حمام',
-      '${widget.order.propertyDetails?.bedRooms ?? 0} غرف نوم',
-      if (widget.order.propertyDetails?.kitchenIncluded == true ||
-          widget.order.propertyDetails?.kitchen != null) 'مطبخ',
+      '${property?.bathrooms ?? 0} حمام',
+      '${property?.bedRooms ?? 0} غرف نوم',
+      if ((property?.kitchens ?? 0) > 0 ||
+          property?.kitchenIncluded == true ||
+          property?.kitchen != null)
+        'مطبخ',
+      if ((property?.livingRoomSize ?? '').isNotEmpty)
+        CleaningEnumTranslations.livingRoomSize(property?.livingRoomSize),
     ];
   }
 
@@ -92,10 +98,10 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
               ),
               AppText.labelMedium(
                 _isEventAssistance
-                    ? EventAssistanceOrderHelper.eventTypeLabelAr(
+                    ? CleaningEnumTranslations.eventType(
                         widget.order.propertyDetails?.eventType,
                       )
-                    : (widget.order.locationName ?? ''),
+                    : CleaningEnumTranslations.propertyType(widget.order.propertyType),
                 fontWeight: FontWeight.w300,
               ),
             ],
