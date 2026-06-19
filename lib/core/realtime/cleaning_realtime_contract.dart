@@ -94,8 +94,6 @@ class CleaningRealtimeContract {
         raw;
   }
 
-  /// Expands canonical event names with known legacy / snake_case aliases for
-  /// [PusherManager] filters that compare raw broadcast names.
   static Set<String> expandEventFilter(Iterable<String> canonicalEventNames) {
     final expanded = <String>{};
     for (final canonical in canonicalEventNames) {
@@ -166,6 +164,50 @@ class CleaningRealtimeContract {
     if (raw == null) return null;
     final normalized = raw.toString().trim().toLowerCase();
     return normalized.isEmpty ? null : normalized;
+  }
+
+  static String? extractDecision(Map<String, dynamic> payload) {
+    final unwrapped = unwrapPayload(payload);
+    final raw = unwrapped['decision'] ??
+        unwrapped['customerDecision'] ??
+        unwrapped['customer_decision'];
+    final text = raw?.toString().trim().toLowerCase();
+    return text == null || text.isEmpty ? null : text;
+  }
+
+  static String? extractDecisionMessage(Map<String, dynamic> payload) {
+    final unwrapped = unwrapPayload(payload);
+    final booking = _nestedBookingMap(unwrapped);
+    final raw = unwrapped['message'] ??
+        unwrapped['completionMessage'] ??
+        unwrapped['completion_message'] ??
+        unwrapped['customerCompletionRejectionMessage'] ??
+        unwrapped['customer_completion_rejection_message'] ??
+        booking['message'] ??
+        booking['completionMessage'] ??
+        booking['completion_message'];
+    final text = raw?.toString().trim();
+    return text == null || text.isEmpty ? null : text;
+  }
+
+  static String? extractCompletionMessage(Map<String, dynamic> payload) {
+    final unwrapped = unwrapPayload(payload);
+    final booking = _nestedBookingMap(unwrapped);
+    final raw = unwrapped['completionMessage'] ??
+        unwrapped['completion_message'] ??
+        booking['completionMessage'] ??
+        booking['completion_message'] ??
+        booking['workerCompletionMessage'] ??
+        booking['worker_completion_message'];
+    final text = raw?.toString().trim();
+    return text == null || text.isEmpty ? null : text;
+  }
+
+  static String? extractCompletionExpiresAt(Map<String, dynamic> payload) {
+    final unwrapped = unwrapPayload(payload);
+    final raw = unwrapped['expiresAt'] ?? unwrapped['expires_at'];
+    final text = raw?.toString().trim();
+    return text == null || text.isEmpty ? null : text;
   }
 
   static ({String? arrivedAt, String? workStartedAt}) extractLifecycleTimestamps(
