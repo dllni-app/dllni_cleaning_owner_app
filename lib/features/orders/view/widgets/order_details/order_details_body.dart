@@ -8,6 +8,7 @@ import '../../../../../core/widgets/cancel_order_dialog.dart';
 import '../../../data/models/fetch_orders_usecase_model.dart';
 import '../../../domain/usecases/reject_order_usecase_use_case.dart';
 import '../../../domain/usecases/start_travel_usecase_use_case.dart';
+import '../../helpers/cleaning_enum_translations.dart';
 import '../../helpers/event_assistance_order_helper.dart';
 import '../../helpers/order_address_visibility_helper.dart';
 import '../../helpers/order_lifecycle_policy.dart';
@@ -38,31 +39,34 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
   bool get _isEventAssistance =>
       EventAssistanceOrderHelper.isEventAssistance(widget.order.propertyType);
 
-  List<String> get titles => _isEventAssistance
-      ? ['إجمالي ساعات العمل : ', 'عدد الضيوف', 'السعر الإجمالي ']
-      : ['إجمالي ساعات العمل : ', 'المساحة التقديرية : ', 'السعر الإجمالي : '];
-
-  late List<String> val;
-
   String _formatHours(double? hours) {
     if (hours == null) return '-';
     return hours % 1 == 0 ? hours.toInt().toString() : hours.toString();
   }
 
-  @override
-  void initState() {
-    super.initState();
+  String _formatPrice(num? amount) {
+    if (amount == null || amount <= 0) return 'غير متوفر';
+    return '${amount.toStringAsFixed(2)} ل.س';
+  }
+
+  List<MapEntry<String, String>> get _summaryRows {
     final bookedHours = EventAssistanceOrderHelper.resolveBookedHours(
       propertyHours: widget.order.propertyDetails?.hours,
       totalHours: widget.order.totalHours,
       estimatedHours: widget.order.estimatedHours,
     );
-    val = [
-      _formatHours(bookedHours),
-      _isEventAssistance
-          ? '${widget.order.propertyDetails?.guestCount ?? '-'}'
-          : widget.order.estimatedSqm.toString(),
-      '${widget.order.totalPrice.toString()} ل.س',
+
+    return [
+      MapEntry('إجمالي ساعات العمل : ', _formatHours(bookedHours)),
+      MapEntry(
+        _isEventAssistance ? 'عدد الضيوف : ' : 'المساحة التقديرية : ',
+        _isEventAssistance
+            ? '${widget.order.propertyDetails?.guestCount ?? '-'}'
+            : '${widget.order.estimatedSqm ?? '-'}',
+      ),
+      MapEntry('سعر الخدمة : ', _formatPrice(widget.order.basePrice)),
+      MapEntry('سعر التوصيل : ', _formatPrice(widget.order.travelFee)),
+      MapEntry('السعر الإجمالي : ', _formatPrice(widget.order.totalPrice)),
     ];
   }
 
@@ -148,27 +152,31 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                         vertical: 16,
                       ),
                       child: Column(
-                        children: List.generate(
-                          3,
-                          (i) => Row(
-                            children: [
-                              AppText.labelLarge(
-                                titles[i],
-                                color: context.primary,
-                                fontWeight: FontWeight.w500,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: _summaryRows
+                            .map(
+                              (row) => Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: AppText.labelLarge(
+                                        row.key,
+                                        color: context.primary,
+                                        fontWeight: FontWeight.w500,
+                                        textAlign: TextAlign.start,
+                                      ),
+                                    ),
+                                    AppText.headlineSmall(
+                                      row.value,
+                                      color: context.primary,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ],
+                                ),
                               ),
-                              SizedBox(height: 8),
-
-                              AppText.headlineSmall(
-                                val[i],
-                                color: context.primary,
-                                fontWeight: FontWeight.w500,
-
-                              ),
-
-                            ],
-                          ),
-                        ),
+                            )
+                            .toList(growable: false),
                       ),
                     ),
                   ),
@@ -176,6 +184,8 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                   OrderInfoCard(order: widget.order),
                   SizedBox(height: 14),
                   EstateInfoCard(order: widget.order),
+                  SizedBox(height: 14),
+                  _buildServicesCard(context),
                   SizedBox(height: 14),
                   _buildOrderAddressCard(context),
                   SizedBox(height: 14),
@@ -185,8 +195,7 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                   WorkerTeamStatusCard(order: widget.order),
                   if (widget.order.isSearchingForWorkers) SizedBox(height: 14),
                   WorkerRoomAssignmentsCard(order: widget.order),
-                  if (widget.order.myAssignedRooms.isNotEmpty)
-                    SizedBox(height: 14),
+                  SizedBox(height: 14),
                   PaymentInfoCard(order: widget.order),
                   SizedBox(height: 10),
                   if (canAcceptReject) _buildAcceptRejectActions(context),
@@ -197,6 +206,60 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildServicesCard(BuildContext context) {
+    final services = widget.order.services ?? const [];
+    final addons = widget.order.addons ?? const [];
+    final hasItems = services.isNotEmpty || addons.isNotEmpty;
+
+    return Container(
+      width: context.width,
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Color(0xffF4F5F7),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppText.labelMedium('الخدمات المطلوبة', fontWeight: FontWeight.w400),
+          SizedBox(height: 12),
+          Divider(color: Colors.black.withAlpha(42)),
+          SizedBox(height: 12),
+          if (!hasItems)
+            AppText.bodySmall(
+              'لا توجد خدمات إضافية',
+              color: const Color(0xff6B7280),
+              textAlign: TextAlign.start,
+            )
+          else ...[
+            ...services.map((service) => _buildServiceRow(service.name, service.quantity)),
+            ...addons.map((addon) => _buildServiceRow(addon.name, addon.quantity)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildServiceRow(String? name, int? quantity) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Icon(Icons.check_circle_outline, size: 18, color: context.primary),
+          SizedBox(width: 6),
+          Expanded(
+            child: AppText.labelMedium(
+              (name ?? '').trim().isEmpty ? 'خدمة' : name!,
+              fontWeight: FontWeight.w400,
+              textAlign: TextAlign.start,
+            ),
+          ),
+          AppText.bodySmall('x${quantity ?? 1}'),
         ],
       ),
     );
@@ -233,7 +296,7 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
               SizedBox(width: 6),
               Expanded(
                 child: AppText.labelMedium(
-                  address,
+                  address.trim().isEmpty ? 'العنوان غير متوفر' : address,
                   fontWeight: FontWeight.w300,
                   textAlign: TextAlign.start,
                 ),
