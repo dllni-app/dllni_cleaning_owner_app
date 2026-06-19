@@ -109,6 +109,86 @@ class OrderCard extends StatelessWidget {
     return DateFormat('h:mm a', 'en').format(parsed).toLowerCase();
   }
 
+  String _durationInArabic(
+    int value, {
+    required String single,
+    required String dual,
+    required String plural,
+    required String many,
+  }) {
+    if (value <= 1) return single;
+    if (value == 2) return dual;
+    if (value <= 10) return '$value $plural';
+    return '$value $many';
+  }
+
+  String _createdAtHumanReadable() {
+    final raw = data.createdAt?.trim();
+    if (raw == null || raw.isEmpty) return '';
+
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) return '';
+
+    final diff = DateTime.now().difference(parsed.toLocal());
+    if (diff.isNegative || diff.inSeconds < 60) return 'منذ لحظات';
+
+    if (diff.inMinutes < 60) {
+      return 'منذ ${_durationInArabic(
+        diff.inMinutes,
+        single: 'دقيقة',
+        dual: 'دقيقتين',
+        plural: 'دقائق',
+        many: 'دقيقة',
+      )}';
+    }
+
+    if (diff.inHours < 24) {
+      return 'منذ ${_durationInArabic(
+        diff.inHours,
+        single: 'ساعة',
+        dual: 'ساعتين',
+        plural: 'ساعات',
+        many: 'ساعة',
+      )}';
+    }
+
+    if (diff.inDays < 30) {
+      return 'منذ ${_durationInArabic(
+        diff.inDays,
+        single: 'يوم',
+        dual: 'يومين',
+        plural: 'أيام',
+        many: 'يوم',
+      )}';
+    }
+
+    final months = (diff.inDays / 30).floor();
+    if (months < 12) {
+      return 'منذ ${_durationInArabic(
+        months,
+        single: 'شهر',
+        dual: 'شهرين',
+        plural: 'أشهر',
+        many: 'شهر',
+      )}';
+    }
+
+    final years = (diff.inDays / 365).floor();
+    return 'منذ ${_durationInArabic(
+      years,
+      single: 'سنة',
+      dual: 'سنتين',
+      plural: 'سنوات',
+      many: 'سنة',
+    )}';
+  }
+
+  String _bookingSubtitle(String bookingLabel) {
+    final createdAtLabel = _createdAtHumanReadable();
+    if (createdAtLabel.isEmpty) return '#ORD-$bookingLabel';
+    return '#ORD-$bookingLabel • $createdAtLabel';
+  }
+
   List<String> _attributeLabels() {
     if (_isEventAssistance) {
       final labels = <String>[];
@@ -413,7 +493,7 @@ class OrderCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       AppText.bodySmall(
-                        '#ORD-$bookingLabel • منذ 2 دقيقة',
+                        _bookingSubtitle(bookingLabel),
                         color: const Color(0xff6B7280),
                       ),
                     ],
