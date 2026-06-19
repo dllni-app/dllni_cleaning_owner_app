@@ -1,14 +1,21 @@
 import 'package:common_package/common_package.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_order_details_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/accept_order_usecase_use_case.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/fetch_order_details_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/reject_order_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/event_assistance_order_helper.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_address_visibility_helper.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_details_to_list_item_mapper.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_lifecycle_policy.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+
+const _borderColor = Color(0xffE5E7EB);
+const _mutedTextColor = Color(0xff6B7280);
+const _titleTextColor = Color(0xff111827);
 
 enum _AcceptOrderSheetCloseAction { accepted, dismissed }
 
@@ -38,20 +45,20 @@ class AcceptOrderBottomSheet extends StatefulWidget {
   }) async {
     final closeAction =
         await showModalBottomSheet<_AcceptOrderSheetCloseAction>(
-          context: context,
-          useRootNavigator: useRootNavigator,
-          isScrollControlled: true,
-          isDismissible: true,
-          enableDrag: true,
-          backgroundColor: Colors.transparent,
-          builder: (_) => AcceptOrderBottomSheet(
-            order: order,
-            bloc: bloc,
-            index: index,
-            autoRejectOnClose: autoRejectOnClose,
-            useRootNavigator: useRootNavigator,
-          ),
-        );
+      context: context,
+      useRootNavigator: useRootNavigator,
+      isScrollControlled: true,
+      isDismissible: true,
+      enableDrag: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => AcceptOrderBottomSheet(
+        order: order,
+        bloc: bloc,
+        index: index,
+        autoRejectOnClose: autoRejectOnClose,
+        useRootNavigator: useRootNavigator,
+      ),
+    );
 
     if (!autoRejectOnClose) return;
     final orderId = order.id;
@@ -71,18 +78,75 @@ class AcceptOrderBottomSheet extends StatefulWidget {
 }
 
 class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
+  late FetchOrdersUsecaseModelDataItem _order;
+  bool _detailsRequested = false;
+  bool _detailsLoaded = false;
+
   bool get _isEventAssistance =>
-      EventAssistanceOrderHelper.isEventAssistance(widget.order.propertyType);
+      EventAssistanceOrderHelper.isEventAssistance(_order.propertyType);
+
+  bool get _isLoadingDetails => _detailsRequested && !_detailsLoaded;
+
+  @override
+  void initState() {
+    super.initState();
+    _order = widget.order;
+    _requestFullOrderDetails();
+  }
+
+  void _requestFullOrderDetails() {
+    if (_detailsRequested) return;
+    final id = _order.id;
+    if (id == null) {
+      _detailsLoaded = true;
+      return;
+    }
+    _detailsRequested = true;
+    widget.bloc.add(
+      FetchOrderDetailsUsecaseEvent(
+        params: FetchOrderDetailsUsecaseParams(id: id),
+      ),
+    );
+  }
+
+  FetchOrdersUsecaseModelDataItem _mapDetails(
+    FetchOrderDetailsUsecaseModelData details,
+  ) {
+    return OrderDetailsToListItemMapper.fromDetails(details).withTeamData(
+      assignmentMode: details.assignmentMode,
+      numberOfWorkers: details.numberOfWorkers,
+      workerAcceptance: details.workerAcceptance,
+      workerAssignments: details.workerAssignments,
+      roomAssignments: details.roomAssignments,
+      myAssignment: details.myAssignment,
+    );
+  }
+
+  void _applyDetailsIfCurrentOrder(OrdersState state) {
+    final details = state.orderDetailsUsecase?.data;
+    if (details == null || details.id != _order.id || !mounted) return;
+    setState(() {
+      _order = _mapDetails(details);
+      _detailsLoaded = true;
+    });
+  }
+
+  void _markDetailsLoadFinishedIfNeeded(OrdersState state) {
+    if (!_detailsRequested || _detailsLoaded || !mounted) return;
+    if (state.orderDetailsUsecaseStatus == BlocStatus.failed) {
+      setState(() => _detailsLoaded = true);
+    }
+  }
 
   String _serviceName() {
     return EventAssistanceOrderHelper.serviceTitle(
-      propertyType: widget.order.propertyType,
-      customService: widget.order.propertyDetails?.customService,
+      propertyType: _order.propertyType,
+      customService: _order.propertyDetails?.customService,
     );
   }
 
   String _formatDate() {
-    final raw = widget.order.scheduledDate;
+    final raw = _order.scheduledDate;
     if (raw == null || raw.isEmpty) return '-';
     final parsed = DateTime.tryParse(raw);
     if (parsed == null) return raw;
@@ -90,7 +154,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
   }
 
   String _formatTime() {
-    final raw = widget.order.scheduledTime;
+    final raw = _order.scheduledTime;
     if (raw == null || raw.isEmpty) return '-';
     final parsed = DateTime.tryParse('2000-01-01T$raw');
     if (parsed == null) return raw;
@@ -104,18 +168,17 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
   }
 
   String _bookingCode() {
-    final bookingNumber = widget.order.bookingNumber?.trim();
+    final bookingNumber = _order.bookingNumber?.trim();
     if (bookingNumber != null && bookingNumber.isNotEmpty) {
       return bookingNumber;
     }
-    final id = widget.order.id;
+    final id = _order.id;
     return id == null ? '-' : id.toString();
   }
 
-  String _totalPriceLabel() {
-    final price = widget.order.totalPrice;
-    if (price == null) return '-';
-    return '${price.toStringAsFixed(2)} ل.س';
+  String _moneyLabel(num? amount) {
+    if (amount == null) return '-';
+    return '${amount.toStringAsFixed(2)} ل.س';
   }
 
   Widget _sectionTitle(BuildContext context, IconData icon, String title) {
@@ -135,7 +198,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       decoration: BoxDecoration(
         color: const Color(0xffF9FAFB),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xffE5E7EB)),
+        border: Border.all(color: _borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -156,7 +219,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
             Expanded(
               child: AppText.bodySmall(
                 label,
-                color: const Color(0xff6B7280),
+                color: _mutedTextColor,
                 textAlign: TextAlign.start,
               ),
             ),
@@ -172,11 +235,186 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
         ),
         if (withDivider) ...[
           const SizedBox(height: 8),
-          const Divider(height: 1, color: Color(0xffE5E7EB)),
+          const Divider(height: 1, color: _borderColor),
           const SizedBox(height: 8),
         ],
       ],
     );
+  }
+
+  Widget _loadingDetailsNotice() {
+    return Row(
+      children: [
+        const SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: AppText.bodySmall(
+            'جاري تحميل تفاصيل الخدمات...',
+            color: _mutedTextColor,
+            textAlign: TextAlign.start,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _serviceLine({
+    required String name,
+    int? quantity,
+    FontWeight fontWeight = FontWeight.w700,
+    Color color = _titleTextColor,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: AppText.bodyMedium(
+              name,
+              fontWeight: fontWeight,
+              textAlign: TextAlign.start,
+              color: color,
+            ),
+          ),
+          AppText.bodySmall(
+            'x${quantity ?? 1}',
+            color: _mutedTextColor,
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _regularServiceWidgets() {
+    final services = _order.services ?? const [];
+    final addons = _order.addons ?? const [];
+    if (_isLoadingDetails && services.isEmpty && addons.isEmpty) {
+      return [_loadingDetailsNotice()];
+    }
+    if (services.isEmpty && addons.isEmpty) {
+      return [
+        AppText.bodySmall(
+          'لا توجد بنود خدمة مفصلة',
+          color: _mutedTextColor,
+        ),
+      ];
+    }
+
+    return [
+      ...services.map(
+        (s) => _serviceLine(
+          name: s.name ?? 'خدمة',
+          quantity: s.quantity,
+        ),
+      ),
+      ...addons.map(
+        (a) => _serviceLine(
+          name: a.name ?? 'إضافة',
+          quantity: a.quantity,
+          fontWeight: FontWeight.w500,
+          color: const Color(0xff374151),
+        ),
+      ),
+    ];
+  }
+
+  List<Widget> _eventAssistanceWidgets() {
+    final bookedHours = EventAssistanceOrderHelper.resolveBookedHours(
+      propertyHours: _order.propertyDetails?.hours,
+      totalHours: _order.totalHours,
+      estimatedHours: _order.estimatedHours,
+    );
+
+    return [
+      AppText.bodyMedium(
+        _serviceName(),
+        fontWeight: FontWeight.w700,
+        color: _titleTextColor,
+      ),
+      if (_order.propertyDetails?.guestCount != null) ...[
+        const SizedBox(height: 8),
+        AppText.bodySmall(
+          'عدد الضيوف: ${_order.propertyDetails!.guestCount}',
+          color: _mutedTextColor,
+        ),
+      ],
+      if ((_order.propertyDetails?.venueType ?? '').isNotEmpty) ...[
+        const SizedBox(height: 4),
+        AppText.bodySmall(
+          'نوع المكان: ${EventAssistanceOrderHelper.venueTypeLabelAr(_order.propertyDetails?.venueType)}',
+          color: _mutedTextColor,
+        ),
+      ],
+      const SizedBox(height: 8),
+      AppText.bodySmall(
+        'مدة الحجز: ${EventAssistanceOrderHelper.formatHoursDetail(bookedHours)}',
+        color: _mutedTextColor,
+      ),
+      if ((_order.propertyDetails?.specialRequirement ?? '').isNotEmpty) ...[
+        const SizedBox(height: 4),
+        AppText.bodySmall(
+          'متطلبات خاصة: ${_order.propertyDetails!.specialRequirement}',
+          color: _mutedTextColor,
+        ),
+      ],
+    ];
+  }
+
+  List<Widget> _propertyDetailsRows() {
+    if (_isEventAssistance) {
+      return [
+        _orderInfoRow(
+          label: 'نوع المناسبة',
+          value: EventAssistanceOrderHelper.eventTypeLabelAr(
+            _order.propertyDetails?.eventType,
+          ),
+        ),
+        _orderInfoRow(
+          label: 'نوع المكان',
+          value: _valueOrDash(
+            EventAssistanceOrderHelper.venueTypeLabelAr(
+              _order.propertyDetails?.venueType,
+            ),
+          ),
+        ),
+        _orderInfoRow(
+          label: 'الخدمة المطلوبة',
+          value: _serviceName(),
+          withDivider: false,
+        ),
+      ];
+    }
+
+    final property = _order.propertyDetails;
+    return [
+      _orderInfoRow(
+        label: 'عدد الغرف',
+        value: '${property?.rooms ?? _order.numberOfRooms ?? '-'}',
+      ),
+      _orderInfoRow(
+        label: 'غرف النوم',
+        value: '${property?.bedRooms ?? '-'}',
+      ),
+      _orderInfoRow(
+        label: 'الحمامات',
+        value: '${property?.bathrooms ?? '-'}',
+      ),
+      _orderInfoRow(
+        label: 'المطبخ',
+        value: (property?.kitchenIncluded == true || property?.kitchen != null)
+            ? 'موجود'
+            : '-',
+      ),
+      _orderInfoRow(
+        label: 'حجم غرفة المعيشة',
+        value: _valueOrDash(property?.livingRoomSize),
+        withDivider: false,
+      ),
+    ];
   }
 
   void _dismissSheet() {
@@ -188,16 +426,21 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
     return BlocConsumer<OrdersBloc, OrdersState>(
       bloc: widget.bloc,
       listenWhen: (previous, current) =>
-          previous.acceptOrderUsecaseStatus != current.acceptOrderUsecaseStatus,
+          previous.acceptOrderUsecaseStatus != current.acceptOrderUsecaseStatus ||
+          previous.orderDetailsUsecaseStatus != current.orderDetailsUsecaseStatus ||
+          previous.orderDetailsUsecase != current.orderDetailsUsecase,
       listener: (context, state) {
         if (state.acceptOrderUsecaseStatus == BlocStatus.success) {
           Navigator.of(context).pop(_AcceptOrderSheetCloseAction.accepted);
+          return;
         }
+        _applyDetailsIfCurrentOrder(state);
+        _markDetailsLoadFinishedIfNeeded(state);
       },
       builder: (context, state) {
         final accepting = state.acceptOrderUsecaseStatus == BlocStatus.loading;
         final hideCustomerData = OrderLifecyclePolicy.isCustomerDataHidden(
-          widget.order,
+          _order,
         );
 
         return Container(
@@ -225,8 +468,10 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                             textAlign: TextAlign.start,
                           ),
                           AppText.bodySmall(
-                            'يرجى تأكيد تفاصيل الطلب قبل القبول',
-                            color: const Color(0xff6B7280),
+                            _isLoadingDetails
+                                ? 'يتم تحميل تفاصيل الطلب الكاملة من الخادم'
+                                : 'يرجى تأكيد تفاصيل الطلب قبل القبول',
+                            color: _mutedTextColor,
                             textAlign: TextAlign.start,
                           ),
                         ],
@@ -238,7 +483,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                         Icons.close,
                         color: accepting
                             ? const Color(0xff9CA3AF)
-                            : const Color(0xff6B7280),
+                            : _mutedTextColor,
                       ),
                     ),
                   ],
@@ -251,6 +496,10 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (_isLoadingDetails) ...[
+                        _detailCard(context, [_loadingDetailsNotice()]),
+                        const SizedBox(height: 16),
+                      ],
                       _sectionTitle(
                         context,
                         Icons.person_outline_rounded,
@@ -261,16 +510,16 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                         if (!hideCustomerData)
                           _orderInfoRow(
                             label: 'اسم العميل',
-                            value: _valueOrDash(widget.order.customer?.name),
+                            value: _valueOrDash(_order.customer?.name),
                           ),
                         if (!hideCustomerData)
                           _orderInfoRow(
                             label: 'رقم الهاتف',
-                            value: _valueOrDash(widget.order.customer?.phone),
+                            value: _valueOrDash(_order.customer?.phone),
                           ),
                         _orderInfoRow(
                           label: 'السعر الإجمالي',
-                          value: _totalPriceLabel(),
+                          value: _moneyLabel(_order.totalPrice),
                           withDivider: false,
                         ),
                       ]),
@@ -285,7 +534,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                         AppText.bodyMedium(
                           _serviceName(),
                           fontWeight: FontWeight.w700,
-                          color: const Color(0xff111827),
+                          color: _titleTextColor,
                         ),
                       ]),
                       const SizedBox(height: 16),
@@ -304,7 +553,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                                 children: [
                                   AppText.bodySmall(
                                     'التاريخ',
-                                    color: const Color(0xff6B7280),
+                                    color: _mutedTextColor,
                                   ),
                                   const SizedBox(height: 4),
                                   AppText.bodyMedium(
@@ -321,7 +570,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                                 children: [
                                   AppText.bodySmall(
                                     'الوقت',
-                                    color: const Color(0xff6B7280),
+                                    color: _mutedTextColor,
                                   ),
                                   const SizedBox(height: 4),
                                   AppText.bodyMedium(
@@ -337,89 +586,50 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                       const SizedBox(height: 16),
                       _sectionTitle(
                         context,
+                        _isEventAssistance
+                            ? Icons.event_available_outlined
+                            : Icons.apartment_outlined,
+                        _isEventAssistance ? 'تفاصيل المناسبة' : 'تفاصيل العقار',
+                      ),
+                      const SizedBox(height: 10),
+                      _detailCard(context, _propertyDetailsRows()),
+                      const SizedBox(height: 16),
+                      _sectionTitle(
+                        context,
                         Icons.checklist_rounded,
                         'الخدمات المطلوبة',
                       ),
                       const SizedBox(height: 10),
+                      _detailCard(
+                        context,
+                        _isEventAssistance
+                            ? _eventAssistanceWidgets()
+                            : _regularServiceWidgets(),
+                      ),
+                      const SizedBox(height: 16),
+                      _sectionTitle(
+                        context,
+                        Icons.payments_outlined,
+                        'تفاصيل الدفع',
+                      ),
+                      const SizedBox(height: 10),
                       _detailCard(context, [
-                        if (_isEventAssistance) ...[
-                          AppText.bodyMedium(
-                            _serviceName(),
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xff111827),
-                          ),
-                          if (widget.order.propertyDetails?.guestCount != null) ...[
-                            const SizedBox(height: 8),
-                            AppText.bodySmall(
-                              'عدد الضيوف: ${widget.order.propertyDetails!.guestCount}',
-                              color: const Color(0xff6B7280),
-                            ),
-                          ],
-                          if ((widget.order.propertyDetails?.venueType ?? '')
-                              .isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            AppText.bodySmall(
-                              'نوع المكان: ${EventAssistanceOrderHelper.venueTypeLabelAr(widget.order.propertyDetails?.venueType)}',
-                              color: const Color(0xff6B7280),
-                            ),
-                          ],
-                          const SizedBox(height: 8),
-                          AppText.bodySmall(
-                            'مدة الحجز: ${EventAssistanceOrderHelper.formatHoursDetail(
-                              EventAssistanceOrderHelper.resolveBookedHours(
-                                propertyHours:
-                                    widget.order.propertyDetails?.hours,
-                                totalHours: widget.order.totalHours,
-                                estimatedHours: widget.order.estimatedHours,
-                              ),
-                            )}',
-                            color: const Color(0xff6B7280),
-                          ),
-                        ] else if ((widget.order.services ?? []).isEmpty &&
-                            (widget.order.addons ?? []).isEmpty)
-                          AppText.bodySmall(
-                            'لا توجد بنود خدمة مفصلة',
-                            color: const Color(0xff6B7280),
-                          ),
-                        ...?widget.order.services?.map(
-                          (s) => Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: AppText.bodyMedium(
-                                    s.name ?? 'خدمة',
-                                    fontWeight: FontWeight.w700,
-                                    textAlign: TextAlign.start,
-                                  ),
-                                ),
-                                AppText.bodySmall(
-                                  'x${s.quantity ?? 1}',
-                                  color: const Color(0xff6B7280),
-                                ),
-                              ],
-                            ),
-                          ),
+                        _orderInfoRow(
+                          label: 'سعر الخدمة الأساس',
+                          value: _moneyLabel(_order.basePrice),
                         ),
-                        ...?widget.order.addons?.map(
-                          (a) => Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: AppText.bodyMedium(
-                                    a.name ?? 'إضافة',
-                                    textAlign: TextAlign.start,
-                                    color: const Color(0xff374151),
-                                  ),
-                                ),
-                                AppText.bodySmall(
-                                  'x${a.quantity ?? 1}',
-                                  color: const Color(0xff6B7280),
-                                ),
-                              ],
-                            ),
-                          ),
+                        _orderInfoRow(
+                          label: 'إجمالي الإضافات',
+                          value: _moneyLabel(_order.addonsTotal),
+                        ),
+                        _orderInfoRow(
+                          label: 'رسوم التوصيل',
+                          value: _moneyLabel(_order.travelFee),
+                        ),
+                        _orderInfoRow(
+                          label: 'المبلغ الكلي',
+                          value: _moneyLabel(_order.totalPrice),
+                          withDivider: false,
                         ),
                       ]),
                       const SizedBox(height: 16),
@@ -433,9 +643,9 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                         AppText.bodyMedium(
                           visibleOrderAddress(
                             address:
-                                widget.order.propertyDetails?.address ??
-                                widget.order.locationName,
-                            status: widget.order.status,
+                                _order.propertyDetails?.address ??
+                                _order.locationName,
+                            status: _order.status,
                           ),
                           textAlign: TextAlign.start,
                         ),
@@ -467,7 +677,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
               Container(
                 padding: const EdgeInsetsDirectional.fromSTEB(16, 12, 16, 16),
                 decoration: const BoxDecoration(
-                  border: Border(top: BorderSide(color: Color(0xffE5E7EB))),
+                  border: Border(top: BorderSide(color: _borderColor)),
                 ),
                 child: Row(
                   children: [
@@ -499,11 +709,11 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                         onTap: accepting
                             ? null
                             : () {
-                                if (widget.order.id == null) return;
+                                if (_order.id == null) return;
                                 widget.bloc.add(
                                   AcceptOrderUsecaseEvent(
                                     params: AcceptOrderUsecaseParams(
-                                      id: widget.order.id!,
+                                      id: _order.id!,
                                     ),
                                     index: widget.index,
                                     context: context,
