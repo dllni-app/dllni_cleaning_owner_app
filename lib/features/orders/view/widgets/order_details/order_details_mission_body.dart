@@ -11,6 +11,7 @@ import '../../../../../core/widgets/provisional_pricing_notice.dart';
 import '../../../data/models/arrive_model.dart';
 import '../../../data/models/fetch_orders_usecase_model.dart';
 import '../../../domain/usecases/complete_order_usecase_use_case.dart';
+import '../../../domain/usecases/fetch_order_details_usecase_use_case.dart';
 import '../../helpers/event_assistance_order_helper.dart';
 import '../../helpers/order_lifecycle_policy.dart';
 import '../../screens/emergency_sos_screen.dart';
