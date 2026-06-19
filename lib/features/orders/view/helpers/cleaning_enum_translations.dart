@@ -1,0 +1,141 @@
+class CleaningEnumTranslations {
+  static String valueOrFallback(String? value, {String fallback = 'غير محدد'}) {
+    final text = value?.trim();
+    if (text == null || text.isEmpty) return fallback;
+    return text;
+  }
+
+  static String bookingStatus(String? value) {
+    switch (_normalize(value)) {
+      case 'pending':
+        return 'قيد الانتظار';
+      case 'accepted_waiting_for_order_start':
+        return 'تم القبول بانتظار بدء الطلب';
+      case 'accepted_waiting_team':
+        return 'تم القبول بانتظار اكتمال الفريق';
+      case 'worker_assigned':
+        return 'تم تعيين العامل';
+      case 'awaiting_start_verification':
+        return 'بانتظار تأكيد بدء العمل';
+      case 'in_progress':
+        return 'قيد التنفيذ';
+      case 'awaiting_customer_completion':
+        return 'بانتظار تأكيد العميل للإنهاء';
+      case 'time_extension_requested':
+        return 'تم طلب تمديد الوقت';
+      case 'completed':
+        return 'مكتمل';
+      case 'cancelled':
+        return 'ملغي';
+      case 'rejected':
+        return 'مرفوض';
+      case 'withdrawn':
+        return 'منسحب';
+      default:
+        return valueOrFallback(value);
+    }
+  }
+
+  static String propertyType(String? value) {
+    switch (_normalize(value)) {
+      case 'apartment':
+        return 'شقة';
+      case 'villa':
+        return 'فيلا';
+      case 'house':
+      case 'home':
+        return 'منزل';
+      case 'office':
+        return 'مكتب';
+      case 'studio':
+        return 'استوديو';
+      case 'event_assistance':
+        return 'مساعدة مناسبة';
+      default:
+        return valueOrFallback(value);
+    }
+  }
+
+  static String livingRoomSize(String? value) => roomSize(value);
+
+  static String roomSize(String? value) {
+    switch (_normalize(value)) {
+      case 'small':
+        return 'صغيرة';
+      case 'medium':
+        return 'متوسطة';
+      case 'large':
+        return 'كبيرة';
+      case 'none':
+        return 'لا يوجد';
+      default:
+        return valueOrFallback(value);
+    }
+  }
+
+  static String roomType(String? value) {
+    switch (_normalize(value)) {
+      case 'bedroom':
+        return 'غرفة نوم';
+      case 'bathroom':
+        return 'حمام';
+      case 'living_room':
+        return 'غرفة معيشة';
+      case 'kitchen':
+        return 'مطبخ';
+      case 'balcony':
+        return 'شرفة';
+      case 'hall':
+        return 'صالة';
+      default:
+        return valueOrFallback(value, fallback: 'غرفة');
+    }
+  }
+
+  static String cleaningMode(String? value) {
+    switch (_normalize(value)) {
+      case 'regular':
+        return 'تنظيف عادي';
+      case 'deep':
+        return 'تنظيف عميق';
+      default:
+        return valueOrFallback(value);
+    }
+  }
+
+  static String eventType(String? value) {
+    switch (_normalize(value)) {
+      case 'family_dinner':
+        return 'عشاء عائلي';
+      case 'birthday':
+        return 'عيد ميلاد';
+      case 'large_gathering':
+        return 'تجمع كبير';
+      case 'funeral':
+        return 'عزاء';
+      case 'other':
+        return 'أخرى';
+      default:
+        return valueOrFallback(value);
+    }
+  }
+
+  static String venueType(String? value) {
+    switch (_normalize(value)) {
+      case 'home':
+        return 'منزل';
+      case 'hall':
+        return 'قاعة';
+      case 'outdoor':
+        return 'خارجي';
+      case 'office':
+        return 'مكتب';
+      case 'other':
+        return 'أخرى';
+      default:
+        return valueOrFallback(value);
+    }
+  }
+
+  static String _normalize(String? value) => value?.trim().toLowerCase() ?? '';
+}
