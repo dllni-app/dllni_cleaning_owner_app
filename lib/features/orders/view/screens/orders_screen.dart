@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:common_package/helpers/pusher_service_logger.dart';
 import 'package:common_package/widgets/app_text.dart';
@@ -9,6 +10,7 @@ import 'package:dllni_cleaninig_owner_app/core/realtime/pusher_manager.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_realtime_contract.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_worker_extension_prompts.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
+import 'package:dllni_cleaninig_owner_app/features/profile/data/models/worker_dispatch_eligibility_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -40,6 +42,75 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final raw = SharedPreferencesHelper.getData(key: 'worker_id');
     if (raw is num) return raw.toInt();
     return int.tryParse('$raw');
+  }
+
+  ({bool? canReceive, String message}) _cachedEligibility() {
+    final canReceiveRaw = SharedPreferencesHelper.getData(
+      key: 'worker_can_receive_new_requests',
+    );
+    bool? canReceive;
+    if (canReceiveRaw is bool) {
+      canReceive = canReceiveRaw;
+    } else if (canReceiveRaw != null) {
+      final normalized = canReceiveRaw.toString().trim().toLowerCase();
+      if (normalized == 'true' || normalized == '1') canReceive = true;
+      if (normalized == 'false' || normalized == '0') canReceive = false;
+    }
+
+    final messageRaw = SharedPreferencesHelper.getData(
+      key: 'worker_eligibility_message_ar',
+    );
+    var message = messageRaw?.toString().trim();
+
+    final cachedModelRaw = SharedPreferencesHelper.getData(
+      key: 'worker_dispatch_eligibility',
+    );
+    if ((message == null || message.isEmpty) && cachedModelRaw != null) {
+      try {
+        final decoded = cachedModelRaw is String
+            ? jsonDecode(cachedModelRaw)
+            : cachedModelRaw;
+        if (decoded is Map) {
+          final model = WorkerDispatchEligibilityModel.fromJson(
+            decoded.map((key, value) => MapEntry(key.toString(), value)),
+          );
+          message = model.userMessageAr;
+          canReceive ??= model.canReceiveNewRequests;
+        }
+      } catch (_) {}
+    }
+
+    return (
+      canReceive: canReceive,
+      message: (message == null || message.isEmpty)
+          ? 'لا يمكن لحسابك استقبال الطلبات الجديدة حالياً.'
+          : message,
+    );
+  }
+
+  Widget _emptyOrdersWidget(String? status) {
+    if ((status ?? '').trim().toLowerCase() == CleaningBookingStatus.pending) {
+      final eligibility = _cachedEligibility();
+      if (eligibility.canReceive == false) {
+        return Padding(
+          padding: const EdgeInsetsDirectional.only(top: 40, start: 24, end: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.info_outline_rounded, size: 34),
+              const SizedBox(height: 10),
+              AppText.labelMedium(
+                eligibility.message,
+                fontWeight: FontWeight.w500,
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        );
+      }
+    }
+
+    return AppText.labelMedium('لا يوجد مهام', fontWeight: FontWeight.w400);
   }
 
   @override
@@ -139,7 +210,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       padding: EdgeInsetsDirectional.only(top: 40),
                       child: Center(child: CircularProgressIndicator.adaptive()),
                     ),
-                    emptyWidget: AppText.labelMedium('لا يوجد مهام', fontWeight: FontWeight.w400),
+                    emptyWidget: _emptyOrdersWidget(orderNotifier.status.value),
                     failedWidget: Padding(
                       padding: const EdgeInsetsDirectional.only(top: 40),
                       child: Center(
