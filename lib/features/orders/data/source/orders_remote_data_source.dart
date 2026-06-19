@@ -175,7 +175,7 @@ class OrdersRemoteDataSource with HandlingApiManager {
   ) {
     return wrapHandlingApi(
       tryCall: () => dioNetwork.postData(
-        endPoint: '/api/v1/user/sos',
+        endPoint: '/api/v1/cleaning-bookings/${params.cleaningBookingId}/sos',
         data: params.getBody(),
       ),
       jsonConvert: cleaningSosAlertModelFromJson,
