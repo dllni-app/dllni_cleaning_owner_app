@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'completion_request_model.dart';
+
 String? _asString(dynamic value) {
   if (value == null) return null;
   if (value is String) return value;
@@ -15,6 +17,14 @@ int? _asInt(dynamic value) {
     return int.tryParse(value) ?? double.tryParse(value)?.toInt();
   }
   return null;
+}
+
+Map<String, dynamic> _asMap(dynamic value) {
+  if (value is Map<String, dynamic>) return value;
+  if (value is Map) {
+    return value.map((key, val) => MapEntry(key.toString(), val));
+  }
+  return <String, dynamic>{};
 }
 
 dynamic _pick(Map<String, dynamic> map, List<String> keys) {
@@ -62,15 +72,22 @@ class CompleteOrderUsecaseModelData {
   String? status;
   String? workFinishedAt;
   String? note;
+  CompletionRequestModel? completionRequest;
 
   CompleteOrderUsecaseModelData({
     this.id,
     this.status,
     this.workFinishedAt,
     this.note,
+    this.completionRequest,
   });
 
   factory CompleteOrderUsecaseModelData.fromJson(Map<String, dynamic> json) {
+    final requestPayload = _pick(json, const <String>[
+      'completionRequest',
+      'completion_request',
+    ]);
+
     return CompleteOrderUsecaseModelData(
       id: _asInt(json['id']),
       status: _asString(json['status']),
@@ -83,6 +100,9 @@ class CompleteOrderUsecaseModelData {
           'worker_completion_message',
         ]),
       ),
+      completionRequest: requestPayload is Map
+          ? CompletionRequestModel.fromJson(_asMap(requestPayload))
+          : null,
     );
   }
 
@@ -92,6 +112,7 @@ class CompleteOrderUsecaseModelData {
       'status': status,
       'workFinishedAt': workFinishedAt,
       'note': note,
+      'completionRequest': completionRequest?.toJson(),
     };
   }
 }
