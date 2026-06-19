@@ -5,20 +5,32 @@ import '../repository/orders_repo.dart';
 import '../../data/models/complete_order_usecase_model.dart';
 
 @lazySingleton
-class CompleteOrderUsecaseUseCase implements UseCase<CompleteOrderUsecaseModel, CompleteOrderUsecaseParams> {
-
+class CompleteOrderUsecaseUseCase
+    implements UseCase<CompleteOrderUsecaseModel, CompleteOrderUsecaseParams> {
   final OrdersRepo orders;
 
   CompleteOrderUsecaseUseCase({required this.orders});
 
   @override
-  DataResponse<CompleteOrderUsecaseModel> call(CompleteOrderUsecaseParams params) {
+  DataResponse<CompleteOrderUsecaseModel> call(
+    CompleteOrderUsecaseParams params,
+  ) {
     return orders.completeOrderUsecase(params);
   }
 }
 
 class CompleteOrderUsecaseParams with Params {
-  CompleteOrderUsecaseParams({required this.id});
+  CompleteOrderUsecaseParams({required this.id, this.completionMessage});
 
   final int id;
+  final String? completionMessage;
+
+  @override
+  Map<String, dynamic> getBody() {
+    final message = completionMessage?.trim();
+
+    return <String, dynamic>{
+      if (message != null && message.isNotEmpty) 'completionMessage': message,
+    };
+  }
 }
