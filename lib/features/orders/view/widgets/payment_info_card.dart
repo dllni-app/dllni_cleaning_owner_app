@@ -50,18 +50,18 @@ class PaymentInfoCard extends StatelessWidget {
           Divider(color: Colors.black.withAlpha(42)),
           12.verticalSpace,
           if (_usesWorkerShare && _serviceShareLabel != null) ...[
-            _buildPriceRow(title: 'حصة الخدمة', price: _serviceShareLabel!),
+            _buildPriceRow(title: 'سعر الخدمة', price: _serviceShareLabel!),
             12.verticalSpace,
           ] else ...[
             _buildPriceRow(
-              title: 'سعر الخدمة الأساس',
+              title: 'سعر الخدمة',
               price: order.basePrice == null ? '' : order.basePrice.toString(),
             ),
             12.verticalSpace,
           ],
           if (_travelFeeLabel != null)
             _buildPriceRow(
-              title: 'رسوم توصيل',
+              title: 'سعر التوصيل',
               price: _travelFeeLabel!,
               titleColor: context.primaryContainer,
               priceColor: context.primaryContainer,
