@@ -40,6 +40,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
   Timer? _timer;
   Duration _remainingTime = Duration.zero;
   bool _waitingSheetOpen = false;
+  String? _lastCompletionMessage;
   final Map<String, bool> _taskState = <String, bool>{};
 
   @override
@@ -161,6 +162,103 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
       widget.order.id != null &&
       OrderLifecyclePolicy.canCompleteWork(_effectiveStatus(widget.bloc.state));
 
+  String? _currentCompletionMessage(OrdersState state) {
+    final fromCompleteResponse = state.completeOrderUsecase?.data?.note;
+    final value = fromCompleteResponse ?? _lastCompletionMessage;
+    final trimmed = value?.trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
+  }
+
+  Future<void> _showCompletionMessageSheet() async {
+    final controller = TextEditingController(text: _lastCompletionMessage ?? '');
+    final message = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 18,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AppText.titleMedium(
+                'إرسال طلب تأكيد الإنهاء',
+                fontWeight: FontWeight.bold,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              AppText.bodyMedium(
+                'يمكنك كتابة ملاحظة للعميل قبل إرسال طلب تأكيد إنهاء الخدمة.',
+                textAlign: TextAlign.center,
+                color: const Color(0xff6B7280),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: controller,
+                maxLines: 4,
+                maxLength: 1000,
+                textInputAction: TextInputAction.newline,
+                decoration: InputDecoration(
+                  hintText: 'مثال: نعتذر عن أي تأخير، تم إنهاء الخدمة بالكامل.',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      child: const Text('إلغاء'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () => Navigator.of(ctx).pop(controller.text),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xff1DBCC8),
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('إرسال للعميل'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    controller.dispose();
+    if (message == null || widget.order.id == null) return;
+
+    final trimmed = message.trim();
+    setState(() {
+      _lastCompletionMessage = trimmed.isEmpty ? null : trimmed;
+    });
+
+    widget.bloc.add(
+      CompleteOrderUsecaseEvent(
+        params: CompleteOrderUsecaseParams(
+          id: widget.order.id!,
+          completionMessage: trimmed,
+        ),
+      ),
+    );
+  }
+
   Future<void> _showWaitingConfirmationSheet() async {
     if (!mounted || _waitingSheetOpen) return;
     _waitingSheetOpen = true;
@@ -183,28 +281,49 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
               ),
               const SizedBox(height: 12),
               AppText.titleMedium(
-                'تم إنهاء المهمة',
+                'تم إرسال طلب التأكيد',
                 fontWeight: FontWeight.bold,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 6),
               AppText.bodyMedium(
-                'يرجى انتظار تأكيد العميل على إنهاء الخدمة.',
+                'تم إرسال طلب إنهاء الخدمة إلى العميل. سيتم تحديث حالة الطلب تلقائياً عند قبول العميل أو طلب إجراء آخر.',
                 textAlign: TextAlign.center,
                 color: const Color(0xff6B7280),
               ),
               const SizedBox(height: 14),
-              SizedBox(
-                width: context.width,
-                child: FilledButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xff1E2A78),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: widget.order.id == null
+                          ? null
+                          : () {
+                              Navigator.of(ctx).pop();
+                              widget.bloc.add(
+                                FetchOrderDetailsUsecaseEvent(
+                                  params: FetchOrderDetailsUsecaseParams(
+                                    id: widget.order.id!,
+                                  ),
+                                ),
+                              );
+                            },
+                      child: const Text('تحديث الحالة'),
+                    ),
                   ),
-                  child: AppText.labelLarge('تم', color: Colors.white),
-                ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xff1E2A78),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: AppText.labelLarge('تم', color: Colors.white),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -338,7 +457,9 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                                 color: Colors.white,
                               ),
                               AppText.labelLarge(
-                                'العمل قيد التنفيذ',
+                                _isWaitingCustomer
+                                    ? 'بانتظار العميل'
+                                    : 'العمل قيد التنفيذ',
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -521,54 +642,75 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                         ],
                       ),
                     ),
-                    if (_isWaitingCustomer) ...[
-                      12.verticalSpace,
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xffEEF2FF),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xffCBD5E1)),
-                        ),
-                        child: Row(
+                    BlocBuilder<OrdersBloc, OrdersState>(
+                      bloc: widget.bloc,
+                      builder: (context, state) {
+                        final completionMessage = _currentCompletionMessage(state);
+                        if (!_isWaitingCustomer) return const SizedBox.shrink();
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const Icon(
-                              Icons.hourglass_top_rounded,
-                              color: Color(0xff1E2A78),
-                            ),
-                            8.horizontalSpace,
-                            Expanded(
-                              child: AppText.bodyMedium(
-                                'تم إنهاء الخدمة. بانتظار تأكيد العميل.',
-                                color: const Color(0xff1E2A78),
-                                textAlign: TextAlign.start,
+                            12.verticalSpace,
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xffEEF2FF),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: const Color(0xffCBD5E1)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.hourglass_top_rounded,
+                                        color: Color(0xff1E2A78),
+                                      ),
+                                      8.horizontalSpace,
+                                      Expanded(
+                                        child: AppText.bodyMedium(
+                                          'تم إرسال طلب إنهاء الخدمة إلى العميل. بانتظار التأكيد أو طلب إجراء آخر.',
+                                          color: const Color(0xff1E2A78),
+                                          textAlign: TextAlign.start,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (completionMessage != null) ...[
+                                    10.verticalSpace,
+                                    AppText.labelMedium(
+                                      'رسالتك للعميل:',
+                                      color: const Color(0xff1E2A78),
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                    4.verticalSpace,
+                                    AppText.bodySmall(
+                                      completionMessage,
+                                      color: const Color(0xff374151),
+                                      textAlign: TextAlign.start,
+                                    ),
+                                  ],
+                                ],
                               ),
                             ),
                           ],
-                        ),
-                      ),
-                    ],
+                        );
+                      },
+                    ),
                     14.verticalSpace,
                     BlocBuilder<OrdersBloc, OrdersState>(
                       bloc: widget.bloc,
                       builder: (context, state) {
                         final loading =
-                            state.completeOrderUsecaseStatus ==
-                            BlocStatus.loading;
+                            state.completeOrderUsecaseStatus == BlocStatus.loading;
                         final canSendFinishRequest =
                             _canFinish && _allTasksChecked && !loading;
                         return FilledButton(
                           onPressed: !canSendFinishRequest
                               ? null
-                              : () {
-                                  widget.bloc.add(
-                                    CompleteOrderUsecaseEvent(
-                                      params: CompleteOrderUsecaseParams(
-                                        id: widget.order.id!,
-                                      ),
-                                    ),
-                                  );
-                                },
+                              : () => unawaited(_showCompletionMessageSheet()),
                           style: FilledButton.styleFrom(
                             backgroundColor: const Color(0xff1DBCC8),
                             foregroundColor: Colors.white,
