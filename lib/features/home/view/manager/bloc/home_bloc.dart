@@ -1,6 +1,8 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
-import 'dart:async';
 import 'package:common_package/common_package.dart';
 import '../../../domain/usecases/fetch_home_page_usecase_use_case.dart';
 import '../../../data/models/fetch_home_page_usecase_model.dart';
@@ -44,6 +46,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         );
       },
       (r) {
+        _cacheWorkerEligibility(r);
         emit(
           state.copyWith(
             homePageUsecaseStatus: BlocStatus.success,
@@ -52,5 +55,39 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         );
       },
     );
+  }
+
+  void _cacheWorkerEligibility(FetchHomePageUsecaseModel model) {
+    final eligibility = model.dispatchEligibility;
+    if (eligibility != null) {
+      SharedPreferencesHelper.saveData(
+        key: 'worker_dispatch_eligibility',
+        value: jsonEncode(eligibility.toJson()),
+      );
+      SharedPreferencesHelper.saveData(
+        key: 'worker_can_receive_new_requests',
+        value: eligibility.canReceiveNewRequests == true,
+      );
+      SharedPreferencesHelper.saveData(
+        key: 'worker_eligibility_message_ar',
+        value: eligibility.userMessageAr,
+      );
+      return;
+    }
+
+    final canReceive = model.isEligibleForNewRequests ??
+        model.depositSummary?.isEligibleForNewRequests;
+    if (canReceive != null) {
+      SharedPreferencesHelper.saveData(
+        key: 'worker_can_receive_new_requests',
+        value: canReceive,
+      );
+      if (!canReceive) {
+        SharedPreferencesHelper.saveData(
+          key: 'worker_eligibility_message_ar',
+          value: model.eligibilityMessageAr,
+        );
+      }
+    }
   }
 }
