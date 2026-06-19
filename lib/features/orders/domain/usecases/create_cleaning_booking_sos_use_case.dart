@@ -20,31 +20,42 @@ class CreateCleaningBookingSosUseCase
 }
 
 class CreateCleaningBookingSosParams with Params {
-  final int orderId;
+  final int cleaningBookingId;
   final String emergencyType;
   final String message;
   final double? latitude;
   final double? longitude;
+  final String? clientRequestId;
 
   CreateCleaningBookingSosParams({
-    required this.orderId,
+    int? cleaningBookingId,
+    int? orderId,
     required this.emergencyType,
     required this.message,
     this.latitude,
     this.longitude,
-  });
+    this.clientRequestId,
+  }) : cleaningBookingId =
+           cleaningBookingId ??
+           orderId ??
+           (throw ArgumentError('cleaningBookingId is required'));
 
   @override
   BodyMap getBody() {
     final body = <String, dynamic>{
-      'order_id': orderId,
-      'emergency_type': emergencyType,
+      'emergencyType': emergencyType,
       'message': message.trim(),
     };
+
     if (latitude != null && longitude != null) {
-      body['lat'] = latitude;
-      body['lng'] = longitude;
+      body['latitude'] = latitude;
+      body['longitude'] = longitude;
     }
+
+    if (clientRequestId != null && clientRequestId!.trim().isNotEmpty) {
+      body['clientRequestId'] = clientRequestId!.trim();
+    }
+
     return body;
   }
 }
