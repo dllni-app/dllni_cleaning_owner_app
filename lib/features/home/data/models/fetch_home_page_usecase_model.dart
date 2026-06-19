@@ -1,5 +1,8 @@
 import 'dart:convert';
 
+import '../../../profile/data/models/fetch_deposit_account_usecase_model.dart';
+import '../../../profile/data/models/worker_dispatch_eligibility_model.dart';
+
 String? _asString(dynamic value) {
   if (value == null) return null;
   if (value is String) return value;
@@ -32,6 +35,27 @@ num? _asNum(dynamic value) {
   return null;
 }
 
+bool? _asBool(dynamic value) {
+  if (value == null) return null;
+  if (value is bool) return value;
+  if (value is num) {
+    if (value == 1) return true;
+    if (value == 0) return false;
+  }
+  final normalized = value.toString().trim().toLowerCase();
+  if (normalized == 'true' || normalized == '1') return true;
+  if (normalized == 'false' || normalized == '0') return false;
+  return null;
+}
+
+Map<String, dynamic> _asMap(dynamic value) {
+  if (value is Map<String, dynamic>) return value;
+  if (value is Map) {
+    return value.map((key, val) => MapEntry(key.toString(), val));
+  }
+  return <String, dynamic>{};
+}
+
 FetchHomePageUsecaseModel fetchHomePageUsecaseModelFromJson(str) =>
     FetchHomePageUsecaseModel.fromJson(str);
 
@@ -51,6 +75,9 @@ class FetchHomePageUsecaseModel {
   double? earningsChangePercent;
   int? newOrdersCount;
   int? pendingExtensionRequestsCount;
+  bool? isEligibleForNewRequests;
+  FetchDepositAccountUsecaseModel? depositSummary;
+  WorkerDispatchEligibilityModel? dispatchEligibility;
   AmountSummary? amountSummary;
   List<BookingsWeeklyChartItem>? bookingsWeeklyChart;
   List<InvoicesFourWeeksChartItem>? invoicesFourWeeksChart;
@@ -68,6 +95,9 @@ class FetchHomePageUsecaseModel {
     this.earningsChangePercent,
     this.newOrdersCount,
     this.pendingExtensionRequestsCount,
+    this.isEligibleForNewRequests,
+    this.depositSummary,
+    this.dispatchEligibility,
     this.amountSummary,
     this.bookingsWeeklyChart,
     this.invoicesFourWeeksChart,
@@ -75,6 +105,8 @@ class FetchHomePageUsecaseModel {
 
   factory FetchHomePageUsecaseModel.fromJson(Map<String, dynamic> json) {
     final amountSummaryJson = json['amountSummary'];
+    final depositSummaryJson = json['depositSummary'];
+    final dispatchEligibilityJson = json['dispatchEligibility'];
     final bookingsWeeklyChartJson = json['bookingsWeeklyChart'];
     final invoicesFourWeeksChartJson = json['invoicesFourWeeksChart'];
 
@@ -93,6 +125,15 @@ class FetchHomePageUsecaseModel {
       pendingExtensionRequestsCount: _asInt(
         json['pendingExtensionRequestsCount'],
       ),
+      isEligibleForNewRequests: _asBool(json['isEligibleForNewRequests']),
+      depositSummary: depositSummaryJson is Map
+          ? FetchDepositAccountUsecaseModel.fromJson(_asMap(depositSummaryJson))
+          : null,
+      dispatchEligibility: dispatchEligibilityJson is Map
+          ? WorkerDispatchEligibilityModel.fromJson(
+              _asMap(dispatchEligibilityJson),
+            )
+          : null,
       amountSummary: amountSummaryJson is Map
           ? AmountSummary.fromJson(Map<String, dynamic>.from(amountSummaryJson))
           : null,
@@ -119,6 +160,17 @@ class FetchHomePageUsecaseModel {
     );
   }
 
+  bool get blocksNewRequests {
+    final eligibility = dispatchEligibility;
+    if (eligibility != null) return eligibility.blocksNewRequests;
+    return isEligibleForNewRequests == false ||
+        depositSummary?.isEligibleForNewRequests == false;
+  }
+
+  String get eligibilityMessageAr =>
+      dispatchEligibility?.userMessageAr ??
+      'لا يمكن لحسابك استقبال الطلبات الجديدة حالياً.';
+
   Map<String, dynamic> toJson() {
     return {
       'date': date,
@@ -133,6 +185,9 @@ class FetchHomePageUsecaseModel {
       'earningsChangePercent': earningsChangePercent,
       'newOrdersCount': newOrdersCount,
       'pendingExtensionRequestsCount': pendingExtensionRequestsCount,
+      'isEligibleForNewRequests': isEligibleForNewRequests,
+      'depositSummary': depositSummary?.toJson(),
+      'dispatchEligibility': dispatchEligibility?.toJson(),
       'amountSummary': amountSummary?.toJson(),
       'bookingsWeeklyChart': bookingsWeeklyChart
           ?.map((item) => item.toJson())
@@ -150,6 +205,7 @@ class AmountSummary {
   num? workerAmount;
   num? adminAmount;
   num? grossInvoicesAmount;
+  num? depositAccountBalance;
 
   AmountSummary({
     this.period,
@@ -157,6 +213,7 @@ class AmountSummary {
     this.workerAmount,
     this.adminAmount,
     this.grossInvoicesAmount,
+    this.depositAccountBalance,
   });
 
   factory AmountSummary.fromJson(Map<String, dynamic> json) {
@@ -166,6 +223,7 @@ class AmountSummary {
       workerAmount: _asNum(json['workerAmount']),
       adminAmount: _asNum(json['adminAmount']),
       grossInvoicesAmount: _asNum(json['grossInvoicesAmount']),
+      depositAccountBalance: _asNum(json['depositAccountBalance']),
     );
   }
 
@@ -176,6 +234,7 @@ class AmountSummary {
       'workerAmount': workerAmount,
       'adminAmount': adminAmount,
       'grossInvoicesAmount': grossInvoicesAmount,
+      'depositAccountBalance': depositAccountBalance,
     };
   }
 }
