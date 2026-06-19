@@ -6,6 +6,7 @@ import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_realtime_contract.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_worker_extension_prompts.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/pusher_manager.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_order_details_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/fetch_order_details_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_details_to_list_item_mapper.dart';
@@ -284,7 +285,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }
 
   FetchOrdersUsecaseModelDataItem _mergeDetailsIntoOrder(
-    FetchOrdersUsecaseModelData details,
+    FetchOrderDetailsUsecaseModelData details,
   ) {
     return OrderDetailsToListItemMapper.fromDetails(details).withTeamData(
       assignmentMode: details.assignmentMode,
