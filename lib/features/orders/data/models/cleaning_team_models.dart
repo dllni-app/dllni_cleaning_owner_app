@@ -133,20 +133,26 @@ class CleaningRoomAssignmentModel {
   final int? id;
   final String? roomKey;
   final String? roomType;
+  final String? roomTypeLabel;
   final String? roomSize;
+  final String? roomSizeLabel;
   final String? displayLabel;
   final double? weight;
   final int? assignedWorkerId;
+  final bool isAssignedToMe;
   final String? assignmentSource;
 
   CleaningRoomAssignmentModel({
     this.id,
     this.roomKey,
     this.roomType,
+    this.roomTypeLabel,
     this.roomSize,
+    this.roomSizeLabel,
     this.displayLabel,
     this.weight,
     this.assignedWorkerId,
+    this.isAssignedToMe = false,
     this.assignmentSource,
   });
 
@@ -159,8 +165,14 @@ class CleaningRoomAssignmentModel {
       roomType: _teamToStringValue(
         _teamPick(json, const <String>['roomType', 'room_type']),
       ),
+      roomTypeLabel: _teamToStringValue(
+        _teamPick(json, const <String>['roomTypeLabel', 'room_type_label']),
+      ),
       roomSize: _teamToStringValue(
         _teamPick(json, const <String>['roomSize', 'room_size']),
+      ),
+      roomSizeLabel: _teamToStringValue(
+        _teamPick(json, const <String>['roomSizeLabel', 'room_size_label']),
       ),
       displayLabel: _teamToStringValue(
         _teamPick(json, const <String>['displayLabel', 'display_label']),
@@ -169,6 +181,10 @@ class CleaningRoomAssignmentModel {
       assignedWorkerId: _teamToInt(
         _teamPick(json, const <String>['assignedWorkerId', 'assigned_worker_id']),
       ),
+      isAssignedToMe: _teamToBool(
+            _teamPick(json, const <String>['isAssignedToMe', 'is_assigned_to_me']),
+          ) ??
+          false,
       assignmentSource: _teamToStringValue(
         _teamPick(json, const <String>['assignmentSource', 'assignment_source']),
       ),

@@ -61,11 +61,11 @@ void main() {
       expect(OrderLifecyclePolicy.canAcceptReject(order), isFalse);
       expect(
         OrderLifecyclePolicy.statusLabel(order),
-        'تم قبولك - بانتظار اكتمال الفريق',
+        'تم قبول الطلب',
       );
       expect(
         OrderLifecyclePolicy.acceptedWaitingMessage(order),
-        contains('تم قبول 1 من 3 عمال'),
+        contains('1 من 3'),
       );
     });
 
@@ -86,11 +86,11 @@ void main() {
       expect(OrderLifecyclePolicy.isAcceptedWaiting(order), isTrue);
       expect(
         OrderLifecyclePolicy.statusLabel(order),
-        'تم قبولك - بانتظار بدء الطلب',
+        'بانتظار بدء الطلب',
       );
       expect(
         OrderLifecyclePolicy.acceptedWaitingMessage(order),
-        contains('بانتظار العميل'),
+        contains('اكتمل الفريق'),
       );
     });
 

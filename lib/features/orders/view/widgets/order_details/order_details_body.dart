@@ -70,38 +70,6 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
     ];
   }
 
-  Widget _buildAcceptedWaitingBanner(BuildContext context) {
-    if (!OrderLifecyclePolicy.isAcceptedWaiting(widget.order)) {
-      return const SizedBox.shrink();
-    }
-    return Container(
-      width: context.width,
-      padding: EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xffE0F2FE),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xff7DD3FC)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AppText.labelLarge(
-            OrderLifecyclePolicy.acceptedWaitingLabel(widget.order),
-            color: const Color(0xff075985),
-            fontWeight: FontWeight.w800,
-          ),
-          SizedBox(height: 8),
-          AppText.bodySmall(
-            OrderLifecyclePolicy.acceptedWaitingMessage(widget.order),
-            color: const Color(0xff0C4A6E),
-            fontWeight: FontWeight.w600,
-            textAlign: TextAlign.start,
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final canAcceptReject = OrderLifecyclePolicy.canAcceptReject(widget.order);
@@ -189,11 +157,9 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                   SizedBox(height: 14),
                   _buildOrderAddressCard(context),
                   SizedBox(height: 14),
-                  _buildAcceptedWaitingBanner(context),
+                  WorkerTeamStatusCard(order: widget.order),
                   if (OrderLifecyclePolicy.isAcceptedWaiting(widget.order))
                     SizedBox(height: 14),
-                  WorkerTeamStatusCard(order: widget.order),
-                  if (widget.order.isSearchingForWorkers) SizedBox(height: 14),
                   WorkerRoomAssignmentsCard(order: widget.order),
                   SizedBox(height: 14),
                   PaymentInfoCard(order: widget.order),

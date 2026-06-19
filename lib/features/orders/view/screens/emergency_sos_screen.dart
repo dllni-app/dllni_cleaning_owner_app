@@ -142,14 +142,10 @@ class _EmergencySosScreenState extends State<EmergencySosScreen> {
 
     final location = await _resolveLocation();
     if (!mounted) return;
-    if (location.latitude == null || location.longitude == null) {
-      setState(() => _submitting = false);
-      return;
-    }
 
     final result = await getIt<CreateCleaningBookingSosUseCase>()(
       CreateCleaningBookingSosParams(
-        orderId: widget.params.bookingId,
+        cleaningBookingId: widget.params.bookingId,
         emergencyType: emergencyType,
         message: _messageController.text,
         latitude: location.latitude,
@@ -162,6 +158,14 @@ class _EmergencySosScreenState extends State<EmergencySosScreen> {
     result.fold(
       (failure) {
         setState(() => _submitting = false);
+        final normalized = failure.message.trim();
+        if (normalized.contains('already exists') ||
+            normalized.contains('مسبق')) {
+          AppToast.showErrorGlobal(
+            'تم إرسال طلب الاستغاثة مسبقاً وهو قيد المتابعة',
+          );
+          return;
+        }
         AppToast.showErrorGlobal(failure.message);
       },
       (alert) {

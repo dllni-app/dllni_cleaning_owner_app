@@ -4,7 +4,7 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
 import '../../data/models/cleaning_team_models.dart';
 import '../../data/models/fetch_orders_usecase_model.dart';
-import '../helpers/cleaning_enum_translations.dart';
+import '../helpers/cleaning_room_display.dart';
 import '../helpers/order_lifecycle_policy.dart';
 
 class WorkerRoomAssignmentsCard extends StatelessWidget {
@@ -25,18 +25,21 @@ class WorkerRoomAssignmentsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppText.labelMedium('الغرفة المخصصة لك', fontWeight: FontWeight.w600),
+          AppText.labelMedium(
+            'الغرف المخصصة لك',
+            fontWeight: FontWeight.w600,
+          ),
           12.verticalSpace,
           if (rooms.isEmpty)
             AppText.bodySmall(
-              'لم يتم تخصيص غرفة لك بعد',
+              'لم يتم تحديد غرف مخصصة لك بعد',
               color: const Color(0xff6B7280),
               textAlign: TextAlign.start,
             )
           else
             for (var i = 0; i < rooms.length; i++) ...[
               if (i > 0) 8.verticalSpace,
-              _RoomTile(room: rooms[i]),
+              _RoomTile(room: rooms[i], index: i),
             ],
         ],
       ),
@@ -51,16 +54,9 @@ class WorkerTeamStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!order.isSearchingForWorkers) {
+    if (!OrderLifecyclePolicy.isAcceptedWaiting(order)) {
       return const SizedBox.shrink();
     }
-
-    final acceptance = order.workerAcceptance;
-    final accepted = acceptance?.accepted ?? 0;
-    final required = acceptance?.required ?? order.numberOfWorkers ?? 0;
-    final currentWorkerAccepted = OrderLifecyclePolicy.hasCurrentWorkerAccepted(
-      order,
-    );
 
     return Container(
       width: double.infinity,
@@ -70,32 +66,36 @@ class WorkerTeamStatusCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12.r),
         border: Border.all(color: context.primaryContainer.withAlpha(80)),
       ),
-      child: AppText.bodyMedium(
-        currentWorkerAccepted
-            ? OrderLifecyclePolicy.acceptedWaitingMessage(order)
-            : (required > 0
-                  ? 'تم قبول $accepted من $required عمال'
-                  : 'جاري البحث عن عمال'),
-        color: context.primary,
-        fontWeight: FontWeight.w600,
-        textAlign: TextAlign.center,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppText.labelLarge(
+            OrderLifecyclePolicy.teamStateTitle(order),
+            color: context.primary,
+            fontWeight: FontWeight.w800,
+          ),
+          8.verticalSpace,
+          AppText.bodyMedium(
+            OrderLifecyclePolicy.teamStateDescription(order),
+            color: context.primary,
+            fontWeight: FontWeight.w600,
+            textAlign: TextAlign.start,
+          ),
+        ],
       ),
     );
   }
 }
 
 class _RoomTile extends StatelessWidget {
-  const _RoomTile({required this.room});
+  const _RoomTile({required this.room, required this.index});
 
   final CleaningRoomAssignmentModel room;
+  final int index;
 
   @override
   Widget build(BuildContext context) {
-    final typeLabel = CleaningEnumTranslations.roomType(room.roomType);
-    final sizeLabel = CleaningEnumTranslations.roomSize(room.roomSize);
-    final label = room.displayLabel?.trim().isNotEmpty == true
-        ? room.displayLabel!.trim()
-        : typeLabel;
+    final label = assignedRoomLabel(room, index);
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
@@ -109,20 +109,10 @@ class _RoomTile extends StatelessWidget {
           Icon(Icons.meeting_room_outlined, size: 18.r, color: context.primary),
           8.horizontalSpace,
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AppText.labelMedium(
-                  label.isEmpty ? 'غرفة' : label,
-                  fontWeight: FontWeight.w500,
-                ),
-                4.verticalSpace,
-                AppText.bodySmall(
-                  'النوع: $typeLabel - الحجم: $sizeLabel',
-                  color: const Color(0xff6B7280),
-                  textAlign: TextAlign.start,
-                ),
-              ],
+            child: AppText.labelMedium(
+              label,
+              fontWeight: FontWeight.w500,
+              textAlign: TextAlign.start,
             ),
           ),
         ],

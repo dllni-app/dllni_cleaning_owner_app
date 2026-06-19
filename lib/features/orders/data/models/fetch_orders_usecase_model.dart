@@ -270,6 +270,11 @@ class FetchOrdersUsecaseModelDataItem {
   final List<dynamic>? disputes;
   final String? assignmentMode;
   final int? numberOfWorkers;
+  final String? workerOrderStatus;
+  final String? workerOrderStatusLabel;
+  final int? requiredWorkersCount;
+  final int? acceptedWorkersCount;
+  final int? pendingWorkersCount;
   final CleaningWorkerAcceptanceModel? workerAcceptance;
   final List<CleaningWorkerAssignmentModel>? workerAssignments;
   final List<CleaningRoomAssignmentModel>? roomAssignments;
@@ -326,6 +331,11 @@ class FetchOrdersUsecaseModelDataItem {
     this.disputes,
     this.assignmentMode,
     this.numberOfWorkers,
+    this.workerOrderStatus,
+    this.workerOrderStatusLabel,
+    this.requiredWorkersCount,
+    this.acceptedWorkersCount,
+    this.pendingWorkersCount,
     this.workerAcceptance,
     this.workerAssignments,
     this.roomAssignments,
@@ -478,6 +488,33 @@ class FetchOrdersUsecaseModelDataItem {
       numberOfWorkers: _toInt(
         _pick(m, const <String>['numberOfWorkers', 'number_of_workers']),
       ),
+      workerOrderStatus: _toStringValue(
+        _pick(m, const <String>['worker_order_status', 'workerOrderStatus']),
+      ),
+      workerOrderStatusLabel: _toStringValue(
+        _pick(
+          m,
+          const <String>['worker_order_status_label', 'workerOrderStatusLabel'],
+        ),
+      ),
+      requiredWorkersCount: _toInt(
+        _pick(
+          m,
+          const <String>['required_workers_count', 'requiredWorkersCount'],
+        ),
+      ),
+      acceptedWorkersCount: _toInt(
+        _pick(
+          m,
+          const <String>['accepted_workers_count', 'acceptedWorkersCount'],
+        ),
+      ),
+      pendingWorkersCount: _toInt(
+        _pick(
+          m,
+          const <String>['pending_workers_count', 'pendingWorkersCount'],
+        ),
+      ),
       workerAcceptance: m['workerAcceptance'] == null &&
               m['worker_acceptance'] == null
           ? null
@@ -507,6 +544,9 @@ class FetchOrdersUsecaseModelDataItem {
       (numberOfWorkers ?? 1) > 1;
 
   bool get isSearchingForWorkers {
+    final workerStatus = (workerOrderStatus ?? '').trim().toLowerCase();
+    if (workerStatus == 'accepted_waiting_team') return true;
+
     final statusNorm = (status ?? '').toLowerCase();
     if (statusNorm != CleaningBookingStatus.pending) return false;
     final acceptance = workerAcceptance;
@@ -518,6 +558,11 @@ class FetchOrdersUsecaseModelDataItem {
     final assignment = myAssignment;
     final rooms = roomAssignments ?? const <CleaningRoomAssignmentModel>[];
     if (assignment == null) return const [];
+
+    final assignedToMe = rooms
+        .where((room) => room.isAssignedToMe)
+        .toList(growable: false);
+    if (assignedToMe.isNotEmpty) return assignedToMe;
 
     final roomIds = assignment.roomIds ?? const <int>[];
     if (roomIds.isNotEmpty) {
@@ -582,6 +627,11 @@ class FetchOrdersUsecaseModelDataItem {
       'disputes': disputes,
       'assignmentMode': assignmentMode,
       'numberOfWorkers': numberOfWorkers,
+      'workerOrderStatus': workerOrderStatus,
+      'workerOrderStatusLabel': workerOrderStatusLabel,
+      'requiredWorkersCount': requiredWorkersCount,
+      'acceptedWorkersCount': acceptedWorkersCount,
+      'pendingWorkersCount': pendingWorkersCount,
       'workerAcceptance': workerAcceptance,
       'workerAssignments': workerAssignments,
       'roomAssignments': roomAssignments,
@@ -645,6 +695,11 @@ class FetchOrdersUsecaseModelDataItem {
       disputes: disputes,
       assignmentMode: assignmentMode ?? this.assignmentMode,
       numberOfWorkers: numberOfWorkers ?? this.numberOfWorkers,
+      workerOrderStatus: workerOrderStatus,
+      workerOrderStatusLabel: workerOrderStatusLabel,
+      requiredWorkersCount: requiredWorkersCount,
+      acceptedWorkersCount: acceptedWorkersCount,
+      pendingWorkersCount: pendingWorkersCount,
       workerAcceptance: workerAcceptance ?? this.workerAcceptance,
       workerAssignments: workerAssignments ?? this.workerAssignments,
       roomAssignments: roomAssignments ?? this.roomAssignments,
@@ -708,6 +763,11 @@ class FetchOrdersUsecaseModelDataItem {
       disputes: disputes,
       assignmentMode: assignmentMode,
       numberOfWorkers: numberOfWorkers,
+      workerOrderStatus: workerOrderStatus,
+      workerOrderStatusLabel: workerOrderStatusLabel,
+      requiredWorkersCount: requiredWorkersCount,
+      acceptedWorkersCount: acceptedWorkersCount,
+      pendingWorkersCount: pendingWorkersCount,
       workerAcceptance: workerAcceptance,
       workerAssignments: workerAssignments,
       roomAssignments: roomAssignments,

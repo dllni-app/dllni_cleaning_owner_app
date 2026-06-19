@@ -6,6 +6,8 @@ import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_realtime_contract.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_worker_extension_prompts.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/pusher_manager.dart';
+import 'package:dllni_cleaninig_owner_app/features/main/view/screens/main_screen.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_order_details_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/fetch_order_details_usecase_use_case.dart';
@@ -42,6 +44,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   Timer? _syncFallbackDebounce;
   Timer? _awaitingVerificationPoll;
   OrdersState? _previousBlocState;
+  final Set<String> _handledExtensionDecisionKeys = <String>{};
+  bool _extensionRejectedDialogOpen = false;
 
   int _stepFor(FetchOrdersUsecaseModelDataItem o) =>
       OrderLifecyclePolicy.detailsStepFor(o);
@@ -183,6 +187,31 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           workStartedAt: patch.workStartedAt,
         );
       }
+    } else if (normalizedEvent ==
+        CleaningRealtimeContract.completionDecisionMade) {
+      final previousStatus = _order.status;
+      final patch = OrderDetailsRealtimePolicy.patchFromCompletionDecision(
+        currentStatus: previousStatus,
+        payload: payload,
+      );
+      if (patch != null) {
+        if (_shouldShowExtensionRejectedDialog(
+          previousStatus: previousStatus,
+          patch: patch,
+          payload: payload,
+        )) {
+          final decisionKey = _extensionDecisionKey(
+            payload: payload,
+            warningId: patch.warningId,
+            decision: patch.decision ?? 'extension_rejected',
+          );
+          if (decisionKey != null) {
+            _handledExtensionDecisionKeys.add(decisionKey);
+          }
+          unawaited(_showExtensionRejectedDialog(patch.message));
+        }
+        _applyLifecyclePatch(status: patch.status);
+      }
     }
 
     if (CleaningRealtimeContract.isLifecycleRefreshEvent(normalizedEvent)) {
@@ -221,6 +250,89 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     });
   }
 
+  String? _extensionDecisionKey({
+    required Map<String, dynamic> payload,
+    required int? warningId,
+    required String decision,
+  }) {
+    if (warningId != null) {
+      return 'warning_$warningId';
+    }
+    final unwrapped = CleaningRealtimeContract.unwrapPayload(payload);
+    final bookingId = CleaningRealtimeContract.extractBookingId(unwrapped);
+    final decidedAt =
+        (unwrapped['decidedAt'] ?? unwrapped['decided_at'])?.toString();
+    if (bookingId == null) return null;
+    return '${bookingId}_${decision}_$decidedAt';
+  }
+
+  bool _shouldShowExtensionRejectedDialog({
+    required String? previousStatus,
+    required ({
+      String status,
+      String? message,
+      int? warningId,
+      String? decision,
+    })
+    patch,
+    required Map<String, dynamic> payload,
+  }) {
+    final normalizedPrevious = (previousStatus ?? '').trim().toLowerCase();
+    if (normalizedPrevious != CleaningBookingStatus.timeExtensionRequested) {
+      return false;
+    }
+    if (patch.decision != 'extension_rejected') return false;
+    if (patch.status != CleaningBookingStatus.completed) return false;
+
+    final decisionKey = _extensionDecisionKey(
+      payload: payload,
+      warningId: patch.warningId,
+      decision: patch.decision ?? 'extension_rejected',
+    );
+    if (decisionKey == null) return true;
+    return !_handledExtensionDecisionKeys.contains(decisionKey);
+  }
+
+  Future<void> _showExtensionRejectedDialog(String? message) async {
+    if (!mounted || _extensionRejectedDialogOpen) return;
+    _extensionRejectedDialogOpen = true;
+    try {
+      final body = message?.trim().isNotEmpty == true
+          ? message!.trim()
+          : 'تم رفض طلب تمديد الوقت وتم إنهاء الطلب.';
+      await showDialog<void>(
+        context: context,
+        useRootNavigator: true,
+        barrierDismissible: false,
+        builder: (ctx) {
+          return AlertDialog(
+            title: const Text('تم إنهاء طلب التمديد', textAlign: TextAlign.center),
+            content: Text(body, textAlign: TextAlign.center),
+            actions: [
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () {
+                    final navigator = Navigator.of(ctx, rootNavigator: true);
+                    navigator.pop();
+                    navigator.pushNamedAndRemoveUntil(
+                      '/main',
+                      (route) => false,
+                      arguments: MainScreenParam(returnedPageIndex: 0),
+                    );
+                  },
+                  child: const Text('حسناً'),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    } finally {
+      _extensionRejectedDialogOpen = false;
+    }
+  }
+
   void _syncAwaitingVerificationPoll() {
     if (!mounted) return;
     if (!_shouldPollLifecycleAdvance) {
@@ -256,11 +368,10 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }) {
     if (!mounted) return;
 
-    final resolvedStatus =
-        status != null &&
-            OrderLifecyclePolicy.shouldPreferIncomingStatus(
-              _order.status,
-              status,
+    final resolvedStatus = status != null &&
+            OrderLifecyclePolicy.shouldApplyRealtimeStatus(
+              currentStatus: _order.status,
+              incomingStatus: status,
             )
         ? status
         : _order.status;

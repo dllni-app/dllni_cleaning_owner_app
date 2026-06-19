@@ -6,6 +6,7 @@ import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/cleaning_
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/event_assistance_order_helper.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_address_visibility_helper.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/worker_payment_summary.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -385,9 +386,14 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                       _sectionTitle(context, Icons.payments_outlined, 'تفاصيل الدفع'),
                       const SizedBox(height: 10),
                       _detailCard(context, [
-                        _orderInfoRow(label: 'سعر الخدمة', value: _moneyLabel(_order.basePrice)),
-                        _orderInfoRow(label: 'سعر التوصيل', value: _moneyLabel(_order.travelFee)),
-                        _orderInfoRow(label: 'المبلغ الكلي', value: _moneyLabel(_order.totalPrice), withDivider: false),
+                        WorkerPaymentSummary(
+                          basePrice: _order.basePrice,
+                          travelFee: _order.travelFee,
+                          addonsTotal: _order.addonsTotal,
+                          totalPrice: _order.totalPrice,
+                          currency: 'SYP',
+                          showAddonsTotal: true,
+                        ),
                       ]),
                       const SizedBox(height: 16),
                       _sectionTitle(context, Icons.location_on_outlined, 'عنوان العقار'),

@@ -17,6 +17,8 @@ class CleaningEnumTranslations {
         return 'تم تعيين العامل';
       case 'awaiting_start_verification':
         return 'بانتظار تأكيد بدء العمل';
+      case 'awaiting_worker_start_confirmation':
+        return 'بانتظار بدء العمل من العامل';
       case 'in_progress':
         return 'قيد التنفيذ';
       case 'awaiting_customer_completion':

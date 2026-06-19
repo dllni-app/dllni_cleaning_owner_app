@@ -14,6 +14,7 @@ import '../../../domain/usecases/complete_order_usecase_use_case.dart';
 import '../../../domain/usecases/fetch_order_details_usecase_use_case.dart';
 import '../../helpers/event_assistance_order_helper.dart';
 import '../../helpers/order_lifecycle_policy.dart';
+import '../worker_payment_summary.dart';
 import '../../screens/emergency_sos_screen.dart';
 
 class OrderDetailsMissionBody extends StatefulWidget {
@@ -600,29 +601,19 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                             fontWeight: FontWeight.w700,
                           ),
                           10.verticalSpace,
-                          _summaryRow(
-                            'تكلفة الخدمة',
-                            '${widget.order.basePrice ?? 0} ل.س',
-                          ),
-                          6.verticalSpace,
-                          _summaryRow(
-                            'رسوم التنقل',
-                            '${widget.order.travelFee ?? 0} ل.س',
-                          ),
-                          if ((widget.order.addonsTotal ?? 0) > 0) ...[
-                            6.verticalSpace,
-                            _summaryRow(
-                              'الرسوم الإضافية',
-                              '${widget.order.addonsTotal ?? 0} ل.س',
-                            ),
-                          ],
-                          10.verticalSpace,
-                          const Divider(),
-                          10.verticalSpace,
-                          _summaryRow(
-                            'الإجمالي',
-                            '${widget.order.totalPrice ?? 0} ل.س',
-                            total: true,
+                          WorkerPaymentSummary(
+                            basePrice: widget.order.basePrice,
+                            travelFee: widget.order.myAssignment?.travelFee ??
+                                widget.order.travelFee,
+                            addonsTotal: widget.order.addonsTotal,
+                            totalPrice: widget.order.totalPrice,
+                            currency: widget.order.myAssignment?.currency ??
+                                'SYP',
+                            showAddonsTotal: false,
+                            useWorkerShare: widget.order.myAssignment != null,
+                            serviceShareAmount:
+                                widget.order.myAssignment?.serviceShareAmount,
+                            workerAmount: widget.order.myAssignment?.workerAmount,
                           ),
                           if (widget.order.isPricingFinal == false) ...[
                             10.verticalSpace,
