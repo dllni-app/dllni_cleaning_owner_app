@@ -17,86 +17,43 @@ int? _asInt(dynamic value) {
   return null;
 }
 
-double? _asDouble(dynamic value) {
-  if (value == null) return null;
-  if (value is double) return value;
-  if (value is num) return value.toDouble();
-  if (value is String) return double.tryParse(value);
-  return null;
-}
-
-num? _asNum(dynamic value) {
-  if (value == null) return null;
-  if (value is num) return value;
-  if (value is String) return num.tryParse(value);
-  return null;
-}
-
-bool? _asBool(dynamic value) {
-  if (value == null) return null;
-  if (value is bool) return value;
-  if (value is num) {
-    if (value == 1) return true;
-    if (value == 0) return false;
-  }
-  if (value is String) {
-    final normalized = value.trim().toLowerCase();
-    if (normalized == 'true' || normalized == '1') return true;
-    if (normalized == 'false' || normalized == '0') return false;
+dynamic _pick(Map<String, dynamic> map, List<String> keys) {
+  for (final key in keys) {
+    final value = map[key];
+    if (value != null) return value;
   }
   return null;
 }
 
-List<dynamic>? _asDynamicList(dynamic value) {
-  if (value is! List) return null;
-  return value.map(_asDynamic).toList();
-}
+CompleteOrderUsecaseModel completeOrderUsecaseModelFromJson(str) =>
+    CompleteOrderUsecaseModel.fromJson(str);
 
-dynamic _asDynamic(dynamic value) {
-  if (value == null) return null;
-  if (value is List) {
-    return value.map(_asDynamic).toList();
-  }
-  if (value is Map) {
-    final map = <String, dynamic>{};
-    value.forEach((key, nestedValue) {
-      map['$key'] = _asDynamic(nestedValue);
-    });
-    return map;
-  }
-  if (value is String || value is num || value is bool) {
-    return value;
-  }
-  return value.toString();
-}
+String completeOrderUsecaseModelToJson(CompleteOrderUsecaseModel data) =>
+    json.encode(data.toJson());
 
-CompleteOrderUsecaseModel completeOrderUsecaseModelFromJson(str) => CompleteOrderUsecaseModel.fromJson(str);
+CompleteOrderUsecaseModelData completeOrderUsecaseModelDataFromJson(str) =>
+    CompleteOrderUsecaseModelData.fromJson(str);
 
-String completeOrderUsecaseModelToJson(CompleteOrderUsecaseModel data) => json.encode(data.toJson());
-
-
-CompleteOrderUsecaseModelData completeOrderUsecaseModelDataFromJson(str) => CompleteOrderUsecaseModelData.fromJson(str);
-
-String completeOrderUsecaseModelDataToJson(CompleteOrderUsecaseModelData data) => json.encode(data.toJson());
-
+String completeOrderUsecaseModelDataToJson(CompleteOrderUsecaseModelData data) =>
+    json.encode(data.toJson());
 
 class CompleteOrderUsecaseModel {
   CompleteOrderUsecaseModelData? data;
 
-  CompleteOrderUsecaseModel({
-    this.data,
-  });
+  CompleteOrderUsecaseModel({this.data});
 
   factory CompleteOrderUsecaseModel.fromJson(Map<String, dynamic> json) {
     return CompleteOrderUsecaseModel(
-      data: json['data'] is Map ? CompleteOrderUsecaseModelData.fromJson(Map<String, dynamic>.from(json['data'] as Map)) : null,
+      data: json['data'] is Map
+          ? CompleteOrderUsecaseModelData.fromJson(
+              Map<String, dynamic>.from(json['data'] as Map),
+            )
+          : null,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'data': data?.toJson(),
-    };
+    return {'data': data?.toJson()};
   }
 }
 
@@ -104,18 +61,28 @@ class CompleteOrderUsecaseModelData {
   int? id;
   String? status;
   String? workFinishedAt;
+  String? note;
 
   CompleteOrderUsecaseModelData({
     this.id,
     this.status,
     this.workFinishedAt,
+    this.note,
   });
 
   factory CompleteOrderUsecaseModelData.fromJson(Map<String, dynamic> json) {
     return CompleteOrderUsecaseModelData(
       id: _asInt(json['id']),
       status: _asString(json['status']),
-      workFinishedAt: _asString(json['workFinishedAt']),
+      workFinishedAt: _asString(
+        _pick(json, const <String>['workFinishedAt', 'work_finished_at']),
+      ),
+      note: _asString(
+        _pick(json, const <String>[
+          'workerCompletionMessage',
+          'worker_completion_message',
+        ]),
+      ),
     );
   }
 
@@ -124,6 +91,7 @@ class CompleteOrderUsecaseModelData {
       'id': id,
       'status': status,
       'workFinishedAt': workFinishedAt,
+      'note': note,
     };
   }
 }
