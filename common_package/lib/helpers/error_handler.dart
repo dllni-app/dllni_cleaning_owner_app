@@ -230,6 +230,14 @@ class ErrorMessageModel extends Equatable {
   const ErrorMessageModel({required this.statusMessage, required this.success});
 
   factory ErrorMessageModel.fromJson(Map<String, dynamic> json) {
+    final apiCode = json['code']?.toString();
+    if (apiCode == 'WORKER_NOT_ELIGIBLE_FOR_NEW_REQUESTS') {
+      return ErrorMessageModel(
+        statusMessage: _workerEligibilityMessage(json),
+        success: false,
+      );
+    }
+
     String error = "";
     if (json["message"] is Map) {
       for (var item in (json["message"] as Map<String, dynamic>).entries) {
@@ -239,6 +247,46 @@ class ErrorMessageModel extends Equatable {
       error = json["message"].toString();
     }
     return ErrorMessageModel(statusMessage: error, success: json["success"] ?? false);
+  }
+
+  static String _workerEligibilityMessage(Map<String, dynamic> json) {
+    final reason = _workerEligibilityReason(json);
+    switch (reason) {
+      case 'worker_inactive':
+        return 'حسابك غير مفعل حالياً. فعّل الحساب لاستقبال الطلبات الجديدة.';
+      case 'worker_suspended':
+        return 'حسابك موقوف مؤقتاً. يرجى التواصل مع الدعم لمعرفة التفاصيل.';
+      case 'trust_score_too_low':
+        return 'درجة الثقة أقل من الحد المطلوب لاستقبال الطلبات الجديدة.';
+      case 'deposit_required_before_start':
+        return 'رصيد التأمين أقل من الحد المطلوب لبدء العمل.';
+      case 'deposit_below_allowed_balance':
+        return 'رصيد التأمين أقل من الحد المسموح. يرجى شحن حساب التأمين لاستقبال الطلبات الجديدة.';
+      default:
+        return 'لا يمكن لحسابك قبول طلبات جديدة حالياً.';
+    }
+  }
+
+  static String? _workerEligibilityReason(Map<String, dynamic> json) {
+    final directEligibility = json['dispatchEligibility'];
+    if (directEligibility is Map) {
+      final reason = directEligibility['reasonCode'] ?? directEligibility['reason_code'];
+      if (reason != null) return reason.toString().trim().toLowerCase();
+    }
+
+    final errors = json['errors'];
+    if (errors is Map) {
+      final workerEligibility = errors['workerEligibility'] ?? errors['worker_eligibility'];
+      if (workerEligibility is List && workerEligibility.isNotEmpty) {
+        final first = workerEligibility.first;
+        if (first is Map) {
+          final reason = first['reasonCode'] ?? first['reason_code'];
+          if (reason != null) return reason.toString().trim().toLowerCase();
+        }
+      }
+    }
+
+    return null;
   }
 
   @override
