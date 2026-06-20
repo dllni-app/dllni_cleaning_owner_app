@@ -33,7 +33,6 @@ import '../models/start_work_model.dart';
 import '../../domain/usecases/start_work_use_case.dart';
 import '../models/sos_alert_models.dart';
 import '../../domain/usecases/create_cleaning_booking_sos_use_case.dart';
-import '../models/delivery_fee_model.dart';
 
 @lazySingleton
 class OrdersRemoteDataSource with HandlingApiManager {
@@ -57,16 +56,6 @@ class OrdersRemoteDataSource with HandlingApiManager {
         data: params.getBody().isEmpty ? null : params.getBody(),
       ),
       jsonConvert: fetchOrderDetailsUsecaseModelFromJson,
-    );
-  }
-
-  Future<DeliveryFeeModel> calculateDeliveryFee(int bookingId) {
-    return wrapHandlingApi(
-      tryCall: () => dioNetwork.postData(
-        endPoint: '/api/v1/cleaning-bookings/$bookingId/delivery-fee',
-        data: const <String, dynamic>{},
-      ),
-      jsonConvert: deliveryFeeModelFromJson,
     );
   }
 
