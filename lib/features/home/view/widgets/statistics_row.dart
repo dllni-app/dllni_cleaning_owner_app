@@ -25,14 +25,14 @@ class StatisticsRow extends StatelessWidget {
       Color(0xffEF6221),
       Color(0xff00BA10),
     ];
-    List<String> titles = ['إجمالي الطلبات', 'قيد التنفيذ', 'طلبات مكتملة'];
+    List<String> titles = ['إجمالي الطلبات', 'طلبات مؤكدة', 'طلبات مكتملة'];
     List<String> images = [
       Assets.images.homeNewOrdersIcon.path,
       Assets.images.homeConfirmedOrdersIcon.path,
       Assets.images.homeCompletedOrdersIcon.path,
     ];
     List<String> statuses = [
-      CleaningBookingStatus.inProgress,
+      CleaningBookingStatus.workerAssigned,
       CleaningBookingStatus.completed,
     ];
 
@@ -96,7 +96,7 @@ class StatisticsRow extends StatelessWidget {
                           final value = i == 0
                               ? state.homePageUsecase!.totalBookings
                               : i == 1
-                              ? state.homePageUsecase!.inProgressCount
+                              ? state.homePageUsecase!.pendingCount
                               : state.homePageUsecase!.completedCount;
                           return AppText.labelLarge('${value ?? 0}');
                         case BlocStatus.loading:
