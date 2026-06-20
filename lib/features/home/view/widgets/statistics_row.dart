@@ -96,7 +96,7 @@ class StatisticsRow extends StatelessWidget {
                           final value = i == 0
                               ? state.homePageUsecase!.totalBookings
                               : i == 1
-                              ? state.homePageUsecase!.pendingCount
+                              ? state.homePageUsecase!.confirmedCount
                               : state.homePageUsecase!.completedCount;
                           return AppText.labelLarge('${value ?? 0}');
                         case BlocStatus.loading:
