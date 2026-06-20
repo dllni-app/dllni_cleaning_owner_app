@@ -42,6 +42,19 @@ String? _toStringValue(dynamic value) {
   return text.isEmpty ? null : text;
 }
 
+Map<int, int> _ratingCountsFromJson(dynamic value) {
+  final map = _toMap(value);
+  final counts = <int, int>{for (var rating = 1; rating <= 5; rating++) rating: 0};
+
+  for (final entry in map.entries) {
+    final rating = _toInt(entry.key);
+    if (rating == null || rating < 1 || rating > 5) continue;
+    counts[rating] = _toInt(entry.value) ?? 0;
+  }
+
+  return counts;
+}
+
 FetchWorkerReviewsModel fetchWorkerReviewsModelFromJson(dynamic json) =>
     FetchWorkerReviewsModel.fromJson(_toMap(json));
 
@@ -116,6 +129,7 @@ class WorkerReview {
 class ReviewsMeta {
   final double? averageRating;
   final int? totalCount;
+  final Map<int, int> ratingCounts;
   final int? currentPage;
   final int? lastPage;
   final int? perPage;
@@ -123,10 +137,13 @@ class ReviewsMeta {
   const ReviewsMeta({
     this.averageRating,
     this.totalCount,
+    this.ratingCounts = const <int, int>{},
     this.currentPage,
     this.lastPage,
     this.perPage,
   });
+
+  int countForRating(int rating) => ratingCounts[rating] ?? 0;
 
   factory ReviewsMeta.fromJson(Map<String, dynamic> json) {
     return ReviewsMeta(
@@ -135,6 +152,9 @@ class ReviewsMeta {
       )?.toDouble(),
       totalCount: _toInt(
         _pick(json, const <String>['totalCount', 'total_count', 'total']),
+      ),
+      ratingCounts: _ratingCountsFromJson(
+        _pick(json, const <String>['ratingCounts', 'rating_counts']),
       ),
       currentPage: _toInt(
         _pick(json, const <String>['currentPage', 'current_page']),
@@ -148,6 +168,9 @@ class ReviewsMeta {
     return <String, dynamic>{
       'averageRating': averageRating,
       'totalCount': totalCount,
+      'ratingCounts': ratingCounts.map(
+        (key, value) => MapEntry(key.toString(), value),
+      ),
       'currentPage': currentPage,
       'lastPage': lastPage,
       'perPage': perPage,
