@@ -25,14 +25,14 @@ class StatisticsRow extends StatelessWidget {
       Color(0xffEF6221),
       Color(0xff00BA10),
     ];
-    List<String> titles = ['الإحصائيات', 'طلبات مؤكدة', 'طلبات مكتملة'];
+    List<String> titles = ['إجمالي الطلبات', 'قيد التنفيذ', 'طلبات مكتملة'];
     List<String> images = [
       Assets.images.homeNewOrdersIcon.path,
       Assets.images.homeConfirmedOrdersIcon.path,
       Assets.images.homeCompletedOrdersIcon.path,
     ];
     List<String> statuses = [
-      CleaningBookingStatus.workerAssigned,
+      CleaningBookingStatus.inProgress,
       CleaningBookingStatus.completed,
     ];
 
@@ -123,7 +123,11 @@ class StatisticsRow extends StatelessWidget {
                     },
                   ),
                   14.verticalSpace,
-                  AppText.labelMedium(titles[i], fontWeight: FontWeight.w500),
+                  AppText.labelMedium(
+                    titles[i],
+                    fontWeight: FontWeight.w500,
+                    textAlign: TextAlign.center,
+                  ),
                 ],
               ),
             ),
