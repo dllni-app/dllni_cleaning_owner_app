@@ -5,6 +5,24 @@ class CleaningEnumTranslations {
     return text;
   }
 
+  static bool isArabicLabel(String? value) {
+    final text = value?.trim();
+    if (text == null || text.isEmpty) return false;
+    return RegExp(r'[\u0600-\u06FF]').hasMatch(text);
+  }
+
+  static String preferArabicLabel(
+    String? backendLabel,
+    String? rawValue,
+    String Function(String?) translator, {
+    String fallback = 'غير محدد',
+  }) {
+    if (isArabicLabel(backendLabel)) return backendLabel!.trim();
+    final translated = translator(rawValue ?? backendLabel);
+    if (translated.trim().isNotEmpty && translated != rawValue) return translated;
+    return valueOrFallback(rawValue ?? backendLabel, fallback: fallback);
+  }
+
   static String bookingStatus(String? value) {
     switch (_normalize(value)) {
       case 'pending':
@@ -78,10 +96,13 @@ class CleaningEnumTranslations {
   static String roomType(String? value) {
     switch (_normalize(value)) {
       case 'bedroom':
+      case 'bed room':
         return 'غرفة نوم';
       case 'bathroom':
+      case 'bath room':
         return 'حمام';
       case 'living_room':
+      case 'living room':
         return 'غرفة معيشة';
       case 'kitchen':
         return 'مطبخ';
@@ -139,5 +160,7 @@ class CleaningEnumTranslations {
     }
   }
 
-  static String _normalize(String? value) => value?.trim().toLowerCase() ?? '';
+  static String _normalize(String? value) {
+    return value?.trim().toLowerCase().replaceAll('-', '_') ?? '';
+  }
 }
