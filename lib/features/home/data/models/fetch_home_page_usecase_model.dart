@@ -68,6 +68,7 @@ class FetchHomePageUsecaseModel {
   int? todayCount;
   int? completedCount;
   int? pendingCount;
+  int? confirmedCount;
   int? inProgressCount;
   int? cancelledCount;
   double? totalEarnings;
@@ -88,6 +89,7 @@ class FetchHomePageUsecaseModel {
     this.todayCount,
     this.completedCount,
     this.pendingCount,
+    this.confirmedCount,
     this.inProgressCount,
     this.cancelledCount,
     this.totalEarnings,
@@ -116,6 +118,7 @@ class FetchHomePageUsecaseModel {
       todayCount: _asInt(json['todayCount']),
       completedCount: _asInt(json['completedCount']),
       pendingCount: _asInt(json['pendingCount']),
+      confirmedCount: _asInt(json['confirmedCount']),
       inProgressCount: _asInt(json['inProgressCount']),
       cancelledCount: _asInt(json['cancelledCount']),
       totalEarnings: _asDouble(json['totalEarnings']),
@@ -178,6 +181,7 @@ class FetchHomePageUsecaseModel {
       'todayCount': todayCount,
       'completedCount': completedCount,
       'pendingCount': pendingCount,
+      'confirmedCount': confirmedCount,
       'inProgressCount': inProgressCount,
       'cancelledCount': cancelledCount,
       'totalEarnings': totalEarnings,

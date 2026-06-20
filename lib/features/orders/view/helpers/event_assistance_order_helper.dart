@@ -3,8 +3,12 @@ class EventAssistanceOrderHelper {
 
   static const String propertyTypeValue = 'event_assistance';
 
+  static String _normalize(String? value) {
+    return (value ?? '').trim().toLowerCase().replaceAll('-', '_');
+  }
+
   static bool isEventAssistance(String? propertyType) {
-    return (propertyType ?? '').trim().toLowerCase() == propertyTypeValue;
+    return _normalize(propertyType) == propertyTypeValue;
   }
 
   static String serviceTitle({
@@ -22,32 +26,56 @@ class EventAssistanceOrderHelper {
   }
 
   static String regularCleaningServiceTitle(String? propertyType) {
-    switch ((propertyType ?? '').toLowerCase()) {
+    switch (_normalize(propertyType)) {
       case 'apartment':
+      case 'flat':
+      case 'شقة':
         return 'خدمة تنظيف شقة';
       case 'house':
+      case 'home':
+      case 'منزل':
         return 'خدمة تنظيف منزل';
+      case 'office':
+      case 'مكتب':
+        return 'خدمة تنظيف مكتب';
       case 'villa':
+      case 'فيلا':
         return 'خدمة تنظيف فيلا';
       case 'studio':
+      case 'ستوديو':
+      case 'استوديو':
         return 'خدمة تنظيف ستوديو';
       default:
-        return 'خدمة تنظيف منزل';
+        return propertyType?.trim().isNotEmpty == true
+            ? 'خدمة تنظيف ${propertyType!.trim()}'
+            : 'خدمة تنظيف';
     }
   }
 
   static String regularCleaningServiceName(String? propertyType) {
-    switch ((propertyType ?? '').toLowerCase()) {
+    switch (_normalize(propertyType)) {
       case 'apartment':
+      case 'flat':
+      case 'شقة':
         return 'تنظيف شقة';
       case 'house':
+      case 'home':
+      case 'منزل':
         return 'تنظيف منزل';
+      case 'office':
+      case 'مكتب':
+        return 'تنظيف مكتب';
       case 'villa':
+      case 'فيلا':
         return 'تنظيف فيلا';
       case 'studio':
+      case 'ستوديو':
+      case 'استوديو':
         return 'تنظيف ستوديو';
       default:
-        return 'تنظيف منزل';
+        return propertyType?.trim().isNotEmpty == true
+            ? 'تنظيف ${propertyType!.trim()}'
+            : 'تنظيف';
     }
   }
 
@@ -75,12 +103,14 @@ class EventAssistanceOrderHelper {
   }
 
   static String venueTypeLabelAr(String? venueType) {
-    switch ((venueType ?? '').toLowerCase()) {
+    switch (_normalize(venueType)) {
       case 'apartment':
+      case 'flat':
         return 'شقة';
       case 'villa':
         return 'فيلا';
       case 'house':
+      case 'home':
         return 'منزل';
       case 'office':
         return 'مكتب';
@@ -92,7 +122,7 @@ class EventAssistanceOrderHelper {
   }
 
   static String eventTypeLabelAr(String? eventType) {
-    switch ((eventType ?? '').toLowerCase()) {
+    switch (_normalize(eventType)) {
       case 'family_dinner':
         return 'عشاء عائلي';
       case 'birthday':
