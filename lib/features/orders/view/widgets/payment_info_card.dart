@@ -51,6 +51,7 @@ class PaymentInfoCard extends StatelessWidget {
             useWorkerShare: _usesWorkerShare,
             serviceShareAmount: order.myAssignment?.serviceShareAmount,
             workerAmount: order.myAssignment?.workerAmount,
+            adminMargin: order.adminMargin,
           ),
           if (order.isPricingFinal == false) ...[
             12.verticalSpace,

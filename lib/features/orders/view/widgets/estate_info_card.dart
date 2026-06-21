@@ -5,6 +5,8 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import '../../data/models/fetch_orders_usecase_model.dart';
 import '../helpers/cleaning_enum_translations.dart';
 import '../helpers/event_assistance_order_helper.dart';
+import '../helpers/order_address_visibility_helper.dart';
+import '../helpers/property_attribute_labels_helper.dart';
 
 class EstateInfoCard extends StatefulWidget {
   const EstateInfoCard({super.key, required this.order});
@@ -21,8 +23,15 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
   bool get _isEventAssistance =>
       EventAssistanceOrderHelper.isEventAssistance(widget.order.propertyType);
 
+
+ late final String address ;
   @override
   void initState() {
+    address= visibleOrderAddress(
+      address:
+      widget.order.propertyDetails?.address ?? widget.order.locationName,
+      status: widget.order.status,
+    );
     super.initState();
     _refreshAttributes();
   }
@@ -47,18 +56,11 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
       return;
     }
 
-    final property = widget.order.propertyDetails;
-    attributes = [
-      '${property?.bathrooms ?? 0} حمام',
-      '${property?.bedRooms ?? 0} غرف نوم',
-      if ((property?.kitchens ?? 0) > 0 ||
-          property?.kitchenIncluded == true ||
-          property?.kitchen != null)
-        'مطبخ',
-      if ((property?.livingRoomSize ?? '').isNotEmpty)
-        CleaningEnumTranslations.livingRoomSize(property?.livingRoomSize),
-    ];
+    attributes = PropertyAttributeLabelsHelper.build(
+      widget.order.propertyDetails,
+    );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -91,7 +93,7 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
                   Icon(Icons.apartment, color: context.secondary, size: 18.sp),
                   6.horizontalSpace,
                   AppText.labelMedium(
-                    _isEventAssistance ? 'مكان المناسبة' : 'مكان العقار',
+                    _isEventAssistance ? 'نوع المناسبة' : 'نوع العقار',
                     fontWeight: FontWeight.w400,
                   ),
                 ],
@@ -107,6 +109,38 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
             ],
           ),
           14.verticalSpace,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.location_on_outlined,
+                    color: context.secondary,
+                    size: 18.sp,
+                  ),
+                  6.horizontalSpace,
+                  AppText.labelMedium(
+                    _isEventAssistance ? 'عنوان المناسبة' : 'عنوان العقار',
+                    fontWeight: FontWeight.w400,
+                  ),
+                ],
+              ),
+              6.horizontalSpace,
+
+              Expanded(
+                child: AppText.labelMedium(
+                  address.trim().isEmpty ? 'العنوان غير متوفر' : address,
+                  fontWeight: FontWeight.w300,
+                  textAlign: TextAlign.end,
+                ),
+              ),
+
+            ],
+          ),
+
+          14.verticalSpace,
+
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

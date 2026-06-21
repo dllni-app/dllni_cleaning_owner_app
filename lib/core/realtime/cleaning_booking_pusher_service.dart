@@ -8,144 +8,137 @@ typedef CleaningBookingEventHandler =
 typedef CleaningBookingChannelErrorHandler =
     void Function(RealtimeChannelError error);
 
+class _WorkerChannelSubscription {
+  _WorkerChannelSubscription(this.handle);
+
+  final RealtimeListenerHandle handle;
+  final List<CleaningBookingEventHandler> eventHandlers =
+      <CleaningBookingEventHandler>[];
+  final List<CleaningBookingChannelErrorHandler> errorHandlers =
+      <CleaningBookingChannelErrorHandler>[];
+}
+
 @lazySingleton
 class CleaningBookingPusherService {
   CleaningBookingPusherService() : _pusherManager = getIt<PusherManager>();
 
   final PusherManager _pusherManager;
 
-  final Map<int, CleaningBookingEventHandler> _bookingHandlers =
-      <int, CleaningBookingEventHandler>{};
-  final Map<int, CleaningBookingEventHandler> _workerHandlers =
-      <int, CleaningBookingEventHandler>{};
-  final Map<int, CleaningBookingChannelErrorHandler> _bookingErrorHandlers =
-      <int, CleaningBookingChannelErrorHandler>{};
-  final Map<int, CleaningBookingChannelErrorHandler> _workerErrorHandlers =
-      <int, CleaningBookingChannelErrorHandler>{};
-
   final Map<int, RealtimeListenerHandle> _bookingListenerHandles =
       <int, RealtimeListenerHandle>{};
-  final Map<int, RealtimeListenerHandle> _workerListenerHandles =
-      <int, RealtimeListenerHandle>{};
+  final Map<int, _WorkerChannelSubscription> _workerSubscriptions =
+      <int, _WorkerChannelSubscription>{};
 
-  Future<void> ensureInitialized() {
-    return _pusherManager.ensureInitialized();
-  }
+  Future<void> ensureInitialized() => _pusherManager.ensureInitialized();
 
-  @Deprecated(
-    'Use PusherManager.listen with RealtimeListenerHandle ownership instead.',
-  )
-  void setBookingHandler(int bookingId, CleaningBookingEventHandler? onEvent) {
-    if (onEvent == null) {
-      _bookingHandlers.remove(bookingId);
-      return;
-    }
-    _bookingHandlers[bookingId] = onEvent;
-  }
-
-  @Deprecated(
-    'Use PusherManager.listen with RealtimeListenerHandle ownership instead.',
-  )
-  void setWorkerHandler(int workerId, CleaningBookingEventHandler? onEvent) {
-    if (onEvent == null) {
-      _workerHandlers.remove(workerId);
-      return;
-    }
-    _workerHandlers[workerId] = onEvent;
-  }
-
-  @Deprecated(
-    'Use PusherManager.listen with RealtimeListenerHandle ownership instead.',
-  )
-  void setBookingErrorHandler(
-    int bookingId,
+  Future<void> subscribeBookingChannel({
+    required int bookingId,
+    required CleaningBookingEventHandler onEvent,
     CleaningBookingChannelErrorHandler? onError,
-  ) {
-    if (onError == null) {
-      _bookingErrorHandlers.remove(bookingId);
-      return;
-    }
-    _bookingErrorHandlers[bookingId] = onError;
-  }
-
-  @Deprecated(
-    'Use PusherManager.listen with RealtimeListenerHandle ownership instead.',
-  )
-  void setWorkerErrorHandler(
-    int workerId,
-    CleaningBookingChannelErrorHandler? onError,
-  ) {
-    if (onError == null) {
-      _workerErrorHandlers.remove(workerId);
-      return;
-    }
-    _workerErrorHandlers[workerId] = onError;
-  }
-
-  Future<void> subscribeBookingChannel(int bookingId) async {
+  }) async {
     if (_bookingListenerHandles.containsKey(bookingId)) return;
+
     final handle = await _pusherManager.listen(
       channelName: 'private-cleaning-booking.$bookingId',
-      onEvent: (event) {
-        final handler = _bookingHandlers[bookingId];
-        if (handler == null) return;
-        handler(event.eventName, event.payload);
-      },
-      onChannelError: (error) {
-        final handler = _bookingErrorHandlers[bookingId];
-        if (handler == null) return;
-        handler(error);
-      },
+      onEvent: (event) => onEvent(event.eventName, event.payload),
+      onChannelError: onError,
     );
     _bookingListenerHandles[bookingId] = handle;
   }
 
-  Future<void> unsubscribeBookingChannel(int bookingId) async {
-    final handle = _bookingListenerHandles.remove(bookingId);
-    await handle?.dispose();
-  }
+  Future<RealtimeListenerHandle> subscribeWorkerChannel({
+    required int workerId,
+    required CleaningBookingEventHandler onEvent,
+    CleaningBookingChannelErrorHandler? onError,
+  })
+  async {
+    final existing = _workerSubscriptions[workerId];
+    if (existing != null) {
+      existing.eventHandlers.add(onEvent);
+      if (onError != null) {
+        existing.errorHandlers.add(onError);
+      }
+      return RealtimeListenerHandle(
+        () => _removeWorkerSubscriber(
+          workerId: workerId,
+          onEvent: onEvent,
+          onError: onError,
+        ),
+      );
+    }
 
-  Future<void> subscribeWorkerChannel(int workerId) async {
-    if (_workerListenerHandles.containsKey(workerId)) return;
+    late final _WorkerChannelSubscription subscription;
     final handle = await _pusherManager.listen(
       channelName: 'private-cleaning-worker.$workerId',
       onEvent: (event) {
-        final handler = _workerHandlers[workerId];
-        if (handler == null) return;
-        handler(event.eventName, event.payload);
+        final handlers = _workerSubscriptions[workerId]?.eventHandlers;
+        if (handlers == null || handlers.isEmpty) return;
+        for (final callback in List<CleaningBookingEventHandler>.of(handlers)) {
+          callback(event.eventName, event.payload);
+        }
       },
       onChannelError: (error) {
-        final handler = _workerErrorHandlers[workerId];
-        if (handler == null) return;
-        handler(error);
+        final handlers = _workerSubscriptions[workerId]?.errorHandlers;
+        if (handlers == null || handlers.isEmpty) return;
+        for (final callback
+            in List<CleaningBookingChannelErrorHandler>.of(handlers)) {
+          callback(error);
+        }
       },
     );
-    _workerListenerHandles[workerId] = handle;
+
+    subscription = _WorkerChannelSubscription(handle)
+      ..eventHandlers.add(onEvent);
+    if (onError != null) {
+      subscription.errorHandlers.add(onError);
+    }
+    _workerSubscriptions[workerId] = subscription;
+
+    return RealtimeListenerHandle(
+      () => _removeWorkerSubscriber(
+        workerId: workerId,
+        onEvent: onEvent,
+        onError: onError,
+      ),
+    );
   }
 
-  Future<void> unsubscribeWorkerChannel(int workerId) async {
-    final handle = _workerListenerHandles.remove(workerId);
-    await handle?.dispose();
+  Future<void> _removeWorkerSubscriber({
+    required int workerId,
+    required CleaningBookingEventHandler onEvent,
+    CleaningBookingChannelErrorHandler? onError,
+  })
+  async {
+    final subscription = _workerSubscriptions[workerId];
+    if (subscription == null) return;
+
+    subscription.eventHandlers.remove(onEvent);
+    if (onError != null) {
+      subscription.errorHandlers.remove(onError);
+    }
+
+    if (subscription.eventHandlers.isNotEmpty) return;
+
+    _workerSubscriptions.remove(workerId);
+    await subscription.handle.dispose();
   }
 
   Future<void> disposeAllForSession() async {
-    final bookingHandles = _bookingListenerHandles.values.toList(
-      growable: false,
-    );
-    final workerHandles = _workerListenerHandles.values.toList(growable: false);
+    final bookingHandles =
+        _bookingListenerHandles.values.toList(growable: false);
     _bookingListenerHandles.clear();
-    _workerListenerHandles.clear();
-    _bookingHandlers.clear();
-    _workerHandlers.clear();
-    _bookingErrorHandlers.clear();
-    _workerErrorHandlers.clear();
+
+    final workerSubscriptions =
+        _workerSubscriptions.values.toList(growable: false);
+    _workerSubscriptions.clear();
 
     for (final handle in bookingHandles) {
       await handle.dispose();
     }
-    for (final handle in workerHandles) {
-      await handle.dispose();
+    for (final subscription in workerSubscriptions) {
+      await subscription.handle.dispose();
     }
+
     await _pusherManager.disposeAllForSession();
   }
 }

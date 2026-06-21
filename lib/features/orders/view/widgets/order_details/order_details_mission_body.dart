@@ -614,6 +614,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                             serviceShareAmount:
                                 widget.order.myAssignment?.serviceShareAmount,
                             workerAmount: widget.order.myAssignment?.workerAmount,
+                            adminMargin: widget.order.adminMargin,
                           ),
                           if (widget.order.isPricingFinal == false) ...[
                             10.verticalSpace,

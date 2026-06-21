@@ -17,6 +17,16 @@ class FetchOrdersUsecaseEvent extends OrdersEvent with EventWithReload {
   });
 }
 
+class SetOrdersListFilterEvent extends OrdersEvent {
+  final String status;
+  final String? scheduledDate;
+
+  SetOrdersListFilterEvent({
+    required this.status,
+    this.scheduledDate,
+  });
+}
+
 class FetchOrderDetailsUsecaseEvent extends OrdersEvent {
   final FetchOrderDetailsUsecaseParams params;
 
@@ -156,9 +166,11 @@ class HydrateOrderDetailsFromRealtimeEvent extends OrdersEvent {
 class SyncPendingOrderFromRealtimeEvent extends OrdersEvent {
   final String eventName;
   final Map<String, dynamic> payload;
+  final bool applyToPendingList;
 
   SyncPendingOrderFromRealtimeEvent({
     required this.eventName,
     required this.payload,
+    this.applyToPendingList = false,
   });
 }

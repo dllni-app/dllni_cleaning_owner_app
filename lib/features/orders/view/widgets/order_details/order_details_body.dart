@@ -57,16 +57,16 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
     );
 
     return [
-      MapEntry('إجمالي ساعات العمل : ', _formatHours(bookedHours)),
+      MapEntry('إجمالي ساعات العمل', _formatHours(bookedHours)),
       MapEntry(
-        _isEventAssistance ? 'عدد الضيوف : ' : 'المساحة التقديرية : ',
+        _isEventAssistance ? 'عدد الضيوف : ' : 'المساحة التقديرية',
         _isEventAssistance
             ? '${widget.order.propertyDetails?.guestCount ?? '-'}'
             : '${widget.order.estimatedSqm ?? '-'}',
       ),
-      MapEntry('سعر الخدمة : ', _formatPrice(widget.order.basePrice)),
-      MapEntry('سعر التوصيل : ', _formatPrice(widget.order.travelFee)),
-      MapEntry('السعر الإجمالي : ', _formatPrice(widget.order.totalPrice)),
+      // MapEntry('سعر الخدمة : ', _formatPrice(widget.order.basePrice)),
+      // MapEntry('سعر التوصيل : ', _formatPrice(widget.order.travelFee)),
+      MapEntry('السعر الإجمالي', _formatPrice(widget.order.totalPrice)),
     ];
   }
 
@@ -119,28 +119,32 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                         horizontal: 10,
                         vertical: 16,
                       ),
-                      child: Column(
+                      child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: _summaryRows
                             .map(
-                              (row) => Padding(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: AppText.labelLarge(
+                              (row) => Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: Column(
+
+                                    children: [
+                                      AppText.labelSmall(
                                         row.key,
+                                        color: context.primary,
+                                        fontWeight: FontWeight.w700,
+                                        textAlign: TextAlign.center,
+
+                                      ),
+                                      SizedBox(height: 8),
+                                      AppText.labelSmall(
+                                        row.value,
                                         color: context.primary,
                                         fontWeight: FontWeight.w500,
                                         textAlign: TextAlign.start,
                                       ),
-                                    ),
-                                    AppText.headlineSmall(
-                                      row.value,
-                                      color: context.primary,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             )
@@ -154,12 +158,13 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                   EstateInfoCard(order: widget.order),
                   SizedBox(height: 14),
                   _buildServicesCard(context),
-                  SizedBox(height: 14),
-                  _buildOrderAddressCard(context),
+                  // SizedBox(height: 14),
+                  // _buildOrderAddressCard(context),
                   SizedBox(height: 14),
                   WorkerTeamStatusCard(order: widget.order),
                   if (OrderLifecyclePolicy.isAcceptedWaiting(widget.order))
                     SizedBox(height: 14),
+                  if(widget.order.numberOfWorkers != null && widget.order.numberOfWorkers! > 1)
                   WorkerRoomAssignmentsCard(order: widget.order),
                   SizedBox(height: 14),
                   PaymentInfoCard(order: widget.order),

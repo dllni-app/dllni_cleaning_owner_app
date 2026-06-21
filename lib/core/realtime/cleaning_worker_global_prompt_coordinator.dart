@@ -102,13 +102,21 @@ class CleaningWorkerGlobalPromptCoordinator {
     _started = true;
     await _pusherManager.ensureInitialized();
     await _ensureWorkerChannel();
+
+    // 1. تشغيل الفحص الأول فوراً
     unawaited(pollPendingExtensionPrompts());
     _scheduleStartupPostFramePoll();
-    _channelBindingPoll = Timer.periodic(_extensionPollInterval, (_) {
-      unawaited(_ensureWorkerChannel());
-    });
-    _extensionPollTimer = Timer.periodic(_extensionPollInterval, (_) {
+
+    // 2. استخدام تايمر واحد فقط لتقليل الضغط
+    // قمنا برفع الوقت إلى 60 ثانية لتقليل الحمل على السيرفر
+    _extensionPollTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+      if (!_started) return;
+
+      // تنفيذ العمليات بشكل متسلسل ومحمي
       unawaited(pollPendingExtensionPrompts());
+
+      // فحص القناة (Binding) لا يحتاج لكل 12 ثانية، 60 كافية جداً
+      unawaited(_ensureWorkerChannel());
     });
   }
 

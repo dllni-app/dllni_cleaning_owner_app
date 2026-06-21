@@ -9,6 +9,7 @@ import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_booking_pusher_
 import 'package:dllni_cleaninig_owner_app/core/realtime/pusher_manager.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_realtime_contract.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_worker_extension_prompts.dart';
+import 'package:dllni_cleaninig_owner_app/core/realtime/worker_realtime_orders_sync.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/data/models/worker_dispatch_eligibility_model.dart';
 import 'package:flutter/material.dart';
@@ -37,6 +38,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
   late final OrdersBloc _ordersBloc;
   int? _workerId;
   Timer? _fallbackRefreshDebounce;
+
+  // المتغير المسؤول عن إدارة دورة حياة الاشتراك لهذه الشاشة
+  RealtimeListenerHandle? _workerListenerHandle;
 
   int? _resolveWorkerId() {
     final raw = SharedPreferencesHelper.getData(key: 'worker_id');
@@ -81,10 +85,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
     }
 
     return (
-      canReceive: canReceive,
-      message: (message == null || message.isEmpty)
-          ? 'لا يمكن لحسابك استقبال الطلبات الجديدة حالياً.'
-          : message,
+    canReceive: canReceive,
+    message: (message == null || message.isEmpty)
+        ? 'لا يمكن لحسابك استقبال الطلبات الجديدة حالياً.'
+        : message,
     );
   }
 
@@ -123,30 +127,67 @@ class _OrdersScreenState extends State<OrdersScreen> {
       orderNotifier.changeStatus(initialStatus);
     }
     _ordersBloc = getIt<OrdersBloc>()..add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: firstFetchStatus), isReload: true));
+
     _workerId = _resolveWorkerId();
     if (_workerId != null) {
-      final pusher = getIt<CleaningBookingPusherService>();
-      pusher.setWorkerHandler(_workerId!, (eventName, payload) {
-        if (!mounted) return;
-        final normalizedEvent = CleaningRealtimeContract.normalizeEventName(eventName);
-        if (normalizedEvent == CleaningRealtimeContract.serviceExtensionRequested ||
-            (normalizedEvent == CleaningRealtimeContract.completionDecisionMade && (payload['decision'] ?? '').toString().trim().toLowerCase() == 'extension_requested')) {
-          unawaited(CleaningWorkerExtensionPrompts.dispatchRealtimeEvent(eventName, payload));
-        }
-        if (!CleaningRealtimeContract.isLifecycleRefreshEvent(normalizedEvent)) {
-          return;
-        }
-        unawaited(CleaningWorkerExtensionPrompts.pollPendingExtensions());
-        _scheduleFallbackRefresh(reason: 'worker_lifecycle_event_refresh');
-      });
-      pusher.setWorkerErrorHandler(_workerId!, _onWorkerRealtimeError);
-      unawaited(pusher.subscribeWorkerChannel(_workerId!));
+      _initPusher();
     }
   }
 
-  void _onWorkerRealtimeError(RealtimeChannelError error) {
-    if (error.statusCode != 403) return;
-    _scheduleFallbackRefresh(reason: 'worker_channel_auth_403_refresh');
+  Future<void> _initPusher() async {
+    final pusherService = getIt<CleaningBookingPusherService>();
+    await pusherService.ensureInitialized();
+
+    if (!mounted) return;
+
+    // الاشتراك باستخدام الخدمة الموحدة وتخزين الـ Handle لإدارته لاحقاً
+    _workerListenerHandle = await pusherService.subscribeWorkerChannel(
+      workerId: _workerId!,
+      onEvent: (eventName, payload) {
+        if (!mounted) return;
+
+        final normalizedEvent = CleaningRealtimeContract.normalizeEventName(
+          eventName,
+        );
+
+        if (normalizedEvent ==
+                CleaningRealtimeContract.serviceExtensionRequested ||
+            (normalizedEvent ==
+                    CleaningRealtimeContract.completionDecisionMade &&
+                (payload['decision'] ?? '')
+                        .toString()
+                        .trim()
+                        .toLowerCase() ==
+                    'extension_requested')) {
+          unawaited(
+            CleaningWorkerExtensionPrompts.dispatchRealtimeEvent(
+              eventName,
+              payload,
+            ),
+          );
+        }
+
+        WorkerRealtimeOrdersSync.dispatchSync(
+          bloc: _ordersBloc,
+          eventName: eventName,
+          payload: payload,
+        );
+
+        if (CleaningRealtimeContract.isLifecycleRefreshEvent(normalizedEvent)) {
+          unawaited(CleaningWorkerExtensionPrompts.pollPendingExtensions());
+          if (WorkerRealtimeOrdersSync.prefersListRefetch(
+            eventName: eventName,
+            payload: payload,
+          )) {
+            _scheduleFallbackRefresh(reason: 'worker_lifecycle_event_refresh');
+          }
+        }
+      },
+      onError: (error) {
+        if (error.statusCode != 403) return;
+        _scheduleFallbackRefresh(reason: 'worker_channel_auth_403_refresh');
+      },
+    );
   }
 
   void _scheduleFallbackRefresh({required String reason}) {
@@ -160,19 +201,22 @@ class _OrdersScreenState extends State<OrdersScreen> {
         eventHandledAtMs: DateTime.now().millisecondsSinceEpoch,
         fallbackReason: reason,
       );
-      _ordersBloc.add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: orderNotifier.status.value), isReload: true, silent: true));
+      _ordersBloc.add(FetchOrdersUsecaseEvent(
+          params: FetchOrdersUsecaseParams(page: 1, status: orderNotifier.status.value),
+          isReload: true,
+          silent: true
+      ));
     });
   }
 
   @override
   void dispose() {
     _fallbackRefreshDebounce?.cancel();
-    if (_workerId != null) {
-      final pusher = getIt<CleaningBookingPusherService>();
-      pusher.setWorkerHandler(_workerId!, null);
-      pusher.setWorkerErrorHandler(_workerId!, null);
-      unawaited(pusher.unsubscribeWorkerChannel(_workerId!));
-    }
+
+    // التخلص من الاشتراك بدقة عند الخروج من الشاشة
+    unawaited(_workerListenerHandle?.dispose());
+    _workerListenerHandle = null;
+
     _ordersBloc.close();
     super.dispose();
   }
@@ -186,8 +230,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
         child: Column(
           children: [
             OrdersAppBar(),
-            // SizedBox(height: 20),
-            // OrderWarningCard(),
             SizedBox(height: 20),
             Padding(
               padding: EdgeInsetsDirectional.symmetric(horizontal: 24),

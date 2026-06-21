@@ -5,11 +5,12 @@ import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/reject
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/cleaning_enum_translations.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/event_assistance_order_helper.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_address_visibility_helper.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/property_attribute_labels_helper.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
+import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_arabic_time_formatter.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/worker_payment_summary.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
 
 const _borderColor = Color(0xffE5E7EB);
 const _mutedTextColor = Color(0xff6B7280);
@@ -96,11 +97,9 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
   }
 
   String _formatTime() {
-    final raw = _order.scheduledTime;
-    if (raw == null || raw.isEmpty) return '-';
-    final parsed = DateTime.tryParse('2000-01-01T$raw');
-    if (parsed == null) return raw;
-    return DateFormat('hh:mm a', 'en').format(parsed);
+    return CleaningArabicTimeFormatter.formatFromScheduledTimeField(
+      _order.scheduledTime,
+    );
   }
 
   String _valueOrDash(String? value) {
@@ -256,36 +255,64 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
           ),
         ),
         _orderInfoRow(
-          label: 'الخدمة المطلوبة',
+          label: 'عدد الخدمة المطلوبة',
           value: _serviceName(),
           withDivider: false,
         ),
       ];
     }
 
-    final property = _order.propertyDetails;
     return [
       _orderInfoRow(
-        label: 'عدد الغرف',
-        value: '${property?.rooms ?? _order.numberOfRooms ?? '-'}',
+        label: 'عدد غرف المعيشة',
+        value: PropertyAttributeLabelsHelper.formatCount(
+          PropertyAttributeLabelsHelper.roomTypeCountForOrder(
+            _order,
+            roomType: 'living_room',
+          ),
+        ),
       ),
       _orderInfoRow(
-        label: 'غرف النوم',
-        value: '${property?.bedRooms ?? '-'}',
+        label: 'عدد الحمامات',
+        value: PropertyAttributeLabelsHelper.formatCount(
+          PropertyAttributeLabelsHelper.roomTypeCountForOrder(
+            _order,
+            roomType: 'bathroom',
+          ),
+        ),
       ),
       _orderInfoRow(
-        label: 'الحمامات',
-        value: '${property?.bathrooms ?? '-'}',
+        label: 'عدد المطابخ',
+        value: PropertyAttributeLabelsHelper.formatCount(
+          PropertyAttributeLabelsHelper.kitchenCountForOrder(_order),
+        ),
       ),
       _orderInfoRow(
-        label: 'المطبخ',
-        value: (property?.kitchenIncluded == true || property?.kitchen != null)
-            ? 'موجود'
-            : '-',
+        label: 'عدد الموزع',
+        value: PropertyAttributeLabelsHelper.formatCount(
+          PropertyAttributeLabelsHelper.roomTypeCountForOrder(
+            _order,
+            roomType: 'hall',
+          ),
+        ),
       ),
       _orderInfoRow(
-        label: 'حجم غرفة المعيشة',
-        value: CleaningEnumTranslations.livingRoomSize(property?.livingRoomSize),
+        label: 'عدد الخرف',
+        value: PropertyAttributeLabelsHelper.formatCount(
+          PropertyAttributeLabelsHelper.roomTypeCountForOrder(
+            _order,
+            roomType: 'balcony',
+          ),
+        ),
+      ),
+      _orderInfoRow(
+        label: 'عدد غرف النوم',
+        value: PropertyAttributeLabelsHelper.formatCount(
+          PropertyAttributeLabelsHelper.roomTypeCountForOrder(
+            _order,
+            roomType: 'bedroom',
+          ),
+        ),
         withDivider: false,
       ),
     ];
@@ -391,8 +418,9 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                           travelFee: _order.travelFee,
                           addonsTotal: _order.addonsTotal,
                           totalPrice: _order.totalPrice,
-                          currency: 'SYP',
+                          currency: 'ل.س',
                           showAddonsTotal: true,
+                          adminMargin: _order.adminMargin,
                         ),
                       ]),
                       const SizedBox(height: 16),

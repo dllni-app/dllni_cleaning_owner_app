@@ -1,10 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
-
+import 'dart:developer' as developer;
 import 'package:common_package/common_package.dart';
-import 'package:dllni_cleaninig_owner_app/core/widgets/order_card.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_realtime_contract.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/pusher_manager.dart';
+import 'package:dllni_cleaninig_owner_app/core/widgets/order_card.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:dllni_cleaninig_owner_app/features/home/view/widgets/today_overview_card.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/data/models/fetch_worker_profile_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/fetch_worker_profile_usecase_use_case.dart';
@@ -13,7 +14,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:intl/intl.dart';
-
 import '../../../../core/di/injection.dart';
 import '../../../main/view/screens/main_screen.dart';
 import '../../../orders/data/models/cleaning_booking_status.dart';
@@ -48,7 +48,18 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  static const Duration _realtimeRefreshDebounce = Duration(milliseconds: 150);
+  static final Set<String> _homePusherEvents =
+      CleaningRealtimeContract.expandEventFilter(const <String>{
+        CleaningRealtimeContract.trackingUpdated,
+        CleaningRealtimeContract.teamUpdated,
+        CleaningRealtimeContract.workerArrived,
+        CleaningRealtimeContract.awaitingStartVerification,
+        CleaningRealtimeContract.arrivalVerified,
+        CleaningRealtimeContract.awaitingWorkerStartConfirmation,
+        CleaningRealtimeContract.awaitingCustomerCompletion,
+        CleaningRealtimeContract.completionDecisionMade,
+        CleaningRealtimeContract.serviceExtensionRequested,
+      });
 
   FetchWorkerProfileUsecaseModel? user;
   bool _isIncompleteDialogOpen = false;
@@ -56,10 +67,9 @@ class _HomeScreenState extends State<HomeScreen> {
   late final HomeBloc _homeBloc;
   late final ProfileBloc _profileBloc;
   final PusherManager _pusherManager = getIt<PusherManager>();
+
   RealtimeListenerHandle? _workerRealtimeHandle;
-  Timer? _realtimeRefreshTimer;
-  final List<({String eventName, Map<String, dynamic> payload})>
-  _pendingOrderSyncQueue = [];
+  StreamSubscription<RemoteMessage>? _fcmForegroundSubscription;
   int? _workerId;
   HomeOrdersTab _selectedHomeOrdersTab = HomeOrdersTab.newOrders;
 
@@ -120,48 +130,107 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     _workerId = _resolveWorkerId();
     unawaited(_bindWorkerRealtimeListener());
+    _fcmForegroundSubscription =
+        FirebaseMessaging.onMessage.listen(_onForegroundPushMessage);
   }
 
   int? _resolveWorkerId() {
     final raw = SharedPreferencesHelper.getData(key: 'worker_id');
     if (raw is num) return raw.toInt();
-    return int.tryParse('$raw');
+    final parsed = int.tryParse('$raw');
+    if (parsed != null && parsed > 0) return parsed;
+
+    final profileWorkerId = user?.data?.id;
+    if (profileWorkerId != null && profileWorkerId > 0) {
+      return profileWorkerId;
+    }
+    return null;
+  }
+
+  String get _workerChannelName {
+    final workerId = _workerId;
+    if (workerId == null || workerId <= 0) return '';
+    return '${CleaningRealtimeContract.workerChannelPrefix}$workerId';
   }
 
   Future<void> _bindWorkerRealtimeListener() async {
-    final workerId = _workerId;
-    if (workerId == null || workerId <= 0) return;
+    final workerId = _resolveWorkerId();
+    if (workerId == null || workerId <= 0) {
+      developer.log('[Home] skip pusher bind: worker_id missing');
+      return;
+    }
+
+    if (_workerId == workerId && _workerRealtimeHandle != null) return;
+    _workerId = workerId;
+
+    await _workerRealtimeHandle?.dispose();
+    _workerRealtimeHandle = null;
+
+    await _pusherManager.ensureInitialized();
+    if (!mounted) return;
+
+    final channelName = _workerChannelName;
+    developer.log('[Home] subscribe pusher => $channelName');
+
     final handle = await _pusherManager.listen(
-      channelName: '${CleaningRealtimeContract.workerChannelPrefix}$workerId',
+      channelName: channelName,
+      eventNames: _homePusherEvents,
       onEvent: (event) {
-        if (!mounted) return;
-        final hasBookingId =
-            CleaningRealtimeContract.extractBookingId(event.payload) != null;
-        final shouldSync =
-            CleaningRealtimeContract.shouldRefreshPendingOrdersForWorkerEvent(
-              event.eventName,
-              event.payload,
-            );
-        if (!shouldSync &&
-            (!hasBookingId ||
-                CleaningRealtimeContract.isLocationEvent(event.eventName))) {
-          return;
-        }
-        _schedulePendingOrderSync(
-          eventName: event.eventName,
-          payload: event.payload,
-        );
+        _onWorkerPusherEvent(event.eventName, event.payload);
       },
       onChannelError: (error) {
         if (!mounted || error.statusCode != 403) return;
-        _schedulePendingOrderSync(eventName: '', payload: const {});
+        _refreshHomeData(source: 'pusher_auth_403');
       },
     );
+
     if (!mounted) {
       await handle.dispose();
       return;
     }
+
     _workerRealtimeHandle = handle;
+    developer.log('[Home] pusher listener ready on $channelName');
+  }
+
+  void _onWorkerPusherEvent(String eventName, Map<String, dynamic> payload) {
+    if (!mounted) return;
+
+    PusherServiceLogger.event(
+      _workerChannelName,
+      eventName,
+      payload,
+      eventHandledAtMs: DateTime.now().millisecondsSinceEpoch,
+    );
+
+    if (CleaningRealtimeContract.isLocationEvent(eventName)) return;
+
+    _refreshHomeData(source: eventName);
+  }
+
+  void _onForegroundPushMessage(RemoteMessage message) {
+    if (!mounted) return;
+
+    developer.log(
+      '[Home] FCM foreground => data=${message.data} '
+      'title=${message.notification?.title}',
+    );
+
+    _refreshHomeData(source: 'fcm_foreground');
+  }
+
+  void _refreshHomeData({required String source}) {
+    if (!mounted) return;
+
+    developer.log('[Home] refresh triggered by $source');
+
+    _homeBloc.add(
+      FetchHomePageUsecaseEvent(
+        params: FetchHomePageUsecaseParams(),
+        silent: true,
+      ),
+    );
+    _fetchOrdersForSelectedTab(isReload: true, silent: true);
   }
 
   void _dispatchHomeRefresh({bool isReload = true, bool silent = false}) {
@@ -178,63 +247,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _refreshHomeScreen() async {
-    final homeCompletion = _homeBloc.stream
-        .skip(1)
-        .firstWhere(
-          (state) => state.homePageUsecaseStatus != BlocStatus.loading,
-        );
-    final ordersCompletion = _ordersBloc.stream
-        .skip(1)
-        .firstWhere(
-          (state) => state.ordersUsecase!.status != BlocStatus.loading,
-        );
-    final profileCompletion = _profileBloc.stream
-        .skip(1)
-        .firstWhere(
-          (state) => state.workerProfileUsecaseStatus != BlocStatus.loading,
-        );
-
     _dispatchHomeRefresh(isReload: true);
-
-    await Future.wait([homeCompletion, ordersCompletion, profileCompletion]);
-  }
-
-  void _schedulePendingOrderSync({
-    required String eventName,
-    required Map<String, dynamic> payload,
-  })
-  {
-    _pendingOrderSyncQueue.add((eventName: eventName, payload: payload));
-    _realtimeRefreshTimer?.cancel();
-    _realtimeRefreshTimer = Timer(_realtimeRefreshDebounce, () {
-      if (!mounted) return;
-      final queued = List.of(_pendingOrderSyncQueue);
-      _pendingOrderSyncQueue.clear();
-      if (_selectedHomeOrdersTab == HomeOrdersTab.newOrders) {
-        for (final request in queued) {
-          _ordersBloc.add(
-            SyncPendingOrderFromRealtimeEvent(
-              eventName: request.eventName,
-              payload: request.payload,
-            ),
-          );
-        }
-      } else {
-        _fetchOrdersForSelectedTab(isReload: true, silent: true);
-      }
-      _homeBloc.add(
-        FetchHomePageUsecaseEvent(
-          params: FetchHomePageUsecaseParams(),
-          silent: true,
-        ),
-      );
-    });
   }
 
   @override
   void dispose() {
-    _realtimeRefreshTimer?.cancel();
-    _pendingOrderSyncQueue.clear();
+    unawaited(_fcmForegroundSubscription?.cancel());
+    _fcmForegroundSubscription = null;
     final handle = _workerRealtimeHandle;
     _workerRealtimeHandle = null;
     unawaited(handle?.dispose());
@@ -295,8 +314,15 @@ class _HomeScreenState extends State<HomeScreen> {
       child: BlocListener<ProfileBloc, ProfileState>(
         listenWhen: (previous, current) =>
             previous.workerProfileUsecaseStatus !=
-            current.workerProfileUsecaseStatus,
-        listener: (context, state) => _maybePromptIncompleteData(state),
+                current.workerProfileUsecaseStatus ||
+            previous.workerProfileUsecase?.data?.id !=
+                current.workerProfileUsecase?.data?.id,
+        listener: (context, state) {
+          _maybePromptIncompleteData(state);
+          if (state.workerProfileUsecaseStatus == BlocStatus.success) {
+            unawaited(_bindWorkerRealtimeListener());
+          }
+        },
         child: SafeArea(
           child: Column(
             children: [
@@ -347,39 +373,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             );
                           },
                         ),
-                        /*12.verticalSpace,
-                      BlocBuilder<HomeBloc, HomeState>(
-                        builder: (context, homeState) {
-                          final n = homeState.homePageUsecase?.pendingExtensionRequestsCount ?? 0;
-                          if (homeState.homePageUsecaseStatus != BlocStatus.success || n <= 0) {
-                            return const SizedBox.shrink();
-                          }
-                          return Padding(
-                            padding: EdgeInsets.only(bottom: 4.h),
-                            child: Material(
-                              color: context.colorScheme.errorContainer.withAlpha(100),
-                              borderRadius: BorderRadius.circular(12.r),
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(12.r),
-                                onTap: () {
-                                  ExtensionRequestsSheet.show(context, onChanged: () => context.read<HomeBloc>().add(FetchHomePageUsecaseEvent(params: FetchHomePageUsecaseParams())));
-                                },
-                                child: Padding(
-                                  padding: EdgeInsetsDirectional.symmetric(horizontal: 16.w, vertical: 12.h),
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.more_time, color: context.error),
-                                      12.horizontalSpace,
-                                      Expanded(child: AppText.labelLarge('طلبات تمديد الوقت ($n)', fontWeight: FontWeight.w500)),
-                                      Icon(Icons.chevron_right, color: context.colorScheme.outline),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),*/
+
                         16.verticalSpace,
                         BlocBuilder<OrdersBloc, OrdersState>(
                           buildWhen: (previous, current) =>
@@ -463,9 +457,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                   successWidget: () {
                                     return ListView.separated(
                                       shrinkWrap: true,
-                                      physics: const NeverScrollableScrollPhysics(),
+                                      physics:
+                                          const NeverScrollableScrollPhysics(),
                                       itemCount: orders.listLength(1),
-                                      separatorBuilder: (context, index) => 16.verticalSpace,
+                                      separatorBuilder: (context, index) =>
+                                          16.verticalSpace,
                                       itemBuilder: (context, index) {
                                         if (orders.length <= index) {
                                           if (orders.length == index) {
@@ -483,9 +479,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                             width: 30.w,
                                             height: 30.h,
                                             child: FittedBox(
-                                              child: CircularProgressIndicator.adaptive(
-                                                strokeWidth: 3,
-                                              ),
+                                              child:
+                                                  CircularProgressIndicator.adaptive(
+                                                    strokeWidth: 3,
+                                                  ),
                                             ),
                                           );
                                         }
@@ -493,19 +490,25 @@ class _HomeScreenState extends State<HomeScreen> {
                                         final item = orders.list[index];
 
                                         return AnimatedSwitcher(
-                                          duration: const Duration(milliseconds: 500),
-                                          transitionBuilder: (child, animation) {
-                                            return FadeTransition(
-                                              opacity: animation,
-                                              child: SlideTransition(
-                                                position: Tween<Offset>(
-                                                  begin: const Offset(0, 0.03),
-                                                  end: Offset.zero,
-                                                ).animate(animation),
-                                                child: child,
-                                              ),
-                                            );
-                                          },
+                                          duration: const Duration(
+                                            milliseconds: 500,
+                                          ),
+                                          transitionBuilder:
+                                              (child, animation) {
+                                                return FadeTransition(
+                                                  opacity: animation,
+                                                  child: SlideTransition(
+                                                    position: Tween<Offset>(
+                                                      begin: const Offset(
+                                                        0,
+                                                        0.03,
+                                                      ),
+                                                      end: Offset.zero,
+                                                    ).animate(animation),
+                                                    child: child,
+                                                  ),
+                                                );
+                                              },
                                           child: OrderCard(
                                             key: ValueKey(item.id),
                                             data: item,
@@ -540,3 +543,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+
+
+
+

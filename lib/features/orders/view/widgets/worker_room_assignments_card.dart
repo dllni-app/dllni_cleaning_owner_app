@@ -17,6 +17,7 @@ class WorkerRoomAssignmentsCard extends StatelessWidget {
     final rooms = order.myAssignedRooms;
 
     return Container(
+      width: context.width,
       padding: EdgeInsets.all(16.r),
       decoration: BoxDecoration(
         color: const Color(0xffF4F5F7),
@@ -29,7 +30,9 @@ class WorkerRoomAssignmentsCard extends StatelessWidget {
             'الغرف المخصصة لك',
             fontWeight: FontWeight.w600,
           ),
-          12.verticalSpace,
+          SizedBox(height: 12),
+          Divider(color: Colors.black.withAlpha(42)),
+          SizedBox(height: 12),
           if (rooms.isEmpty)
             AppText.bodySmall(
               'لم يتم تحديد غرف مخصصة لك بعد',

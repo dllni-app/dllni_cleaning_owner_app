@@ -1,5 +1,5 @@
 import 'package:common_package/common_package.dart';
-import 'package:easy_localization/easy_localization.dart';
+import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_arabic_time_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
@@ -81,7 +81,10 @@ class OrderInfoCard extends StatelessWidget {
                 ],
               ),
               AppText.labelMedium(
-                order.scheduledTime == null ? '' : DateFormat('hh:mm a', 'en').format(DateFormat("HH:mm:ss", 'en').parse(order.scheduledTime!)),
+                CleaningArabicTimeFormatter.formatScheduledTime(
+                  order.scheduledTime,
+                  emptyValue: '',
+                ),
                 fontWeight: FontWeight.w300,
               ),
             ],

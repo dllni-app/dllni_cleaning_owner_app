@@ -16,7 +16,7 @@ import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/accept_or
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/extension_request_action_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
+import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_arabic_time_formatter.dart';
 
 class OrderCard extends StatelessWidget {
   const OrderCard({
@@ -103,11 +103,10 @@ class OrderCard extends StatelessWidget {
   }
 
   String _formatTime() {
-    final raw = data.scheduledTime;
-    if (raw == null || raw.isEmpty) return '-';
-    final parsed = DateTime.tryParse('2000-01-01T$raw');
-    if (parsed == null) return raw;
-    return DateFormat('h:mm a', 'en').format(parsed).toLowerCase();
+    return CleaningArabicTimeFormatter.formatFromScheduledTimeField(
+      data.scheduledTime,
+      pattern: 'h:mm a',
+    );
   }
 
   String _createdAtHumanReadable() {
@@ -117,7 +116,7 @@ class OrderCard extends StatelessWidget {
   String _bookingSubtitle(String bookingLabel) {
     final createdAtLabel = _createdAtHumanReadable();
     if (createdAtLabel.isEmpty) return '#ORD-$bookingLabel';
-    return '#ORD-$bookingLabel • $createdAtLabel';
+    return '#ORD-$bookingLabel \n• $createdAtLabel';
   }
 
   List<String> _attributeLabels() {
@@ -426,6 +425,7 @@ class OrderCard extends StatelessWidget {
                       AppText.bodySmall(
                         _bookingSubtitle(bookingLabel),
                         color: const Color(0xff6B7280),
+                        textAlign: TextAlign.start,
                       ),
                     ],
                   ),

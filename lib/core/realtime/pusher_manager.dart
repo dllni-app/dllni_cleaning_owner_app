@@ -163,6 +163,8 @@ class PusherManager {
 
   bool _initialized = false;
   int _nextListenerId = 0;
+  Completer<void>? _initializationCompleter;
+  Completer<void>? _connectionCompleter;
 
   final Map<String, int> _channelRefCount = <String, int>{};
   final Set<String> _subscribedChannels = <String>{};
@@ -170,36 +172,48 @@ class PusherManager {
       <String, Map<int, _RealtimeListenerEntry>>{};
 
   Future<void> ensureInitialized() async {
-    if (AppConfig.pusherKey.isEmpty) {
-      PusherServiceLogger.skippedNoPusherKey();
-      return;
+    if (AppConfig.pusherKey.isEmpty) return;
+
+    // 1. إذا كان مهيأً ومتصلاً، لا تفعل شيئاً
+    if (_initialized && _connectionCompleter != null) {
+      return _connectionCompleter!.future;
     }
-    if (_initialized) return;
 
-    PusherServiceLogger.init(
-      cluster: AppConfig.pusherCluster,
-      authEndpoint: '${AppConfig.baseUrl}/broadcasting/auth',
-      hasApiKey: AppConfig.pusherKey.isNotEmpty,
-      useTls: true,
-    );
+    // 2. إذا كانت هناك عملية جارية، انتظرها
+    if (_initializationCompleter != null) {
+      return _initializationCompleter!.future;
+    }
 
-    await _clientBridge.init(
-      apiKey: AppConfig.pusherKey,
-      cluster: AppConfig.pusherCluster,
-      useTls: true,
-      onAuthorizer: _authorizePrivateChannel,
-      onSubscriptionError: _handleSubscriptionError,
-      onError: _handleSocketError,
-      onSubscriptionSucceeded: (channelName, data) {
-        PusherServiceLogger.subscriptionSucceeded(channelName, data);
-      },
-      onConnectionStateChange: _onConnectionStateChange,
-      onEvent: _handleRawEvent,
-    );
+    _initializationCompleter = Completer<void>();
+    _connectionCompleter = Completer<void>();
 
-    PusherServiceLogger.connect();
-    await _clientBridge.connect();
-    _initialized = true;
+    try {
+      await _clientBridge.init(
+        apiKey: AppConfig.pusherKey,
+        cluster: AppConfig.pusherCluster,
+        useTls: true, // يفضل دائماً استخدام TLS للاتصال الآمن
+        onAuthorizer: _authorizePrivateChannel, // الدالة التي تقوم بعملية الـ Auth مع السيرفر
+        onSubscriptionError: _handleSubscriptionError, // التعامل مع أخطاء الاشتراك
+        onError: _handleSocketError, // التعامل مع أخطاء الاتصال العامة
+        onSubscriptionSucceeded: (channelName, data) {
+          PusherServiceLogger.subscriptionSucceeded(channelName, data);
+        },
+        onConnectionStateChange: _onConnectionStateChange, // لمراقبة حالات الاتصال (Connected/Disconnected)
+        onEvent: _handleRawEvent, // الدالة الأساسية لاستقبال كل الأحداث القادمة من Pusher
+      );
+
+      // ربط الـ Completer بعملية الاتصال
+      await _clientBridge.connect();
+
+      _initialized = true;
+      _initializationCompleter!.complete();
+      _connectionCompleter!.complete();
+    } catch (e) {
+      _initializationCompleter!.completeError(e);
+      _initializationCompleter = null;
+      _connectionCompleter = null;
+      rethrow;
+    }
   }
 
   Future<RealtimeListenerHandle> listen({
@@ -252,6 +266,8 @@ class PusherManager {
       await _clientBridge.disconnect();
     }
     _initialized = false;
+    _initializationCompleter = null;
+    _connectionCompleter = null;
   }
 
   Future<Map<String, dynamic>> _authorizePrivateChannel(
@@ -361,12 +377,18 @@ class PusherManager {
 
   void _onConnectionStateChange(String currentState, String previousState) {
     PusherServiceLogger.connectionStateChange(currentState, previousState);
-    final isConnected = currentState.toLowerCase() == 'connected';
-    if (!isConnected) {
-      _subscribedChannels.clear();
-      return;
+
+    final state = currentState.toLowerCase();
+
+    // 1. لا تقم بمسح _subscribedChannels هنا أبداً.
+    // مكتبة Pusher تحتفظ بقائمة الاشتراكات داخلياً وتحاول إعادة الاتصال بها تلقائياً.
+    // مسحها يمنع النظام من معرفة القنوات التي يجب أن يعيد الاشتراك بها.
+
+    // 2. إذا أصبح الاتصال جاهزاً (CONNECTED)، تأكد فقط من أن جميع القنوات التي
+    // تحتاجها (المخزنة في _channelRefCount) قد تم الاشتراك بها فعلياً.
+    if (state == 'connected') {
+      unawaited(_resubscribeActiveChannels());
     }
-    unawaited(_resubscribeActiveChannels());
   }
 
   Future<void> _resubscribeActiveChannels() async {

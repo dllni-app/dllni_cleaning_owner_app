@@ -7,6 +7,7 @@ class WorkerPaymentSummary extends StatelessWidget {
     super.key,
     required this.basePrice,
     required this.travelFee,
+    required this.adminMargin,
     required this.addonsTotal,
     required this.totalPrice,
     required this.currency,
@@ -18,6 +19,7 @@ class WorkerPaymentSummary extends StatelessWidget {
 
   final num? basePrice;
   final num? travelFee;
+  final num? adminMargin;
   final num? addonsTotal;
   final num? totalPrice;
   final String currency;
@@ -43,23 +45,25 @@ class WorkerPaymentSummary extends StatelessWidget {
     return Column(
       children: [
         _PaymentRow(
-          label: 'سعر الخدمة',
+          label: 'قيمة الخدمة',
           amount: _formatMoney(serviceAmount),
         ),
         12.verticalSpace,
         _PaymentRow(
-          label: 'سعر التوصيل',
+          label: 'رسوم التنقل',
           amount: _formatMoney(travelFee),
-          labelColor: context.primaryContainer,
-          amountColor: context.primaryContainer,
+          // labelColor: context.primaryContainer,
+          // amountColor: context.primaryContainer,
         ),
-        if (showAddonsTotal) ...[
-          12.verticalSpace,
-          _PaymentRow(
-            label: 'إجمالي الإضافات',
-            amount: _formatMoney(addonsTotal),
-          ),
-        ],
+        12.verticalSpace,
+
+        _PaymentRow(
+          label: 'هامش الإدارة',
+          amount: _formatMoney(adminMargin),
+
+
+        ),
+
         18.verticalSpace,
         LayoutBuilder(
           builder: (context, constraints) {
@@ -82,8 +86,11 @@ class WorkerPaymentSummary extends StatelessWidget {
         18.verticalSpace,
         _PaymentRow(
           label: useWorkerShare ? 'صافي أرباحك :' : 'الإجمالي',
-          amount: _formatMoney(totalAmount),
+          amount: _formatMoney(adminMargin),
           isTotal: true,
+          labelColor: context.primaryContainer,
+          amountColor: context.primaryContainer,
+
         ),
       ],
     );

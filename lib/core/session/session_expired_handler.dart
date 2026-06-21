@@ -7,21 +7,34 @@ class SessionExpiredHandler {
   SessionExpiredHandler._();
 
   static GlobalKey<NavigatorState>? navigatorKey;
-
-  static bool _navigating = false;
+  static bool _isHandling = false; // تغيير الاسم ليكون أكثر دقة
 
   static Future<void> handle() async {
-    if (_navigating) return;
-    _navigating = true;
+    // 1. حماية إضافية: إذا كان هناك معالجة جارية، لا تفعل شيئاً
+    if (_isHandling) return;
+
+    _isHandling = true;
     try {
-      await getIt<CleaningBookingPusherService>().disposeAllForSession();
+      // 2. استخدام الخدمة المركزية لتنظيف الاشتراكات (وهذا صحيح)
+      final pusherService = getIt<CleaningBookingPusherService>();
+      await pusherService.disposeAllForSession();
+
+      // 3. مسح البيانات المحلية
       await SharedPreferencesHelper.clearData();
-      navigatorKey?.currentState?.pushNamedAndRemoveUntil(
-        '/login',
-        (route) => false,
-      );
+
+      // 4. التأكد من وجود الـ navigatorKey قبل استخدامه
+      final context = navigatorKey?.currentContext;
+      if (context != null) {
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/login',
+              (route) => false,
+        );
+      }
+    } catch (e) {
+      // يفضل إضافة طباعة بسيطة لمعرفة سبب فشل التنظيف إن وجد
+      debugPrint('Error during session expiration: $e');
     } finally {
-      _navigating = false;
+      _isHandling = false;
     }
   }
 }
