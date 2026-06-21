@@ -427,6 +427,15 @@ class OrderCard extends StatelessWidget {
                         color: const Color(0xff6B7280),
                         textAlign: TextAlign.start,
                       ),
+                      if (data.displayNeighborhoodName != null) ...[
+                        const SizedBox(height: 4),
+                        AppText.labelSmall(
+                          'الحي: ${data.displayNeighborhoodName}',
+                          color: const Color(0xff475569),
+                          fontWeight: FontWeight.w600,
+                          textAlign: TextAlign.start,
+                        ),
+                      ],
                     ],
                   ),
                 ),

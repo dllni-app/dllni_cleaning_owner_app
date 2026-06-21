@@ -300,29 +300,41 @@ class FetchWorkerProfileUsecaseModelDataUser {
 class Zone {
   int? id;
   int? workerId;
+  int? neighborhoodId;
   String? name;
   List<ZonePoint>? polygon;
   bool? isActive;
   String? createdAt;
   String? updatedAt;
 
-  Zone({this.id, this.workerId, this.name, this.polygon, this.isActive, this.createdAt, this.updatedAt});
+  Zone({
+    this.id,
+    this.workerId,
+    this.neighborhoodId,
+    this.name,
+    this.polygon,
+    this.isActive,
+    this.createdAt,
+    this.updatedAt,
+  });
 
   factory Zone.fromJson(Map<String, dynamic> json) => Zone(
     id: _asInt(json['id']),
-    workerId: _asInt(json['worker_id']),
+    workerId: _asInt(json['workerId'] ?? json['worker_id']),
+    neighborhoodId: _asInt(json['neighborhoodId'] ?? json['neighborhood_id']),
     name: _asString(json['name']),
     polygon: json['polygon'] is List
         ? (json['polygon'] as List).whereType<Map>().map((e) => ZonePoint.fromJson(Map<String, dynamic>.from(e))).toList()
         : null,
-    isActive: _asBool(json['is_active']),
-    createdAt: _asString(json['created_at']),
-    updatedAt: _asString(json['updated_at']),
+    isActive: _asBool(json['isActive'] ?? json['is_active']),
+    createdAt: _asString(json['createdAt'] ?? json['created_at']),
+    updatedAt: _asString(json['updatedAt'] ?? json['updated_at']),
   );
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'worker_id': workerId,
+    'neighborhood_id': neighborhoodId,
     'name': name,
     'polygon': polygon?.map((e) => e.toJson()).toList(),
     'is_active': isActive,

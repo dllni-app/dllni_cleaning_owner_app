@@ -108,6 +108,35 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
               ),
             ],
           ),
+          if (widget.order.displayNeighborhoodName != null) ...[
+            14.verticalSpace,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.map_outlined,
+                      color: context.secondary,
+                      size: 18.sp,
+                    ),
+                    6.horizontalSpace,
+                    AppText.labelMedium(
+                      'الحي',
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ],
+                ),
+                Expanded(
+                  child: AppText.labelMedium(
+                    widget.order.displayNeighborhoodName!,
+                    fontWeight: FontWeight.w300,
+                    textAlign: TextAlign.end,
+                  ),
+                ),
+              ],
+            ),
+          ],
           14.verticalSpace,
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,

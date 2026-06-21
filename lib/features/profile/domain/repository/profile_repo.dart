@@ -21,6 +21,8 @@ import '../../data/models/fetch_deposit_transactions_usecase_model.dart';
 import '../../data/models/notification_api_models.dart';
 import '../usecases/fetch_worker_reviews_use_case.dart';
 import '../../data/models/fetch_worker_reviews_model.dart';
+import '../usecases/fetch_cleaning_neighborhoods_use_case.dart';
+import '../../data/models/cleaning_neighborhoods_response_model.dart';
 
 abstract class ProfileRepo {
   DataResponse<FetchWorkerProfileUsecaseModel> fetchWorkerProfileUsecase(
@@ -69,5 +71,9 @@ abstract class ProfileRepo {
 
   DataResponse<FetchWorkerReviewsModel> fetchWorkerReviews(
     FetchWorkerReviewsParams params,
+  );
+
+  DataResponse<CleaningNeighborhoodsResponseModel> fetchCleaningNeighborhoods(
+    FetchCleaningNeighborhoodsParams params,
   );
 }

@@ -24,6 +24,8 @@ import '../../domain/usecases/fetch_deposit_transactions_use_case.dart';
 import '../../domain/usecases/mark_notification_read_use_case.dart';
 import '../models/fetch_worker_reviews_model.dart';
 import '../../domain/usecases/fetch_worker_reviews_use_case.dart';
+import '../models/cleaning_neighborhoods_response_model.dart';
+import '../../domain/usecases/fetch_cleaning_neighborhoods_use_case.dart';
 
 @lazySingleton
 class ProfileRemoteDataSource with HandlingApiManager {
@@ -189,6 +191,19 @@ class ProfileRemoteDataSource with HandlingApiManager {
         data: params.getBody().isEmpty ? null : params.getBody(),
       ),
       jsonConvert: fetchWorkerReviewsModelFromJson,
+    );
+  }
+
+  Future<CleaningNeighborhoodsResponseModel> fetchCleaningNeighborhoods(
+    FetchCleaningNeighborhoodsParams params,
+  ) {
+    return wrapHandlingApi(
+      tryCall: () => dioNetwork.getData(
+        endPoint: '/api/v1/cleaning/neighborhoods',
+        params: params.getParams(),
+        data: params.getBody().isEmpty ? null : params.getBody(),
+      ),
+      jsonConvert: cleaningNeighborhoodsResponseModelFromJson,
     );
   }
 }

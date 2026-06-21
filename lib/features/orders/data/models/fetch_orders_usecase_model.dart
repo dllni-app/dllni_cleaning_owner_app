@@ -298,6 +298,8 @@ class FetchOrdersUsecaseModelDataItem {
   final String? propertyType;
   final String? propertyTypeLabel;
   final String? locationName;
+  final int? neighborhoodId;
+  final String? neighborhoodName;
   final String? estimatedSqm;
   final String? scheduledDate;
   final String? scheduledTime;
@@ -357,6 +359,13 @@ class FetchOrdersUsecaseModelDataItem {
 
   String get statusNameValue =>
       CleaningBookingStatus.toArabic(status ?? '');
+
+  String? get displayNeighborhoodName {
+    final name = neighborhoodName?.trim();
+    if (name != null && name.isNotEmpty) return name;
+    return null;
+  }
+
   FetchOrdersUsecaseModelDataItem({
     this.id,
     this.customerId,
@@ -370,6 +379,8 @@ class FetchOrdersUsecaseModelDataItem {
     this.propertyType,
     this.propertyTypeLabel,
     this.locationName,
+    this.neighborhoodId,
+    this.neighborhoodName,
     this.estimatedSqm,
     this.scheduledDate,
     this.scheduledTime,
@@ -453,6 +464,12 @@ class FetchOrdersUsecaseModelDataItem {
       ),
       locationName: _toStringValue(
         _pick(m, const <String>['locationName', 'location_name']),
+      ),
+      neighborhoodId: _toInt(
+        _pick(m, const <String>['neighborhoodId', 'neighborhood_id']),
+      ),
+      neighborhoodName: _toStringValue(
+        _pick(m, const <String>['neighborhoodName', 'neighborhood_name']),
       ),
       estimatedSqm: _toStringValue(
         _pick(m, const <String>['estimatedSqm', 'estimated_sqm']),
@@ -670,6 +687,8 @@ class FetchOrdersUsecaseModelDataItem {
       'propertyType': propertyType,
       'propertyTypeLabel': propertyTypeLabel,
       'locationName': locationName,
+      'neighborhoodId': neighborhoodId,
+      'neighborhoodName': neighborhoodName,
       'estimatedSqm': estimatedSqm,
       'scheduledDate': scheduledDate,
       'scheduledTime': scheduledTime,
@@ -742,6 +761,8 @@ class FetchOrdersUsecaseModelDataItem {
       propertyType: propertyType,
       propertyTypeLabel: propertyTypeLabel,
       locationName: locationName,
+      neighborhoodId: neighborhoodId,
+      neighborhoodName: neighborhoodName,
       estimatedSqm: estimatedSqm,
       scheduledDate: scheduledDate,
       scheduledTime: scheduledTime,
@@ -814,6 +835,8 @@ class FetchOrdersUsecaseModelDataItem {
       propertyType: propertyType,
       propertyTypeLabel: propertyTypeLabel,
       locationName: locationName,
+      neighborhoodId: neighborhoodId,
+      neighborhoodName: neighborhoodName,
       estimatedSqm: estimatedSqm,
       scheduledDate: scheduledDate,
       scheduledTime: scheduledTime,

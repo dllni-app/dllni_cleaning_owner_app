@@ -1,7 +1,9 @@
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/features/main/view/screens/main_screen.dart';
+import 'package:dllni_cleaninig_owner_app/features/profile/data/models/cleaning_neighborhood_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/data/models/fetch_worker_profile_usecase_model.dart';
+import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/fetch_cleaning_neighborhoods_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/update_worker_work_areas_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/manager/bloc/profile_bloc.dart';
 import 'package:flutter/material.dart';
@@ -27,66 +29,51 @@ class WorkAreasScreen extends StatefulWidget {
 class _WorkAreasScreenState extends State<WorkAreasScreen> {
   final TextEditingController _searchController = TextEditingController();
 
-  final List<_WorkAreaItem> _areas = [
-    _WorkAreaItem(id: "0", name: "حلب القديمة"),
-    _WorkAreaItem(id: "1", name: "الجميلية"),
-    _WorkAreaItem(id: "2", name: "العزيزية"),
-    _WorkAreaItem(id: "3", name: "السليمانية"),
-    _WorkAreaItem(id: "4", name: "السبيل"),
-    _WorkAreaItem(id: "5", name: "الموكامبو"),
-    _WorkAreaItem(id: "6", name: "الفرقان"),
-    _WorkAreaItem(id: "7", name: "الحمدانية"),
-    _WorkAreaItem(id: "8", name: "حلب الجديدة"),
-    _WorkAreaItem(id: "9", name: "الزهراء"),
-    _WorkAreaItem(id: "10", name: "الخالدية"),
-    _WorkAreaItem(id: "11", name: "الأشرفية"),
-    _WorkAreaItem(id: "12", name: "الشيخ مقصود"),
-    _WorkAreaItem(id: "13", name: "بستان القصر"),
-    _WorkAreaItem(id: "14", name: "المشهد"),
-    _WorkAreaItem(id: "15", name: "السكري"),
-    _WorkAreaItem(id: "16", name: "الأنصاري"),
-    _WorkAreaItem(id: "17", name: "صلاح الدين"),
-    _WorkAreaItem(id: "18", name: "الراموسة"),
-    _WorkAreaItem(id: "19", name: "العامرية"),
-    _WorkAreaItem(id: "20", name: "الهلك"),
-    _WorkAreaItem(id: "21", name: "الشعار"),
-    _WorkAreaItem(id: "22", name: "طريق الباب"),
-    _WorkAreaItem(id: "23", name: "كرم الجبل"),
-    _WorkAreaItem(id: "24", name: "كرم الطراب"),
-    _WorkAreaItem(id: "25", name: "كرم القاطرجي"),
-    _WorkAreaItem(id: "26", name: "الميسر"),
-    _WorkAreaItem(id: "27", name: "الصاخور"),
-    _WorkAreaItem(id: "28", name: "الليرمون"),
-    _WorkAreaItem(id: "29", name: "جمعية الزهراء"),
-    _WorkAreaItem(id: "30", name: "جمعية المهندسين"),
-    _WorkAreaItem(id: "31", name: "الأعظمية"),
-    _WorkAreaItem(id: "32", name: "المرجة"),
-    _WorkAreaItem(id: "33", name: "باب النيرب"),
-    _WorkAreaItem(id: "34", name: "باب الحديد"),
-    _WorkAreaItem(id: "35", name: "باب الفرج"),
-    _WorkAreaItem(id: "36", name: "باب جنين"),
-  ];
-
+  List<_WorkAreaItem> _areas = [];
   List<_WorkAreaItem> filteredAreas = [];
   List<_WorkAreaItem> selectedAreas = [];
-  bool get _allAreasSelected => _areas.every((area) => area.selected);
 
-  @override
-  void initState() {
-    super.initState();
-    for (var area in _areas) {
-      if (widget.params.zones.any((zone) => zone.name == area.name)) {
-        area.selected = true;
-        selectedAreas.add(area);
-      }
-    }
-    filteredAreas = List.from(_areas);
-  }
+  bool get _allAreasSelected =>
+      _areas.isNotEmpty && _areas.every((area) => area.selected);
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _applyNeighborhoods(List<CleaningNeighborhoodModel> neighborhoods) {
+    _areas = neighborhoods
+        .map((n) {
+          final alreadySelected = widget.params.zones.any(
+            (zone) =>
+                zone.neighborhoodId == n.id || zone.name == n.displayName,
+          );
+          return _WorkAreaItem(
+            neighborhoodId: n.id,
+            name: n.displayName,
+            selected: alreadySelected,
+          );
+        })
+        .toList(growable: false);
+    selectedAreas = _areas.where((area) => area.selected).toList();
+    filteredAreas = _filterAreas(_searchController.text);
+  }
+
+  List<_WorkAreaItem> _filterAreas(String query) {
+    final normalized = query.trim();
+    if (normalized.isEmpty) return List<_WorkAreaItem>.from(_areas);
+    return _areas
+        .where((area) => area.name.contains(normalized))
+        .toList(growable: false);
+  }
+
+  void _fetchNeighborhoods(BuildContext context) {
+    context.read<ProfileBloc>().add(
+      FetchCleaningNeighborhoodsEvent(
+        params: FetchCleaningNeighborhoodsParams(city: 'حلب'),
+      ),
+    );
   }
 
   void _toggleSelectAllAreas() {
@@ -102,14 +89,137 @@ class _WorkAreasScreenState extends State<WorkAreasScreen> {
     });
   }
 
+  void _onSave(BuildContext context) {
+    if (selectedAreas.isEmpty) {
+      AppToast.showErrorGlobal(
+        'يرجى اختيار حي واحد على الأقل حتى تصلك الطلبات المناسبة.',
+      );
+      return;
+    }
+
+    final zones = selectedAreas
+        .map(
+          (e) => WorkAreaZoneUpdateItem(
+            neighborhoodId: e.neighborhoodId,
+            name: e.name,
+            isActive: e.selected,
+          ),
+        )
+        .toList();
+
+    context.read<ProfileBloc>().add(
+      UpdateWorkerWorkAreasEvent(
+        params: UpdateWorkerWorkAreasParams(zones: zones),
+      ),
+    );
+  }
+
+  Widget _buildAreasContent(ProfileState state) {
+    if (state.cleaningNeighborhoodsStatus == BlocStatus.loading) {
+      return Padding(
+        padding: EdgeInsets.symmetric(vertical: 32.h),
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (state.cleaningNeighborhoodsStatus == BlocStatus.failed) {
+      return Padding(
+        padding: EdgeInsets.symmetric(vertical: 24.h),
+        child: Column(
+          children: [
+            AppText.labelLarge(
+              state.cleaningNeighborhoodsErrorMessage ??
+                  'تعذر تحميل الأحياء، حاول مرة أخرى',
+              color: const Color(0xff6B7280),
+              textAlign: TextAlign.center,
+            ),
+            12.verticalSpace,
+            InkWell(
+              onTap: () => _fetchNeighborhoods(context),
+              borderRadius: BorderRadius.circular(8.r),
+              child: Container(
+                padding: EdgeInsetsDirectional.symmetric(
+                  horizontal: 14.w,
+                  vertical: 8.h,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xffEFF6FF),
+                  borderRadius: BorderRadius.circular(8.r),
+                  border: Border.all(color: const Color(0xffBFDBFE)),
+                ),
+                child: AppText.labelMedium(
+                  'إعادة المحاولة',
+                  color: const Color(0xff1D4ED8),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_areas.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 24.h),
+          child: AppText.labelLarge(
+            'لا توجد أحياء متاحة حالياً',
+            color: const Color(0xff6B7280),
+          ),
+        ),
+      );
+    }
+
+    if (filteredAreas.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 24.h),
+          child: AppText.labelLarge(
+            'لا توجد نتائج مطابقة',
+            color: const Color(0xff6B7280),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: filteredAreas.map(_buildAreaTile).toList(growable: false),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider<ProfileBloc>(
       lazy: false,
-      create: (_) => getIt<ProfileBloc>(),
+      create: (_) {
+        final bloc = getIt<ProfileBloc>();
+        bloc.add(
+          FetchCleaningNeighborhoodsEvent(
+            params: FetchCleaningNeighborhoodsParams(city: 'حلب'),
+          ),
+        );
+        return bloc;
+      },
       child: BlocConsumer<ProfileBloc, ProfileState>(
-        listener: (context, state) {},
+        listenWhen: (previous, current) =>
+            previous.cleaningNeighborhoodsStatus !=
+                current.cleaningNeighborhoodsStatus ||
+            previous.cleaningNeighborhoods != current.cleaningNeighborhoods,
+        listener: (context, state) {
+          if (state.cleaningNeighborhoodsStatus == BlocStatus.success &&
+              state.cleaningNeighborhoods != null) {
+            setState(() => _applyNeighborhoods(state.cleaningNeighborhoods!));
+          }
+        },
         builder: (context, state) {
+          final neighborhoodsLoaded =
+              state.cleaningNeighborhoodsStatus == BlocStatus.success &&
+              _areas.isNotEmpty;
+          final canSave =
+              neighborhoodsLoaded &&
+              state.updateWorkAreasStatus != BlocStatus.loading;
+
           return Scaffold(
             backgroundColor: const Color(0xffF3F4F6),
             body: SafeArea(
@@ -212,7 +322,9 @@ class _WorkAreasScreenState extends State<WorkAreasScreen> {
                                   ),
                                 ),
                                 InkWell(
-                                  onTap: _toggleSelectAllAreas,
+                                  onTap: _areas.isEmpty
+                                      ? null
+                                      : _toggleSelectAllAreas,
                                   borderRadius: BorderRadius.circular(8.r),
                                   child: Container(
                                     padding: EdgeInsetsDirectional.symmetric(
@@ -240,17 +352,10 @@ class _WorkAreasScreenState extends State<WorkAreasScreen> {
                             10.verticalSpace,
                             TextField(
                               controller: _searchController,
+                              enabled: _areas.isNotEmpty,
                               onChanged: (value) {
                                 setState(() {
-                                  if (value.isEmpty) {
-                                    filteredAreas = List.from(_areas);
-                                  } else {
-                                    filteredAreas = _areas
-                                        .where(
-                                          (area) => area.name.contains(value),
-                                        )
-                                        .toList();
-                                  }
+                                  filteredAreas = _filterAreas(value);
                                 });
                               },
                               style: context.textTheme.labelLarge!.copyWith(
@@ -288,18 +393,7 @@ class _WorkAreasScreenState extends State<WorkAreasScreen> {
                               ),
                             ),
                             14.verticalSpace,
-                            if (filteredAreas.isEmpty)
-                              Center(
-                                child: Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 24.h),
-                                  child: AppText.labelLarge(
-                                    'لا توجد نتائج مطابقة',
-                                    color: const Color(0xff6B7280),
-                                  ),
-                                ),
-                              )
-                            else
-                              ...filteredAreas.map(_buildAreaTile),
+                            _buildAreasContent(state),
                           ],
                         ),
                       ),
@@ -335,36 +429,23 @@ class _WorkAreasScreenState extends State<WorkAreasScreen> {
                             Expanded(
                               flex: 3,
                               child: InkWell(
-                                onTap: () {
-                                  final zones = selectedAreas
-                                      .map(
-                                        (e) => WorkAreaZoneUpdateItem(
-                                          name: e.name,
-                                          isActive: e.selected,
-                                        ),
-                                      )
-                                      .toList();
-                                  context.read<ProfileBloc>().add(
-                                    UpdateWorkerWorkAreasEvent(
-                                      params: UpdateWorkerWorkAreasParams(
-                                        zones: zones,
-                                      ),
+                                onTap: canSave ? () => _onSave(context) : null,
+                                child: Opacity(
+                                  opacity: canSave ? 1 : 0.5,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(8.r),
+                                      color: context.primary,
                                     ),
-                                  );
-                                },
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(8.r),
-                                    color: context.primary,
-                                  ),
-                                  padding: EdgeInsetsDirectional.symmetric(
-                                    horizontal: 12.w,
-                                    vertical: 8.h,
-                                  ),
-                                  child: AppText.labelLarge(
-                                    'حفظ التغييرات',
-                                    color: context.onPrimary,
-                                    fontWeight: FontWeight.w500,
+                                    padding: EdgeInsetsDirectional.symmetric(
+                                      horizontal: 12.w,
+                                      vertical: 8.h,
+                                    ),
+                                    child: AppText.labelLarge(
+                                      'حفظ التغييرات',
+                                      color: context.onPrimary,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -455,9 +536,13 @@ class _WorkAreasScreenState extends State<WorkAreasScreen> {
           setState(() {
             item.selected = !item.selected;
             if (item.selected) {
-              selectedAreas.add(item);
+              if (!selectedAreas.contains(item)) {
+                selectedAreas.add(item);
+              }
             } else {
-              selectedAreas.removeWhere((element) => element.id == item.id);
+              selectedAreas.removeWhere(
+                (element) => element.neighborhoodId == item.neighborhoodId,
+              );
             }
           });
         },
@@ -542,9 +627,13 @@ class _SelectionBox extends StatelessWidget {
 }
 
 class _WorkAreaItem {
-  _WorkAreaItem({required this.id, required this.name});
+  _WorkAreaItem({
+    required this.neighborhoodId,
+    required this.name,
+    this.selected = false,
+  });
 
-  final String id;
+  final int neighborhoodId;
   final String name;
-  bool selected = false;
+  bool selected;
 }

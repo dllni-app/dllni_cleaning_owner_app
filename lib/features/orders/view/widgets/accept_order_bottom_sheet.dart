@@ -427,6 +427,11 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                       _sectionTitle(context, Icons.location_on_outlined, 'عنوان العقار'),
                       const SizedBox(height: 10),
                       _detailCard(context, [
+                        if (_order.displayNeighborhoodName != null)
+                          _orderInfoRow(
+                            label: 'الحي',
+                            value: _order.displayNeighborhoodName!,
+                          ),
                         AppText.bodyMedium(
                           visibleOrderAddress(
                             address: _order.propertyDetails?.address ?? _order.locationName,

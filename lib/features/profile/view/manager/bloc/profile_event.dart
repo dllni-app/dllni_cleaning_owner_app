@@ -100,3 +100,9 @@ class FetchWorkerReviewsEvent extends ProfileEvent with EventWithReload {
     this.isReload = false,
   });
 }
+
+class FetchCleaningNeighborhoodsEvent extends ProfileEvent {
+  final FetchCleaningNeighborhoodsParams params;
+
+  FetchCleaningNeighborhoodsEvent({required this.params});
+}

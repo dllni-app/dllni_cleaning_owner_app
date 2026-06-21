@@ -28,16 +28,26 @@ class UpdateWorkerWorkAreasParams with Params {
 }
 
 class WorkAreaZoneUpdateItem {
+  final int neighborhoodId;
   final String name;
   final bool isActive;
 
-  const WorkAreaZoneUpdateItem({required this.name, required this.isActive});
+  const WorkAreaZoneUpdateItem({
+    required this.neighborhoodId,
+    required this.name,
+    required this.isActive,
+  });
 
   factory WorkAreaZoneUpdateItem.fromZone(WorkerWorkAreaZone zone) {
-    return WorkAreaZoneUpdateItem(name: zone.name ?? '', isActive: zone.isActive ?? false);
+    return WorkAreaZoneUpdateItem(
+      neighborhoodId: zone.neighborhoodId ?? 0,
+      name: zone.name ?? '',
+      isActive: zone.isActive ?? false,
+    );
   }
 
   Map<String, dynamic> toJson() => {
+        'neighborhoodId': neighborhoodId,
         'name': name,
         'isActive': isActive,
       };
