@@ -30,38 +30,43 @@ List<NotificationChannel> get _basicNotificationChannels => [
     channelKey: _basicChannelKey,
     channelName: 'Basic Notifications',
     importance: NotificationImportance.High,
-    defaultColor: const Color(0xffBF956B),
+    defaultColor: const Color(0xff1E2A7B),
     onlyAlertOnce: false,
     channelShowBadge: true,
     channelDescription: 'Basic Instant Notification',
   ),
 ];
 
-Future<void> _initializeAwesomeNotificationsInIsolate() async {
-  await AwesomeNotifications().initialize(null, _basicNotificationChannels);
-}
+// Future<void> _initializeAwesomeNotificationsInIsolate() async {
+//   await AwesomeNotifications().initialize(null, _basicNotificationChannels);
+// }
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  await _initializeAwesomeNotificationsInIsolate();
-  final payload = message.data.map(
-    (k, v) => MapEntry(k.toString(), v.toString()),
-  );
-  // Store lifecycle marker to indicate this notification was created in background
-  payload[_lifecycleMarkerKey] = NotificationLifeCycle.Background.name;
+  // await _initializeAwesomeNotificationsInIsolate();
+  // final payload = message.data.map(
+  //   (k, v) => MapEntry(k.toString(), v.toString()),
+  // );
+  // // Store lifecycle marker to indicate this notification was created in background
+  // payload[_lifecycleMarkerKey] = NotificationLifeCycle.Background.name;
+  //
+  // await AwesomeNotifications().createNotification(
+  //   content: NotificationContent(
+  //     id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
+  //     channelKey: _basicChannelKey,
+  //     title:
+  //         message.notification?.title ??
+  //         message.data['title'] ??
+  //         'New Notification',
+  //     body: message.notification?.body ?? message.data['body'] ?? '',
+  //     payload: payload,
+  //   ),
+  // );
 
-  await AwesomeNotifications().createNotification(
-    content: NotificationContent(
-      id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
-      channelKey: _basicChannelKey,
-      title:
-          message.notification?.title ??
-          message.data['title'] ??
-          'New Notification',
-      body: message.notification?.body ?? message.data['body'] ?? '',
-      payload: payload,
-    ),
+  log(
+    'Background message received: '
+        '${message.messageId} ${message.data}',
   );
 }
 

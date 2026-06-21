@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_booking_pusher_service.dart';
@@ -8,7 +7,6 @@ import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_worker_global_p
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:toastification/toastification.dart';
-
 import 'core/routes/app_router.dart';
 import 'features/auth/view/screens/login_screen.dart';
 import 'features/main/view/screens/main_screen.dart';
