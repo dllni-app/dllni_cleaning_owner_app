@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../../core/widgets/provisional_pricing_notice.dart';
 import '../../../data/models/arrive_model.dart';
+import '../../../data/models/cleaning_booking_status.dart';
 import '../../../data/models/fetch_orders_usecase_model.dart';
 import '../../../domain/usecases/complete_order_usecase_use_case.dart';
 import '../../../domain/usecases/fetch_order_details_usecase_use_case.dart';
@@ -39,8 +40,14 @@ class OrderDetailsMissionBody extends StatefulWidget {
 }
 
 class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
+  static const Duration _autoFinishOverdueGrace = Duration(minutes: 15);
+
   Timer? _timer;
   Duration _remainingTime = Duration.zero;
+  Duration _overdueTime = Duration.zero;
+  bool _isWorkTimerAvailable = false;
+  bool _isWorkOverdue = false;
+  bool _autoFinishRequestDispatched = false;
   bool _waitingSheetOpen = false;
   String? _lastCompletionMessage;
   final Map<String, bool> _taskState = <String, bool>{};
@@ -48,7 +55,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
   @override
   void initState() {
     super.initState();
-    _calculateRemainingTime();
+    _calculateWorkTimer();
     _startTimer();
     _initTasks();
   }
@@ -56,10 +63,22 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
   @override
   void didUpdateWidget(covariant OrderDetailsMissionBody oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.order.id != widget.order.id) {
+      _autoFinishRequestDispatched = false;
+      _lastCompletionMessage = null;
+    }
     if (oldWidget.order.id != widget.order.id ||
         oldWidget.services.length != widget.services.length ||
         oldWidget.addons.length != widget.addons.length) {
       _initTasks();
+    }
+    if (oldWidget.order.id != widget.order.id ||
+        oldWidget.order.status != widget.order.status ||
+        oldWidget.order.workStartedAt != widget.order.workStartedAt ||
+        oldWidget.order.arrivedAt != widget.order.arrivedAt ||
+        oldWidget.order.totalHours != widget.order.totalHours ||
+        oldWidget.order.estimatedHours != widget.order.estimatedHours) {
+      _calculateWorkTimer();
     }
   }
 
@@ -88,6 +107,12 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
 
   bool get _isEventAssistance =>
       EventAssistanceOrderHelper.isEventAssistance(widget.order.propertyType);
+
+  bool get _hasExceededAutoFinishGrace =>
+      _isWorkOverdue && _overdueTime >= _autoFinishOverdueGrace;
+
+  bool get _isChecklistLocked =>
+      _isWaitingCustomer || _hasExceededAutoFinishGrace || _autoFinishRequestDispatched;
 
   List<_TaskItem> get _tasks {
     final items = <_TaskItem>[];
@@ -335,38 +360,105 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     _waitingSheetOpen = false;
   }
 
-  void _calculateRemainingTime() {
-    final arrived = widget.order.arrivedAt;
-    if (arrived == null) {
-      if (mounted) {
-        setState(() => _remainingTime = Duration.zero);
-      }
-      return;
-    }
-    final arrivedAt = DateTime.tryParse(arrived);
-    if (arrivedAt == null) {
-      if (mounted) {
-        setState(() => _remainingTime = Duration.zero);
-      }
-      return;
-    }
-    final estimatedHours = widget.order.estimatedHours ?? 0;
-    final estimatedDuration = Duration(
-      hours: estimatedHours.floor(),
-      minutes: ((estimatedHours - estimatedHours.floor()) * 60).round(),
+  DateTime? _parseDate(String? value) {
+    final raw = value?.trim();
+    if (raw == null || raw.isEmpty) return null;
+    return DateTime.tryParse(raw);
+  }
+
+  Duration? _durationFromHours(double? hours) {
+    if (hours == null || hours <= 0) return null;
+    return Duration(minutes: (hours * 60).round());
+  }
+
+  bool _isActiveWorkTimerStatus(String? status) {
+    final normalized = (status ?? '').trim().toLowerCase();
+    return normalized == CleaningBookingStatus.inProgress ||
+        normalized == CleaningBookingStatus.timeExtensionRequested;
+  }
+
+  DateTime? _resolveExpectedFinishAt() {
+    final startAt =
+        _parseDate(widget.order.workStartedAt) ?? _parseDate(widget.order.arrivedAt);
+    final duration = _durationFromHours(
+      (widget.order.totalHours != null && widget.order.totalHours! > 0)
+          ? widget.order.totalHours
+          : widget.order.estimatedHours,
     );
-    final endTime = arrivedAt.add(estimatedDuration);
-    final diff = endTime.difference(DateTime.now());
+    if (startAt == null || duration == null) return null;
+    return startAt.add(duration);
+  }
+
+  void _setTimerUnavailable() {
     if (!mounted) return;
     setState(() {
-      _remainingTime = diff.isNegative ? Duration.zero : diff;
+      _isWorkTimerAvailable = false;
+      _isWorkOverdue = false;
+      _remainingTime = Duration.zero;
+      _overdueTime = Duration.zero;
     });
+  }
+
+  void _calculateWorkTimer() {
+    final status = _effectiveStatus(widget.bloc.state);
+    if (!_isActiveWorkTimerStatus(status)) {
+      _setTimerUnavailable();
+      return;
+    }
+
+    final expectedFinishAt = _resolveExpectedFinishAt();
+    if (expectedFinishAt == null) {
+      _setTimerUnavailable();
+      return;
+    }
+
+    final diff = expectedFinishAt.difference(DateTime.now());
+    final isOverdue = diff.isNegative;
+    final overdueTime = isOverdue ? diff.abs() : Duration.zero;
+    final remainingTime = isOverdue ? Duration.zero : diff;
+    final shouldAutoFinish = overdueTime >= _autoFinishOverdueGrace;
+
+    if (!mounted) return;
+    setState(() {
+      _isWorkTimerAvailable = true;
+      _isWorkOverdue = isOverdue;
+      _remainingTime = remainingTime;
+      _overdueTime = overdueTime;
+    });
+
+    if (shouldAutoFinish) {
+      _maybeAutoFinishOverdueOrder();
+    }
+  }
+
+  void _maybeAutoFinishOverdueOrder() {
+    if (_autoFinishRequestDispatched || !_canFinish || widget.order.id == null) {
+      return;
+    }
+    if (widget.bloc.state.completeOrderUsecaseStatus == BlocStatus.loading) {
+      return;
+    }
+
+    setState(() {
+      _autoFinishRequestDispatched = true;
+      _lastCompletionMessage =
+          'تم إنهاء الطلب تلقائياً بعد تجاوز الوقت المحدد بأكثر من 15 دقيقة.';
+    });
+
+    widget.bloc.add(
+      CompleteOrderUsecaseEvent(
+        params: CompleteOrderUsecaseParams(
+          id: widget.order.id!,
+          completionMessage: _lastCompletionMessage,
+        ),
+      ),
+    );
   }
 
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      _calculateRemainingTime();
+      _calculateWorkTimer();
     });
   }
 
@@ -385,23 +477,92 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     return DateFormat('yyyy_MM_dd', 'en').format(date);
   }
 
-  Widget _summaryRow(String title, String value, {bool total = false}) {
-    final color = total ? const Color(0xff111827) : const Color(0xff374151);
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        AppText.bodyMedium(
-          title,
-          color: color,
-          fontWeight: total ? FontWeight.w700 : FontWeight.w500,
-        ),
-        AppText.bodyMedium(
-          value,
-          color: color,
-          fontWeight: total ? FontWeight.w700 : FontWeight.w500,
-        ),
-      ],
-    );
+  List<Color> get _timerGradientColors {
+    if (_isWaitingCustomer || _autoFinishRequestDispatched) {
+      return const <Color>[Color(0xff1E2A78), Color(0xff283593)];
+    }
+    if (_hasExceededAutoFinishGrace) {
+      return const <Color>[Color(0xffB91C1C), Color(0xffDC2626)];
+    }
+    if (_isWorkOverdue) {
+      return const <Color>[Color(0xffD97706), Color(0xffF59E0B)];
+    }
+    return const <Color>[Color(0xff1DBCC8), Color(0xff10A7B2)];
+  }
+
+  String get _missionStatusText {
+    if (_isWaitingCustomer || _autoFinishRequestDispatched) {
+      return 'تم إنهاء العمل';
+    }
+    if (_hasExceededAutoFinishGrace) {
+      return 'تم إنهاء الطلب';
+    }
+    if (_isWorkOverdue) {
+      return 'العمل متأخر';
+    }
+    return 'العمل قيد التنفيذ';
+  }
+
+  String get _timerTitleText {
+    if (_isWaitingCustomer || _autoFinishRequestDispatched) {
+      return 'تم إرسال طلب إنهاء العمل للعميل';
+    }
+    if (!_isWorkTimerAvailable) {
+      return 'وقت العمل غير متوفر لهذا الطلب';
+    }
+    if (_hasExceededAutoFinishGrace) {
+      return 'تم تجاوز الوقت المسموح وتم إنهاء العمل';
+    }
+    if (_isWorkOverdue) {
+      return 'انتهى الوقت المحدد للعمل';
+    }
+    return 'الوقت المتبقي لإنهاء العمل';
+  }
+
+  String get _timerValueText {
+    if (_isWaitingCustomer || _autoFinishRequestDispatched) {
+      return 'بانتظار تأكيد العميل';
+    }
+    if (!_isWorkTimerAvailable) {
+      return '--:--:--';
+    }
+    if (_isWorkOverdue) {
+      return 'تأخير: ${_formatDuration(_overdueTime)}';
+    }
+    return _formatDuration(_remainingTime);
+  }
+
+  String? get _timerHelperText {
+    if (_isWaitingCustomer || _autoFinishRequestDispatched) {
+      return 'تم قفل قائمة المهام بعد إرسال طلب الإنهاء.';
+    }
+    if (!_isWorkTimerAvailable) {
+      return null;
+    }
+    if (_hasExceededAutoFinishGrace) {
+      return 'تم قفل قائمة المهام وإرسال طلب إنهاء العمل تلقائياً.';
+    }
+    if (_isWorkOverdue) {
+      return 'يرجى إنهاء العمل وإرسال طلب التأكيد للعميل عند الانتهاء.';
+    }
+    return null;
+  }
+
+  String get _taskListHintText {
+    if (_isChecklistLocked) {
+      return 'تم قفل القائمة بعد انتهاء وقت العمل.';
+    }
+    return 'تحديد المهام التي قمت بتنفيذها';
+  }
+
+  String get _finishButtonText {
+    if (_isWaitingCustomer || _autoFinishRequestDispatched) {
+      return 'تم إرسال طلب الإنهاء';
+    }
+    if (_hasExceededAutoFinishGrace) {
+      return 'تم إنهاء العمل تلقائياً';
+    }
+    return 'إنهاء العمل';
   }
 
   @override
@@ -444,9 +605,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(16),
-                        gradient: const LinearGradient(
-                          colors: <Color>[Color(0xff1DBCC8), Color(0xff10A7B2)],
-                        ),
+                        gradient: LinearGradient(colors: _timerGradientColors),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -459,9 +618,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                                 color: Colors.white,
                               ),
                               AppText.labelLarge(
-                                _isWaitingCustomer
-                                    ? 'بانتظار العميل'
-                                    : 'العمل قيد التنفيذ',
+                                _missionStatusText,
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -480,17 +637,25 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                             child: Column(
                               children: [
                                 AppText.bodyMedium(
-                                  _isWaitingCustomer
-                                      ? 'بانتظار تأكيد العميل على إنهاء العمل'
-                                      : 'الوقت المتبقي لإنهاء العمل',
+                                  _timerTitleText,
                                   color: Colors.white,
+                                  textAlign: TextAlign.center,
                                 ),
                                 4.verticalSpace,
                                 AppText.bodyLarge(
-                                  _formatDuration(_remainingTime),
+                                  _timerValueText,
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
+                                  textAlign: TextAlign.center,
                                 ),
+                                if (_timerHelperText != null) ...[
+                                  6.verticalSpace,
+                                  AppText.bodySmall(
+                                    _timerHelperText!,
+                                    color: Colors.white,
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
                               ],
                             ),
                           ),
@@ -515,14 +680,17 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                           ),
                           4.verticalSpace,
                           AppText.bodySmall(
-                            'تحديد المهام التي قمت بتنفيذها',
-                            color: const Color(0xff6B7280),
+                            _taskListHintText,
+                            color: _isChecklistLocked
+                                ? const Color(0xffB45309)
+                                : const Color(0xff6B7280),
                           ),
                           12.verticalSpace,
                           ..._tasks.asMap().entries.map((entry) {
                             final task = entry.value;
                             final taskKey = _taskKey(task, entry.key);
-                            final checked = _taskState[taskKey] ?? false;
+                            final checked =
+                                _isChecklistLocked || (_taskState[taskKey] ?? false);
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 10),
                               child: Container(
@@ -531,21 +699,27 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                                   vertical: 8,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xffF8FAFC),
+                                  color: _isChecklistLocked
+                                      ? const Color(0xffF1F5F9)
+                                      : const Color(0xffF8FAFC),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: const Color(0xffE5E7EB),
+                                    color: _isChecklistLocked
+                                        ? const Color(0xffCBD5E1)
+                                        : const Color(0xffE5E7EB),
                                   ),
                                 ),
                                 child: Row(
                                   children: [
                                     Checkbox(
                                       value: checked,
-                                      onChanged: (value) {
-                                        setState(() {
-                                          _taskState[taskKey] = value ?? false;
-                                        });
-                                      },
+                                      onChanged: _isChecklistLocked
+                                          ? null
+                                          : (value) {
+                                              setState(() {
+                                                _taskState[taskKey] = value ?? false;
+                                              });
+                                            },
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(4),
                                       ),
@@ -561,6 +735,9 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                                           AppText.bodyMedium(
                                             task.label,
                                             fontWeight: FontWeight.w700,
+                                            color: _isChecklistLocked
+                                                ? const Color(0xff64748B)
+                                                : null,
                                           ),
                                           if (task.detail != null)
                                             AppText.bodySmall(
@@ -575,7 +752,15 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                               ),
                             );
                           }),
-                          if (!_allTasksChecked && !_isWaitingCustomer) ...[
+                          if (_isChecklistLocked) ...[
+                            2.verticalSpace,
+                            AppText.bodySmall(
+                              _isWaitingCustomer || _autoFinishRequestDispatched
+                                  ? 'قائمة المهام مقفلة لأن طلب إنهاء العمل قد تم إرساله.'
+                                  : 'قائمة المهام مقفلة لأن الطلب تجاوز الوقت المحدد بأكثر من 15 دقيقة.',
+                              color: const Color(0xffB45309),
+                            ),
+                          ] else if (!_allTasksChecked) ...[
                             2.verticalSpace,
                             AppText.bodySmall(
                               'يرجى تحديد جميع المهام قبل إنهاء العمل',
@@ -607,8 +792,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                                 widget.order.travelFee,
                             addonsTotal: widget.order.addonsTotal,
                             totalPrice: widget.order.totalPrice,
-                            currency: widget.order.myAssignment?.currency ??
-                                'SYP',
+                            currency: widget.order.myAssignment?.currency ?? 'SYP',
                             showAddonsTotal: false,
                             useWorkerShare: widget.order.myAssignment != null,
                             serviceShareAmount:
@@ -639,7 +823,9 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                       bloc: widget.bloc,
                       builder: (context, state) {
                         final completionMessage = _currentCompletionMessage(state);
-                        if (!_isWaitingCustomer) return const SizedBox.shrink();
+                        if (!_isWaitingCustomer && !_autoFinishRequestDispatched) {
+                          return const SizedBox.shrink();
+                        }
 
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -664,7 +850,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                                       8.horizontalSpace,
                                       Expanded(
                                         child: AppText.bodyMedium(
-                                          'تم إرسال طلب إنهاء الخدمة إلى العميل. بانتظار التأكيد أو طلب إجراء آخر.',
+                                          'تم إنهاء العمل وإرسال طلب التأكيد إلى العميل. بانتظار التأكيد أو طلب إجراء آخر.',
                                           color: const Color(0xff1E2A78),
                                           textAlign: TextAlign.start,
                                         ),
@@ -699,7 +885,10 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                         final loading =
                             state.completeOrderUsecaseStatus == BlocStatus.loading;
                         final canSendFinishRequest =
-                            _canFinish && _allTasksChecked && !loading;
+                            !_isChecklistLocked &&
+                            _canFinish &&
+                            _allTasksChecked &&
+                            !loading;
                         return FilledButton(
                           onPressed: !canSendFinishRequest
                               ? null
@@ -719,9 +908,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                                   ),
                                 )
                               : AppText.labelLarge(
-                                  _isWaitingCustomer
-                                      ? 'بانتظار تأكيد العميل'
-                                      : 'إنهاء العمل',
+                                  _finishButtonText,
                                   color: Colors.white,
                                   fontWeight: FontWeight.w700,
                                 ),
