@@ -223,8 +223,9 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       decoration: BoxDecoration(
-        color: context.secondary.withAlpha(40),
+        color: Color(0xFFE2E5EE),
         borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: Colors.black)
       ),
       child: AppText.labelMedium(
         text,
@@ -234,3 +235,4 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
     );
   }
 }
+
