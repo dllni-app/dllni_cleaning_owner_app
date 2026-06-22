@@ -44,6 +44,7 @@ dependencies:
   flutter_svg: ^2.0.10
   pusher_channels_flutter: ^2.2.0
   animated_list_plus: ^0.5.2
+  intl_phone_field: ^3.2.0
 
 
 dev_dependencies:

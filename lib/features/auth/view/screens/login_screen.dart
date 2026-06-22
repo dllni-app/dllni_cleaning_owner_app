@@ -4,10 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:intl_phone_number_input/intl_phone_number_input.dart';
-
 import '../../../../core/di/injection.dart';
-import '../../../../core/helpers/phone_number_helper.dart';
 import '../../../../core/widgets/app_phone_number_field.dart';
+import '../../../../core/widgets/phone_number_widget/my_phone_number_field_widget.dart';
 import '../../../../generated/assets.dart';
 import '../manager/bloc/auth_bloc.dart';
 
@@ -23,8 +22,20 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _phoneFieldKey = GlobalKey<AppPhoneNumberFieldState>();
   final _passwordController = TextEditingController();
-  PhoneNumber? _phone;
   bool _obscurePassword = true;
+
+  late final ValueNotifier<String> phoneValue;
+  late final FocusNode phoneFocusNode;
+  late final FocusNode passwordFocus;
+
+  @override
+  void initState() {
+    phoneValue = ValueNotifier('');
+    phoneFocusNode=FocusNode();
+    passwordFocus=FocusNode();
+    // TODO: implement initState
+    super.initState();
+  }
 
   @override
   void dispose() {
@@ -35,15 +46,11 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _submit(AuthBloc bloc) async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    final phoneError = await _phoneFieldKey.currentState?.validate();
-    if (phoneError != null) return;
 
-    final phone = formatPhoneForApi(_phone);
-    if (phone == null) return;
 
     bloc.add(
       LoginUsecaseEvent(
-        params: LoginUsecaseParams(phone: phone, password: _passwordController.text),
+        params: LoginUsecaseParams(phone: phoneValue.value, password: _passwordController.text),
       ),
     );
   }
@@ -107,14 +114,24 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       padding: EdgeInsetsDirectional.all(25),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          AppPhoneNumberField(
-                            key: _phoneFieldKey,
-                            label: 'رقم الجوال',
-                            isRequired: true,
-                            variant: AppPhoneFieldVariant.ownerLogin,
-                            onChanged: (number) => _phone = number,
+
+                          AppText.bodyMedium('رقم الجوال', fontWeight: FontWeight.bold, color: Color(0xff111827), textAlign: TextAlign.start),
+                          SizedBox(height: 8),
+
+                          MyPhoneNumberField(
+                            internationalPhoneValue: phoneValue,
+                            hintText: 'رقم الجوال',
+                            isMargin: false,
+
+                            textInputAction: TextInputAction.next,
+                            focusNode: phoneFocusNode,
+                            onSubmitted: (_) {
+                              FocusScope.of(context).requestFocus(passwordFocus);
+                            },
                           ),
+
                           SizedBox(height: 20),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -122,6 +139,11 @@ class _LoginScreenState extends State<LoginScreen> {
                               AppText.bodyMedium('كلمة المرور', fontWeight: FontWeight.bold, color: Color(0xff111827), textAlign: TextAlign.start),
                               SizedBox(height: 8),
                               TextFormField(
+                                focusNode: passwordFocus,
+                                textInputAction: TextInputAction.done,
+                                onFieldSubmitted: (_) {
+                                  passwordFocus.unfocus();
+                                },
                                 controller: _passwordController,
                                 obscureText: _obscurePassword,
                                 textDirection: TextDirection.ltr,
