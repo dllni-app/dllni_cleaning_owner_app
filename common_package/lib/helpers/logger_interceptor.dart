@@ -25,8 +25,20 @@ class LoggerInterceptor extends Interceptor {
       return;
     }
 
+    String body = '';
+
+    if (options.data != null) {
+      body = options.data.toString();
+
+      if (body.length > 1500) {
+        body = '${body.substring(0, 1500)} ... (truncated)';
+      }
+    }
+
     _logger.i(
-      '🚀 ${options.method} ${options.uri.toString()}',
+      '🚀 ${options.method} ${options.uri}\n'
+          'Headers: ${options.headers}\n'
+          '${body.isNotEmpty ? 'Body:\n$body' : ''}',
     );
 
     handler.next(options);
@@ -42,6 +54,7 @@ class LoggerInterceptor extends Interceptor {
     }
 
     final data = response.data;
+
     String summary = '';
 
     if (data is List) {
@@ -52,18 +65,18 @@ class LoggerInterceptor extends Interceptor {
           : 'keys=${data.keys.length}';
     }
 
-    // تحويل الـ Body لـ 5 أسطر
-    String bodyPreview = data.toString();
-    List<String> lines = bodyPreview.split('\n');
-    if (lines.length > 5) {
-      bodyPreview = lines.take(5).join('\n') + '\n... (truncated)';
+    String body = data.toString();
+
+    if (body.length > 2000) {
+      body = '${body.substring(0, 2000)} ... (truncated)';
     }
 
-    // استخدم response.requestOptions.uri.toString() للرابط الكامل
     _logger.i(
-      '✅ ${response.statusCode} ${response.requestOptions.method} ${response.requestOptions.uri.toString()}'
+      '✅ ${response.statusCode} '
+          '${response.requestOptions.method} '
+          '${response.requestOptions.uri}'
           '${summary.isNotEmpty ? ' ($summary)' : ''}\n'
-          'Body: $bodyPreview',
+          'Response:\n$body',
     );
 
     handler.next(response);
@@ -79,11 +92,34 @@ class LoggerInterceptor extends Interceptor {
       return;
     }
 
+    final request = err.requestOptions;
+
+    String requestBody = '';
+    if (request.data != null) {
+      requestBody = request.data.toString();
+    }
+
+    String responseBody = '';
+    if (err.response?.data != null) {
+      responseBody = err.response!.data.toString();
+    }
+
     _logger.e(
       '❌ ${err.response?.statusCode ?? 'UNKNOWN'} '
-          '${err.requestOptions.method} '
-          '${err.requestOptions.path}\n'
-          '${err.message}',
+          '${request.method} '
+          '${request.uri}\n\n'
+          'Message:\n'
+          '${err.message}\n\n'
+          'Type:\n'
+          '${err.type}\n\n'
+          'Headers:\n'
+          '${request.headers}\n\n'
+          'Query Parameters:\n'
+          '${request.queryParameters}\n\n'
+          '${requestBody.isNotEmpty ? 'Request Body:\n$requestBody\n\n' : ''}'
+          '${responseBody.isNotEmpty ? 'Response Body:\n$responseBody\n\n' : ''}'
+          'StackTrace:\n'
+          '${err.stackTrace}',
     );
 
     handler.next(err);

@@ -5,6 +5,7 @@ import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_realtime_contract.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/pusher_manager.dart';
 import 'package:dllni_cleaninig_owner_app/core/widgets/order_card.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:dllni_cleaninig_owner_app/features/home/view/widgets/today_overview_card.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/data/models/fetch_worker_profile_usecase_model.dart';
@@ -520,7 +521,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     );
                                   },
                                   failedWidget: AppText.labelLarge(
-                                    state.errorMessage ?? 'حدث خطأ ما',
+                                    state.errorMessage?.tr() ?? 'حدث خطأ ما',
                                     color: context.error,
                                   ),
                                   onTapRetry: () {

@@ -117,7 +117,19 @@ class _LoginScreenState extends State<LoginScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
 
-                          AppText.bodyMedium('رقم الجوال', fontWeight: FontWeight.bold, color: Color(0xff111827), textAlign: TextAlign.start),
+                          Row(
+                            children: [
+                              AppText.bodyMedium(
+                                'رقم الجوال',
+                                fontWeight: FontWeight.w500,
+                              ),
+                              AppText.bodyMedium(
+                                '*',
+                                color: context.error,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ],
+                          ),
                           SizedBox(height: 8),
 
                           MyPhoneNumberField(
