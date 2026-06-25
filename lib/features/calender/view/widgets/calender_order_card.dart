@@ -1,6 +1,6 @@
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
-import 'package:easy_localization/easy_localization.dart';
+import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_arabic_time_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -20,7 +20,16 @@ class CalenderOrderCard extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(width: 52, child: AppText.labelMedium(DateFormat('hh:mm a', 'en').format(DateFormat("HH:mm:ss", 'en').parse(date.scheduledTime!)), scrollText: true)),
+        SizedBox(
+          width: 52,
+          child: AppText.labelMedium(
+            CleaningArabicTimeFormatter.formatScheduledTime(
+              date.scheduledTime,
+              emptyValue: '',
+            ),
+            scrollText: true,
+          ),
+        ),
         SizedBox(width: 13),
         Expanded(
           child: InkWell(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 import 'dart:async';
+import 'dart:convert';
 import 'package:common_package/common_package.dart';
 import '../../../../../core/realtime/cleaning_realtime_contract.dart';
 import '../../../data/models/cleaning_booking_status.dart';
@@ -111,6 +112,14 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     on<HydrateOrderListFromRealtimeEvent>(_hydrateOrderListFromRealtime);
     on<HydrateOrderDetailsFromRealtimeEvent>(_hydrateOrderDetailsFromRealtime);
     on<SyncPendingOrderFromRealtimeEvent>(_syncPendingOrderFromRealtime);
+    on<SetOrdersListFilterEvent>(_setOrdersListFilter);
+  }
+
+  void _setOrdersListFilter(
+    SetOrdersListFilterEvent event,
+    Emitter<OrdersState> emit,
+  ) {
+    _lastOrdersStatusFilter = event.status;
   }
 
   EventTransformer<T> droppableProMax<T extends EventWithReload>() {
@@ -130,13 +139,15 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     FetchOrdersUsecaseEvent event,
     Emitter<OrdersState> emit,
   ) async {
-    _lastOrdersStatusFilter = event.params.status ?? _lastOrdersStatusFilter;
+    _rememberOrdersListFilter(event.params);
     if (!state.ordersUsecase!.isEndPage || event.isReload) {
       if (event.silent) {
         final res = await fetchOrdersUsecaseUseCase(event.params);
+        if (emit.isDone) return;
         res.fold(
           (l) {},
           (r) {
+            _cacheWorkerEligibility(r);
             emit(
               state.copyWith(
                 ordersUsecase: state.ordersUsecase!.setSuccessReplace(
@@ -157,6 +168,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
         ),
       );
       final res = await fetchOrdersUsecaseUseCase(event.params);
+      if (emit.isDone) return;
       res.fold(
         (l) {
           AppToast.showErrorGlobal(l.message);
@@ -170,6 +182,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
           );
         },
         (r) {
+          _cacheWorkerEligibility(r);
           emit(
             state.copyWith(
               ordersUsecase: state.ordersUsecase!.setSuccess(data: r.data!),
@@ -178,6 +191,10 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
         },
       );
     }
+  }
+
+  void _rememberOrdersListFilter(FetchOrdersUsecaseParams params) {
+    _lastOrdersStatusFilter = params.status ?? _lastOrdersStatusFilter;
   }
 
   FutureOr<void> _fetchOrderDetailsUsecase(
@@ -451,6 +468,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     AcceptExtensionUsecaseEvent event,
     Emitter<OrdersState> emit,
   ) async {
+
     emit(state.copyWith(acceptExtensionUsecaseStatus: BlocStatus.loading));
     final res = await acceptExtensionUsecaseUseCase(event.params);
     res.fold(
@@ -872,7 +890,8 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
   FutureOr<void> _syncPendingOrderFromRealtime(
     SyncPendingOrderFromRealtimeEvent event,
     Emitter<OrdersState> emit,
-  ) async {
+  )
+  async {
     final bookingId = CleaningRealtimeContract.extractBookingId(event.payload);
     final shouldSync =
         CleaningRealtimeContract.shouldRefreshPendingOrdersForWorkerEvent(
@@ -902,14 +921,45 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     final res = await fetchOrderDetailsUsecaseUseCase(
       FetchOrderDetailsUsecaseParams(id: bookingId),
     );
+    if (emit.isDone) return;
+
     res.fold(
-      (_) {},
+      (_) {
+        if (!event.applyToPendingList) return;
+        add(
+          FetchOrdersUsecaseEvent(
+            params: FetchOrdersUsecaseParams(
+              page: 1,
+              status: CleaningBookingStatus.pending,
+            ),
+            isReload: true,
+            silent: true,
+          ),
+        );
+      },
       (response) {
         final details = response.data;
-        if (details == null) return;
+        if (details == null) {
+          if (!event.applyToPendingList) return;
+          add(
+            FetchOrdersUsecaseEvent(
+              params: FetchOrdersUsecaseParams(
+                page: 1,
+                status: CleaningBookingStatus.pending,
+              ),
+              isReload: true,
+              silent: true,
+            ),
+          );
+          return;
+        }
 
         final status = (details.status ?? '').trim().toLowerCase();
         if (status == CleaningBookingStatus.pending) {
+          final canUpsertPending = event.applyToPendingList ||
+              _lastOrdersStatusFilter == CleaningBookingStatus.pending;
+          if (!canUpsertPending) return;
+
           final listItem = OrderDetailsToListItemMapper.fromDetails(details);
           emit(
             state.copyWith(
@@ -965,5 +1015,23 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
       default:
         return failure.message;
     }
+  }
+
+  void _cacheWorkerEligibility(FetchOrdersUsecaseModel model) {
+    final eligibility = model.dispatchEligibility;
+    if (eligibility == null) return;
+
+    SharedPreferencesHelper.saveData(
+      key: 'worker_dispatch_eligibility',
+      value: jsonEncode(eligibility.toJson()),
+    );
+    SharedPreferencesHelper.saveData(
+      key: 'worker_can_receive_new_requests',
+      value: eligibility.canReceiveNewRequests == true,
+    );
+    SharedPreferencesHelper.saveData(
+      key: 'worker_eligibility_message_ar',
+      value: eligibility.userMessageAr,
+    );
   }
 }

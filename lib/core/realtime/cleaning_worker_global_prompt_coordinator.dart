@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
 
+import '../../features/main/view/screens/main_screen.dart';
 import '../../features/orders/data/models/cleaning_booking_status.dart';
 import '../../features/orders/data/models/fetch_orders_usecase_model.dart';
 import '../../features/orders/domain/usecases/fetch_extension_requests_usecas_use_case.dart';
@@ -101,13 +102,21 @@ class CleaningWorkerGlobalPromptCoordinator {
     _started = true;
     await _pusherManager.ensureInitialized();
     await _ensureWorkerChannel();
+
+    // 1. تشغيل الفحص الأول فوراً
     unawaited(pollPendingExtensionPrompts());
     _scheduleStartupPostFramePoll();
-    _channelBindingPoll = Timer.periodic(_extensionPollInterval, (_) {
-      unawaited(_ensureWorkerChannel());
-    });
-    _extensionPollTimer = Timer.periodic(_extensionPollInterval, (_) {
+
+    // 2. استخدام تايمر واحد فقط لتقليل الضغط
+    // قمنا برفع الوقت إلى 60 ثانية لتقليل الحمل على السيرفر
+    _extensionPollTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+      if (!_started) return;
+
+      // تنفيذ العمليات بشكل متسلسل ومحمي
       unawaited(pollPendingExtensionPrompts());
+
+      // فحص القناة (Binding) لا يحتاج لكل 12 ثانية، 60 كافية جداً
+      unawaited(_ensureWorkerChannel());
     });
   }
 
@@ -439,6 +448,23 @@ class CleaningWorkerGlobalPromptCoordinator {
         bookingId: bookingId,
         payload: payload,
       );
+    } else if (decision == 'extension_rejected') {
+      handled = await _showDecisionAlert(
+        WorkerDecisionAlertData(
+          isApproved: false,
+          title: 'تم إنهاء طلب التمديد',
+          message: (payload['message'] ?? payload['completionMessage'])
+                  ?.toString()
+                  .trim()
+                  .isNotEmpty ==
+              true
+              ? (payload['message'] ?? payload['completionMessage'])
+                  .toString()
+                  .trim()
+              : 'تم رفض طلب تمديد الوقت وتم إنهاء الطلب.',
+          navigateToMainOnOk: true,
+        ),
+      );
     }
 
     if (handled && decisionKey != null) {
@@ -706,6 +732,7 @@ class CleaningWorkerGlobalPromptCoordinator {
                       navigator.pushNamedAndRemoveUntil(
                         '/main',
                         (route) => false,
+                        arguments: MainScreenParam(returnedPageIndex: 0),
                       );
                     }
                   },

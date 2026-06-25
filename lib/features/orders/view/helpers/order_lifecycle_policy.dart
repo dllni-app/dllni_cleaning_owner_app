@@ -4,6 +4,7 @@ import 'package:dllni_cleaninig_owner_app/core/app_config.dart';
 import '../../data/models/cleaning_booking_status.dart';
 import '../../data/models/fetch_orders_usecase_model.dart';
 import '../manager/bloc/orders_bloc.dart';
+import 'cleaning_worker_order_status.dart';
 
 /// Single source of truth for order action visibility (card + details screens).
 class OrderLifecyclePolicy {
@@ -28,8 +29,16 @@ class OrderLifecyclePolicy {
     return status == 'accepted' || (assignment.acceptedAt?.isNotEmpty ?? false);
   }
 
-  static bool isAcceptedWaiting(FetchOrdersUsecaseModelDataItem order) =>
-      isPending(order) && hasCurrentWorkerAccepted(order);
+  static bool isAcceptedWaiting(FetchOrdersUsecaseModelDataItem order) {
+    switch (order.effectiveWorkerStatus) {
+      case CleaningWorkerOrderStatus.acceptedWaitingTeam:
+      case CleaningWorkerOrderStatus.acceptedWaitingForOrderStart:
+        return true;
+      default:
+        break;
+    }
+    return isPending(order) && hasCurrentWorkerAccepted(order);
+  }
 
   static bool canAcceptReject(FetchOrdersUsecaseModelDataItem order) =>
       isPending(order) && !hasCurrentWorkerAccepted(order);
@@ -74,14 +83,56 @@ class OrderLifecyclePolicy {
   static bool showFollowOnly(FetchOrdersUsecaseModelDataItem order) =>
       !canAcceptReject(order) && !canStartTravel(order);
 
-  static String acceptedWaitingLabel(FetchOrdersUsecaseModelDataItem order) {
-    if (order.isSearchingForWorkers) {
-      return 'تم قبولك - بانتظار اكتمال الفريق';
+  static String teamStateTitle(FetchOrdersUsecaseModelDataItem order) {
+    switch (order.effectiveWorkerStatus) {
+      case CleaningWorkerOrderStatus.acceptedWaitingTeam:
+        return 'تم قبول الطلب';
+      case CleaningWorkerOrderStatus.acceptedWaitingForOrderStart:
+        return 'بانتظار بدء الطلب';
+      case CleaningWorkerOrderStatus.awaitingWorkerStartConfirmation:
+        return 'بانتظار بدء العمل';
+      default:
+        return order.effectiveWorkerStatusLabel;
     }
-    return 'تم قبولك - بانتظار بدء الطلب';
+  }
+
+  static String teamStateDescription(FetchOrdersUsecaseModelDataItem order) {
+    final accepted =
+        order.acceptedWorkersCount ?? order.workerAcceptance?.accepted ?? 0;
+    final required =
+        order.requiredWorkersCount ??
+        order.workerAcceptance?.required ??
+        order.numberOfWorkers ??
+        1;
+    final pending =
+        order.pendingWorkersCount ??
+        (required - accepted).clamp(0, required);
+
+    switch (order.effectiveWorkerStatus) {
+      case CleaningWorkerOrderStatus.acceptedWaitingTeam:
+        return 'تم قبولك ضمن الفريق. بانتظار اكتمال عدد العمال ($accepted من $required).';
+      case CleaningWorkerOrderStatus.acceptedWaitingForOrderStart:
+        return 'اكتمل الفريق. سيتم بدء خطوات الوصول والتحقق عند موعد الطلب.';
+      case CleaningWorkerOrderStatus.awaitingWorkerStartConfirmation:
+        return 'أكد العميل رمز الوصول. اضغط بدء العمل للمتابعة.';
+      default:
+        return pending > 0 ? 'بانتظار $pending عامل لإكمال الفريق.' : '';
+    }
+  }
+
+  static String acceptedWaitingLabel(FetchOrdersUsecaseModelDataItem order) {
+    return teamStateTitle(order);
   }
 
   static String acceptedWaitingMessage(FetchOrdersUsecaseModelDataItem order) {
+    final description = teamStateDescription(order);
+    if (description.isNotEmpty) return description;
+    return acceptedWaitingMessageLegacy(order);
+  }
+
+  static String acceptedWaitingMessageLegacy(
+    FetchOrdersUsecaseModelDataItem order,
+  ) {
     final acceptance = order.workerAcceptance;
     final accepted = acceptance?.accepted;
     final required = acceptance?.required ?? order.numberOfWorkers;
@@ -101,11 +152,17 @@ class OrderLifecyclePolicy {
 
   static bool isAwaitingStartVerification(
     FetchOrdersUsecaseModelDataItem order,
-  ) => order.status == CleaningBookingStatus.awaitingStartVerification;
+  ) =>
+      order.effectiveWorkerStatus ==
+          CleaningWorkerOrderStatus.awaitingStartVerification ||
+      order.status == CleaningBookingStatus.awaitingStartVerification;
 
   static bool isAwaitingWorkerStartConfirmation(
     FetchOrdersUsecaseModelDataItem order,
-  ) => order.status == CleaningBookingStatus.awaitingWorkerStartConfirmation;
+  ) =>
+      order.effectiveWorkerStatus ==
+          CleaningWorkerOrderStatus.awaitingWorkerStartConfirmation ||
+      order.status == CleaningBookingStatus.awaitingWorkerStartConfirmation;
 
   static bool isTravelingToCustomer(FetchOrdersUsecaseModelDataItem order) =>
       order.status == CleaningBookingStatus.workerAssigned &&
@@ -153,6 +210,30 @@ class OrderLifecyclePolicy {
     return lifecycleRank(incoming) >= lifecycleRank(current);
   }
 
+  /// Extension accept returns to in-progress even though rank is lower.
+  static bool shouldApplyRealtimeStatus({
+    required String? currentStatus,
+    required String? incomingStatus,
+    String? decision,
+  }) {
+    final normalizedDecision = (decision ?? '').trim().toLowerCase();
+    final normalizedIncoming = (incomingStatus ?? '').trim().toLowerCase();
+    final normalizedCurrent = (currentStatus ?? '').trim().toLowerCase();
+
+    if (normalizedDecision == 'extension_accepted' &&
+        normalizedCurrent == CleaningBookingStatus.timeExtensionRequested &&
+        normalizedIncoming == CleaningBookingStatus.inProgress) {
+      return true;
+    }
+
+    if (normalizedCurrent == CleaningBookingStatus.timeExtensionRequested &&
+        normalizedIncoming == CleaningBookingStatus.inProgress) {
+      return true;
+    }
+
+    return shouldPreferIncomingStatus(currentStatus, incomingStatus);
+  }
+
   static int detailsStepForStatus(String? status) =>
       detailsStepFor(FetchOrdersUsecaseModelDataItem(status: status));
 
@@ -189,27 +270,29 @@ class OrderLifecyclePolicy {
   }) => actionStatus == BlocStatus.loading && state.selectedIndex == orderIndex;
 
   static String statusLabel(FetchOrdersUsecaseModelDataItem order) {
-    final status = order.status;
     if (isAcceptedWaiting(order)) return acceptedWaitingLabel(order);
-    if (status == CleaningBookingStatus.pending) return 'طلب جديد';
-    if (status == CleaningBookingStatus.workerAssigned) {
-      return order.startedTravelAt == null ? 'طلب مؤكد' : 'في الطريق';
+
+    switch (order.effectiveWorkerStatus) {
+      case CleaningWorkerOrderStatus.pending:
+        return 'طلب جديد';
+      case CleaningWorkerOrderStatus.workerAssigned:
+        return order.startedTravelAt == null ? 'طلب مؤكد' : 'في الطريق';
+      case CleaningWorkerOrderStatus.awaitingStartVerification:
+        return 'بانتظار التحقق';
+      case CleaningWorkerOrderStatus.awaitingWorkerStartConfirmation:
+        return 'تم تحقق العميل - ابدأ العمل';
+      case CleaningWorkerOrderStatus.inProgress:
+        return 'قيد التنفيذ';
+      case CleaningWorkerOrderStatus.awaitingCustomerCompletion:
+        return 'بانتظار تأكيد العميل';
+      case CleaningWorkerOrderStatus.timeExtensionRequested:
+        return 'طلب تمديد وقت';
+      case CleaningWorkerOrderStatus.completed:
+        return 'مكتمل';
+      case CleaningWorkerOrderStatus.cancelled:
+        return 'ملغي';
+      default:
+        return order.effectiveWorkerStatusLabel;
     }
-    if (status == CleaningBookingStatus.awaitingStartVerification) {
-      return 'بانتظار التحقق';
-    }
-    if (status == CleaningBookingStatus.awaitingWorkerStartConfirmation) {
-      return 'تم تحقق العميل - ابدأ العمل';
-    }
-    if (status == CleaningBookingStatus.inProgress) return 'قيد التنفيذ';
-    if (status == CleaningBookingStatus.awaitingCustomerCompletion) {
-      return 'بانتظار تأكيد العميل';
-    }
-    if (status == CleaningBookingStatus.timeExtensionRequested) {
-      return 'طلب تمديد وقت';
-    }
-    if (status == CleaningBookingStatus.completed) return 'مكتمل';
-    if (status == CleaningBookingStatus.cancelled) return 'ملغي';
-    return 'قيد المعالجة';
   }
 }

@@ -27,6 +27,8 @@ import '../../../domain/usecases/mark_all_notifications_read_use_case.dart';
 import '../../../domain/usecases/mark_notification_read_use_case.dart';
 import '../../../domain/usecases/fetch_worker_reviews_use_case.dart';
 import '../../../data/models/fetch_worker_reviews_model.dart';
+import '../../../domain/usecases/fetch_cleaning_neighborhoods_use_case.dart';
+import '../../../data/models/cleaning_neighborhood_model.dart';
 part 'profile_event.dart';
 
 part 'profile_state.dart';
@@ -46,6 +48,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   final MarkAllNotificationsReadUseCase markAllNotificationsReadUseCase;
   final MarkNotificationReadUseCase markNotificationReadUseCase;
   final FetchWorkerReviewsUseCase fetchWorkerReviewsUseCase;
+  final FetchCleaningNeighborhoodsUseCase fetchCleaningNeighborhoodsUseCase;
 
   ProfileBloc(
     this.fetchWorkerProfileUsecaseUseCase,
@@ -61,6 +64,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     this.markAllNotificationsReadUseCase,
     this.markNotificationReadUseCase,
     this.fetchWorkerReviewsUseCase,
+    this.fetchCleaningNeighborhoodsUseCase,
   ) : super(ProfileState()) {
     on<FetchWorkerProfileUsecaseEvent>(_fetchWorkerProfileUsecase);
     on<FetchDisputesUsecaseEvent>(
@@ -87,6 +91,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       _fetchWorkerReviews,
       transformer: droppableProMax(),
     );
+    on<FetchCleaningNeighborhoodsEvent>(_fetchCleaningNeighborhoods);
   }
 
   FutureOr<void> _fetchWorkerProfileUsecase(
@@ -605,6 +610,38 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
               data: mergedReviews,
               meta: result.meta,
             ),
+          ),
+        );
+      },
+    );
+  }
+
+  FutureOr<void> _fetchCleaningNeighborhoods(
+    FetchCleaningNeighborhoodsEvent event,
+    Emitter<ProfileState> emit,
+  ) async {
+    emit(
+      state.copyWith(
+        cleaningNeighborhoodsStatus: BlocStatus.loading,
+        clearCleaningNeighborhoodsErrorMessage: true,
+      ),
+    );
+    final res = await fetchCleaningNeighborhoodsUseCase(event.params);
+    res.fold(
+      (l) {
+        emit(
+          state.copyWith(
+            cleaningNeighborhoodsStatus: BlocStatus.failed,
+            cleaningNeighborhoodsErrorMessage: l.message,
+          ),
+        );
+      },
+      (r) {
+        emit(
+          state.copyWith(
+            cleaningNeighborhoodsStatus: BlocStatus.success,
+            cleaningNeighborhoods: r.data,
+            clearCleaningNeighborhoodsErrorMessage: true,
           ),
         );
       },

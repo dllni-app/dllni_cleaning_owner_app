@@ -1,4 +1,5 @@
 import 'package:common_package/common_package.dart';
+import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_arabic_time_formatter.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/features/home/domain/usecases/fetch_home_page_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/home/view/manager/bloc/home_bloc.dart';
@@ -52,32 +53,11 @@ class WalletScreen extends StatefulWidget {
   }
 
   static String formatScheduledTime(String? rawTime) {
-    if (rawTime == null || rawTime.trim().isEmpty) return '-';
-    final value = rawTime.trim();
-
-    final parsedIso = DateTime.tryParse(value);
-    if (parsedIso != null) {
-      return DateFormat('hh:mm a', 'en').format(parsedIso);
-    }
-
-    try {
-      final parsed = DateFormat('HH:mm:ss', 'en').parseStrict(value);
-      return DateFormat('hh:mm a', 'en').format(parsed);
-    } catch (_) {}
-
-    try {
-      final parsed = DateFormat('HH:mm', 'en').parseStrict(value);
-      return DateFormat('hh:mm a', 'en').format(parsed);
-    } catch (_) {}
-
-    return value;
+    return CleaningArabicTimeFormatter.formatScheduledTime(rawTime);
   }
 
   static String formatDateTime(String? rawDateTime) {
-    if (rawDateTime == null || rawDateTime.trim().isEmpty) return '-';
-    final parsed = DateTime.tryParse(rawDateTime);
-    if (parsed == null) return rawDateTime;
-    return DateFormat('yyyy-MM-dd hh:mm a', 'en').format(parsed.toLocal());
+    return CleaningArabicTimeFormatter.formatDateTime(rawDateTime);
   }
 }
 

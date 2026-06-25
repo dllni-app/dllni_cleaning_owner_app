@@ -305,9 +305,23 @@ class CleaningRealtimeContract {
         return CleaningBookingStatus.inProgress;
       case 'extension_requested':
         return CleaningBookingStatus.timeExtensionRequested;
+      case 'extension_accepted':
+        return CleaningBookingStatus.inProgress;
+      case 'extension_rejected':
+        return CleaningBookingStatus.completed;
       default:
         return null;
     }
+  }
+
+  static String? resolveStatusFromPayload(Map<String, dynamic> payload) {
+    final unwrapped = unwrapPayload(payload);
+    final explicitStatus = extractTrackingStatus(unwrapped) ??
+        unwrapped['status']?.toString().trim().toLowerCase();
+    if (explicitStatus != null && explicitStatus.isNotEmpty) {
+      return explicitStatus;
+    }
+    return statusFromDecision(extractDecision(unwrapped));
   }
 
   static CleaningRealtimeLocation? parseLocation(Map<String, dynamic> payload) {

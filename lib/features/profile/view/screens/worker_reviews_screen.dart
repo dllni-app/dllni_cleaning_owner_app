@@ -118,8 +118,11 @@ class _WorkerReviewsScreenState extends State<WorkerReviewsScreen> {
                       state.workerReviews ?? const FetchWorkerReviewsModel();
                   final reviews = reviewsModel.data ?? const <WorkerReview>[];
                   final meta = reviewsModel.meta;
-                  final averageRating = meta?.averageRating ?? 0.0;
+                  final averageRating = (meta?.averageRating ?? 0.0)
+                      .clamp(0.0, 5.0)
+                      .toDouble();
                   final totalCount = meta?.totalCount ?? reviews.length;
+                  final ratingCounts = meta?.ratingCounts ?? _countsFromReviews(reviews);
                   final isLoadingMore =
                       state.workerReviewsStatus == BlocStatus.loading &&
                       state.workerReviews != null;
@@ -146,6 +149,7 @@ class _WorkerReviewsScreenState extends State<WorkerReviewsScreen> {
                         return _ReviewsSummaryCard(
                           averageRating: averageRating,
                           totalCount: totalCount,
+                          ratingCounts: ratingCounts,
                         );
                       }
                       if (reviews.isEmpty) {
@@ -180,6 +184,16 @@ class _WorkerReviewsScreenState extends State<WorkerReviewsScreen> {
         ),
       ),
     );
+  }
+
+  Map<int, int> _countsFromReviews(List<WorkerReview> reviews) {
+    final counts = <int, int>{for (var rating = 1; rating <= 5; rating++) rating: 0};
+    for (final review in reviews) {
+      final rating = review.rating?.round();
+      if (rating == null || rating < 1 || rating > 5) continue;
+      counts[rating] = (counts[rating] ?? 0) + 1;
+    }
+    return counts;
   }
 }
 
@@ -294,26 +308,24 @@ class _ReviewsSummaryCard extends StatelessWidget {
   const _ReviewsSummaryCard({
     required this.averageRating,
     required this.totalCount,
+    required this.ratingCounts,
   });
 
   final double averageRating;
   final int totalCount;
+  final Map<int, int> ratingCounts;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16.r),
-        gradient: LinearGradient(
-          colors: [context.primary, context.primaryContainer],
-          begin: AlignmentDirectional.centerStart,
-          end: AlignmentDirectional.centerEnd,
-        ),
+        color: context.onPrimary,
         boxShadow: [
           BoxShadow(
-            color: context.primary.withAlpha(40),
-            offset: const Offset(0, 4),
-            blurRadius: 16,
+            color: const Color(0xff303030).withAlpha(30),
+            offset: const Offset(0, 2),
+            blurRadius: 12,
           ),
         ],
       ),
@@ -321,46 +333,113 @@ class _ReviewsSummaryCard extends StatelessWidget {
         horizontal: 20.w,
         vertical: 20.h,
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
             children: [
-              AppText.displaySmall(
-                averageRating.toStringAsFixed(1),
-                color: context.onPrimary,
-                fontWeight: FontWeight.bold,
-                textAlign: TextAlign.start,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppText.displaySmall(
+                    averageRating.toStringAsFixed(1),
+                    color: context.primary,
+                    fontWeight: FontWeight.bold,
+                    textAlign: TextAlign.start,
+                  ),
+                  SizedBox(height: 6.h),
+                  StarRating(
+                    rating: averageRating,
+                    color: const Color(0xffFAE13D),
+                    size: 20.sp,
+                    allowHalfRating: true,
+                    filledIcon: Icons.star_rate_rounded,
+                    halfFilledIcon: Icons.star_half_rounded,
+                    emptyIcon: Icons.star_outline_rounded,
+                    starCount: 5,
+                  ),
+                ],
               ),
-              SizedBox(height: 6.h),
-              StarRating(
-                rating: averageRating,
-                color: const Color(0xffFAE13D),
-                size: 20.sp,
-                allowHalfRating: true,
-                filledIcon: Icons.star_rate_rounded,
-                halfFilledIcon: Icons.star_half_rounded,
-                emptyIcon: Icons.star_outline_rounded,
-                starCount: 5,
+              const Spacer(),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  AppText.titleMedium(
+                    '$totalCount',
+                    color: context.primary,
+                    fontWeight: FontWeight.bold,
+                    textAlign: TextAlign.end,
+                  ),
+                  SizedBox(height: 4.h),
+                  AppText.labelLarge(
+                    'إجمالي التقييمات',
+                    color: const Color(0xff6B7280),
+                    textAlign: TextAlign.end,
+                  ),
+                ],
               ),
             ],
           ),
-          const Spacer(),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          SizedBox(height: 18.h),
+          for (var rating = 5; rating >= 1; rating--)
+            _RatingCountRow(
+              rating: rating,
+              count: ratingCounts[rating] ?? 0,
+              totalCount: totalCount,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RatingCountRow extends StatelessWidget {
+  const _RatingCountRow({
+    required this.rating,
+    required this.count,
+    required this.totalCount,
+  });
+
+  final int rating;
+  final int count;
+  final int totalCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = totalCount <= 0 ? 0.0 : (count / totalCount).clamp(0.0, 1.0);
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: 8.h),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 24.w,
+            child: AppText.labelLarge(
+              '$count',
+              color: const Color(0xff6B7280),
+              textAlign: TextAlign.start,
+            ),
+          ),
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(99.r),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 8.h,
+                backgroundColor: const Color(0xffE5E7EB),
+                valueColor: AlwaysStoppedAnimation<Color>(context.primary),
+              ),
+            ),
+          ),
+          SizedBox(width: 10.w),
+          Row(
             children: [
-              AppText.titleMedium(
-                '$totalCount',
-                color: context.onPrimary,
-                fontWeight: FontWeight.bold,
-                textAlign: TextAlign.end,
-              ),
-              SizedBox(height: 4.h),
               AppText.labelLarge(
-                'إجمالي التقييمات',
-                color: context.onPrimary.withAlpha(200),
-                textAlign: TextAlign.end,
+                '$rating',
+                color: const Color(0xff6B7280),
               ),
+              const SizedBox(width: 4),
+              const Icon(Icons.star_rate_rounded, color: Color(0xffFAE13D), size: 17),
             ],
           ),
         ],

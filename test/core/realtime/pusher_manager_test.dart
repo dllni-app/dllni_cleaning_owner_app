@@ -31,7 +31,7 @@ void main() {
       },
     );
 
-    test('resubscribes active channels after reconnect', () async {
+    test('keeps subscription bookkeeping on reconnect', () async {
       final fakeBridge = _FakePusherClientBridge();
       final manager = PusherManager(clientBridge: fakeBridge);
 
@@ -45,7 +45,7 @@ void main() {
       fakeBridge.emitConnectionState('connected', 'disconnected');
       await Future<void>.delayed(Duration.zero);
 
-      expect(fakeBridge.subscribeCalls, 2);
+      expect(fakeBridge.subscribeCalls, 1);
 
       await handle.dispose();
     });

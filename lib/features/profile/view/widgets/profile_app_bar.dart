@@ -32,6 +32,12 @@ class ProfileAppBar extends StatelessWidget {
             case BlocStatus.failed:
               return failedWidget(context);
             case BlocStatus.success:
+              final rating = (state.workerReviews?.meta?.averageRating ??
+                      state.workerProfileUsecase?.data?.averageRating ??
+                      0)
+                  .clamp(0.0, 5.0)
+                  .toDouble();
+
               return Row(
                 children: [
                   CircleAvatar(
@@ -62,16 +68,14 @@ class ProfileAppBar extends StatelessWidget {
                               textAlign: TextAlign.start,
                             ),
                             StarRating(
-                              rating: state.workerProfileUsecase?.data?.averageRating ?? 0,
+                              rating: rating,
                               color: Color(0xffFAE13D),
                               size: 17,
                               halfFilledIcon: Icons.star_rate_rounded,
-                              allowHalfRating: false,
+                              allowHalfRating: true,
                               filledIcon: Icons.star_rate_rounded,
-                              emptyIcon: null,
-                              starCount: state.workerProfileUsecase?.data?.averageRating == null
-                                  ? 0
-                                  : state.workerProfileUsecase!.data!.averageRating!.ceil(),
+                              emptyIcon: Icons.star_outline_rounded,
+                              starCount: 5,
                             ),
                           ],
                         ),

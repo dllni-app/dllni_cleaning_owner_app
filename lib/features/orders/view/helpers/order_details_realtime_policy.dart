@@ -87,4 +87,38 @@ class OrderDetailsRealtimePolicy {
       workStartedAt: timestamps.workStartedAt,
     );
   }
+
+  static ({
+    String status,
+    String? message,
+    int? warningId,
+    String? decision,
+  })? patchFromCompletionDecision({
+    required String? currentStatus,
+    required Map<String, dynamic> payload,
+  }) {
+    final unwrapped = CleaningRealtimeContract.unwrapPayload(payload);
+    final decision = CleaningRealtimeContract.extractDecision(unwrapped);
+    if (decision == null || decision.isEmpty) return null;
+
+    final resolvedStatus = CleaningRealtimeContract.resolveStatusFromPayload(
+      unwrapped,
+    );
+    if (resolvedStatus == null || resolvedStatus.isEmpty) return null;
+
+    if (!OrderLifecyclePolicy.shouldApplyRealtimeStatus(
+      currentStatus: currentStatus,
+      incomingStatus: resolvedStatus,
+      decision: decision,
+    )) {
+      return null;
+    }
+
+    return (
+      status: resolvedStatus,
+      message: CleaningRealtimeContract.extractDecisionMessage(unwrapped),
+      warningId: CleaningRealtimeContract.extractWarningId(unwrapped),
+      decision: decision,
+    );
+  }
 }

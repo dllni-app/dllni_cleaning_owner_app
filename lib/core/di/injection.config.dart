@@ -76,6 +76,8 @@ import '../../features/profile/data/repository/profile_repo_impl.dart' as _i265;
 import '../../features/profile/data/source/profile_remote_data_source.dart'
     as _i502;
 import '../../features/profile/domain/repository/profile_repo.dart' as _i275;
+import '../../features/profile/domain/usecases/fetch_cleaning_neighborhoods_use_case.dart'
+    as _i906;
 import '../../features/profile/domain/usecases/fetch_deposit_account_use_case.dart'
     as _i38;
 import '../../features/profile/domain/usecases/fetch_deposit_transactions_use_case.dart'
@@ -228,6 +230,11 @@ _i174.GetIt $initGetIt(
   gh.lazySingleton<_i13.UpdateAvailabilityUsecaseUseCase>(
     () => _i13.UpdateAvailabilityUsecaseUseCase(orders: gh<_i132.OrdersRepo>()),
   );
+  gh.lazySingleton<_i906.FetchCleaningNeighborhoodsUseCase>(
+    () => _i906.FetchCleaningNeighborhoodsUseCase(
+      profile: gh<_i275.ProfileRepo>(),
+    ),
+  );
   gh.lazySingleton<_i961.FetchDisputeDetailsUsecaseUseCase>(
     () => _i961.FetchDisputeDetailsUsecaseUseCase(
       profile: gh<_i275.ProfileRepo>(),
@@ -276,6 +283,7 @@ _i174.GetIt $initGetIt(
       gh<_i10.MarkAllNotificationsReadUseCase>(),
       gh<_i338.MarkNotificationReadUseCase>(),
       gh<_i959.FetchWorkerReviewsUseCase>(),
+      gh<_i906.FetchCleaningNeighborhoodsUseCase>(),
     ),
   );
   gh.factory<_i648.HomeBloc>(

@@ -26,6 +26,8 @@ import '../models/fetch_deposit_transactions_usecase_model.dart';
 import '../models/notification_api_models.dart';
 import '../../domain/usecases/fetch_worker_reviews_use_case.dart';
 import '../models/fetch_worker_reviews_model.dart';
+import '../../domain/usecases/fetch_cleaning_neighborhoods_use_case.dart';
+import '../models/cleaning_neighborhoods_response_model.dart';
 
 @LazySingleton(as: ProfileRepo)
 class ProfileRepoImpl with HandlingException implements ProfileRepo {
@@ -143,6 +145,15 @@ class ProfileRepoImpl with HandlingException implements ProfileRepo {
   ) {
     return wrapHandlingException(
       tryCall: () => profileRemoteDataSource.fetchWorkerReviews(params),
+    );
+  }
+
+  @override
+  DataResponse<CleaningNeighborhoodsResponseModel> fetchCleaningNeighborhoods(
+    FetchCleaningNeighborhoodsParams params,
+  ) {
+    return wrapHandlingException(
+      tryCall: () => profileRemoteDataSource.fetchCleaningNeighborhoods(params),
     );
   }
 }

@@ -57,19 +57,28 @@ class WorkerWorkAreasModel {
 
 class WorkerWorkAreaZone {
   final int? id;
+  final int? neighborhoodId;
   final String? name;
   final bool? isActive;
 
-  const WorkerWorkAreaZone({this.id, this.name, this.isActive});
+  const WorkerWorkAreaZone({
+    this.id,
+    this.neighborhoodId,
+    this.name,
+    this.isActive,
+  });
 
-  factory WorkerWorkAreaZone.fromJson(Map<String, dynamic> json) => WorkerWorkAreaZone(
+  factory WorkerWorkAreaZone.fromJson(Map<String, dynamic> json) =>
+      WorkerWorkAreaZone(
         id: _asInt(json['id']),
+        neighborhoodId: _asInt(json['neighborhoodId'] ?? json['neighborhood_id']),
         name: _asString(json['name']),
-        isActive: _asBool(json['isActive']),
+        isActive: _asBool(json['isActive'] ?? json['is_active']),
       );
 
   Map<String, dynamic> toJson() => {
         'id': id,
+        'neighborhoodId': neighborhoodId,
         'name': name,
         'isActive': isActive,
       };

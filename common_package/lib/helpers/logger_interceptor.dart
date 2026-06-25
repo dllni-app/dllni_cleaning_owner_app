@@ -1,68 +1,127 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 import 'package:logger/logger.dart';
-
-import 'dart:convert';
 
 @lazySingleton
 class LoggerInterceptor extends Interceptor {
   final _logger = Logger(
     printer: PrettyPrinter(
       methodCount: 0,
-      errorMethodCount: 5,
-      lineLength: 75,
+      errorMethodCount: 0,
+      lineLength: 120,
       colors: true,
       printEmojis: true,
-      dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
     ),
   );
 
-  String _prettyJson(dynamic data) {
-    try {
-      if (data is String) {
-        final decoded = json.decode(data);
-        return const JsonEncoder.withIndent('  ').convert(decoded);
-      } else {
-        return const JsonEncoder.withIndent('  ').convert(data);
-      }
-    } catch (_) {
-      return data.toString();
+  @override
+  void onRequest(
+      RequestOptions options,
+      RequestInterceptorHandler handler,
+      ) {
+    if (!kDebugMode) {
+      handler.next(options);
+      return;
     }
-  }
 
-  @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    final requestPath = '${options.baseUrl}${options.path}';
+    String body = '';
+
+    if (options.data != null) {
+      body = options.data.toString();
+
+      if (body.length > 1500) {
+        body = '${body.substring(0, 1500)} ... (truncated)';
+      }
+    }
+
     _logger.i(
-        '${options.method} REQUEST => $requestPath\n'
-            'Headers: ${jsonEncode(options.headers)}\n'
-            'Query: ${jsonEncode(options.queryParameters)}\n'
-            'Body: ${_prettyJson(options.data)}'
+      '🚀 ${options.method} ${options.uri}\n'
+          'Headers: ${options.headers}\n'
+          '${body.isNotEmpty ? 'Body:\n$body' : ''}',
     );
-    return super.onRequest(options, handler);
-  }
 
+    handler.next(options);
+  }
   @override
-  void onResponse(Response response, ResponseInterceptorHandler handler) {
-    final requestPath = '${response.requestOptions.baseUrl}${response.requestOptions.path}';
+  void onResponse(
+      Response response,
+      ResponseInterceptorHandler handler,
+      ) {
+    if (!kDebugMode) {
+      handler.next(response);
+      return;
+    }
+
+    final data = response.data;
+
+    String summary = '';
+
+    if (data is List) {
+      summary = 'items=${data.length}';
+    } else if (data is Map<String, dynamic>) {
+      summary = data.containsKey('data') && data['data'] is List
+          ? 'items=${(data['data'] as List).length}'
+          : 'keys=${data.keys.length}';
+    }
+
+    String body = data.toString();
+
+    if (body.length > 2000) {
+      body = '${body.substring(0, 2000)} ... (truncated)';
+    }
+
     _logger.i(
-        'RESPONSE [${response.statusCode}] => $requestPath\n'
-            'Data: ${_prettyJson(response.data)}'
+      '✅ ${response.statusCode} '
+          '${response.requestOptions.method} '
+          '${response.requestOptions.uri}'
+          '${summary.isNotEmpty ? ' ($summary)' : ''}\n'
+          'Response:\n$body',
     );
-    return super.onResponse(response, handler);
+
+    handler.next(response);
   }
 
   @override
-  void onError(DioException err, ErrorInterceptorHandler handler) {
-    final options = err.requestOptions;
-    final requestPath = '${options.baseUrl}${options.path}';
+  void onError(
+      DioException err,
+      ErrorInterceptorHandler handler,
+      ) {
+    if (!kDebugMode) {
+      handler.next(err);
+      return;
+    }
+
+    final request = err.requestOptions;
+
+    String requestBody = '';
+    if (request.data != null) {
+      requestBody = request.data.toString();
+    }
+
+    String responseBody = '';
+    if (err.response?.data != null) {
+      responseBody = err.response!.data.toString();
+    }
+
     _logger.e(
-        'ERROR => $requestPath\n'
-            'Message: ${err.message}\n'
-            'StatusCode: ${err.response?.statusCode}\n'
-            'Response: ${_prettyJson(err.response?.data)}'
+      '❌ ${err.response?.statusCode ?? 'UNKNOWN'} '
+          '${request.method} '
+          '${request.uri}\n\n'
+          'Message:\n'
+          '${err.message}\n\n'
+          'Type:\n'
+          '${err.type}\n\n'
+          'Headers:\n'
+          '${request.headers}\n\n'
+          'Query Parameters:\n'
+          '${request.queryParameters}\n\n'
+          '${requestBody.isNotEmpty ? 'Request Body:\n$requestBody\n\n' : ''}'
+          '${responseBody.isNotEmpty ? 'Response Body:\n$responseBody\n\n' : ''}'
+          'StackTrace:\n'
+          '${err.stackTrace}',
     );
-    return super.onError(err, handler);
+
+    handler.next(err);
   }
 }
-

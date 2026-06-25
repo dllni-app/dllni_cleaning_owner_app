@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
 import '../../data/models/fetch_orders_usecase_model.dart';
+import '../helpers/cleaning_enum_translations.dart';
 import '../helpers/event_assistance_order_helper.dart';
+import '../helpers/order_address_visibility_helper.dart';
+import '../helpers/property_attribute_labels_helper.dart';
 
 class EstateInfoCard extends StatefulWidget {
   const EstateInfoCard({super.key, required this.order});
@@ -20,8 +23,15 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
   bool get _isEventAssistance =>
       EventAssistanceOrderHelper.isEventAssistance(widget.order.propertyType);
 
+
+ late final String address ;
   @override
   void initState() {
+    address= visibleOrderAddress(
+      address:
+      widget.order.propertyDetails?.address ?? widget.order.locationName,
+      status: widget.order.status,
+    );
     super.initState();
     _refreshAttributes();
   }
@@ -38,7 +48,7 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
       );
       if (guests != null) attributes.add('$guests ضيف');
       if (venue != null && venue.isNotEmpty) {
-        attributes.add(EventAssistanceOrderHelper.venueTypeLabelAr(venue));
+        attributes.add(CleaningEnumTranslations.venueType(venue));
       }
       if (hours != null) {
         attributes.add(EventAssistanceOrderHelper.formatHours(hours));
@@ -46,13 +56,11 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
       return;
     }
 
-    attributes = [
-      '${widget.order.propertyDetails?.bathrooms ?? 0} حمام',
-      '${widget.order.propertyDetails?.bedRooms ?? 0} غرف نوم',
-      if (widget.order.propertyDetails?.kitchenIncluded == true ||
-          widget.order.propertyDetails?.kitchen != null) 'مطبخ',
-    ];
+    attributes = PropertyAttributeLabelsHelper.build(
+      widget.order.propertyDetails,
+    );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -85,22 +93,83 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
                   Icon(Icons.apartment, color: context.secondary, size: 18.sp),
                   6.horizontalSpace,
                   AppText.labelMedium(
-                    _isEventAssistance ? 'مكان المناسبة' : 'مكان العقار',
+                    _isEventAssistance ? 'نوع المناسبة' : 'نوع العقار',
                     fontWeight: FontWeight.w400,
                   ),
                 ],
               ),
               AppText.labelMedium(
                 _isEventAssistance
-                    ? EventAssistanceOrderHelper.eventTypeLabelAr(
+                    ? CleaningEnumTranslations.eventType(
                         widget.order.propertyDetails?.eventType,
                       )
-                    : (widget.order.locationName ?? ''),
+                    : CleaningEnumTranslations.propertyType(widget.order.propertyType),
                 fontWeight: FontWeight.w300,
               ),
             ],
           ),
+          if (widget.order.displayNeighborhoodName != null) ...[
+            14.verticalSpace,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.map_outlined,
+                      color: context.secondary,
+                      size: 18.sp,
+                    ),
+                    6.horizontalSpace,
+                    AppText.labelMedium(
+                      'الحي',
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ],
+                ),
+                Expanded(
+                  child: AppText.labelMedium(
+                    widget.order.displayNeighborhoodName!,
+                    fontWeight: FontWeight.w300,
+                    textAlign: TextAlign.end,
+                  ),
+                ),
+              ],
+            ),
+          ],
           14.verticalSpace,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.location_on_outlined,
+                    color: context.secondary,
+                    size: 18.sp,
+                  ),
+                  6.horizontalSpace,
+                  AppText.labelMedium(
+                    _isEventAssistance ? 'عنوان المناسبة' : 'عنوان العقار',
+                    fontWeight: FontWeight.w400,
+                  ),
+                ],
+              ),
+              6.horizontalSpace,
+
+              Expanded(
+                child: AppText.labelMedium(
+                  address.trim().isEmpty ? 'العنوان غير متوفر' : address,
+                  fontWeight: FontWeight.w300,
+                  textAlign: TextAlign.end,
+                ),
+              ),
+
+            ],
+          ),
+
+          14.verticalSpace,
+
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -154,8 +223,9 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       decoration: BoxDecoration(
-        color: context.secondary.withAlpha(40),
+        color: Color(0xFFE2E5EE),
         borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: Colors.black)
       ),
       child: AppText.labelMedium(
         text,
@@ -165,3 +235,4 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
     );
   }
 }
+
