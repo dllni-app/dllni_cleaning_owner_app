@@ -265,6 +265,7 @@ class CleaningWorkerGlobalPromptCoordinator {
 
   Future<bool> _promptFirstPendingExtensionRequest() async {
     final pending = await _loadPendingExtensionRequests();
+    print(pending.length);
     for (final request in pending) {
       final warningId = request.warningId;
       if (warningId == null) continue;
@@ -735,6 +736,7 @@ class CleaningWorkerGlobalPromptCoordinator {
 
     final response = await fetchUseCase(FetchExtensionRequestsUsecasParams());
     return response.fold((_) => const <WorkerPendingExtensionRequest>[], (
+       
       result,
     ) {
       final list = result.data ?? const <dynamic>[];

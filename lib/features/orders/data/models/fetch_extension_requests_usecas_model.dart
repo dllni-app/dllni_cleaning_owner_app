@@ -285,7 +285,7 @@ class FetchExtensionRequestsUsecasModelDataItem {
       workerRespondedAt: _asString(
         json['workerRespondedAt'] ?? json['worker_responded_at'],
       ),
-      responseStatus: _asDynamic(json['responseStatus']),
+      responseStatus: _asString(json['status']),
       booking: json['booking'] is Map
           ? FetchExtensionRequestsUsecasModelDataItemBooking.fromJson(
               Map<String, dynamic>.from(json['booking'] as Map),
