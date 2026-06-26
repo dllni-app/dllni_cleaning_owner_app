@@ -31,6 +31,8 @@ import '../models/security_code_model.dart';
 import '../../domain/usecases/fetch_security_code_use_case.dart';
 import '../models/start_work_model.dart';
 import '../../domain/usecases/start_work_use_case.dart';
+import '../models/booking_price_adjustment_request_model.dart';
+import '../../domain/usecases/request_booking_price_adjustment_use_case.dart';
 import '../models/sos_alert_models.dart';
 import '../../domain/usecases/create_cleaning_booking_sos_use_case.dart';
 
@@ -167,6 +169,19 @@ class OrdersRemoteDataSource with HandlingApiManager {
         params: params.getParams(),
       ),
       jsonConvert: startWorkModelFromJson,
+    );
+  }
+
+  Future<BookingPriceAdjustmentRequestModel> requestBookingPriceAdjustment(
+    RequestBookingPriceAdjustmentParams params,
+  ) {
+    return wrapHandlingApi(
+      tryCall: () => dioNetwork.postData(
+        endPoint: '/api/v1/cleaning-bookings/${params.id}/price-adjustment-requests',
+        data: params.getBody(),
+        params: params.getParams(),
+      ),
+      jsonConvert: bookingPriceAdjustmentRequestModelFromJson,
     );
   }
 

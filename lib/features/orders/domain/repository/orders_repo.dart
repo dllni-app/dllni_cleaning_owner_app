@@ -29,6 +29,8 @@ import '../usecases/fetch_security_code_use_case.dart';
 import '../../data/models/security_code_model.dart';
 import '../usecases/start_work_use_case.dart';
 import '../../data/models/start_work_model.dart';
+import '../usecases/request_booking_price_adjustment_use_case.dart';
+import '../../data/models/booking_price_adjustment_request_model.dart';
 import '../usecases/create_cleaning_booking_sos_use_case.dart';
 import '../../data/models/sos_alert_models.dart';
 
@@ -62,6 +64,10 @@ abstract class OrdersRepo {
   DataResponse<SecurityCodeModel> fetchSecurityCode(FetchSecurityCodeParams params);
 
   DataResponse<StartWorkModel> startWork(StartWorkParams params);
+
+  DataResponse<BookingPriceAdjustmentRequestModel> requestBookingPriceAdjustment(
+    RequestBookingPriceAdjustmentParams params,
+  );
 
   DataResponse<CleaningSosAlertModel> createCleaningBookingSos(
     CreateCleaningBookingSosParams params,
