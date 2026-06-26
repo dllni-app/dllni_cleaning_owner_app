@@ -34,6 +34,8 @@ import '../../domain/usecases/fetch_security_code_use_case.dart';
 import '../models/security_code_model.dart';
 import '../../domain/usecases/start_work_use_case.dart';
 import '../models/start_work_model.dart';
+import '../../domain/usecases/request_booking_price_adjustment_use_case.dart';
+import '../models/booking_price_adjustment_request_model.dart';
 import '../../domain/usecases/create_cleaning_booking_sos_use_case.dart';
 import '../models/sos_alert_models.dart';
 
@@ -149,6 +151,15 @@ class OrdersRepoImpl with HandlingException implements OrdersRepo {
   }
 
   @override
+  DataResponse<BookingPriceAdjustmentRequestModel> requestBookingPriceAdjustment(
+    RequestBookingPriceAdjustmentParams params,
+  ) {
+    return wrapHandlingException(
+      tryCall: () => ordersRemoteDataSource.requestBookingPriceAdjustment(params),
+    );
+  }
+
+  @override
   DataResponse<CleaningSosAlertModel> createCleaningBookingSos(
     CreateCleaningBookingSosParams params,
   ) {
@@ -157,4 +168,3 @@ class OrdersRepoImpl with HandlingException implements OrdersRepo {
     );
   }
 }
-
