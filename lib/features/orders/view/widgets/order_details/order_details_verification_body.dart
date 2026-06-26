@@ -1,4 +1,5 @@
 import 'package:common_package/common_package.dart';
+import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/fetch_security_code_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/start_work_use_case.dart';
 import 'package:flutter/material.dart';
@@ -21,12 +22,149 @@ class OrderDetailsVerificationBody extends StatefulWidget {
 }
 
 class _OrderDetailsVerificationBodyState extends State<OrderDetailsVerificationBody> {
+  bool _isSubmittingPriceAdjustment = false;
+
   @override
   void initState() {
     super.initState();
     final id = widget.order.id;
     if (id != null) {
       widget.bloc.add(FetchSecurityCodeEvent(params: FetchSecurityCodeParams(id: id)));
+    }
+  }
+
+  Future<void> _openPriceAdjustmentSheet() async {
+    final id = widget.order.id;
+    if (id == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تعذر تحديد رقم الطلب')),
+      );
+      return;
+    }
+
+    final priceController = TextEditingController();
+    final reasonController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 20,
+          ),
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                AppText.titleMedium(
+                  'طلب تعديل السعر',
+                  fontWeight: FontWeight.bold,
+                  textAlign: TextAlign.center,
+                ),
+                12.verticalSpace,
+                AppText.bodyMedium(
+                  'أدخل السعر الجديد المقترح وسيتم إرساله للإدارة للمراجعة.',
+                  textAlign: TextAlign.center,
+                  color: Theme.of(sheetContext).colorScheme.outline,
+                ),
+                20.verticalSpace,
+                TextFormField(
+                  controller: priceController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'أدخل السعر الجديد المقترح',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    final parsed = double.tryParse(value?.trim() ?? '');
+                    if (parsed == null || parsed <= 0) {
+                      return 'يرجى إدخال سعر صحيح أكبر من صفر';
+                    }
+                    return null;
+                  },
+                ),
+                12.verticalSpace,
+                TextFormField(
+                  controller: reasonController,
+                  maxLines: 3,
+                  maxLength: 500,
+                  decoration: const InputDecoration(
+                    labelText: 'سبب التعديل - اختياري',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                16.verticalSpace,
+                ElevatedButton(
+                  onPressed: _isSubmittingPriceAdjustment
+                      ? null
+                      : () async {
+                          if (!(formKey.currentState?.validate() ?? false)) return;
+                          await _submitPriceAdjustmentRequest(
+                            id: id,
+                            price: double.parse(priceController.text.trim()),
+                            reason: reasonController.text.trim(),
+                          );
+                          if (sheetContext.mounted && mounted && !_isSubmittingPriceAdjustment) {
+                            Navigator.of(sheetContext).pop();
+                          }
+                        },
+                  child: _isSubmittingPriceAdjustment
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('إرسال للإدارة'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    priceController.dispose();
+    reasonController.dispose();
+  }
+
+  Future<void> _submitPriceAdjustmentRequest({
+    required int id,
+    required double price,
+    required String reason,
+  }) async {
+    setState(() => _isSubmittingPriceAdjustment = true);
+    try {
+      await getIt<DioNetwork>().postData(
+        endPoint: '/api/v1/cleaning-bookings/$id/price-adjustment-requests',
+        data: <String, dynamic>{
+          'proposedTotalPrice': price,
+          if (reason.isNotEmpty) 'reason': reason,
+        },
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم إرسال طلب التعديل للإدارة، يرجى الانتظار لحين التواصل')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تعذر إرسال طلب تعديل السعر حالياً')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmittingPriceAdjustment = false);
+      }
     }
   }
 
@@ -91,7 +229,26 @@ class _OrderDetailsVerificationBodyState extends State<OrderDetailsVerificationB
                       color: context.colorScheme.outline,
                     ),
                     24.verticalSpace,
-                    if (id != null)
+                    if (id != null) ...[
+                      InkWell(
+                        onTap: _isSubmittingPriceAdjustment ? null : _openPriceAdjustmentSheet,
+                        child: Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: context.primary),
+                            color: Colors.white,
+                          ),
+                          padding: EdgeInsetsDirectional.symmetric(horizontal: 12, vertical: 14),
+                          child: AppText.labelLarge(
+                            'طلب تعديل السعر',
+                            color: context.primary,
+                            fontWeight: FontWeight.w600,
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                      12.verticalSpace,
                       InkWell(
                         onTap: state.startWorkStatus == BlocStatus.loading
                             ? null
@@ -113,6 +270,7 @@ class _OrderDetailsVerificationBodyState extends State<OrderDetailsVerificationB
                               : AppText.labelLarge('بدء العمل', color: context.onPrimary, fontWeight: FontWeight.w500),
                         ),
                       ),
+                    ],
                   ],
                 );
               },
