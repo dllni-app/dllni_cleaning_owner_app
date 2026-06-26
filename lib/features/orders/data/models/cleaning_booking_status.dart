@@ -7,6 +7,7 @@ abstract class CleaningBookingStatus {
   static const inProgress = 'in_progress';
   static const awaitingCustomerCompletion = 'awaiting_customer_completion';
   static const timeExtensionRequested = 'time_extension_requested';
+  static const underDispute = 'under_dispute';
   static const completed = 'completed';
   static const cancelled = 'cancelled';
 
@@ -32,6 +33,9 @@ abstract class CleaningBookingStatus {
 
       case timeExtensionRequested:
         return 'تم طلب تمديد الوقت';
+
+      case underDispute:
+        return 'قيد المراجعة';
 
       case completed:
         return 'مكتمل';
