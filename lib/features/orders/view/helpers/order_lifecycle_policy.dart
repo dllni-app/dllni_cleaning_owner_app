@@ -198,6 +198,7 @@ class OrderLifecyclePolicy {
     if (normalized == CleaningBookingStatus.awaitingCustomerCompletion) {
       return 40;
     }
+    if (normalized == CleaningBookingStatus.underDispute) return 45;
     if (normalized == CleaningBookingStatus.completed) return 50;
     if (normalized == CleaningBookingStatus.cancelled) return 60;
     return -1;
@@ -256,7 +257,8 @@ class OrderLifecyclePolicy {
     }
     if (order.status == CleaningBookingStatus.inProgress ||
         order.status == CleaningBookingStatus.timeExtensionRequested ||
-        order.status == CleaningBookingStatus.awaitingCustomerCompletion) {
+        order.status == CleaningBookingStatus.awaitingCustomerCompletion ||
+        order.status == CleaningBookingStatus.underDispute) {
       return 3;
     }
     return 1;
@@ -287,6 +289,8 @@ class OrderLifecyclePolicy {
         return 'بانتظار تأكيد العميل';
       case CleaningWorkerOrderStatus.timeExtensionRequested:
         return 'طلب تمديد وقت';
+      case CleaningWorkerOrderStatus.underDispute:
+        return 'قيد المراجعة';
       case CleaningWorkerOrderStatus.completed:
         return 'مكتمل';
       case CleaningWorkerOrderStatus.cancelled:
