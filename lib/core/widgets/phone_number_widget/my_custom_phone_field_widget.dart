@@ -267,30 +267,56 @@ class _IntlPhoneFieldState extends State<MyCustomIntlField> {
   }
 
   Widget _buildFlagWidget(Country country) {
-    if (_isAssetPath(country.flag)) {
-      if (country.flag.endsWith('.svg')) {
-        return SvgAsset(
-
-          country.flag,
-          width: 32,
-          height: 20,
-        );
-      } else {
-        return Image.asset(
-          country.flag,
-          package: kIsWeb ? 'intl_phone_field' : null,
-          width: 32,
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.grey.shade300),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: SvgPicture.asset(
+          'assets/images/sy.svg',
+          width: 28,
           height: 20,
           fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            return const Icon(Icons.flag);
-          },
-        );
-      }
-    } else {
-      return Text(country.flag, style: const TextStyle(fontSize: 18));
-    }
+        ),
+      ),
+    );
   }
+
+  // Widget _buildFlagWidget(Country country) {
+  //   if (_isAssetPath(country.flag)) {
+  //     if (country.flag.endsWith('.svg')) {
+  //       return SvgAsset(
+
+  //         country.flag,
+  //         width: 32,
+  //         height: 20,
+  //       );
+  //     } else {
+  //       return Image.asset(
+  //         country.flag,
+  //         package: kIsWeb ? 'intl_phone_field' : null,
+  //         width: 32,
+  //         height: 20,
+  //         fit: BoxFit.cover,
+  //         errorBuilder: (context, error, stackTrace) {
+  //           return const Icon(Icons.flag);
+  //         },
+  //       );
+  //     }
+  //   } else {
+  //     return Text(country.flag, style: const TextStyle(fontSize: 18));
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
