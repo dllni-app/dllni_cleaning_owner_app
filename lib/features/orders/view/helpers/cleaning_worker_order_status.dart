@@ -11,6 +11,7 @@ enum CleaningWorkerOrderStatus {
   inProgress,
   awaitingCustomerCompletion,
   timeExtensionRequested,
+  underDispute,
   completed,
   cancelled,
   unknown,
@@ -36,6 +37,8 @@ CleaningWorkerOrderStatus parseCleaningWorkerOrderStatus(String? value) {
       return CleaningWorkerOrderStatus.awaitingCustomerCompletion;
     case CleaningBookingStatus.timeExtensionRequested:
       return CleaningWorkerOrderStatus.timeExtensionRequested;
+    case CleaningBookingStatus.underDispute:
+      return CleaningWorkerOrderStatus.underDispute;
     case CleaningBookingStatus.completed:
       return CleaningWorkerOrderStatus.completed;
     case CleaningBookingStatus.cancelled:
@@ -65,6 +68,8 @@ String localArabicWorkerStatusLabel(CleaningWorkerOrderStatus status) {
       return 'بانتظار تأكيد العميل للإنهاء';
     case CleaningWorkerOrderStatus.timeExtensionRequested:
       return 'طلب تمديد وقت';
+    case CleaningWorkerOrderStatus.underDispute:
+      return 'قيد المراجعة';
     case CleaningWorkerOrderStatus.completed:
       return 'مكتمل';
     case CleaningWorkerOrderStatus.cancelled:

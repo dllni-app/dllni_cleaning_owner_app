@@ -243,9 +243,10 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                                   label: 'رقم الهاتف الأساسي',
                                   isRequired: true,
                                   initialValue: _initialPhone,
-                                  variant: AppPhoneFieldVariant.ownerProfile,
+                                  variant: AppPhoneFieldVariant.profile,
                                   onChanged: (phone) => _phone = phone,
                                 ),
+
                               14.verticalSpace,
                               _buildField(
                                 label: 'البريد الإلكتروني',

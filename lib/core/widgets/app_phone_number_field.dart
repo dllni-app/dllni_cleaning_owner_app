@@ -2,26 +2,14 @@ import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:intl_phone_number_input/intl_phone_number_input.dart';
-
+import 'package:flutter_svg/flutter_svg.dart';
 import '../helpers/phone_number_helper.dart';
 
-enum AppPhoneFieldVariant { ownerLogin, ownerProfile }
+enum AppPhoneFieldVariant { auth, profile }
 
 class AppPhoneNumberField extends StatefulWidget {
-  const AppPhoneNumberField({
-    super.key,
-    this.label,
-    this.isRequired = false,
-    this.hintText = 'أدخل رقم الجوال',
-    this.initialValue,
-    this.onChanged,
-    this.enabled = true,
-    this.variant = AppPhoneFieldVariant.ownerProfile,
-    this.showLabel = true,
-    this.validator,
-  });
-
   final String? label;
+
   final bool isRequired;
   final String hintText;
   final PhoneNumber? initialValue;
@@ -30,6 +18,18 @@ class AppPhoneNumberField extends StatefulWidget {
   final AppPhoneFieldVariant variant;
   final bool showLabel;
   final Future<String?> Function(PhoneNumber?)? validator;
+  const AppPhoneNumberField({
+    super.key,
+    this.label,
+    this.isRequired = false,
+    this.hintText = 'أدخل رقم الجوال',
+    this.initialValue,
+    this.onChanged,
+    this.enabled = true,
+    this.variant = AppPhoneFieldVariant.profile,
+    this.showLabel = true,
+    this.validator,
+  });
 
   @override
   State<AppPhoneNumberField> createState() => AppPhoneNumberFieldState();
@@ -40,129 +40,24 @@ class AppPhoneNumberFieldState extends State<AppPhoneNumberField> {
 
   PhoneNumber? get phone => _phone;
 
-  Future<String?> validate() async {
-    if (widget.validator != null) {
-      return widget.validator!(_phone);
-    }
-    return validatePhoneNumber(_phone);
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _phone = widget.initialValue;
-  }
-
-  @override
-  void didUpdateWidget(covariant AppPhoneNumberField oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.initialValue != oldWidget.initialValue) {
-      _phone = widget.initialValue;
-    }
-  }
-
-  InputDecoration _decoration(BuildContext context) {
-    final borderRadius = BorderRadius.circular(
-      widget.variant == AppPhoneFieldVariant.ownerLogin ? 14.r : 14.r,
-    );
-    final fillColor = widget.variant == AppPhoneFieldVariant.ownerLogin
-        ? context.onPrimary
-        : const Color(0xffF9FAFB);
-    final borderColor = widget.variant == AppPhoneFieldVariant.ownerLogin
-        ? Colors.grey.shade300
-        : const Color(0xffE5E7EB);
-
-    return InputDecoration(
-      hintText: widget.hintText,
-      hintStyle: TextStyle(
-        color: Colors.grey.shade400,
-        fontSize: widget.variant == AppPhoneFieldVariant.ownerLogin
-            ? 14
-            : 14.sp,
-      ),
-      filled: true,
-      fillColor: fillColor,
-      contentPadding: EdgeInsets.symmetric(
-        horizontal: widget.variant == AppPhoneFieldVariant.ownerLogin
-            ? 16.w
-            : 14.w,
-        vertical: widget.variant == AppPhoneFieldVariant.ownerLogin
-            ? 16.h
-            : 12.h,
-      ),
-      prefixIcon: Icon(
-        Icons.phone_outlined,
-        color: Colors.grey.shade400,
-        size: widget.variant == AppPhoneFieldVariant.ownerLogin ? 20 : 20.sp,
-      ),
-      border: OutlineInputBorder(
-        borderRadius: borderRadius,
-        borderSide: BorderSide(color: borderColor),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: borderRadius,
-        borderSide: BorderSide(color: borderColor),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: borderRadius,
-        borderSide: BorderSide(
-          color: widget.variant == AppPhoneFieldVariant.ownerLogin
-              ? context.secondary
-              : context.primary,
-          width: widget.variant == AppPhoneFieldVariant.ownerLogin ? 1 : 1.1.w,
-        ),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: borderRadius,
-        borderSide: BorderSide(color: context.error),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: borderRadius,
-        borderSide: BorderSide(color: context.error),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final input = Directionality(
-      textDirection: TextDirection.ltr,
-      child: InternationalPhoneNumberInput(
-        initialValue: widget.initialValue ?? _phone,
-        onInputChanged: (number) {
-          _phone = number;
-          widget.onChanged?.call(number);
-        },
-        selectorConfig: const SelectorConfig(
-          selectorType: PhoneInputSelectorType.DROPDOWN,
-          showFlags: true,
-          useEmoji: true,
-          leadingPadding: 8,
-          trailingSpace: false,
+    final input = Row(
+      children: [
+        Expanded(
+          child: TextFormField(
+            decoration: _decoration(context),
+            initialValue: _phone?.phoneNumber,
+            onChanged: (value) {
+              setState(() {
+                _phone = PhoneNumber(phoneNumber: "+963$value");
+              });
+            },
+          ),
         ),
-        ignoreBlank: false,
-        autoValidateMode: AutovalidateMode.disabled,
-        formatInput: true,
-        keyboardType: TextInputType.phone,
-        textAlign: TextAlign.left,
-        inputDecoration: _decoration(context),
-        selectorTextStyle: TextStyle(
-          color: const Color(0xff2F2B3D),
-          fontSize: 14.sp,
-          fontWeight: FontWeight.w400,
-        ),
-        textStyle: TextStyle(
-          color: const Color(0xff2F2B3D),
-          fontSize: widget.variant == AppPhoneFieldVariant.ownerLogin
-              ? 14
-              : 14.sp,
-          fontWeight: FontWeight.w400,
-        ),
-        countries: const [defaultPhoneIsoCode],
-        validator: (value) => validatePhoneNumberText(value),
-        isEnabled: widget.enabled,
-        locale: 'ar',
-      ),
+        SizedBox(width: 8),
+        _buildFlagsButton(),
+      ],
     );
 
     final field = widget.enabled ? input : AbsorbPointer(child: input);
@@ -176,15 +71,7 @@ class AppPhoneNumberFieldState extends State<AppPhoneNumberField> {
       children: [
         Row(
           children: [
-            AppText.bodyMedium(
-              widget.label!,
-              fontWeight: widget.variant == AppPhoneFieldVariant.ownerLogin
-                  ? FontWeight.bold
-                  : FontWeight.w500,
-              color: widget.variant == AppPhoneFieldVariant.ownerLogin
-                  ? const Color(0xff111827)
-                  : null,
-            ),
+            AppText.bodyMedium(widget.label!, fontWeight: FontWeight.w500),
             if (widget.isRequired)
               AppText.bodyMedium(
                 '*',
@@ -193,9 +80,166 @@ class AppPhoneNumberFieldState extends State<AppPhoneNumberField> {
               ),
           ],
         ),
-        SizedBox(height: 8.h),
+        const SizedBox(height: 8),
         field,
       ],
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant AppPhoneNumberField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialValue != oldWidget.initialValue) {
+      _phone = widget.initialValue;
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _phone = widget.initialValue;
+  }
+
+  Future<String?> validate() async {
+    if (widget.validator != null) {
+      return widget.validator!(_phone);
+    }
+    return validatePhoneNumber(_phone);
+  }
+
+  Widget _buildFlagsButton() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: const Color(0xffF9FAFB),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xffE5E7EB), width: 1),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        // onTap: widget.enabled ? _changeCountry : null,
+        onTap: null,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            const SizedBox(width: 4),
+            FittedBox(
+              child: Text(
+                '+963',
+                textDirection: TextDirection.ltr,
+                style: const TextStyle(
+                  color: Color(0xff2F2B3D),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            _buildFlagWidget(),
+            const SizedBox(width: 4),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFlagWidget() {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: SvgPicture.asset(
+          'assets/images/sy.svg',
+          width: 28,
+          height: 20,
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _decoration(BuildContext context) {
+    const borderColor = Color(0xffE5E7EB);
+    const fillColor = Color(0xffF9FAFB);
+    const iconGray = Color(0xff6B7280);
+
+    if (widget.variant == AppPhoneFieldVariant.auth) {
+      return InputDecoration(
+        hintText: widget.hintText,
+        hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+        filled: true,
+        fillColor: fillColor,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 12,
+        ),
+        prefixIcon: const Icon(Icons.phone_rounded, color: iconGray, size: 22),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: borderColor, width: 1),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: borderColor, width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: context.primary, width: 1.2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: context.error, width: 1),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: context.error, width: 1.2),
+        ),
+      );
+    }
+
+    return InputDecoration(
+      hintText: widget.hintText,
+      hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+      filled: true,
+      fillColor: fillColor,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      prefixIcon: const Icon(
+        Icons.phone_rounded,
+        color: Color(0xff15803D),
+        size: 22,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: borderColor, width: 1),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: borderColor, width: 1),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: context.primary, width: 1.2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: context.error, width: 1),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: context.error, width: 1.2),
+      ),
     );
   }
 }
