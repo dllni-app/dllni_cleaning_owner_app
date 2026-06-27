@@ -85,7 +85,7 @@ class OrderCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xff7DD3FC)),
       ),
-      child: AppText.bodySmall(
+      child: AppText.labelMedium(
         OrderLifecyclePolicy.acceptedWaitingMessage(data),
         color: const Color(0xff075985),
         fontWeight: FontWeight.w700,
@@ -99,7 +99,7 @@ class OrderCard extends StatelessWidget {
     if (raw == null || raw.isEmpty) return '-';
     final parsed = DateTime.tryParse(raw);
     if (parsed == null) return raw;
-    return '${parsed.year}_${parsed.month}_${parsed.day}';
+    return '${parsed.year} / ${parsed.month} / ${parsed.day}';
   }
 
   String _formatTime() {
@@ -330,13 +330,13 @@ class OrderCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                AppText.bodySmall(
+                AppText.labelMedium(
                   title,
                   color: const Color(0xff6B7280),
                   textAlign: TextAlign.start,
                 ),
                 const SizedBox(height: 4),
-                AppText.bodyMedium(value, fontWeight: FontWeight.w700),
+                AppText.labelSmall(value, fontWeight: FontWeight.w700),
               ],
             ),
           ),
@@ -372,44 +372,43 @@ class OrderCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsetsDirectional.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: statusColor.withAlpha(30),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      CircleAvatar(radius: 3.5, backgroundColor: statusColor),
-                      const SizedBox(width: 6),
-                      AppText.labelSmall(
-                        _statusLabel(),
-                        color: statusColor,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ],
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xff334155),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  padding: const EdgeInsets.all(10),
-                  child: const Icon(
-                    Icons.person_outline,
-                    color: Color(0xffCBD5E1),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
+            // Row(
+            //   children: [
+            //     Container(
+            //       padding: const EdgeInsetsDirectional.symmetric(
+            //         horizontal: 10,
+            //         vertical: 5,
+            //       ),
+            //       decoration: BoxDecoration(
+            //         color: statusColor.withAlpha(30),
+            //         borderRadius: BorderRadius.circular(12),
+            //       ),
+            //       child: Row(
+            //         children: [
+            //           CircleAvatar(radius: 3.5, backgroundColor: statusColor),
+            //           const SizedBox(width: 6),
+            //           AppText.labelSmall(
+            //             _statusLabel(),
+            //             color: statusColor,
+            //             fontWeight: FontWeight.w700,
+            //           ),
+            //         ],
+            //       ),
+            //     ),
+            //     const Spacer(),
+            //     Container(
+            //       decoration: BoxDecoration(
+            //         color: const Color(0xff334155),
+            //         borderRadius: BorderRadius.circular(14),
+            //       ),
+            //       padding: const EdgeInsets.all(10),
+            //       child: const Icon(
+            //         Icons.person_outline,
+            //         color: Color(0xffCBD5E1),
+            //       ),
+            //     ),
+            //   ],
+            // ),
             Row(
               children: [
                 Expanded(
@@ -422,7 +421,7 @@ class OrderCard extends StatelessWidget {
                         textAlign: TextAlign.start,
                       ),
                       const SizedBox(height: 4),
-                      AppText.bodySmall(
+                      AppText.labelSmall(
                         _bookingSubtitle(bookingLabel),
                         color: const Color(0xff6B7280),
                         textAlign: TextAlign.start,
@@ -443,88 +442,118 @@ class OrderCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
+                    Container(
+                      padding: const EdgeInsetsDirectional.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statusColor.withAlpha(30),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(radius: 3.5, backgroundColor: statusColor),
+                          const SizedBox(width: 6),
+                          AppText.labelSmall(
+                            _statusLabel(),
+                            color: statusColor,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
                     AppText.titleSmall(
-                      '${data.totalPrice ?? 0} ل.س',
+                      '${data.totalPrice==null?0: data.totalPrice!.toInt()} ل.س',
                       color: const Color(0xff1E2A78),
                       fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(height: 4),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: context.primaryContainer,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      padding: const EdgeInsetsDirectional.symmetric(
-                        horizontal: 12,
-                        vertical: 5,
-                      ),
-                      child: AppText.labelSmall(
-                        'نقدي',
-                        color: context.onPrimaryContainer,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+                    // Container(
+                    //   decoration: BoxDecoration(
+                    //     color: context.primaryContainer,
+                    //     borderRadius: BorderRadius.circular(8),
+                    //   ),
+                    //   padding: const EdgeInsetsDirectional.symmetric(
+                    //     horizontal: 12,
+                    //     vertical: 5,
+                    //   ),
+                    //   child: AppText.labelSmall(
+                    //     'نقدي',
+                    //     color: context.onPrimaryContainer,
+                    //     fontWeight: FontWeight.w700,
+                    //   ),
+                    // ),
                   ],
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            _metaTile(
-              context: context,
-              title: 'جدولة الحجز',
-              value: _formatDate(),
-              icon: Icons.calendar_today_rounded,
+
+            Row(
+              children: [
+                Expanded(
+                  child: _metaTile(
+                    context: context,
+                    title: 'جدولة الحجز',
+                    value: _formatDate(),
+                    icon: Icons.calendar_today_rounded,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _metaTile(
+                    context: context,
+                    title: 'موعد الخدمة',
+                    value: _formatTime(),
+                    icon: Icons.schedule_rounded,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
-            _metaTile(
-              context: context,
-              title: 'موعد الخدمة',
-              value: _formatTime(),
-              icon: Icons.schedule_rounded,
-            ),
-            const SizedBox(height: 8),
-            _metaTile(
-              context: context,
-              title: _isEventAssistance ? 'مدة الحجز' : 'المساحة التقديرية',
-              value: _isEventAssistance
-                  ? EventAssistanceOrderHelper.formatHours(
-                      EventAssistanceOrderHelper.resolveBookedHours(
-                        propertyHours: data.propertyDetails?.hours,
-                        totalHours: data.totalHours,
-                        estimatedHours: data.estimatedHours,
-                      ),
-                    )
-                  : '${data.estimatedSqm ?? '-'} متر مربع',
-              icon: _isEventAssistance
-                  ? Icons.schedule_rounded
-                  : Icons.square_foot_rounded,
-            ),
-            if (attributes.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: attributes
-                    .map(
-                      (label) => Container(
-                        padding: const EdgeInsetsDirectional.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: context.primaryContainer.withAlpha(35),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: AppText.bodySmall(
-                          label,
-                          color: context.primaryContainer,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ],
+            // _metaTile(
+            //   context: context,
+            //   title: _isEventAssistance ? 'مدة الحجز' : 'المساحة التقديرية',
+            //   value: _isEventAssistance
+            //       ? EventAssistanceOrderHelper.formatHours(
+            //           EventAssistanceOrderHelper.resolveBookedHours(
+            //             propertyHours: data.propertyDetails?.hours,
+            //             totalHours: data.totalHours,
+            //             estimatedHours: data.estimatedHours,
+            //           ),
+            //         )
+            //       : '${data.estimatedSqm ?? '-'} متر مربع',
+            //   icon: _isEventAssistance
+            //       ? Icons.schedule_rounded
+            //       : Icons.square_foot_rounded,
+            // ),
+            // if (attributes.isNotEmpty) ...[
+            //   const SizedBox(height: 10),
+            //   Wrap(
+            //     spacing: 8,
+            //     runSpacing: 8,
+            //     children: attributes
+            //         .map(
+            //           (label) => Container(
+            //             padding: const EdgeInsetsDirectional.symmetric(
+            //               horizontal: 12,
+            //               vertical: 6,
+            //             ),
+            //             decoration: BoxDecoration(
+            //               color: context.primaryContainer.withAlpha(35),
+            //               borderRadius: BorderRadius.circular(10),
+            //             ),
+            //             child: AppText.bodySmall(
+            //               label,
+            //               color: context.primaryContainer,
+            //               fontWeight: FontWeight.w700,
+            //             ),
+            //           ),
+            //         )
+            //         .toList(),
+            //   ),
+            // ],
             if (OrderLifecyclePolicy.isAcceptedWaiting(data)) ...[
               const SizedBox(height: 10),
               _acceptedWaitingBanner(context),
@@ -572,7 +601,7 @@ class OrderCard extends StatelessWidget {
                                         color: context.onPrimary,
                                       ),
                                     )
-                                  : AppText.labelLarge(
+                                  : AppText.labelMedium(
                                       'قبول الطلب',
                                       color: context.onPrimary,
                                       fontWeight: FontWeight.w700,
@@ -641,7 +670,7 @@ class OrderCard extends StatelessWidget {
                                         color: context.error,
                                       ),
                                     )
-                                  : AppText.labelLarge(
+                                  : AppText.labelMedium(
                                       isPending ? 'رفض' : 'إلغاء',
                                       color: context.error,
                                       fontWeight: FontWeight.w700,
@@ -708,7 +737,7 @@ class OrderCard extends StatelessWidget {
                                         color: context.onPrimary,
                                       ),
                                     )
-                                  : AppText.labelLarge(
+                                  : AppText.labelMedium(
                                       'أنا في الطريق',
                                       color: context.onPrimary,
                                       fontWeight: FontWeight.w700,
@@ -742,7 +771,7 @@ class OrderCard extends StatelessWidget {
                           border: Border.all(color: context.error),
                         ),
                         child: Center(
-                          child: AppText.labelLarge(
+                          child: AppText.labelMedium(
                             'إلغاء',
                             color: context.error,
                             fontWeight: FontWeight.w700,
@@ -770,7 +799,7 @@ class OrderCard extends StatelessWidget {
                     color: context.primaryContainer,
                   ),
                   child: Center(
-                    child: AppText.labelLarge(
+                    child: AppText.labelMedium(
                       'متابعة الطلب',
                       color: context.onPrimaryContainer,
                       fontWeight: FontWeight.w700,
