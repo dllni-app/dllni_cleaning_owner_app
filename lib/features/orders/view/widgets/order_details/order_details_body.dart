@@ -1,4 +1,5 @@
 import 'package:common_package/common_package.dart';
+import 'package:dllni_cleaninig_owner_app/core/extentions.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -44,10 +45,6 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
     return hours % 1 == 0 ? hours.toInt().toString() : hours.toString();
   }
 
-  String _formatPrice(num? amount) {
-    if (amount == null || amount <= 0) return 'غير متوفر';
-    return '${amount.toStringAsFixed(2)} ل.س';
-  }
 
   List<MapEntry<String, String>> get _summaryRows {
     final bookedHours = EventAssistanceOrderHelper.resolveBookedHours(
@@ -62,11 +59,11 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
         _isEventAssistance ? 'عدد الضيوف : ' : 'المساحة التقديرية',
         _isEventAssistance
             ? '${widget.order.propertyDetails?.guestCount ?? '-'}'
-            : '${widget.order.estimatedSqm ?? '-'}',
+            : widget.order.estimatedSqm ?? '-',
       ),
       // MapEntry('سعر الخدمة : ', _formatPrice(widget.order.basePrice)),
       // MapEntry('سعر التوصيل : ', _formatPrice(widget.order.travelFee)),
-      MapEntry('السعر الإجمالي', _formatPrice(widget.order.totalPrice)),
+      MapEntry('السعر الإجمالي', widget.order.totalPrice.formatMoney()),
     ];
   }
 
@@ -76,29 +73,57 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
     final canStartTravel = OrderLifecyclePolicy.canStartTravel(widget.order);
     final canCancel = OrderLifecyclePolicy.canCancel(widget.order);
 
-    return Padding(
-      padding: EdgeInsetsDirectional.symmetric(horizontal: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              InkWell(
-                onTap: () => context.pop(),
-                child: Icon(Icons.arrow_back, color: Colors.black),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            IconButton(
+              onPressed: () => context.pop(),
+              icon: Icon(Icons.arrow_back, color: Colors.black),
+            ),
+            Expanded(
+              child: AppText.headlineMedium(
+                'تفاصيل الطلب ${widget.order.bookingNumber}',
+                textAlign: TextAlign.start,
               ),
-              12.horizontalSpace,
-              Expanded(
-                child: AppText.headlineMedium(
-                  'تفاصيل الطلب ${widget.order.bookingNumber}',
-                  textAlign: TextAlign.start,
-                ),
+            ),
+            6.horizontalSpace,
+
+            isSameDate(widget.order.createdAt,widget.order.scheduledDate)
+                ? Container(
+              padding: const EdgeInsetsDirectional.symmetric(
+                horizontal: 10,
+                vertical: 5,
               ),
-            ],
-          ),
-          Expanded(
+              decoration: BoxDecoration(
+                color: context.error.withAlpha(30),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 3.5,
+                    backgroundColor: context.error,
+                  ),
+                  const SizedBox(width: 6),
+                  AppText.labelSmall(
+                    'طلب ساخن',
+                    color: context.error,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ],
+              ),
+            )
+                : SizedBox(),
+          ],
+        ),
+        Divider(color: Colors.grey,),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: SingleChildScrollView(
               child: Column(
                 children: [
@@ -177,8 +202,8 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -481,4 +506,18 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
       ],
     );
   }
+}
+
+bool isSameDate(String? date1, String? date2) {
+  // إذا كانت إحدى القيمتين (أو كلتاهما) null، نعتبرهما غير متساويتين
+  if (date1 == null || date2 == null) {
+    return false;
+  }
+
+  // تحويل النصوص إلى كائنات DateTime
+  DateTime d1 = DateTime.parse(date1);
+  DateTime d2 = DateTime.parse(date2);
+
+  // مقارنة الأجزاء الأساسية وإرجاع النتيجة كـ bool
+  return d1.year == d2.year && d1.month == d2.month && d1.day == d2.day;
 }

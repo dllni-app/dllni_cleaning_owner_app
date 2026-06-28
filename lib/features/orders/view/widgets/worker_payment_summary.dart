@@ -1,4 +1,5 @@
 import 'package:common_package/common_package.dart';
+import 'package:dllni_cleaninig_owner_app/core/extentions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
@@ -10,7 +11,6 @@ class WorkerPaymentSummary extends StatelessWidget {
     required this.adminMargin,
     required this.addonsTotal,
     required this.totalPrice,
-    required this.currency,
     this.showAddonsTotal = true,
     this.serviceShareAmount,
     this.workerAmount,
@@ -22,20 +22,12 @@ class WorkerPaymentSummary extends StatelessWidget {
   final num? adminMargin;
   final num? addonsTotal;
   final num? totalPrice;
-  final String currency;
   final bool showAddonsTotal;
   final num? serviceShareAmount;
   final num? workerAmount;
   final bool useWorkerShare;
 
-  String _formatMoney(num? value) {
-    final safe = value ?? 0;
-    final formatted = safe.toStringAsFixed(
-      safe.truncateToDouble() == safe ? 0 : 2,
-    );
-    if (currency.trim().isEmpty) return formatted;
-    return '$formatted $currency';
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -46,12 +38,12 @@ class WorkerPaymentSummary extends StatelessWidget {
       children: [
         _PaymentRow(
           label: 'قيمة الخدمة',
-          amount: _formatMoney(serviceAmount),
+          amount: serviceAmount.formatMoney(),
         ),
         12.verticalSpace,
         _PaymentRow(
           label: 'رسوم التنقل',
-          amount: _formatMoney(travelFee),
+          amount: travelFee.formatMoney(),
           // labelColor: context.primaryContainer,
           // amountColor: context.primaryContainer,
         ),
@@ -59,7 +51,7 @@ class WorkerPaymentSummary extends StatelessWidget {
 
         _PaymentRow(
           label: 'هامش الإدارة',
-          amount: _formatMoney(adminMargin),
+          amount: adminMargin.formatMoney(),
 
 
         ),
@@ -86,7 +78,7 @@ class WorkerPaymentSummary extends StatelessWidget {
         18.verticalSpace,
         _PaymentRow(
           label: useWorkerShare ? 'صافي أرباحك :' : 'الإجمالي',
-          amount: _formatMoney(adminMargin),
+          amount: totalPrice.formatMoney(),
           isTotal: true,
           labelColor: context.primaryContainer,
           amountColor: context.primaryContainer,

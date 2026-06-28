@@ -4,23 +4,23 @@ const String defaultPhoneIsoCode = 'SY';
 const String _requiredPhoneMessage = 'Ø£Ø¯Ø®Ù„ Ø±Ù‚Ù… Ø§Ù„Ø¬ÙˆØ§Ù„';
 const String _invalidPhoneMessage = 'Ø±Ù‚Ù… Ø§Ù„Ø¬ÙˆØ§Ù„ ØºÙŠØ± ØµØ§Ù„Ø­';
 
-Future<PhoneNumber?> parseInitialPhone(String? stored) async {
-  final value = stored?.trim() ?? '';
-  if (value.isEmpty) return null;
-
-  try {
-    final parsed = await PhoneNumber.getRegionInfoFromPhoneNumber(
-      value,
-      defaultPhoneIsoCode,
-    );
-    if (parsed.isoCode != defaultPhoneIsoCode) return null;
-    return parsed;
-  } catch (_) {
-    final digits = value.replaceAll(RegExp(r'\D'), '');
-    if (digits.isEmpty) return null;
-    return PhoneNumber(isoCode: defaultPhoneIsoCode, phoneNumber: digits);
-  }
-}
+// Future<PhoneNumber?> parseInitialPhone(String? stored) async {
+//   final value = stored?.trim() ?? '';
+//   if (value.isEmpty) return null;
+//
+//   try {
+//     final parsed = await PhoneNumber.getRegionInfoFromPhoneNumber(
+//       value,
+//       defaultPhoneIsoCode,
+//     );
+//     if (parsed.isoCode != defaultPhoneIsoCode) return null;
+//     return parsed;
+//   } catch (_) {
+//     final digits = value.replaceAll(RegExp(r'\D'), '');
+//     if (digits.isEmpty) return null;
+//     return PhoneNumber(isoCode: defaultPhoneIsoCode, phoneNumber: digits);
+//   }
+// }
 
 String? formatPhoneForApi(PhoneNumber? number) {
   final value = number?.phoneNumber?.trim();

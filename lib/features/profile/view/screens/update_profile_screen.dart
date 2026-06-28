@@ -16,6 +16,8 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl_phone_number_input/intl_phone_number_input.dart';
 
+import '../../../../core/widgets/phone_number_widget/my_phone_number_field_widget.dart';
+
 @AutoRoutePage()
 class UpdateProfileScreen extends StatefulWidget {
   const UpdateProfileScreen({super.key, required this.params});
@@ -34,14 +36,19 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
   late TextEditingController _dateOfBirthController;
   late TextEditingController _aboutMeController;
   late TextEditingController _cityMeController;
+  late TextEditingController phoneNumberController;
+ late final ValueNotifier<String> phoneNumberValue;
+
 
   final _phoneFieldKey = GlobalKey<AppPhoneNumberFieldState>();
-  PhoneNumber? _phone;
-  PhoneNumber? _initialPhone;
+  // PhoneNumber? _phone;
+  // PhoneNumber? _initialPhone;
   bool _isLoadingPhone = true;
 
   File? selectedImage;
   String _preferredWorkType = 'both';
+
+
 
   static const List<({String value, String title, String subtitle, IconData icon, Color color})>
       _workTypeOptions = [
@@ -78,16 +85,21 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     );
     _aboutMeController = TextEditingController(text: widget.params.bio ?? '');
     _cityMeController = TextEditingController(text: widget.params.city ?? '');
+    phoneNumberController = TextEditingController(text: widget.params.phone??'');
+
+    phoneNumberController = TextEditingController();
+    phoneNumberValue=ValueNotifier('');
     _preferredWorkType = widget.params.preferredWorkType ?? 'both';
     _loadInitialPhone();
   }
 
   Future<void> _loadInitialPhone() async {
-    final parsed = await parseInitialPhone(widget.params.phone);
+    // final parsed = await parseInitialPhone(widget.params.phone);
+
     if (!mounted) return;
     setState(() {
-      _initialPhone = parsed;
-      _phone = parsed;
+      // _initialPhone = parsed;
+      // _phone = parsed;
       _isLoadingPhone = false;
     });
   }
@@ -238,14 +250,21 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                               if (_isLoadingPhone)
                                 const Center(child: CircularProgressIndicator())
                               else
-                                AppPhoneNumberField(
-                                  key: _phoneFieldKey,
-                                  label: 'رقم الهاتف الأساسي',
-                                  isRequired: true,
-                                  initialValue: _initialPhone,
-                                  variant: AppPhoneFieldVariant.profile,
-                                  onChanged: (phone) => _phone = phone,
-                                ),
+                                // AppPhoneNumberField(
+                                //   key: _phoneFieldKey,
+                                //   label: 'رقم الهاتف الأساسي',
+                                //   isRequired: true,
+                                //   initialValue: _initialPhone,
+                                //   variant: AppPhoneFieldVariant.profile,
+                                //   onChanged: (phone) => _phone = phone,
+                                // ),
+                              MyPhoneNumberInitField(
+                                controller:phoneNumberController ,
+                                initialPhoneNumber:widget.params.phone ,
+                                internationalPhoneValue: phoneNumberValue,
+                                labelText:'رقم الهاتف الأساسي' ,
+
+                              ),
 
                               14.verticalSpace,
                               _buildField(
@@ -328,13 +347,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                                         return;
                                       }
 
-                                      final phoneError = await _phoneFieldKey
-                                          .currentState
-                                          ?.validate();
-                                      if (phoneError != null) return;
-
-                                      final phone = formatPhoneForApi(_phone);
-                                      if (phone == null) return;
+                                    
                                       final email = _emailController.text
                                           .trim();
 
@@ -350,7 +363,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                                             email: email.isEmpty ? '' : email,
                                             isActive: 1,
                                             name: _nameController.text,
-                                            phone: phone,
+                                            phone: phoneNumberValue.value,
                                             preferredWorkType: _preferredWorkType,
                                           ),
                                         ),

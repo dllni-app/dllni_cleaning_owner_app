@@ -1,4 +1,5 @@
 import 'package:common_package/common_package.dart';
+import 'package:dllni_cleaninig_owner_app/core/extentions.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/accept_order_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/reject_order_usecase_use_case.dart';
@@ -117,10 +118,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
     return id == null ? '-' : id.toString();
   }
 
-  String _moneyLabel(num? amount) {
-    if (amount == null || amount <= 0) return 'غير متوفر';
-    return '${amount.toStringAsFixed(2)} ل.س';
-  }
+
 
   void _dismissSheet() {
     Navigator.of(context).pop(_AcceptOrderSheetCloseAction.dismissed);
@@ -244,15 +242,11 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       return [
         _orderInfoRow(
           label: 'نوع المناسبة',
-          value: CleaningEnumTranslations.eventType(
-            _order.propertyDetails?.eventType,
-          ),
+          value: CleaningEnumTranslations.eventType(_order.propertyDetails?.eventType),
         ),
         _orderInfoRow(
           label: 'نوع المكان',
-          value: CleaningEnumTranslations.venueType(
-            _order.propertyDetails?.venueType,
-          ),
+          value: CleaningEnumTranslations.venueType(_order.propertyDetails?.venueType),
         ),
         _orderInfoRow(
           label: 'عدد الخدمة المطلوبة',
@@ -262,60 +256,33 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       ];
     }
 
-    return [
-      _orderInfoRow(
-        label: 'عدد غرف المعيشة',
-        value: PropertyAttributeLabelsHelper.formatCount(
-          PropertyAttributeLabelsHelper.roomTypeCountForOrder(
-            _order,
-            roomType: 'living_room',
-          ),
-        ),
-      ),
-      _orderInfoRow(
-        label: 'عدد الحمامات',
-        value: PropertyAttributeLabelsHelper.formatCount(
-          PropertyAttributeLabelsHelper.roomTypeCountForOrder(
-            _order,
-            roomType: 'bathroom',
-          ),
-        ),
-      ),
-      _orderInfoRow(
-        label: 'عدد المطابخ',
-        value: PropertyAttributeLabelsHelper.formatCount(
-          PropertyAttributeLabelsHelper.kitchenCountForOrder(_order),
-        ),
-      ),
-      _orderInfoRow(
-        label: 'عدد الموزع',
-        value: PropertyAttributeLabelsHelper.formatCount(
-          PropertyAttributeLabelsHelper.roomTypeCountForOrder(
-            _order,
-            roomType: 'hall',
-          ),
-        ),
-      ),
-      _orderInfoRow(
-        label: 'عدد الخرف',
-        value: PropertyAttributeLabelsHelper.formatCount(
-          PropertyAttributeLabelsHelper.roomTypeCountForOrder(
-            _order,
-            roomType: 'balcony',
-          ),
-        ),
-      ),
-      _orderInfoRow(
-        label: 'عدد غرف النوم',
-        value: PropertyAttributeLabelsHelper.formatCount(
-          PropertyAttributeLabelsHelper.roomTypeCountForOrder(
-            _order,
-            roomType: 'bedroom',
-          ),
-        ),
-        withDivider: false,
-      ),
+    // 1. تعريف قائمة ديناميكية لتخزين الصفوف التي ستظهر فقط
+    final List<Map<String, dynamic>> items = [
+      {'label': 'عدد غرف المعيشة', 'value': PropertyAttributeLabelsHelper.roomTypeCountForOrder(_order, roomType: 'living_room')},
+      {'label': 'عدد الحمامات', 'value': PropertyAttributeLabelsHelper.roomTypeCountForOrder(_order, roomType: 'bathroom')},
+      {'label': 'عدد المطابخ', 'value': PropertyAttributeLabelsHelper.kitchenCountForOrder(_order)},
+      {'label': 'عدد الموزع', 'value': PropertyAttributeLabelsHelper.roomTypeCountForOrder(_order, roomType: 'hall')},
+      {'label': 'عدد الخرف', 'value': PropertyAttributeLabelsHelper.roomTypeCountForOrder(_order, roomType: 'balcony')},
+      {'label': 'عدد غرف النوم', 'value': PropertyAttributeLabelsHelper.roomTypeCountForOrder(_order, roomType: 'bedroom')},
     ];
+
+    // 2. فلترة العناصر التي قيمتها 0 أو null
+    final visibleItems = items.where((item) {
+      final val = item['value'];
+      return val != null && val > 0;
+    }).toList();
+
+    // 3. تحويل العناصر المفلترة إلى Widgets
+    return List.generate(visibleItems.length, (index) {
+      final item = visibleItems[index];
+      final isLast = index == visibleItems.length - 1;
+
+      return _orderInfoRow(
+        label: item['label'],
+        value: PropertyAttributeLabelsHelper.formatCount(item['value']),
+        withDivider: !isLast, // إخفاء الخط إذا كان هو العنصر الأخير
+      );
+    });
   }
 
   @override
@@ -387,8 +354,8 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                       const SizedBox(height: 10),
                       _detailCard(context, [
                         _orderInfoRow(label: 'اسم العميل', value: _valueOrDash(_order.customer?.name)),
-                        _orderInfoRow(label: 'رقم الهاتف', value: _valueOrDash(_order.customer?.phone)),
-                        _orderInfoRow(label: 'السعر الإجمالي', value: _moneyLabel(_order.totalPrice), withDivider: false),
+                        _orderInfoRow(label: 'رقم الهاتف', value: _valueOrDash(_order.customer?.phone.formatAsPhoneNumber)),
+                        _orderInfoRow(label: 'السعر الإجمالي', value: _order.totalPrice.formatMoney(), withDivider: false),
                       ]),
                       const SizedBox(height: 16),
                       _sectionTitle(context, Icons.cleaning_services_outlined, 'الخدمات المطلوبة'),
@@ -418,7 +385,6 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                           travelFee: _order.travelFee,
                           addonsTotal: _order.addonsTotal,
                           totalPrice: _order.totalPrice,
-                          currency: 'ل.س',
                           showAddonsTotal: true,
                           adminMargin: _order.adminMargin,
                         ),

@@ -18,10 +18,7 @@ class PaymentInfoCard extends StatelessWidget {
 
   bool get _usesWorkerShare => order.myAssignment != null;
 
-  String get _currency =>
-      order.myAssignment?.currency?.trim().isNotEmpty == true
-      ? order.myAssignment!.currency!.trim()
-      : 'SYP';
+
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +43,7 @@ class PaymentInfoCard extends StatelessWidget {
             travelFee: order.myAssignment?.travelFee ?? order.travelFee,
             addonsTotal: order.addonsTotal,
             totalPrice: order.totalPrice,
-            currency: _currency,
+
             showAddonsTotal: showAddonsTotal,
             useWorkerShare: _usesWorkerShare,
             serviceShareAmount: order.myAssignment?.serviceShareAmount,

@@ -792,7 +792,6 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                                 widget.order.travelFee,
                             addonsTotal: widget.order.addonsTotal,
                             totalPrice: widget.order.totalPrice,
-                            currency: widget.order.myAssignment?.currency ?? 'SYP',
                             showAddonsTotal: false,
                             useWorkerShare: widget.order.myAssignment != null,
                             serviceShareAmount:

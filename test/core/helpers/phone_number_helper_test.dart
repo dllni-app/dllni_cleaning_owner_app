@@ -3,20 +3,20 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl_phone_number_input/intl_phone_number_input.dart';
 
 void main() {
-  group('parseInitialPhone', () {
-    test('returns parsed Syrian number for valid SY input', () async {
-      final parsed = await parseInitialPhone('+963991234567');
-
-      expect(parsed, isNotNull);
-      expect(parsed?.isoCode, defaultPhoneIsoCode);
-    });
-
-    test('returns null for non-Syrian input', () async {
-      final parsed = await parseInitialPhone('+971501234567');
-
-      expect(parsed, isNull);
-    });
-  });
+  // group('parseInitialPhone', () {
+  //   test('returns parsed Syrian number for valid SY input', () async {
+  //     final parsed = await parseInitialPhone('+963991234567');
+  //
+  //     expect(parsed, isNotNull);
+  //     expect(parsed?.isoCode, defaultPhoneIsoCode);
+  //   });
+  //
+  //   test('returns null for non-Syrian input', () async {
+  //     final parsed = await parseInitialPhone('+971501234567');
+  //
+  //     expect(parsed, isNull);
+  //   });
+  // });
 
   group('validatePhoneNumber', () {
     test('accepts valid Syrian number', () async {
