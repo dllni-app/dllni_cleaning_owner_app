@@ -106,17 +106,17 @@ class _ExtensionRequestActionSheetBodyState
   }
 
   void _onReject() {
-    final message = _messageController.text.trim();
-    if (message.isEmpty) {
-      setState(() => _rejectError = 'يرجى كتابة رسالة اعتذار للعميل');
-      return;
-    }
+    // final message = _messageController.text.trim();
+    // if (message.isEmpty) {
+    //   setState(() => _rejectError = 'يرجى كتابة رسالة اعتذار للعميل');
+    //   return;
+    // }
     setState(() => _rejectError = null);
     widget.bloc.add(
       RejectExtensionUsecaseEvent(
         params: RejectExtensionUsecaseParams(
           id: widget.warningId,
-          message: message,
+          // message: message,
         ),
       ),
     );
@@ -187,11 +187,11 @@ class _ExtensionRequestActionSheetBodyState
       child: BlocConsumer<OrdersBloc, OrdersState>(
         bloc: widget.bloc,
         listenWhen: (previous, current) {
-          final acceptedNow = previous.acceptExtensionUsecaseStatus !=
-                  BlocStatus.success &&
+          final acceptedNow =
+              previous.acceptExtensionUsecaseStatus != BlocStatus.success &&
               current.acceptExtensionUsecaseStatus == BlocStatus.success;
-          final rejectedNow = previous.rejectExtensionUsecaseStatus !=
-                  BlocStatus.success &&
+          final rejectedNow =
+              previous.rejectExtensionUsecaseStatus != BlocStatus.success &&
               current.rejectExtensionUsecaseStatus == BlocStatus.success;
           return acceptedNow || rejectedNow;
         },
@@ -203,8 +203,8 @@ class _ExtensionRequestActionSheetBodyState
           }
         },
         builder: (context, state) {
-          final isLoading = state.acceptExtensionUsecaseStatus ==
-                  BlocStatus.loading ||
+          final isLoading =
+              state.acceptExtensionUsecaseStatus == BlocStatus.loading ||
               state.rejectExtensionUsecaseStatus == BlocStatus.loading;
 
           return SingleChildScrollView(
@@ -324,65 +324,65 @@ class _ExtensionRequestActionSheetBodyState
                   ),
                 ),
                 const SizedBox(height: 16),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.chat_bubble_outline,
-                      size: 18,
-                      color: Color(0xff374151),
-                    ),
-                    const SizedBox(width: 6),
-                    AppText.bodyMedium(
-                      'كتابة رسالة اعتذار',
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _messageController,
-                  maxLength: 150,
-                  minLines: 3,
-                  maxLines: 4,
-                  onChanged: (_) {
-                    if (_rejectError != null) {
-                      setState(() => _rejectError = null);
-                    }
-                  },
-                  buildCounter: (
-                    context, {
-                    required currentLength,
-                    required isFocused,
-                    maxLength,
-                  }) {
-                    return Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        '$currentLength/${maxLength ?? 150}',
-                        style: const TextStyle(
-                          color: Color(0xff9CA3AF),
-                          fontSize: 12,
-                        ),
-                      ),
-                    );
-                  },
-                  decoration: InputDecoration(
-                    hintText: 'اكتب رسالة توضيحية للعميل...',
-                    errorText: _rejectError,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xffE5E7EB)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xffE5E7EB)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xff1DBCC8)),
-                    ),
-                  ),
-                ),
+                // Row(
+                //   children: [
+                //     const Icon(
+                //       Icons.chat_bubble_outline,
+                //       size: 18,
+                //       color: Color(0xff374151),
+                //     ),
+                //     const SizedBox(width: 6),
+                //     AppText.bodyMedium(
+                //       'كتابة رسالة اعتذار',
+                //       fontWeight: FontWeight.w600,
+                //     ),
+                //   ],
+                // ),
+                // const SizedBox(height: 8),
+                // TextField(
+                //   controller: _messageController,
+                //   maxLength: 150,
+                //   minLines: 3,
+                //   maxLines: 4,
+                //   onChanged: (_) {
+                //     if (_rejectError != null) {
+                //       setState(() => _rejectError = null);
+                //     }
+                //   },
+                //   buildCounter: (
+                //     context, {
+                //     required currentLength,
+                //     required isFocused,
+                //     maxLength,
+                //   }) {
+                //     return Align(
+                //       alignment: Alignment.centerLeft,
+                //       child: Text(
+                //         '$currentLength/${maxLength ?? 150}',
+                //         style: const TextStyle(
+                //           color: Color(0xff9CA3AF),
+                //           fontSize: 12,
+                //         ),
+                //       ),
+                //     );
+                //   },
+                //   decoration: InputDecoration(
+                //     hintText: 'اكتب رسالة توضيحية للعميل...',
+                //     errorText: _rejectError,
+                //     border: OutlineInputBorder(
+                //       borderRadius: BorderRadius.circular(12),
+                //       borderSide: const BorderSide(color: Color(0xffE5E7EB)),
+                //     ),
+                //     enabledBorder: OutlineInputBorder(
+                //       borderRadius: BorderRadius.circular(12),
+                //       borderSide: const BorderSide(color: Color(0xffE5E7EB)),
+                //     ),
+                //     focusedBorder: OutlineInputBorder(
+                //       borderRadius: BorderRadius.circular(12),
+                //       borderSide: const BorderSide(color: Color(0xff1DBCC8)),
+                //     ),
+                //   ),
+                // ),
                 const SizedBox(height: 12),
                 Directionality(
                   textDirection: TextDirection.ltr,
@@ -400,7 +400,7 @@ class _ExtensionRequestActionSheetBodyState
                             ),
                           ),
                           child: AppText.labelLarge(
-                            'كتابة رسالة اعتذار',
+                            'رفض الطلب',
                             color: const Color(0xffEF4444),
                           ),
                         ),
@@ -417,7 +417,8 @@ class _ExtensionRequestActionSheetBodyState
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          child: isLoading &&
+                          child:
+                              isLoading &&
                                   state.acceptExtensionUsecaseStatus ==
                                       BlocStatus.loading
                               ? const SizedBox(
@@ -429,7 +430,7 @@ class _ExtensionRequestActionSheetBodyState
                                   ),
                                 )
                               : AppText.labelLarge(
-                                  'الموافقة على طلب التمديد',
+                                  'قبول الطلب',
                                   color: Colors.white,
                                 ),
                         ),

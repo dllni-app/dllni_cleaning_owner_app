@@ -474,7 +474,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     if (raw == null || raw.isEmpty) return '-';
     final date = DateTime.tryParse(raw);
     if (date == null) return raw;
-    return DateFormat('yyyy_MM_dd', 'en').format(date);
+    return DateFormat('yyyy/MM/dd', 'en').format(date);
   }
 
   List<Color> get _timerGradientColors {

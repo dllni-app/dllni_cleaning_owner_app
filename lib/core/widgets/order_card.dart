@@ -132,35 +132,35 @@ class OrderCard extends StatelessWidget {
     return '#ORD-$bookingLabel \n• $createdAtLabel';
   }
 
-  List<String> _attributeLabels() {
-    if (_isEventAssistance) {
-      final labels = <String>[];
-      final guests = data.propertyDetails?.guestCount;
-      final venue = data.propertyDetails?.venueType;
-      final hours = EventAssistanceOrderHelper.resolveBookedHours(
-        propertyHours: data.propertyDetails?.hours,
-        totalHours: data.totalHours,
-        estimatedHours: data.estimatedHours,
-      );
-      if (guests != null) labels.add('$guests ضيف');
-      if (venue != null && venue.isNotEmpty) {
-        labels.add(EventAssistanceOrderHelper.venueTypeLabelAr(venue));
-      }
-      if (hours != null) {
-        labels.add(EventAssistanceOrderHelper.formatHours(hours));
-      }
-      return labels;
-    }
-
-    final labels = <String>[];
-    final baths = data.propertyDetails?.bathrooms;
-    final beds = data.propertyDetails?.bedRooms;
-    final kitchen = data.propertyDetails?.kitchen;
-    if (baths != null) labels.add('$baths حمام');
-    if (beds != null) labels.add('$beds غرف نوم');
-    if (kitchen != null) labels.add('مطبخ');
-    return labels;
-  }
+  // List<String> _attributeLabels() {
+  //   if (_isEventAssistance) {
+  //     final labels = <String>[];
+  //     final guests = data.propertyDetails?.guestCount;
+  //     final venue = data.propertyDetails?.venueType;
+  //     final hours = EventAssistanceOrderHelper.resolveBookedHours(
+  //       propertyHours: data.propertyDetails?.hours,
+  //       totalHours: data.totalHours,
+  //       estimatedHours: data.estimatedHours,
+  //     );
+  //     if (guests != null) labels.add('$guests ضيف');
+  //     if (venue != null && venue.isNotEmpty) {
+  //       labels.add(EventAssistanceOrderHelper.venueTypeLabelAr(venue));
+  //     }
+  //     if (hours != null) {
+  //       labels.add(EventAssistanceOrderHelper.formatHours(hours));
+  //     }
+  //     return labels;
+  //   }
+  //
+  //   final labels = <String>[];
+  //   final baths = data.propertyDetails?.bathrooms;
+  //   final beds = data.propertyDetails?.bedRooms;
+  //   final kitchen = data.propertyDetails?.kitchen;
+  //   if (baths != null) labels.add('$baths حمام');
+  //   if (beds != null) labels.add('$beds غرف نوم');
+  //   if (kitchen != null) labels.add('مطبخ');
+  //   return labels;
+  // }
 
   void _openDetails(BuildContext context) {
     if (OrderLifecyclePolicy.isTimeExtensionRequested(data)) {
