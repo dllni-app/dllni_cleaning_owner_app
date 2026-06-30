@@ -19,49 +19,28 @@ class OrderDetailsRealtimePolicy {
     required String? currentStatus,
     required Map<String, dynamic> payload,
   }) {
-    final explicitStatus = CleaningRealtimeContract.extractTrackingStatus(
-      payload,
-    );
-    final timestamps = CleaningRealtimeContract.extractLifecycleTimestamps(
-      payload,
-    );
+    final explicitStatus = CleaningRealtimeContract.extractTrackingStatus(payload);
+    final timestamps = CleaningRealtimeContract.extractLifecycleTimestamps(payload);
 
-    if (explicitStatus != null &&
-        OrderLifecyclePolicy.shouldPreferIncomingStatus(
-          currentStatus,
-          explicitStatus,
-        )) {
-      return (
-        status: explicitStatus,
-        arrivedAt: timestamps.arrivedAt,
-        workStartedAt: timestamps.workStartedAt,
-      );
+    if (explicitStatus != null && OrderLifecyclePolicy.shouldPreferIncomingStatus(currentStatus, explicitStatus)) {
+      return (status: explicitStatus, arrivedAt: timestamps.arrivedAt, workStartedAt: timestamps.workStartedAt);
     }
 
-    if (explicitStatus == null &&
-        OrderLifecyclePolicy.shouldPreferIncomingStatus(
-          currentStatus,
-          CleaningBookingStatus.awaitingWorkerStartConfirmation,
-        )) {
-      return (
-        status: CleaningBookingStatus.awaitingWorkerStartConfirmation,
-        arrivedAt: timestamps.arrivedAt,
-        workStartedAt: timestamps.workStartedAt,
-      );
+    if (explicitStatus == null && OrderLifecyclePolicy.shouldPreferIncomingStatus(currentStatus, CleaningBookingStatus.awaitingWorkerStartConfirmation)) {
+      return (status: CleaningBookingStatus.awaitingWorkerStartConfirmation, arrivedAt: timestamps.arrivedAt, workStartedAt: timestamps.workStartedAt);
     }
 
     return null;
   }
 
-  /// Patch to apply when tracking status is present on a tracking update event.
-  /// Worker-channel events may include multiple bookings; only handle the one
-  /// currently open in order details when [extractBookingId] is present.
+  /// Worker-channel events are shared for a worker, so details screens must only
+  /// handle payloads that explicitly belong to the currently open booking.
   static bool shouldHandleWorkerChannelEvent({
     required int currentBookingId,
     required Map<String, dynamic> payload,
   }) {
     final payloadBookingId = CleaningRealtimeContract.extractBookingId(payload);
-    if (payloadBookingId == null) return true;
+    if (payloadBookingId == null) return false;
     return payloadBookingId == currentBookingId;
   }
 
@@ -75,17 +54,9 @@ class OrderDetailsRealtimePolicy {
   }) {
     final status = CleaningRealtimeContract.extractTrackingStatus(payload);
     if (status == null) return null;
-    if (!OrderLifecyclePolicy.shouldPreferIncomingStatus(currentStatus, status)) {
-      return null;
-    }
-    final timestamps = CleaningRealtimeContract.extractLifecycleTimestamps(
-      payload,
-    );
-    return (
-      status: status,
-      arrivedAt: timestamps.arrivedAt,
-      workStartedAt: timestamps.workStartedAt,
-    );
+    if (!OrderLifecyclePolicy.shouldPreferIncomingStatus(currentStatus, status)) return null;
+    final timestamps = CleaningRealtimeContract.extractLifecycleTimestamps(payload);
+    return (status: status, arrivedAt: timestamps.arrivedAt, workStartedAt: timestamps.workStartedAt);
   }
 
   static ({
@@ -101,16 +72,10 @@ class OrderDetailsRealtimePolicy {
     final decision = CleaningRealtimeContract.extractDecision(unwrapped);
     if (decision == null || decision.isEmpty) return null;
 
-    final resolvedStatus = CleaningRealtimeContract.resolveStatusFromPayload(
-      unwrapped,
-    );
+    final resolvedStatus = CleaningRealtimeContract.resolveStatusFromPayload(unwrapped);
     if (resolvedStatus == null || resolvedStatus.isEmpty) return null;
 
-    if (!OrderLifecyclePolicy.shouldApplyRealtimeStatus(
-      currentStatus: currentStatus,
-      incomingStatus: resolvedStatus,
-      decision: decision,
-    )) {
+    if (!OrderLifecyclePolicy.shouldApplyRealtimeStatus(currentStatus: currentStatus, incomingStatus: resolvedStatus, decision: decision)) {
       return null;
     }
 
