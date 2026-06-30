@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:common_package/common_package.dart';
+import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_worker_extension_prompts.dart';
 import 'package:dllni_cleaninig_owner_app/features/auth/domain/usecases/login_usecase_use_case.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -31,26 +34,28 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     phoneValue = ValueNotifier('');
-    phoneFocusNode=FocusNode();
-    passwordFocus=FocusNode();
-    // TODO: implement initState
+    phoneFocusNode = FocusNode();
+    passwordFocus = FocusNode();
     super.initState();
   }
 
   @override
   void dispose() {
     _passwordController.dispose();
+    phoneValue.dispose();
+    phoneFocusNode.dispose();
+    passwordFocus.dispose();
     super.dispose();
   }
 
   Future<void> _submit(AuthBloc bloc) async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-
-
-
     bloc.add(
       LoginUsecaseEvent(
-        params: LoginUsecaseParams(phone: phoneValue.value, password: _passwordController.text),
+        params: LoginUsecaseParams(
+          phone: phoneValue.value,
+          password: _passwordController.text,
+        ),
       ),
     );
   }
@@ -70,6 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
               break;
             case BlocStatus.success:
               Loading.close();
+              unawaited(CleaningWorkerExtensionPrompts.coordinator?.onAuthenticated());
               context.pushRouteAndRemoveUntil('/main');
               break;
             case BlocStatus.loading:
@@ -116,34 +122,21 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-
                           Row(
                             children: [
-                              AppText.bodyMedium(
-                                'رقم الجوال',
-                                fontWeight: FontWeight.w500,
-                              ),
-                              AppText.bodyMedium(
-                                '*',
-                                color: context.error,
-                                fontWeight: FontWeight.w500,
-                              ),
+                              AppText.bodyMedium('رقم الجوال', fontWeight: FontWeight.w500),
+                              AppText.bodyMedium('*', color: context.error, fontWeight: FontWeight.w500),
                             ],
                           ),
                           SizedBox(height: 8),
-
                           MyPhoneNumberField(
                             internationalPhoneValue: phoneValue,
                             hintText: 'رقم الجوال',
                             isMargin: false,
-
                             textInputAction: TextInputAction.next,
                             focusNode: phoneFocusNode,
-                            onSubmitted: (_) {
-                              FocusScope.of(context).requestFocus(passwordFocus);
-                            },
+                            onSubmitted: (_) => FocusScope.of(context).requestFocus(passwordFocus),
                           ),
-
                           SizedBox(height: 20),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -153,9 +146,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               TextFormField(
                                 focusNode: passwordFocus,
                                 textInputAction: TextInputAction.done,
-                                onFieldSubmitted: (_) {
-                                  passwordFocus.unfocus();
-                                },
+                                onFieldSubmitted: (_) => passwordFocus.unfocus(),
                                 controller: _passwordController,
                                 obscureText: _obscurePassword,
                                 textDirection: TextDirection.ltr,
@@ -168,40 +159,15 @@ class _LoginScreenState extends State<LoginScreen> {
                                   contentPadding: EdgeInsetsDirectional.symmetric(horizontal: 16, vertical: 16),
                                   prefixIcon: Icon(Icons.lock_outline, color: Colors.grey.shade400, size: 20),
                                   suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                                      color: Colors.grey.shade400,
-                                      size: 20,
-                                    ),
-                                    onPressed: () {
-                                      setState(() {
-                                        _obscurePassword = !_obscurePassword;
-                                      });
-                                    },
+                                    icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: Colors.grey.shade400, size: 20),
+                                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                                   ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                    borderSide: BorderSide(color: Colors.grey.shade300),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                    borderSide: BorderSide(color: context.secondary),
-                                  ),
-                                  errorBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                    borderSide: BorderSide(color: context.error),
-                                  ),
-                                  focusedErrorBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                    borderSide: BorderSide(color: context.error),
-                                  ),
+                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey.shade300)),
+                                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: context.secondary)),
+                                  errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: context.error)),
+                                  focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: context.error)),
                                 ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'الرجاء إدخال كلمة المرور';
-                                  }
-                                  return null;
-                                },
+                                validator: (value) => value == null || value.isEmpty ? 'الرجاء إدخال كلمة المرور' : null,
                               ),
                             ],
                           ),
@@ -210,9 +176,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             builder: (context, state) {
                               return InkWell(
                                 borderRadius: BorderRadius.circular(16),
-                                onTap: () async {
-                                  await _submit(context.read<AuthBloc>());
-                                },
+                                onTap: () async => _submit(context.read<AuthBloc>()),
                                 child: Container(
                                   decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), color: Color(0xff1E2A78)),
                                   padding: EdgeInsetsDirectional.symmetric(vertical: 16),
@@ -232,50 +196,28 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     SizedBox(height: 24),
-                    // Support section
                     AppText.labelMedium('هل تواجه مشكلة في تسجيل الدخول؟', color: Colors.grey.shade600, textAlign: TextAlign.center),
                     SizedBox(height: 8),
-                    InkWell(
-                      onTap: () {
-
-                      },
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.headset_mic_outlined, color: context.secondary, size: 18),
-                          SizedBox(width: 6),
-                          AppText.bodyMedium('تواصل مع الدعم الفني', color: context.secondary, fontWeight: FontWeight.bold),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: 24),
-                    // Copyright
-                    AppText.labelSmall('© 2026 تطبيق تاجر. جميع الحقوق محفوظة', color: Colors.grey.shade500, textAlign: TextAlign.center),
-                    SizedBox(height: 16),
-                    // Terms and Privacy
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        InkWell(
-                          onTap: () {
-                            // TODO: Navigate to terms screen
-                          },
-                          child: AppText.labelSmall('الشروط والأحكام', color: context.secondary, fontWeight: FontWeight.w500),
-                        ),
+                        Icon(Icons.headset_mic_outlined, color: context.secondary, size: 18),
+                        SizedBox(width: 6),
+                        AppText.bodyMedium('تواصل مع الدعم الفني', color: context.secondary, fontWeight: FontWeight.bold),
+                      ],
+                    ),
+                    SizedBox(height: 24),
+                    AppText.labelSmall('© 2026 تطبيق تاجر. جميع الحقوق محفوظة', color: Colors.grey.shade500, textAlign: TextAlign.center),
+                    SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        AppText.labelSmall('الشروط والأحكام', color: context.secondary, fontWeight: FontWeight.w500),
                         Padding(
                           padding: EdgeInsetsDirectional.symmetric(horizontal: 8),
-                          child: Container(
-                            width: 4,
-                            height: 4,
-                            decoration: BoxDecoration(color: Colors.grey.shade400, shape: BoxShape.circle),
-                          ),
+                          child: Container(width: 4, height: 4, decoration: BoxDecoration(color: Colors.grey.shade400, shape: BoxShape.circle)),
                         ),
-                        InkWell(
-                          onTap: () {
-                            // TODO: Navigate to privacy policy screen
-                          },
-                          child: AppText.labelSmall('سياسة الخصوصية', color: context.secondary, fontWeight: FontWeight.w500),
-                        ),
+                        AppText.labelSmall('سياسة الخصوصية', color: context.secondary, fontWeight: FontWeight.w500),
                       ],
                     ),
                   ],
