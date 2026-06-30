@@ -6,7 +6,6 @@ import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_realtime_contract.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_worker_extension_prompts.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/pusher_manager.dart';
-import 'package:dllni_cleaninig_owner_app/features/main/view/screens/main_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_order_details_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
@@ -17,8 +16,10 @@ import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/order_det
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../controllers/order_details_lifecycle_poller.dart';
 import '../helpers/order_lifecycle_policy.dart';
 import '../manager/bloc/orders_bloc.dart';
+import '../presenters/order_details_extension_decision_presenter.dart';
 import '../widgets/order_details/order_details_map_body.dart';
 
 @AutoRoutePage()
@@ -33,18 +34,16 @@ class OrderDetailsScreen extends StatefulWidget {
 
 class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   static const Duration _fallbackDebounce = Duration(milliseconds: 150);
-  static const Duration _awaitingVerificationPollInterval =
-      Duration(seconds: 12);
 
   late FetchOrdersUsecaseModelDataItem _order;
+  late final OrderDetailsLifecyclePoller _lifecyclePoller;
   final PusherManager _pusherManager = getIt<PusherManager>();
+  final OrderDetailsExtensionDecisionPresenter _extensionDecisionPresenter =
+      OrderDetailsExtensionDecisionPresenter();
   RealtimeListenerHandle? _bookingListenerHandle;
   RealtimeListenerHandle? _workerListenerHandle;
   Timer? _syncFallbackDebounce;
-  Timer? _awaitingVerificationPoll;
   OrdersState? _previousBlocState;
-  final Set<String> _handledExtensionDecisionKeys = <String>{};
-  bool _extensionRejectedDialogOpen = false;
 
   int _stepFor(FetchOrdersUsecaseModelDataItem o) =>
       OrderLifecyclePolicy.detailsStepFor(o);
@@ -76,6 +75,10 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   void initState() {
     super.initState();
     _order = widget.params.order;
+    _lifecyclePoller = OrderDetailsLifecyclePoller(
+      shouldPoll: () => mounted && _shouldPollLifecycleAdvance,
+      onPoll: _pollOrderDetailsForVerificationAdvance,
+    );
     widget.params.bloc.add(ChangeDetailsCurrentStep(step: _stepFor(_order)));
     final id = _order.id;
     if (id != null) {
@@ -167,7 +170,11 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     }
 
     if (normalizedEvent == CleaningRealtimeContract.completionDecisionMade) {
-      _maybeShowExtensionRejectedDialog(payload);
+      _extensionDecisionPresenter.maybeShowExtensionRejectedDialog(
+        context: context,
+        order: _order,
+        payload: payload,
+      );
     }
 
     if (CleaningRealtimeContract.isLifecycleRefreshEvent(normalizedEvent)) {
@@ -207,102 +214,14 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     });
   }
 
-  String? _extensionDecisionKey({
-    required Map<String, dynamic> payload,
-    required int? warningId,
-    required String decision,
-  }) {
-    if (warningId != null) return 'warning_$warningId';
-    final unwrapped = CleaningRealtimeContract.unwrapPayload(payload);
-    final bookingId = CleaningRealtimeContract.extractBookingId(unwrapped);
-    final decidedAt =
-        (unwrapped['decidedAt'] ?? unwrapped['decided_at'])?.toString();
-    if (bookingId == null) return null;
-    return '${bookingId}_${decision}_$decidedAt';
-  }
-
-  void _maybeShowExtensionRejectedDialog(Map<String, dynamic> payload) {
-    final unwrapped = CleaningRealtimeContract.unwrapPayload(payload);
-    final decision = CleaningRealtimeContract.extractDecision(unwrapped);
-    if (decision != 'extension_rejected') return;
-    final currentStatus = (_order.status ?? '').trim().toLowerCase();
-    if (currentStatus != CleaningBookingStatus.timeExtensionRequested) return;
-
-    final warningId = CleaningRealtimeContract.extractWarningId(unwrapped);
-    final decisionKey = _extensionDecisionKey(
-      payload: unwrapped,
-      warningId: warningId,
-      decision: decision ?? 'extension_rejected',
-    );
-    if (decisionKey != null && _handledExtensionDecisionKeys.contains(decisionKey)) {
-      return;
-    }
-    if (decisionKey != null) _handledExtensionDecisionKeys.add(decisionKey);
-    unawaited(
-      _showExtensionRejectedDialog(
-        CleaningRealtimeContract.extractDecisionMessage(unwrapped),
-      ),
-    );
-  }
-
-  Future<void> _showExtensionRejectedDialog(String? message) async {
-    if (!mounted || _extensionRejectedDialogOpen) return;
-    _extensionRejectedDialogOpen = true;
-    try {
-      final body = message?.trim().isNotEmpty == true
-          ? message!.trim()
-          : 'تم رفض طلب تمديد الوقت وتم إنهاء الطلب.';
-      await showDialog<void>(
-        context: context,
-        useRootNavigator: true,
-        barrierDismissible: false,
-        builder: (ctx) {
-          return AlertDialog(
-            title: const Text('تم إنهاء طلب التمديد', textAlign: TextAlign.center),
-            content: Text(body, textAlign: TextAlign.center),
-            actions: [
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: () {
-                    final navigator = Navigator.of(ctx, rootNavigator: true);
-                    navigator.pop();
-                    navigator.pushNamedAndRemoveUntil(
-                      '/main',
-                      (route) => false,
-                      arguments: MainScreenParam(returnedPageIndex: 0),
-                    );
-                  },
-                  child: const Text('حسناً'),
-                ),
-              ),
-            ],
-          );
-        },
-      );
-    } finally {
-      _extensionRejectedDialogOpen = false;
-    }
-  }
-
   void _syncAwaitingVerificationPoll() {
     if (!mounted) return;
-    if (!_shouldPollLifecycleAdvance) {
-      _awaitingVerificationPoll?.cancel();
-      _awaitingVerificationPoll = null;
-      return;
-    }
-    if (_awaitingVerificationPoll?.isActive == true) return;
-    _awaitingVerificationPoll = Timer.periodic(
-      _awaitingVerificationPollInterval,
-      (_) => _pollOrderDetailsForVerificationAdvance(),
-    );
+    _lifecyclePoller.sync();
   }
 
   void _pollOrderDetailsForVerificationAdvance() {
     if (!mounted || !_shouldPollLifecycleAdvance) {
-      _awaitingVerificationPoll?.cancel();
-      _awaitingVerificationPoll = null;
+      _lifecyclePoller.stop();
       return;
     }
     final bookingId = _order.id;
@@ -422,7 +341,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   @override
   void dispose() {
     _syncFallbackDebounce?.cancel();
-    _awaitingVerificationPoll?.cancel();
+    _lifecyclePoller.dispose();
     unawaited(_detachRealtimeListeners());
     super.dispose();
   }
