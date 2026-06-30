@@ -15,7 +15,7 @@
     "unknownError": "An unexpected error occurred. Please try again.",
     "serverError": "A server error occurred. Please try again later.",
     "unauthorized": "Your session expired. Please log in again.",
-    "forbidden": "You are not allowed to perform this action.",
+    "forbiddenError": "You are not allowed to perform this action.",
     "notFound": "The requested item was not found.",
     "validationError": "Please check the entered data.",
     "tooManyRequests": "Too many requests. Please try again later.",

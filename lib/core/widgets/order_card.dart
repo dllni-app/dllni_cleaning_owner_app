@@ -202,7 +202,8 @@ class OrderCard extends StatelessWidget {
 
   Future<_CardExtensionRequest?> _fetchAndResolveExtensionRequest(
     BuildContext context,
-  ) async {
+  )
+  async {
     final bookingId = data.id;
     if (bookingId == null) return null;
 
@@ -224,7 +225,8 @@ class OrderCard extends StatelessWidget {
 
   _CardExtensionRequest? _resolveExtensionRequestFromFetchedRequests(
     OrdersState state,
-  ) {
+  )
+  {
     final bookingId = data.id;
     if (bookingId == null) return null;
     final requests = state.extensionRequestsUsecas?.list ?? const [];
@@ -322,7 +324,8 @@ class OrderCard extends StatelessWidget {
     required String title,
     required String value,
     required IconData icon,
-  }) {
+  })
+  {
     return Container(
       padding: const EdgeInsetsDirectional.symmetric(
         horizontal: 10,

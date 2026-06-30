@@ -118,7 +118,17 @@ class OrderLifecyclePolicy {
           return null;
 
         }else{
-          return 'اكتمل الفريق. سيتم بدء خطوات الوصول والتحقق عند موعد الطلب.';
+          if(accepted==required){
+            return 'اكتمل الفريق. سيتم بدء خطوات الوصول والتحقق عند موعد الطلب.';
+
+
+          }else{
+
+            return 'تم قبولك ضمن الفريق. بانتظار اكتمال عدد العمال ($accepted من $required).';
+
+
+          }
+
 
         }
       case CleaningWorkerOrderStatus.awaitingWorkerStartConfirmation:
