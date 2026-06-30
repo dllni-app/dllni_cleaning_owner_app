@@ -16,16 +16,11 @@ import '../di/injection.dart';
 import 'cleaning_realtime_contract.dart';
 import 'pusher_manager.dart';
 
-typedef WorkerExtensionPromptPresenter =
-    Future<bool> Function(WorkerExtensionPromptData prompt);
-typedef WorkerDecisionAlertPresenter =
-    Future<bool> Function(WorkerDecisionAlertData prompt);
-typedef WorkerPendingOrderPromptPresenter =
-    Future<bool> Function(WorkerPendingOrderPromptData prompt);
-typedef WorkerPendingExtensionRequestsLoader =
-    Future<List<WorkerPendingExtensionRequest>> Function();
-typedef WorkerPendingOrdersLoader =
-    Future<List<FetchOrdersUsecaseModelDataItem>> Function();
+typedef WorkerExtensionPromptPresenter = Future<bool> Function(WorkerExtensionPromptData prompt);
+typedef WorkerDecisionAlertPresenter = Future<bool> Function(WorkerDecisionAlertData prompt);
+typedef WorkerPendingOrderPromptPresenter = Future<bool> Function(WorkerPendingOrderPromptData prompt);
+typedef WorkerPendingExtensionRequestsLoader = Future<List<WorkerPendingExtensionRequest>> Function();
+typedef WorkerPendingOrdersLoader = Future<List<FetchOrdersUsecaseModelDataItem>> Function();
 
 class CleaningWorkerGlobalPromptCoordinator {
   CleaningWorkerGlobalPromptCoordinator({
@@ -39,28 +34,25 @@ class CleaningWorkerGlobalPromptCoordinator {
     WorkerPendingExtensionRequestsLoader? pendingRequestsLoader,
     WorkerPendingOrderPromptPresenter? pendingOrderPromptPresenter,
     WorkerPendingOrdersLoader? pendingOrdersLoader,
-  }) : _navigatorKey = navigatorKey,
-       _pusherManager = pusherManager ?? getIt<PusherManager>(),
-       _fetchExtensionRequestsUseCase =
-           fetchExtensionRequestsUseCase ??
-           (getIt.isRegistered<FetchExtensionRequestsUsecasUseCase>()
-               ? getIt<FetchExtensionRequestsUsecasUseCase>()
-               : null),
-       _fetchOrderDetailsUseCase =
-           fetchOrderDetailsUseCase ??
-           (getIt.isRegistered<FetchOrderDetailsUsecaseUseCase>()
-               ? getIt<FetchOrderDetailsUsecaseUseCase>()
-               : null),
-       _fetchOrdersUsecaseUseCase =
-           fetchOrdersUsecaseUseCase ??
-           (getIt.isRegistered<FetchOrdersUsecaseUseCase>()
-               ? getIt<FetchOrdersUsecaseUseCase>()
-               : null),
-       _extensionPromptPresenter = extensionPromptPresenter,
-       _decisionAlertPresenter = decisionAlertPresenter,
-       _pendingRequestsLoader = pendingRequestsLoader,
-       _pendingOrderPromptPresenter = pendingOrderPromptPresenter,
-       _pendingOrdersLoader = pendingOrdersLoader;
+  })  : _navigatorKey = navigatorKey,
+        _pusherManager = pusherManager ?? getIt<PusherManager>(),
+        _fetchExtensionRequestsUseCase = fetchExtensionRequestsUseCase ??
+            (getIt.isRegistered<FetchExtensionRequestsUsecasUseCase>()
+                ? getIt<FetchExtensionRequestsUsecasUseCase>()
+                : null),
+        _fetchOrderDetailsUseCase = fetchOrderDetailsUseCase ??
+            (getIt.isRegistered<FetchOrderDetailsUsecaseUseCase>()
+                ? getIt<FetchOrderDetailsUsecaseUseCase>()
+                : null),
+        _fetchOrdersUsecaseUseCase = fetchOrdersUsecaseUseCase ??
+            (getIt.isRegistered<FetchOrdersUsecaseUseCase>()
+                ? getIt<FetchOrdersUsecaseUseCase>()
+                : null),
+        _extensionPromptPresenter = extensionPromptPresenter,
+        _decisionAlertPresenter = decisionAlertPresenter,
+        _pendingRequestsLoader = pendingRequestsLoader,
+        _pendingOrderPromptPresenter = pendingOrderPromptPresenter,
+        _pendingOrdersLoader = pendingOrdersLoader;
 
   final GlobalKey<NavigatorState> _navigatorKey;
   final PusherManager _pusherManager;
@@ -76,68 +68,87 @@ class CleaningWorkerGlobalPromptCoordinator {
   RealtimeListenerHandle? _workerListenerHandle;
   int? _listeningWorkerId;
   OrdersBloc? _promptBloc;
-  Timer? _channelBindingPoll;
-  Timer? _extensionPollTimer;
+  Timer? _pollTimer;
 
   static const int _pollPageSize = 25;
   static const int _pollMaxPagesPerStatus = 6;
-  static const Duration _extensionPollInterval = Duration(seconds: 12);
+  static const Duration _pollInterval = Duration(seconds: 60);
 
   bool _started = false;
-  bool _extensionPollInFlight = false;
   bool _authBypassForTest = false;
   bool _workerChannelAuthWarningShown = false;
   bool _promptSheetOpen = false;
   bool _decisionDialogOpen = false;
+  bool _extensionPollInFlight = false;
+  bool _pendingOrderPollInFlight = false;
 
   final Set<int> _handledPendingPromptBookingIds = <int>{};
   final Set<int> _inFlightPendingPromptBookingIds = <int>{};
-  final Set<int> _handledExtensionWarningIds = <int>{};
-  final Set<int> _inFlightExtensionWarningIds = <int>{};
   final Set<int> _inFlightExtensionLookupBookingIds = <int>{};
   final Set<String> _handledCompletionDecisionKeys = <String>{};
+  final Set<String> _handledRealtimeEventKeys = <String>{};
+  final Map<int, _ExtensionPromptState> _extensionPromptStates = <int, _ExtensionPromptState>{};
 
   Future<void> start() async {
     if (_started) return;
     _started = true;
     await _pusherManager.ensureInitialized();
     await _ensureWorkerChannel();
-
-    // 1. تشغيل الفحص الأول فوراً
-    unawaited(pollPendingExtensionPrompts());
+    _runForegroundFallbackPoll();
     _scheduleStartupPostFramePoll();
-
-    // 2. استخدام تايمر واحد فقط لتقليل الضغط
-    // قمنا برفع الوقت إلى 60 ثانية لتقليل الحمل على السيرفر
-    _extensionPollTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+    _pollTimer = Timer.periodic(_pollInterval, (_) {
       if (!_started) return;
-
-      // تنفيذ العمليات بشكل متسلسل ومحمي
-      unawaited(pollPendingExtensionPrompts());
-
-      // فحص القناة (Binding) لا يحتاج لكل 12 ثانية، 60 كافية جداً
       unawaited(_ensureWorkerChannel());
+      _runForegroundFallbackPoll();
     });
+  }
+
+  Future<void> onAuthenticated({int? workerId, String? token}) async {
+    if (!_started) await start();
+    _resetPromptSessionState();
+    await _ensureWorkerChannel(forceRebind: true);
+    _runForegroundFallbackPoll();
+  }
+
+  Future<void> onLogout() async {
+    await _detachWorkerListener();
+    await _closePromptBloc();
+    _resetPromptSessionState();
+  }
+
+  Future<void> onWorkerProfileChanged(int? workerId) async {
+    await _ensureWorkerChannel(forceRebind: true);
+    _runForegroundFallbackPoll();
+  }
+
+  Future<void> onAppResumed() async {
+    if (!_started) return;
+    await _ensureWorkerChannel();
+    _runForegroundFallbackPoll();
+  }
+
+  void _runForegroundFallbackPoll() {
+    unawaited(pollPendingExtensionPrompts());
+    unawaited(pollPendingOrderPrompts());
   }
 
   void _scheduleStartupPostFramePoll() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_started) return;
-      unawaited(pollPendingExtensionPrompts());
+      _runForegroundFallbackPoll();
     });
   }
 
   Future<void> stop() async {
-    _channelBindingPoll?.cancel();
-    _channelBindingPoll = null;
-    _extensionPollTimer?.cancel();
-    _extensionPollTimer = null;
+    _pollTimer?.cancel();
+    _pollTimer = null;
     await _detachWorkerListener();
     await _closePromptBloc();
+    _resetPromptSessionState();
     _started = false;
   }
 
-  Future<void> _ensureWorkerChannel() async {
+  Future<void> _ensureWorkerChannel({bool forceRebind = false}) async {
     if (!_started) return;
     if (!_hasToken()) {
       await _detachWorkerListener();
@@ -148,9 +159,7 @@ class CleaningWorkerGlobalPromptCoordinator {
 
     final workerId = _readWorkerId();
     if (workerId == null || workerId <= 0) return;
-    if (_listeningWorkerId == workerId && _workerListenerHandle != null) {
-      return;
-    }
+    if (!forceRebind && _listeningWorkerId == workerId && _workerListenerHandle != null) return;
 
     await _detachWorkerListener();
     await _closePromptBloc();
@@ -163,9 +172,7 @@ class CleaningWorkerGlobalPromptCoordinator {
         CleaningRealtimeContract.completionDecisionMade,
       }),
       onEvent: (event) {
-        final normalized = CleaningRealtimeContract.normalizeEventName(
-          event.eventName,
-        );
+        final normalized = CleaningRealtimeContract.normalizeEventName(event.eventName);
         unawaited(_onWorkerRealtimeEvent(normalized, event.payload));
       },
       onChannelError: _onWorkerRealtimeChannelError,
@@ -183,26 +190,43 @@ class CleaningWorkerGlobalPromptCoordinator {
     await handle?.dispose();
   }
 
-  Future<void> _onWorkerRealtimeEvent(
-    String normalizedEvent,
-    Map<String, dynamic> payload,
-  ) async {
+  Future<void> _onWorkerRealtimeEvent(String normalizedEvent, Map<String, dynamic> payload) async {
     if (!_started) return;
+    final unwrapped = CleaningRealtimeContract.unwrapPayload(payload);
+    if (!_shouldHandleRealtimeEvent(normalizedEvent, unwrapped)) return;
 
     if (normalizedEvent == CleaningRealtimeContract.serviceExtensionRequested) {
-      await _handleServiceExtensionRequested(payload);
+      await _handleServiceExtensionRequested(unwrapped);
       return;
     }
 
     if (normalizedEvent == CleaningRealtimeContract.completionDecisionMade) {
-      await _handleCompletionDecision(payload);
+      await _handleCompletionDecision(unwrapped);
     }
   }
 
-  Future<void> handleRealtimeEvent(
-    String eventName,
-    Map<String, dynamic> payload,
-  ) async {
+  bool _shouldHandleRealtimeEvent(String eventName, Map<String, dynamic> payload) {
+    final bookingId = CleaningRealtimeContract.extractBookingId(payload);
+    final warningId = CleaningRealtimeContract.extractWarningId(payload);
+    if (bookingId == null && warningId == null) return false;
+    final key = <Object?>[
+      eventName,
+      bookingId,
+      warningId,
+      payload['decision'],
+      payload['status'] ?? payload['orderStatus'],
+      payload['version'],
+      payload['decidedAt'] ?? payload['decided_at'] ?? payload['updatedAt'] ?? payload['updated_at'],
+    ].join('|');
+    if (_handledRealtimeEventKeys.contains(key)) return false;
+    _handledRealtimeEventKeys.add(key);
+    if (_handledRealtimeEventKeys.length > 250) {
+      _handledRealtimeEventKeys.remove(_handledRealtimeEventKeys.first);
+    }
+    return true;
+  }
+
+  Future<void> handleRealtimeEvent(String eventName, Map<String, dynamic> payload) async {
     await _onWorkerRealtimeEvent(
       CleaningRealtimeContract.normalizeEventName(eventName),
       CleaningRealtimeContract.unwrapPayload(payload),
@@ -210,16 +234,10 @@ class CleaningWorkerGlobalPromptCoordinator {
   }
 
   @visibleForTesting
-  Future<void> handleRealtimeEventForTest(
-    String eventName,
-    Map<String, dynamic> payload,
-  ) {
+  Future<void> handleRealtimeEventForTest(String eventName, Map<String, dynamic> payload) {
     return handleRealtimeEvent(eventName, payload);
   }
 
-  /// Polls `GET /cleaning-bookings?filter[status]=time_extension_requested` and
-  /// pending time-warning records, then opens [ExtensionRequestActionSheet]
-  /// prompts for extension requests.
   Future<void> pollPendingExtensionPrompts() async {
     if (!_started || (!_authBypassForTest && !_hasToken())) return;
     if (_extensionPollInFlight || _promptSheetOpen) return;
@@ -233,31 +251,31 @@ class CleaningWorkerGlobalPromptCoordinator {
     }
   }
 
+  Future<void> pollPendingOrderPrompts() async {
+    if (!_started || (!_authBypassForTest && !_hasToken())) return;
+    if (_pendingOrderPollInFlight || _promptSheetOpen) return;
+
+    _pendingOrderPollInFlight = true;
+    try {
+      await _promptFirstPendingOrder();
+    } finally {
+      _pendingOrderPollInFlight = false;
+    }
+  }
+
   @visibleForTesting
-  static List<int> findTimeExtensionRequestedBookingIds(
-    List<FetchOrdersUsecaseModelDataItem> orders,
-  ) {
+  static List<int> findTimeExtensionRequestedBookingIds(List<FetchOrdersUsecaseModelDataItem> orders) {
     return orders
-        .where(
-          (order) =>
-              (order.status ?? '').trim().toLowerCase() ==
-              CleaningBookingStatus.timeExtensionRequested,
-        )
+        .where((order) => (order.status ?? '').trim().toLowerCase() == CleaningBookingStatus.timeExtensionRequested)
         .map((order) => order.id)
         .whereType<int>()
         .toList(growable: false);
   }
 
   @visibleForTesting
-  static List<int> findPendingBookingIds(
-    List<FetchOrdersUsecaseModelDataItem> orders,
-  ) {
+  static List<int> findPendingBookingIds(List<FetchOrdersUsecaseModelDataItem> orders) {
     return orders
-        .where(
-          (order) =>
-              (order.status ?? '').trim().toLowerCase() ==
-              CleaningBookingStatus.pending,
-        )
+        .where((order) => (order.status ?? '').trim().toLowerCase() == CleaningBookingStatus.pending)
         .map((order) => order.id)
         .whereType<int>()
         .toList(growable: false);
@@ -274,7 +292,6 @@ class CleaningWorkerGlobalPromptCoordinator {
 
   Future<bool> _promptFirstPendingExtensionRequest() async {
     final pending = await _loadPendingExtensionRequests();
-    print(pending.length);
     for (final request in pending) {
       final warningId = request.warningId;
       if (warningId == null) continue;
@@ -289,35 +306,26 @@ class CleaningWorkerGlobalPromptCoordinator {
     return false;
   }
 
-  Future<bool> _openPendingOrderPromptForOrder({
-    required FetchOrdersUsecaseModelDataItem order,
-  }) async {
+  Future<bool> _openPendingOrderPromptForOrder({required FetchOrdersUsecaseModelDataItem order}) async {
     final bookingId = order.id;
     if (bookingId == null) return false;
-    if (_handledPendingPromptBookingIds.contains(bookingId) ||
-        _inFlightPendingPromptBookingIds.contains(bookingId)) {
+    if (_handledPendingPromptBookingIds.contains(bookingId) || _inFlightPendingPromptBookingIds.contains(bookingId)) {
       return false;
     }
 
     _inFlightPendingPromptBookingIds.add(bookingId);
     try {
       final shown = await _showPendingOrderSheet(order: order);
-      if (shown) {
-        _handledPendingPromptBookingIds.add(bookingId);
-      }
+      if (shown) _handledPendingPromptBookingIds.add(bookingId);
       return shown;
     } finally {
       _inFlightPendingPromptBookingIds.remove(bookingId);
     }
   }
 
-  Future<bool> _showPendingOrderSheet({
-    required FetchOrdersUsecaseModelDataItem order,
-  }) async {
+  Future<bool> _showPendingOrderSheet({required FetchOrdersUsecaseModelDataItem order}) async {
     final presenter = _pendingOrderPromptPresenter;
-    if (presenter != null) {
-      return presenter(WorkerPendingOrderPromptData(order: order));
-    }
+    if (presenter != null) return presenter(WorkerPendingOrderPromptData(order: order));
     if (_promptSheetOpen) return false;
 
     final bloc = _ensurePromptBloc();
@@ -329,7 +337,7 @@ class CleaningWorkerGlobalPromptCoordinator {
           await AcceptOrderBottomSheet.show(
             context,
             useRootNavigator: true,
-            autoRejectOnClose: true,
+            autoRejectOnClose: false,
             order: order,
             bloc: bloc,
             index: -1,
@@ -349,28 +357,13 @@ class CleaningWorkerGlobalPromptCoordinator {
     if (fetchOrders == null) return;
 
     for (var page = 1; page <= _pollMaxPagesPerStatus; page++) {
-      final response = await fetchOrders(
-        FetchOrdersUsecaseParams(
-          page: page,
-          perPage: _pollPageSize,
-          status: CleaningBookingStatus.timeExtensionRequested,
-        ),
-      );
-
-      final orders = response.fold(
-        (_) => const <FetchOrdersUsecaseModelDataItem>[],
-        (result) => result.data ?? const <FetchOrdersUsecaseModelDataItem>[],
-      );
+      final response = await fetchOrders(FetchOrdersUsecaseParams(page: page, perPage: _pollPageSize, status: CleaningBookingStatus.timeExtensionRequested));
+      final orders = response.fold((_) => const <FetchOrdersUsecaseModelDataItem>[], (result) => result.data ?? const <FetchOrdersUsecaseModelDataItem>[]);
       if (orders.isEmpty) break;
-
       for (final bookingId in findTimeExtensionRequestedBookingIds(orders)) {
-        final shown = await _openExtensionPromptFromPendingRequests(
-          bookingId: bookingId,
-          payload: const <String, dynamic>{},
-        );
+        final shown = await _openExtensionPromptFromPendingRequests(bookingId: bookingId, payload: const <String, dynamic>{});
         if (shown) return;
       }
-
       if (orders.length < _pollPageSize) break;
     }
   }
@@ -385,91 +378,44 @@ class CleaningWorkerGlobalPromptCoordinator {
     _authBypassForTest = value;
   }
 
-  Future<void> _handleServiceExtensionRequested(
-    Map<String, dynamic> payload,
-  ) async {
+  Future<void> _handleServiceExtensionRequested(Map<String, dynamic> payload) async {
     final warningId = CleaningRealtimeContract.extractWarningId(payload);
     final bookingId = CleaningRealtimeContract.extractBookingId(payload);
-
     if (warningId != null) {
-      await _openExtensionPromptForWarning(
-        warningId: warningId,
-        bookingId: bookingId,
-        payload: payload,
-      );
+      await _openExtensionPromptForWarning(warningId: warningId, bookingId: bookingId, payload: payload);
       return;
     }
-
-    await _openExtensionPromptFromPendingRequests(
-      bookingId: bookingId,
-      payload: payload,
-    );
+    await _openExtensionPromptFromPendingRequests(bookingId: bookingId, payload: payload);
   }
 
   Future<void> _handleCompletionDecision(Map<String, dynamic> payload) async {
-    final decision = (payload['decision'] ?? '')
-        .toString()
-        .trim()
-        .toLowerCase();
+    final decision = (payload['decision'] ?? '').toString().trim().toLowerCase();
     if (decision.isEmpty) return;
-
     final bookingId = CleaningRealtimeContract.extractBookingId(payload);
-    final decisionKey = _completionDecisionKey(
-      bookingId: bookingId,
-      decision: decision,
-      payload: payload,
-    );
-    if (decisionKey != null &&
-        _handledCompletionDecisionKeys.contains(decisionKey)) {
-      return;
-    }
+    final decisionKey = _completionDecisionKey(bookingId: bookingId, decision: decision, payload: payload);
+    if (decisionKey != null && _handledCompletionDecisionKeys.contains(decisionKey)) return;
 
     var handled = false;
     if (decision == 'approved') {
-      handled = await _showDecisionAlert(
-        WorkerDecisionAlertData(
-          isApproved: true,
-          title: 'تم تأكيد إنهاء العمل',
-          message: 'وافق العميل على إنهاء الخدمة بنجاح.',
-          navigateToMainOnOk: true,
-        ),
-      );
+      handled = await _showDecisionAlert(const WorkerDecisionAlertData(isApproved: true, title: 'تم تأكيد إنهاء العمل', message: 'وافق العميل على إنهاء الخدمة بنجاح.', navigateToMainOnOk: true));
     } else if (decision == 'rejected') {
-      handled = await _showDecisionAlert(
-        WorkerDecisionAlertData(
-          isApproved: false,
-          title: 'تم رفض إنهاء العمل',
-          message: 'رفض العميل إنهاء الخدمة. يمكنك إعادة إرسال طلب الإنهاء.',
-          navigateToMainOnOk: false,
-        ),
-      );
+      handled = await _showDecisionAlert(const WorkerDecisionAlertData(isApproved: false, title: 'تم رفض إنهاء العمل', message: 'رفض العميل إنهاء الخدمة. يمكنك إعادة إرسال طلب الإنهاء.'));
     } else if (decision == 'extension_requested') {
-      handled = await _openExtensionPromptFromPendingRequests(
-        bookingId: bookingId,
-        payload: payload,
-      );
+      handled = await _openExtensionPromptFromPendingRequests(bookingId: bookingId, payload: payload);
     } else if (decision == 'extension_rejected') {
       handled = await _showDecisionAlert(
         WorkerDecisionAlertData(
           isApproved: false,
           title: 'تم إنهاء طلب التمديد',
-          message: (payload['message'] ?? payload['completionMessage'])
-                  ?.toString()
-                  .trim()
-                  .isNotEmpty ==
-              true
-              ? (payload['message'] ?? payload['completionMessage'])
-                  .toString()
-                  .trim()
+          message: (payload['message'] ?? payload['completionMessage'])?.toString().trim().isNotEmpty == true
+              ? (payload['message'] ?? payload['completionMessage']).toString().trim()
               : 'تم رفض طلب تمديد الوقت وتم إنهاء الطلب.',
           navigateToMainOnOk: true,
         ),
       );
     }
 
-    if (handled && decisionKey != null) {
-      _handledCompletionDecisionKeys.add(decisionKey);
-    }
+    if (handled && decisionKey != null) _handledCompletionDecisionKeys.add(decisionKey);
   }
 
   Future<bool> _openExtensionPromptForWarning({
@@ -478,46 +424,31 @@ class CleaningWorkerGlobalPromptCoordinator {
     required Map<String, dynamic> payload,
     int? requestedMinutesOverride,
   }) async {
-    if (_handledExtensionWarningIds.contains(warningId) ||
-        _inFlightExtensionWarningIds.contains(warningId)) {
+    final state = _extensionPromptStates[warningId];
+    if (state == _ExtensionPromptState.showing || state == _ExtensionPromptState.pendingPrompt || state == _ExtensionPromptState.resolved) {
       return false;
     }
 
-    _inFlightExtensionWarningIds.add(warningId);
+    _extensionPromptStates[warningId] = _ExtensionPromptState.pendingPrompt;
     try {
-      final shown = await _showExtensionSheet(
+      final resolved = await _showExtensionSheet(
         warningId: warningId,
         bookingId: bookingId,
-        requestedMinutes:
-            requestedMinutesOverride ?? _resolveRequestedMinutes(payload),
-        customerName: (payload['customerName'] ?? payload['customer_name'])
-            ?.toString(),
-        additionalAmount: _asDouble(
-          payload['additionalAmount'] ??
-              payload['additional_amount'] ??
-              payload['amount'],
-        ),
-        currency:
-            (payload['currency'] ??
-                    payload['currencyCode'] ??
-                    payload['currency_code'])
-                ?.toString(),
-        paymentMethod: (payload['paymentMethod'] ?? payload['payment_method'])
-            ?.toString(),
+        requestedMinutes: requestedMinutesOverride ?? _resolveRequestedMinutes(payload),
+        customerName: (payload['customerName'] ?? payload['customer_name'])?.toString(),
+        additionalAmount: _asDouble(payload['additionalAmount'] ?? payload['additional_amount'] ?? payload['amount']),
+        currency: (payload['currency'] ?? payload['currencyCode'] ?? payload['currency_code'])?.toString(),
+        paymentMethod: (payload['paymentMethod'] ?? payload['payment_method'])?.toString(),
       );
-      if (shown) {
-        _handledExtensionWarningIds.add(warningId);
-      }
-      return shown;
-    } finally {
-      _inFlightExtensionWarningIds.remove(warningId);
+      _extensionPromptStates[warningId] = resolved ? _ExtensionPromptState.resolved : _ExtensionPromptState.idle;
+      return resolved;
+    } catch (_) {
+      _extensionPromptStates[warningId] = _ExtensionPromptState.idle;
+      rethrow;
     }
   }
 
-  Future<bool> _openExtensionPromptFromPendingRequests({
-    required int? bookingId,
-    required Map<String, dynamic> payload,
-  }) async {
+  Future<bool> _openExtensionPromptFromPendingRequests({required int? bookingId, required Map<String, dynamic> payload}) async {
     if (bookingId == null) return false;
     if (_inFlightExtensionLookupBookingIds.contains(bookingId)) return false;
 
@@ -532,7 +463,6 @@ class CleaningWorkerGlobalPromptCoordinator {
         }
       }
       if (match == null || match.warningId == null) return false;
-
       return _openExtensionPromptForWarning(
         warningId: match.warningId!,
         bookingId: match.bookingId ?? bookingId,
@@ -564,27 +494,26 @@ class CleaningWorkerGlobalPromptCoordinator {
 
     final presenter = _extensionPromptPresenter;
     if (presenter != null) {
-      return presenter(
-        WorkerExtensionPromptData(
-          warningId: warningId,
-          bookingId: bookingId,
-          requestedMinutes: enriched.requestedMinutes,
-          customerName: enriched.customerName,
-          additionalAmount: enriched.additionalAmount,
-          currency: enriched.currency,
-          paymentMethod: enriched.paymentMethod,
-        ),
-      );
+      return presenter(WorkerExtensionPromptData(
+        warningId: warningId,
+        bookingId: bookingId,
+        requestedMinutes: enriched.requestedMinutes,
+        customerName: enriched.customerName,
+        additionalAmount: enriched.additionalAmount,
+        currency: enriched.currency,
+        paymentMethod: enriched.paymentMethod,
+      ));
     }
     if (_promptSheetOpen) return false;
 
     final bloc = _ensurePromptBloc();
     _promptSheetOpen = true;
+    _extensionPromptStates[warningId] = _ExtensionPromptState.showing;
     try {
       for (var attempt = 0; attempt < 8; attempt++) {
         final context = _navigatorKey.currentContext;
         if (context != null && context.mounted) {
-          await ExtensionRequestActionSheet.show(
+          return ExtensionRequestActionSheet.show(
             context,
             useRootNavigator: true,
             bloc: bloc,
@@ -596,7 +525,6 @@ class CleaningWorkerGlobalPromptCoordinator {
             currency: enriched.currency,
             paymentMethod: enriched.paymentMethod,
           );
-          return true;
         }
         await Future<void>.delayed(const Duration(milliseconds: 120));
       }
@@ -618,86 +546,41 @@ class CleaningWorkerGlobalPromptCoordinator {
     var resolvedAmount = additionalAmount;
     var resolvedCurrency = currency;
     var resolvedPaymentMethod = paymentMethod;
-
-    final needsDetails =
-        bookingId != null &&
-        ((resolvedCustomerName == null ||
-                resolvedCustomerName.trim().isEmpty) ||
-            resolvedAmount == null ||
-            (resolvedPaymentMethod == null ||
-                resolvedPaymentMethod.trim().isEmpty));
-
+    final needsDetails = bookingId != null && ((resolvedCustomerName == null || resolvedCustomerName.trim().isEmpty) || resolvedAmount == null || (resolvedPaymentMethod == null || resolvedPaymentMethod.trim().isEmpty));
     if (!needsDetails) {
-      return _ExtensionPromptEnrichment(
-        requestedMinutes: requestedMinutes,
-        customerName: resolvedCustomerName,
-        additionalAmount: resolvedAmount,
-        currency: resolvedCurrency,
-        paymentMethod: resolvedPaymentMethod,
-      );
+      return _ExtensionPromptEnrichment(requestedMinutes: requestedMinutes, customerName: resolvedCustomerName, additionalAmount: resolvedAmount, currency: resolvedCurrency, paymentMethod: resolvedPaymentMethod);
     }
 
     final fetchDetails = _fetchOrderDetailsUseCase;
     if (fetchDetails == null) {
-      return _ExtensionPromptEnrichment(
-        requestedMinutes: requestedMinutes,
-        customerName: resolvedCustomerName,
-        additionalAmount: resolvedAmount,
-        currency: resolvedCurrency,
-        paymentMethod: resolvedPaymentMethod,
-      );
+      return _ExtensionPromptEnrichment(requestedMinutes: requestedMinutes, customerName: resolvedCustomerName, additionalAmount: resolvedAmount, currency: resolvedCurrency, paymentMethod: resolvedPaymentMethod);
     }
 
-    final response = await fetchDetails(
-      FetchOrderDetailsUsecaseParams(id: bookingId),
-    );
+    final response = await fetchDetails(FetchOrderDetailsUsecaseParams(id: bookingId));
     response.fold((_) => null, (result) {
       final details = result.data;
       if (details == null) return;
-
-      if (resolvedCustomerName?.trim().isEmpty ?? true) {
-        resolvedCustomerName = details.customer?.name;
-      }
-
-      if (resolvedAmount == null &&
-          requestedMinutes != null &&
-          requestedMinutes > 0) {
+      if (resolvedCustomerName?.trim().isEmpty ?? true) resolvedCustomerName = details.customer?.name;
+      if (resolvedAmount == null && requestedMinutes != null && requestedMinutes > 0) {
         final totalHours = details.totalHours;
         final totalPrice = details.totalPrice;
         if (totalHours != null && totalHours > 0 && totalPrice != null) {
           resolvedAmount = totalPrice / totalHours * (requestedMinutes / 60.0);
         }
       }
-
-      if (resolvedPaymentMethod?.trim().isEmpty ?? true) {
-        resolvedPaymentMethod = 'cash_on_delivery';
-      }
+      if (resolvedPaymentMethod?.trim().isEmpty ?? true) resolvedPaymentMethod = 'cash_on_delivery';
     });
 
-    return _ExtensionPromptEnrichment(
-      requestedMinutes: requestedMinutes,
-      customerName: resolvedCustomerName,
-      additionalAmount: resolvedAmount,
-      currency: resolvedCurrency,
-      paymentMethod: resolvedPaymentMethod,
-    );
+    return _ExtensionPromptEnrichment(requestedMinutes: requestedMinutes, customerName: resolvedCustomerName, additionalAmount: resolvedAmount, currency: resolvedCurrency, paymentMethod: resolvedPaymentMethod);
   }
 
   int? _resolveRequestedMinutes(Map<String, dynamic> payload) {
-    return _asInt(
-      payload['additionalMinutes'] ??
-          payload['additional_minutes'] ??
-          payload['requestedMinutes'] ??
-          payload['requested_minutes'] ??
-          payload['minutes'],
-    );
+    return _asInt(payload['additionalMinutes'] ?? payload['additional_minutes'] ?? payload['requestedMinutes'] ?? payload['requested_minutes'] ?? payload['minutes']);
   }
 
   Future<bool> _showDecisionAlert(WorkerDecisionAlertData prompt) async {
     final presenter = _decisionAlertPresenter;
-    if (presenter != null) {
-      return presenter(prompt);
-    }
+    if (presenter != null) return presenter(prompt);
     if (_decisionDialogOpen) return false;
     final context = _navigatorKey.currentContext;
     if (context == null || !context.mounted) return false;
@@ -708,40 +591,26 @@ class CleaningWorkerGlobalPromptCoordinator {
         context: context,
         useRootNavigator: true,
         barrierDismissible: false,
-        builder: (ctx) {
-          return AlertDialog(
-            icon: Icon(
-              prompt.isApproved
-                  ? Icons.check_circle_outline
-                  : Icons.error_outline,
-              color: prompt.isApproved
-                  ? const Color(0xff16A34A)
-                  : const Color(0xffDC2626),
-              size: 40,
-            ),
-            title: Text(prompt.title, textAlign: TextAlign.center),
-            content: Text(prompt.message, textAlign: TextAlign.center),
-            actions: [
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: () {
-                    final navigator = Navigator.of(ctx, rootNavigator: true);
-                    navigator.pop();
-                    if (prompt.navigateToMainOnOk) {
-                      navigator.pushNamedAndRemoveUntil(
-                        '/main',
-                        (route) => false,
-                        arguments: MainScreenParam(returnedPageIndex: 0),
-                      );
-                    }
-                  },
-                  child: const Text('حسناً'),
-                ),
+        builder: (ctx) => AlertDialog(
+          icon: Icon(prompt.isApproved ? Icons.check_circle_outline : Icons.error_outline, color: prompt.isApproved ? const Color(0xff16A34A) : const Color(0xffDC2626), size: 40),
+          title: Text(prompt.title, textAlign: TextAlign.center),
+          content: Text(prompt.message, textAlign: TextAlign.center),
+          actions: [
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () {
+                  final navigator = Navigator.of(ctx, rootNavigator: true);
+                  navigator.pop();
+                  if (prompt.navigateToMainOnOk) {
+                    navigator.pushNamedAndRemoveUntil('/main', (route) => false, arguments: MainScreenParam(returnedPageIndex: 0));
+                  }
+                },
+                child: const Text('حسناً'),
               ),
-            ],
-          );
-        },
+            ),
+          ],
+        ),
       );
       return true;
     } finally {
@@ -749,70 +618,38 @@ class CleaningWorkerGlobalPromptCoordinator {
     }
   }
 
-  Future<List<WorkerPendingExtensionRequest>>
-  _loadPendingExtensionRequests() async {
+  Future<List<WorkerPendingExtensionRequest>> _loadPendingExtensionRequests() async {
     final loader = _pendingRequestsLoader;
-    if (loader != null) {
-      return loader();
-    }
-
+    if (loader != null) return loader();
     final fetchUseCase = _fetchExtensionRequestsUseCase;
-    if (fetchUseCase == null) {
-      return const <WorkerPendingExtensionRequest>[];
-    }
+    if (fetchUseCase == null) return const <WorkerPendingExtensionRequest>[];
 
     final response = await fetchUseCase(FetchExtensionRequestsUsecasParams());
-    return response.fold((_) => const <WorkerPendingExtensionRequest>[], (
-       
-      result,
-    ) {
+    return response.fold((_) => const <WorkerPendingExtensionRequest>[], (result) {
       final list = result.data ?? const <dynamic>[];
       return list
           .where((item) => item.isPendingWorkerResponse)
-          .map(
-            (item) => WorkerPendingExtensionRequest(
-              warningId: _asInt(item.id),
-              bookingId: _asInt(item.bookingId),
-              requestedMinutes: _asInt(item.resolvedAdditionalMinutes),
-            ),
-          )
+          .map((item) => WorkerPendingExtensionRequest(
+                warningId: _asInt(item.id),
+                bookingId: _asInt(item.bookingId),
+                requestedMinutes: _asInt(item.resolvedAdditionalMinutes),
+              ))
           .toList(growable: false);
     });
   }
 
   Future<List<FetchOrdersUsecaseModelDataItem>> _loadPendingOrders() async {
     final loader = _pendingOrdersLoader;
-    if (loader != null) {
-      return loader();
-    }
+    if (loader != null) return loader();
     final fetchUseCase = _fetchOrdersUsecaseUseCase;
-    if (fetchUseCase == null) {
-      return const <FetchOrdersUsecaseModelDataItem>[];
-    }
+    if (fetchUseCase == null) return const <FetchOrdersUsecaseModelDataItem>[];
 
     final collected = <FetchOrdersUsecaseModelDataItem>[];
     for (var page = 1; page <= _pollMaxPagesPerStatus; page++) {
-      final response = await fetchUseCase(
-        FetchOrdersUsecaseParams(
-          page: page,
-          perPage: _pollPageSize,
-          status: CleaningBookingStatus.pending,
-        ),
-      );
-      final orders = response.fold(
-        (_) => const <FetchOrdersUsecaseModelDataItem>[],
-        (result) => result.data ?? const <FetchOrdersUsecaseModelDataItem>[],
-      );
+      final response = await fetchUseCase(FetchOrdersUsecaseParams(page: page, perPage: _pollPageSize, status: CleaningBookingStatus.pending));
+      final orders = response.fold((_) => const <FetchOrdersUsecaseModelDataItem>[], (result) => result.data ?? const <FetchOrdersUsecaseModelDataItem>[]);
       if (orders.isEmpty) break;
-
-      collected.addAll(
-        orders.where(
-          (order) =>
-              (order.status ?? '').trim().toLowerCase() ==
-                  CleaningBookingStatus.pending &&
-              order.id != null,
-        ),
-      );
+      collected.addAll(orders.where((order) => (order.status ?? '').trim().toLowerCase() == CleaningBookingStatus.pending && order.id != null));
       if (orders.length < _pollPageSize) break;
     }
     return collected;
@@ -824,13 +661,7 @@ class CleaningWorkerGlobalPromptCoordinator {
     _workerChannelAuthWarningShown = true;
     final context = _navigatorKey.currentContext;
     if (context == null || !context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Unable to connect realtime worker updates right now. The app will keep syncing in the background.',
-        ),
-      ),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Unable to connect realtime worker updates right now. The app will keep syncing in the background.')));
   }
 
   OrdersBloc _ensurePromptBloc() {
@@ -844,9 +675,7 @@ class CleaningWorkerGlobalPromptCoordinator {
   Future<void> _closePromptBloc() async {
     final bloc = _promptBloc;
     _promptBloc = null;
-    if (bloc != null && !bloc.isClosed) {
-      await bloc.close();
-    }
+    if (bloc != null && !bloc.isClosed) await bloc.close();
   }
 
   void _resetPromptSessionState() {
@@ -854,23 +683,15 @@ class CleaningWorkerGlobalPromptCoordinator {
     _decisionDialogOpen = false;
     _handledPendingPromptBookingIds.clear();
     _inFlightPendingPromptBookingIds.clear();
-    _handledExtensionWarningIds.clear();
-    _inFlightExtensionWarningIds.clear();
     _inFlightExtensionLookupBookingIds.clear();
     _handledCompletionDecisionKeys.clear();
+    _handledRealtimeEventKeys.clear();
+    _extensionPromptStates.clear();
   }
 
-  String? _completionDecisionKey({
-    required int? bookingId,
-    required String decision,
-    required Map<String, dynamic> payload,
-  }) {
+  String? _completionDecisionKey({required int? bookingId, required String decision, required Map<String, dynamic> payload}) {
     if (bookingId == null) return null;
-    final discriminator =
-        payload['version'] ??
-        payload['decidedAt'] ??
-        payload['decided_at'] ??
-        '';
+    final discriminator = payload['version'] ?? payload['decidedAt'] ?? payload['decided_at'] ?? '';
     return '$bookingId|$discriminator|$decision';
   }
 
@@ -882,9 +703,7 @@ class CleaningWorkerGlobalPromptCoordinator {
   }
 
   bool _hasToken() {
-    final token = (SharedPreferencesHelper.getData(key: 'token') ?? '')
-        .toString()
-        .trim();
+    final token = (SharedPreferencesHelper.getData(key: 'token') ?? '').toString().trim();
     return token.isNotEmpty;
   }
 
@@ -901,17 +720,10 @@ class CleaningWorkerGlobalPromptCoordinator {
   }
 }
 
-class WorkerExtensionPromptData {
-  const WorkerExtensionPromptData({
-    required this.warningId,
-    required this.bookingId,
-    required this.requestedMinutes,
-    required this.customerName,
-    required this.additionalAmount,
-    required this.currency,
-    required this.paymentMethod,
-  });
+enum _ExtensionPromptState { idle, pendingPrompt, showing, resolved }
 
+class WorkerExtensionPromptData {
+  const WorkerExtensionPromptData({required this.warningId, required this.bookingId, required this.requestedMinutes, required this.customerName, required this.additionalAmount, required this.currency, required this.paymentMethod});
   final int warningId;
   final int? bookingId;
   final int? requestedMinutes;
@@ -923,18 +735,11 @@ class WorkerExtensionPromptData {
 
 class WorkerPendingOrderPromptData {
   const WorkerPendingOrderPromptData({required this.order});
-
   final FetchOrdersUsecaseModelDataItem order;
 }
 
 class WorkerDecisionAlertData {
-  const WorkerDecisionAlertData({
-    required this.isApproved,
-    required this.title,
-    required this.message,
-    this.navigateToMainOnOk = false,
-  });
-
+  const WorkerDecisionAlertData({required this.isApproved, required this.title, required this.message, this.navigateToMainOnOk = false});
   final bool isApproved;
   final String title;
   final String message;
@@ -942,26 +747,14 @@ class WorkerDecisionAlertData {
 }
 
 class WorkerPendingExtensionRequest {
-  const WorkerPendingExtensionRequest({
-    required this.warningId,
-    required this.bookingId,
-    required this.requestedMinutes,
-  });
-
+  const WorkerPendingExtensionRequest({required this.warningId, required this.bookingId, required this.requestedMinutes});
   final int? warningId;
   final int? bookingId;
   final int? requestedMinutes;
 }
 
 class _ExtensionPromptEnrichment {
-  const _ExtensionPromptEnrichment({
-    required this.requestedMinutes,
-    required this.customerName,
-    required this.additionalAmount,
-    required this.currency,
-    required this.paymentMethod,
-  });
-
+  const _ExtensionPromptEnrichment({required this.requestedMinutes, required this.customerName, required this.additionalAmount, required this.currency, required this.paymentMethod});
   final int? requestedMinutes;
   final String? customerName;
   final double? additionalAmount;
