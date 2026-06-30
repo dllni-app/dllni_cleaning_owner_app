@@ -20,5 +20,5 @@ String visibleOrderAddress({
       .toList(growable: false);
 
   if (parts.isEmpty) return trimmedAddress;
-  return parts.take(2).join(' - ');
+  return parts.first;
 }
