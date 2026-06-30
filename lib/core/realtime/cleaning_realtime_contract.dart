@@ -23,6 +23,7 @@ class CleaningRealtimeContract {
   static const String serviceExtensionRequested = 'ServiceExtensionRequested';
   static const String trackingUpdated = 'CleaningBookingTrackingUpdated';
   static const String teamUpdated = 'cleaning_booking.team_updated';
+  static const String bookingCreated = 'CleaningBookingCreated';
 
   static const Map<String, String> legacyEventAliases = <String, String>{
     securityCodeIssued: awaitingStartVerification,
@@ -42,6 +43,11 @@ class CleaningRealtimeContract {
     'cleaning_order.service_extension_requested': serviceExtensionRequested,
     'completion_decision_made': completionDecisionMade,
     'cleaning_order.completion_decision_made': completionDecisionMade,
+    'NewCleaningBooking': bookingCreated,
+    'new_cleaning_booking': bookingCreated,
+    'cleaning_booking.created': bookingCreated,
+    'cleaning_order.created': bookingCreated,
+    'new_order': bookingCreated,
   };
 
   static final Map<String, String> _normalizedEventAliases =
@@ -79,6 +85,7 @@ class CleaningRealtimeContract {
       serviceExtensionRequested,
       trackingUpdated,
       teamUpdated,
+      bookingCreated,
     };
     for (final eventName in canonicalEvents) {
       addAlias(eventName, eventName, overrideExisting: false);
@@ -138,14 +145,17 @@ class CleaningRealtimeContract {
         normalized == completionDecisionMade ||
         normalized == serviceExtensionRequested ||
         normalized == trackingUpdated ||
-        normalized == teamUpdated;
+        normalized == teamUpdated ||
+        normalized == bookingCreated;
   }
 
   static bool shouldRefreshPendingOrdersForWorkerEvent(
     String eventName,
     Map<String, dynamic> payload,
   ) {
-    if (isLifecycleRefreshEvent(eventName)) {
+    final normalized = normalizeEventName(eventName);
+    if (normalized == bookingCreated) return true;
+    if (isLifecycleRefreshEvent(normalized)) {
       return true;
     }
     final unwrapped = unwrapPayload(payload);
@@ -258,111 +268,40 @@ class CleaningRealtimeContract {
               unwrapped['cleaning_order_id'] ??
               unwrapped['cleaning_booking_id'] ??
               unwrapped['id'] ??
-              unwrapped['orderId'] ??
               unwrapped['order_id'],
         );
   }
 
-  static Map<String, dynamic> _nestedBookingMap(Map<String, dynamic> source) {
-    return _asStringMap(
-      source['cleaningOrder'] ??
-          source['cleaning_order'] ??
-          source['cleaningBooking'] ??
-          source['cleaning_booking'],
+  static Map<String, dynamic> _nestedBookingMap(Map<String, dynamic> payload) {
+    final cleaningOrder = _asStringMap(payload['cleaningOrder']);
+    if (cleaningOrder.isNotEmpty) return cleaningOrder;
+    return _asStringMap(payload['cleaning_order']);
+  }
+
+  static int? _extractIdFromMap(Map<String, dynamic> map) {
+    if (map.isEmpty) return null;
+    return _asInt(
+      map['id'] ??
+          map['bookingId'] ??
+          map['booking_id'] ??
+          map['cleaningBookingId'] ??
+          map['cleaning_booking_id'] ??
+          map['cleaningOrderId'] ??
+          map['cleaning_order_id'],
     );
   }
 
   static Map<String, dynamic> _asStringMap(dynamic value) {
     if (value is Map<String, dynamic>) return value;
     if (value is Map) {
-      return value.map((key, nested) => MapEntry(key.toString(), nested));
+      return value.map((key, value) => MapEntry(key.toString(), value));
     }
     return const <String, dynamic>{};
-  }
-
-  static int? _extractIdFromMap(Map<String, dynamic> source) {
-    if (source.isEmpty) return null;
-    return _asInt(
-      source['id'] ??
-          source['cleaningBookingId'] ??
-          source['cleaning_bookingId'] ??
-          source['bookingId'] ??
-          source['booking_id'] ??
-          source['cleaningOrderId'] ??
-          source['cleaning_order_id'] ??
-          source['cleaning_booking_id'] ??
-          source['orderId'] ??
-          source['order_id'],
-    );
-  }
-
-  static String? statusFromDecision(String? decision) {
-    final normalized = (decision ?? '').trim().toLowerCase();
-    switch (normalized) {
-      case 'approved':
-        return CleaningBookingStatus.completed;
-      case 'rejected':
-        return CleaningBookingStatus.inProgress;
-      case 'extension_requested':
-        return CleaningBookingStatus.timeExtensionRequested;
-      case 'extension_accepted':
-        return CleaningBookingStatus.inProgress;
-      case 'extension_rejected':
-        return CleaningBookingStatus.completed;
-      default:
-        return null;
-    }
-  }
-
-  static String? resolveStatusFromPayload(Map<String, dynamic> payload) {
-    final unwrapped = unwrapPayload(payload);
-    final explicitStatus = extractTrackingStatus(unwrapped) ??
-        unwrapped['status']?.toString().trim().toLowerCase();
-    if (explicitStatus != null && explicitStatus.isNotEmpty) {
-      return explicitStatus;
-    }
-    return statusFromDecision(extractDecision(unwrapped));
-  }
-
-  static CleaningRealtimeLocation? parseLocation(Map<String, dynamic> payload) {
-    final unwrapped = unwrapPayload(payload);
-    final latitude = _asDouble(unwrapped['latitude'] ?? unwrapped['lat']);
-    final longitude = _asDouble(unwrapped['longitude'] ?? unwrapped['lng']);
-    if (latitude == null || longitude == null) return null;
-    final workerId = _asInt(unwrapped['workerId'] ?? unwrapped['worker_id']);
-    final updatedAt = (unwrapped['updatedAt'] ?? unwrapped['updated_at'])
-        ?.toString();
-    return CleaningRealtimeLocation(
-      latitude: latitude,
-      longitude: longitude,
-      workerId: workerId,
-      updatedAt: updatedAt,
-    );
   }
 
   static int? _asInt(dynamic value) {
     if (value is int) return value;
     if (value is num) return value.toInt();
-    return int.tryParse('$value');
+    return int.tryParse(value?.toString() ?? '');
   }
-
-  static double? _asDouble(dynamic value) {
-    if (value is double) return value;
-    if (value is num) return value.toDouble();
-    return double.tryParse('$value');
-  }
-}
-
-class CleaningRealtimeLocation {
-  const CleaningRealtimeLocation({
-    required this.latitude,
-    required this.longitude,
-    this.workerId,
-    this.updatedAt,
-  });
-
-  final double latitude;
-  final double longitude;
-  final int? workerId;
-  final String? updatedAt;
 }

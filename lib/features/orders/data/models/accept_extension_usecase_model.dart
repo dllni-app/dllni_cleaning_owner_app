@@ -114,8 +114,8 @@ class AcceptExtensionUsecaseModelData {
   factory AcceptExtensionUsecaseModelData.fromJson(Map<String, dynamic> json) {
     return AcceptExtensionUsecaseModelData(
       id: _asInt(json['id']),
-      responseStatus: _asString(json['responseStatus']),
-      approvedMinutes: _asInt(json['approvedMinutes']),
+      responseStatus: _asString(json['responseStatus'] ?? json['response_status'] ?? json['status']),
+      approvedMinutes: _asInt(json['approvedMinutes'] ?? json['approved_minutes'] ?? json['additionalMinutes'] ?? json['additional_minutes'] ?? json['requestedMinutes'] ?? json['requested_minutes']),
     );
   }
 

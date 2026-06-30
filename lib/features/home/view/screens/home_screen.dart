@@ -4,6 +4,7 @@ import 'dart:developer' as developer;
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_realtime_contract.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/pusher_manager.dart';
+import 'package:dllni_cleaninig_owner_app/core/realtime/worker_realtime_orders_sync.dart';
 import 'package:dllni_cleaninig_owner_app/core/widgets/order_card.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -53,6 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
       CleaningRealtimeContract.expandEventFilter(const <String>{
         CleaningRealtimeContract.trackingUpdated,
         CleaningRealtimeContract.teamUpdated,
+        CleaningRealtimeContract.bookingCreated,
         CleaningRealtimeContract.workerArrived,
         CleaningRealtimeContract.awaitingStartVerification,
         CleaningRealtimeContract.arrivalVerified,
@@ -206,7 +208,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (CleaningRealtimeContract.isLocationEvent(eventName)) return;
 
-    _refreshHomeData(source: eventName);
+    final hasBookingId = CleaningRealtimeContract.extractBookingId(payload) != null;
+    final canSyncVisiblePendingList =
+        _selectedHomeOrdersTab == HomeOrdersTab.newOrders && hasBookingId;
+
+    WorkerRealtimeOrdersSync.dispatchSync(
+      bloc: _ordersBloc,
+      eventName: eventName,
+      payload: payload,
+      applyToPendingList: _selectedHomeOrdersTab == HomeOrdersTab.newOrders,
+    );
+
+    if (canSyncVisiblePendingList) {
+      _refreshHomeSummary(source: eventName);
+    } else {
+      _refreshHomeData(source: eventName);
+    }
   }
 
   void _onForegroundPushMessage(RemoteMessage message) {
@@ -218,6 +235,17 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     _refreshHomeData(source: 'fcm_foreground');
+  }
+
+  void _refreshHomeSummary({required String source}) {
+    if (!mounted) return;
+    developer.log('[Home] summary refresh triggered by $source');
+    _homeBloc.add(
+      FetchHomePageUsecaseEvent(
+        params: FetchHomePageUsecaseParams(),
+        silent: true,
+      ),
+    );
   }
 
   void _refreshHomeData({required String source}) {
@@ -544,7 +572,3 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-
-
-
-

@@ -29,6 +29,27 @@ void main() {
       );
     });
 
+    test('processes new booking aliases even without booking id', () {
+      expect(
+        CleaningRealtimeContract.normalizeEventName('cleaning_booking.created'),
+        CleaningRealtimeContract.bookingCreated,
+      );
+      expect(
+        WorkerRealtimeOrdersSync.shouldProcessWorkerEvent(
+          eventName: 'cleaning_booking.created',
+          payload: const <String, dynamic>{},
+        ),
+        isTrue,
+      );
+      expect(
+        WorkerRealtimeOrdersSync.prefersListRefetch(
+          eventName: 'cleaning_booking.created',
+          payload: const <String, dynamic>{},
+        ),
+        isTrue,
+      );
+    });
+
     test('does not prefer list refetch when tracking update has booking id', () {
       expect(
         WorkerRealtimeOrdersSync.prefersListRefetch(

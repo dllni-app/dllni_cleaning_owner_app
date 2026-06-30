@@ -16,6 +16,7 @@ import '../../../domain/usecases/fetch_order_details_usecase_use_case.dart';
 import '../../helpers/event_assistance_order_helper.dart';
 import '../../helpers/order_details_support_navigation.dart';
 import '../../helpers/order_lifecycle_policy.dart';
+import '../../helpers/order_work_timer_helper.dart';
 import '../worker_payment_summary.dart';
 
 class OrderDetailsMissionBody extends StatefulWidget {
@@ -46,11 +47,13 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
   bool _isWorkOverdue = false;
   bool _waitingSheetOpen = false;
   String? _lastCompletionMessage;
+  String? _workTimerSessionKey;
   final Map<String, bool> _taskState = <String, bool>{};
 
   @override
   void initState() {
     super.initState();
+    _workTimerSessionKey = _resolveWorkTimerSession()?.sessionKey;
     _initTasks();
     _calculateWorkTimer();
     _startTimer();
@@ -60,10 +63,26 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
   void didUpdateWidget(covariant OrderDetailsMissionBody oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.order.id != widget.order.id) _lastCompletionMessage = null;
-    if (oldWidget.order.id != widget.order.id || oldWidget.services.length != widget.services.length || oldWidget.addons.length != widget.addons.length) {
+
+    final nextSessionKey = _resolveWorkTimerSession()?.sessionKey;
+    final shouldResetTasks = oldWidget.order.id != widget.order.id ||
+        oldWidget.services.length != widget.services.length ||
+        oldWidget.addons.length != widget.addons.length ||
+        nextSessionKey != _workTimerSessionKey;
+    if (shouldResetTasks) {
+      _workTimerSessionKey = nextSessionKey;
       _initTasks();
     }
-    if (oldWidget.order.id != widget.order.id || oldWidget.order.status != widget.order.status || oldWidget.order.workStartedAt != widget.order.workStartedAt || oldWidget.order.arrivedAt != widget.order.arrivedAt || oldWidget.order.totalHours != widget.order.totalHours || oldWidget.order.estimatedHours != widget.order.estimatedHours) {
+
+    if (oldWidget.order.id != widget.order.id ||
+        oldWidget.order.status != widget.order.status ||
+        oldWidget.order.workStartedAt != widget.order.workStartedAt ||
+        oldWidget.order.arrivedAt != widget.order.arrivedAt ||
+        oldWidget.order.scheduledDate != widget.order.scheduledDate ||
+        oldWidget.order.scheduledTime != widget.order.scheduledTime ||
+        oldWidget.order.totalHours != widget.order.totalHours ||
+        oldWidget.order.estimatedHours != widget.order.estimatedHours ||
+        oldWidget.order.timeWarnings != widget.order.timeWarnings) {
       _calculateWorkTimer();
     }
   }
@@ -198,25 +217,21 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     _waitingSheetOpen = false;
   }
 
-  DateTime? _parseDate(String? value) {
-    final raw = value?.trim();
-    if (raw == null || raw.isEmpty) return null;
-    return DateTime.tryParse(raw);
-  }
-
-  Duration? _durationFromHours(double? hours) => hours == null || hours <= 0 ? null : Duration(minutes: (hours * 60).round());
-
   bool _isActiveWorkTimerStatus(String? status) {
     final normalized = (status ?? '').trim().toLowerCase();
     return normalized == CleaningBookingStatus.inProgress || normalized == CleaningBookingStatus.timeExtensionRequested;
   }
 
-  DateTime? _resolveExpectedFinishAt(String status) {
-    if (!_isActiveWorkTimerStatus(status)) return null;
-    final startAt = _parseDate(widget.order.workStartedAt) ?? _parseDate(widget.order.arrivedAt);
-    final duration = _durationFromHours((widget.order.totalHours != null && widget.order.totalHours! > 0) ? widget.order.totalHours : widget.order.estimatedHours);
-    if (startAt == null || duration == null) return null;
-    return startAt.add(duration);
+  OrderWorkTimerSession? _resolveWorkTimerSession() {
+    return OrderWorkTimerHelper.resolve(
+      scheduledDate: widget.order.scheduledDate,
+      scheduledTime: widget.order.scheduledTime,
+      workStartedAt: widget.order.workStartedAt,
+      arrivedAt: widget.order.arrivedAt,
+      totalHours: widget.order.totalHours,
+      estimatedHours: widget.order.estimatedHours,
+      timeWarnings: widget.order.timeWarnings,
+    );
   }
 
   void _setTimerUnavailable() {
@@ -227,9 +242,9 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
   void _calculateWorkTimer() {
     final status = _effectiveStatus(widget.bloc.state);
     if (!_isActiveWorkTimerStatus(status)) { _setTimerUnavailable(); return; }
-    final expectedFinishAt = _resolveExpectedFinishAt(status);
-    if (expectedFinishAt == null) { _setTimerUnavailable(); return; }
-    final diff = expectedFinishAt.difference(DateTime.now());
+    final session = _resolveWorkTimerSession();
+    if (session == null) { _setTimerUnavailable(); return; }
+    final diff = session.expectedFinishAt.difference(DateTime.now());
     final isOverdue = diff.isNegative;
     if (!mounted) return;
     setState(() { _isWorkTimerAvailable = true; _isWorkOverdue = isOverdue; _remainingTime = isOverdue ? Duration.zero : diff; _overdueTime = isOverdue ? diff.abs() : Duration.zero; });
