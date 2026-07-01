@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:common_package/common_package.dart';
+import 'package:dllni_cleaninig_owner_app/core/extentions.dart';
 import 'package:dllni_cleaninig_owner_app/core/widgets/cancel_order_dialog.dart';
 import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_relative_time_formatter.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
@@ -17,6 +18,7 @@ import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/extension
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_arabic_time_formatter.dart';
+import 'package:injectable/injectable.dart';
 
 class OrderCard extends StatelessWidget {
   const OrderCard({
@@ -71,9 +73,20 @@ class OrderCard extends StatelessWidget {
   }
 
   Widget _acceptedWaitingBanner(BuildContext context) {
+    // 1. التحقق الأساسي من الحالة
     if (!OrderLifecyclePolicy.isAcceptedWaiting(data)) {
       return const SizedBox.shrink();
     }
+
+    // 2. الحصول على الرسالة (التي قد تكون null)
+    final String? message = OrderLifecyclePolicy.acceptedWaitingMessage(data);
+
+    // 3. إذا كانت الرسالة null، نقوم بإخفاء الـ Banner تماماً
+    if (message == null || message.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    // 4. عرض الـ Banner فقط إذا كانت هناك رسالة حقيقية
     return Container(
       width: double.infinity,
       padding: const EdgeInsetsDirectional.symmetric(
@@ -86,7 +99,7 @@ class OrderCard extends StatelessWidget {
         border: Border.all(color: const Color(0xff7DD3FC)),
       ),
       child: AppText.labelMedium(
-        OrderLifecyclePolicy.acceptedWaitingMessage(data),
+        message, // الآن نحن متأكدون أنها ليست null
         color: const Color(0xff075985),
         fontWeight: FontWeight.w700,
         textAlign: TextAlign.start,
@@ -119,35 +132,35 @@ class OrderCard extends StatelessWidget {
     return '#ORD-$bookingLabel \n• $createdAtLabel';
   }
 
-  List<String> _attributeLabels() {
-    if (_isEventAssistance) {
-      final labels = <String>[];
-      final guests = data.propertyDetails?.guestCount;
-      final venue = data.propertyDetails?.venueType;
-      final hours = EventAssistanceOrderHelper.resolveBookedHours(
-        propertyHours: data.propertyDetails?.hours,
-        totalHours: data.totalHours,
-        estimatedHours: data.estimatedHours,
-      );
-      if (guests != null) labels.add('$guests ضيف');
-      if (venue != null && venue.isNotEmpty) {
-        labels.add(EventAssistanceOrderHelper.venueTypeLabelAr(venue));
-      }
-      if (hours != null) {
-        labels.add(EventAssistanceOrderHelper.formatHours(hours));
-      }
-      return labels;
-    }
-
-    final labels = <String>[];
-    final baths = data.propertyDetails?.bathrooms;
-    final beds = data.propertyDetails?.bedRooms;
-    final kitchen = data.propertyDetails?.kitchen;
-    if (baths != null) labels.add('$baths حمام');
-    if (beds != null) labels.add('$beds غرف نوم');
-    if (kitchen != null) labels.add('مطبخ');
-    return labels;
-  }
+  // List<String> _attributeLabels() {
+  //   if (_isEventAssistance) {
+  //     final labels = <String>[];
+  //     final guests = data.propertyDetails?.guestCount;
+  //     final venue = data.propertyDetails?.venueType;
+  //     final hours = EventAssistanceOrderHelper.resolveBookedHours(
+  //       propertyHours: data.propertyDetails?.hours,
+  //       totalHours: data.totalHours,
+  //       estimatedHours: data.estimatedHours,
+  //     );
+  //     if (guests != null) labels.add('$guests ضيف');
+  //     if (venue != null && venue.isNotEmpty) {
+  //       labels.add(EventAssistanceOrderHelper.venueTypeLabelAr(venue));
+  //     }
+  //     if (hours != null) {
+  //       labels.add(EventAssistanceOrderHelper.formatHours(hours));
+  //     }
+  //     return labels;
+  //   }
+  //
+  //   final labels = <String>[];
+  //   final baths = data.propertyDetails?.bathrooms;
+  //   final beds = data.propertyDetails?.bedRooms;
+  //   final kitchen = data.propertyDetails?.kitchen;
+  //   if (baths != null) labels.add('$baths حمام');
+  //   if (beds != null) labels.add('$beds غرف نوم');
+  //   if (kitchen != null) labels.add('مطبخ');
+  //   return labels;
+  // }
 
   void _openDetails(BuildContext context) {
     if (OrderLifecyclePolicy.isTimeExtensionRequested(data)) {
@@ -189,8 +202,8 @@ class OrderCard extends StatelessWidget {
 
   Future<_CardExtensionRequest?> _fetchAndResolveExtensionRequest(
     BuildContext context,
-  ) async
-  {
+  )
+  async {
     final bookingId = data.id;
     if (bookingId == null) return null;
 
@@ -232,8 +245,7 @@ class OrderCard extends StatelessWidget {
     return null;
   }
 
-  _CardExtensionRequest? _resolveExtensionRequest()
-  {
+  _CardExtensionRequest? _resolveExtensionRequest() {
     final warnings = data.timeWarnings ?? const <dynamic>[];
     for (final warning in warnings) {
       final map = _asStringMap(warning);
@@ -281,8 +293,7 @@ class OrderCard extends StatelessWidget {
     return null;
   }
 
-  bool _isPendingExtensionWarning(Map<String, dynamic> map)
-  {
+  bool _isPendingExtensionWarning(Map<String, dynamic> map) {
     final responseStatus = _toStringValue(
       _pick(map, const <String>['responseStatus', 'response_status', 'status']),
     )?.trim().toLowerCase();
@@ -349,7 +360,6 @@ class OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final statusColor = _statusColor(context);
-    final attributes = _attributeLabels();
     final bookingLabel = data.bookingNumber ?? '${data.id ?? '-'}';
 
     return InkWell(
@@ -372,43 +382,6 @@ class OrderCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Row(
-            //   children: [
-            //     Container(
-            //       padding: const EdgeInsetsDirectional.symmetric(
-            //         horizontal: 10,
-            //         vertical: 5,
-            //       ),
-            //       decoration: BoxDecoration(
-            //         color: statusColor.withAlpha(30),
-            //         borderRadius: BorderRadius.circular(12),
-            //       ),
-            //       child: Row(
-            //         children: [
-            //           CircleAvatar(radius: 3.5, backgroundColor: statusColor),
-            //           const SizedBox(width: 6),
-            //           AppText.labelSmall(
-            //             _statusLabel(),
-            //             color: statusColor,
-            //             fontWeight: FontWeight.w700,
-            //           ),
-            //         ],
-            //       ),
-            //     ),
-            //     const Spacer(),
-            //     Container(
-            //       decoration: BoxDecoration(
-            //         color: const Color(0xff334155),
-            //         borderRadius: BorderRadius.circular(14),
-            //       ),
-            //       padding: const EdgeInsets.all(10),
-            //       child: const Icon(
-            //         Icons.person_outline,
-            //         color: Color(0xffCBD5E1),
-            //       ),
-            //     ),
-            //   ],
-            // ),
             Row(
               children: [
                 Expanded(
@@ -453,7 +426,10 @@ class OrderCard extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
-                          CircleAvatar(radius: 3.5, backgroundColor: statusColor),
+                          CircleAvatar(
+                            radius: 3.5,
+                            backgroundColor: statusColor,
+                          ),
                           const SizedBox(width: 6),
                           AppText.labelSmall(
                             _statusLabel(),
@@ -465,10 +441,39 @@ class OrderCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     AppText.titleSmall(
-                      '${data.totalPrice==null?0: data.totalPrice!.toInt()} ل.س',
+                      data.totalPrice.formatMoney(),
                       color: const Color(0xff1E2A78),
                       fontWeight: FontWeight.bold,
                     ),
+                    const SizedBox(height: 4),
+
+                    isSameDate(data.createdAt,data.scheduledDate)
+                        ? Container(
+                            padding: const EdgeInsetsDirectional.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: context.error.withAlpha(30),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 3.5,
+                                  backgroundColor: context.error,
+                                ),
+                                const SizedBox(width: 6),
+                                AppText.labelSmall(
+                                  'طلب ساخن',
+                                  color: context.error,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ],
+                            ),
+                          )
+                        : SizedBox(),
+
                     // Container(
                     //   decoration: BoxDecoration(
                     //     color: context.primaryContainer,
@@ -512,48 +517,6 @@ class OrderCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            // _metaTile(
-            //   context: context,
-            //   title: _isEventAssistance ? 'مدة الحجز' : 'المساحة التقديرية',
-            //   value: _isEventAssistance
-            //       ? EventAssistanceOrderHelper.formatHours(
-            //           EventAssistanceOrderHelper.resolveBookedHours(
-            //             propertyHours: data.propertyDetails?.hours,
-            //             totalHours: data.totalHours,
-            //             estimatedHours: data.estimatedHours,
-            //           ),
-            //         )
-            //       : '${data.estimatedSqm ?? '-'} متر مربع',
-            //   icon: _isEventAssistance
-            //       ? Icons.schedule_rounded
-            //       : Icons.square_foot_rounded,
-            // ),
-            // if (attributes.isNotEmpty) ...[
-            //   const SizedBox(height: 10),
-            //   Wrap(
-            //     spacing: 8,
-            //     runSpacing: 8,
-            //     children: attributes
-            //         .map(
-            //           (label) => Container(
-            //             padding: const EdgeInsetsDirectional.symmetric(
-            //               horizontal: 12,
-            //               vertical: 6,
-            //             ),
-            //             decoration: BoxDecoration(
-            //               color: context.primaryContainer.withAlpha(35),
-            //               borderRadius: BorderRadius.circular(10),
-            //             ),
-            //             child: AppText.bodySmall(
-            //               label,
-            //               color: context.primaryContainer,
-            //               fontWeight: FontWeight.w700,
-            //             ),
-            //           ),
-            //         )
-            //         .toList(),
-            //   ),
-            // ],
             if (OrderLifecyclePolicy.isAcceptedWaiting(data)) ...[
               const SizedBox(height: 10),
               _acceptedWaitingBanner(context),
@@ -867,4 +830,18 @@ String? _toStringValue(dynamic value) {
   if (value == null) return null;
   final text = value.toString();
   return text.isEmpty ? null : text;
+}
+
+bool isSameDate(String? date1, String? date2) {
+  // إذا كانت إحدى القيمتين (أو كلتاهما) null، نعتبرهما غير متساويتين
+  if (date1 == null || date2 == null) {
+    return false;
+  }
+
+  // تحويل النصوص إلى كائنات DateTime
+  DateTime d1 = DateTime.parse(date1);
+  DateTime d2 = DateTime.parse(date2);
+
+  // مقارنة الأجزاء الأساسية وإرجاع النتيجة كـ bool
+  return d1.year == d2.year && d1.month == d2.month && d1.day == d2.day;
 }

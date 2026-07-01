@@ -22,6 +22,7 @@ class App extends StatefulWidget {
 
 class _AppState extends State<App> {
   late final CleaningWorkerGlobalPromptCoordinator _workerPromptCoordinator;
+  late final AppLifecycleListener _lifecycleListener;
 
   @override
   void initState() {
@@ -32,11 +33,15 @@ class _AppState extends State<App> {
       navigatorKey: widget.navigatorKey,
     );
     CleaningWorkerExtensionPrompts.coordinator = _workerPromptCoordinator;
+    _lifecycleListener = AppLifecycleListener(
+      onResume: () => unawaited(_workerPromptCoordinator.onAppResumed()),
+    );
     unawaited(_workerPromptCoordinator.start());
   }
 
   @override
   void dispose() {
+    _lifecycleListener.dispose();
     CleaningWorkerExtensionPrompts.coordinator = null;
     unawaited(_workerPromptCoordinator.stop());
     super.dispose();

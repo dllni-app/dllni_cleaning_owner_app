@@ -48,8 +48,8 @@ class CreateCleaningBookingSosParams with Params {
     };
 
     if (latitude != null && longitude != null) {
-      body['latitude'] = latitude;
-      body['longitude'] = longitude;
+      body['lat'] = latitude;
+      body['lng'] = longitude;
     }
 
     if (clientRequestId != null && clientRequestId!.trim().isNotEmpty) {

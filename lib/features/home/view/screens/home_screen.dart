@@ -4,6 +4,7 @@ import 'dart:developer' as developer;
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_realtime_contract.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/pusher_manager.dart';
+import 'package:dllni_cleaninig_owner_app/core/realtime/worker_realtime_orders_sync.dart';
 import 'package:dllni_cleaninig_owner_app/core/widgets/order_card.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -53,6 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
       CleaningRealtimeContract.expandEventFilter(const <String>{
         CleaningRealtimeContract.trackingUpdated,
         CleaningRealtimeContract.teamUpdated,
+        CleaningRealtimeContract.bookingCreated,
         CleaningRealtimeContract.workerArrived,
         CleaningRealtimeContract.awaitingStartVerification,
         CleaningRealtimeContract.arrivalVerified,
@@ -206,7 +208,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (CleaningRealtimeContract.isLocationEvent(eventName)) return;
 
-    _refreshHomeData(source: eventName);
+    final hasBookingId = CleaningRealtimeContract.extractBookingId(payload) != null;
+    final canSyncVisiblePendingList =
+        _selectedHomeOrdersTab == HomeOrdersTab.newOrders && hasBookingId;
+
+    WorkerRealtimeOrdersSync.dispatchSync(
+      bloc: _ordersBloc,
+      eventName: eventName,
+      payload: payload,
+      applyToPendingList: _selectedHomeOrdersTab == HomeOrdersTab.newOrders,
+    );
+
+    if (canSyncVisiblePendingList) {
+      _refreshHomeSummary(source: eventName);
+    } else {
+      _refreshHomeData(source: eventName);
+    }
   }
 
   void _onForegroundPushMessage(RemoteMessage message) {
@@ -218,6 +235,17 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     _refreshHomeData(source: 'fcm_foreground');
+  }
+
+  void _refreshHomeSummary({required String source}) {
+    if (!mounted) return;
+    developer.log('[Home] summary refresh triggered by $source');
+    _homeBloc.add(
+      FetchHomePageUsecaseEvent(
+        params: FetchHomePageUsecaseParams(),
+        silent: true,
+      ),
+    );
   }
 
   void _refreshHomeData({required String source}) {
@@ -374,163 +402,12 @@ class _HomeScreenState extends State<HomeScreen> {
                             );
                           },
                         ),
-
                         16.verticalSpace,
-                        BlocBuilder<OrdersBloc, OrdersState>(
-                          buildWhen: (previous, current) =>
-                              previous.ordersUsecase != current.ordersUsecase,
-                          builder: (context, state) {
-                            final orders = state.ordersUsecase!;
-
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: HomeOrdersTab.values
-                                      .map((tab) {
-                                        final isSelected =
-                                            _selectedHomeOrdersTab == tab;
-                                        return Expanded(
-                                          child: InkWell(
-                                            onTap: () =>
-                                                _onHomeOrdersTabSelected(tab),
-                                            borderRadius: BorderRadius.circular(
-                                              8.r,
-                                            ),
-                                            child: Padding(
-                                              padding:
-                                                  EdgeInsetsDirectional.only(
-                                                    bottom: 8.h,
-                                                  ),
-                                              child: Column(
-                                                children: [
-                                                  AppText.labelLarge(
-                                                    tab.label,
-                                                    fontWeight: isSelected
-                                                        ? FontWeight.w600
-                                                        : FontWeight.w400,
-                                                    color: isSelected
-                                                        ? context.primary
-                                                        : context
-                                                              .colorScheme
-                                                              .outline,
-                                                  ),
-                                                  6.verticalSpace,
-                                                  AnimatedContainer(
-                                                    duration: const Duration(
-                                                      milliseconds: 200,
-                                                    ),
-                                                    height: 2.h,
-                                                    width: double.infinity,
-                                                    decoration: BoxDecoration(
-                                                      color: isSelected
-                                                          ? context.primary
-                                                          : Colors.transparent,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            2.r,
-                                                          ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        );
-                                      })
-                                      .toList(growable: false),
-                                ),
-                                8.verticalSpace,
-                                orders.builder(
-                                  loadingWidget: Padding(
-                                    padding: EdgeInsetsDirectional.only(
-                                      top: 40.h,
-                                    ),
-                                    child: const Center(
-                                      child:
-                                          CircularProgressIndicator.adaptive(),
-                                    ),
-                                  ),
-                                  emptyWidget: AppText.labelMedium(
-                                    _selectedHomeOrdersTab.emptyMessage,
-                                    fontWeight: FontWeight.w400,
-                                  ),
-                                  successWidget: () {
-                                    return ListView.separated(
-                                      shrinkWrap: true,
-                                      physics:
-                                          const NeverScrollableScrollPhysics(),
-                                      itemCount: orders.listLength(1),
-                                      separatorBuilder: (context, index) =>
-                                          16.verticalSpace,
-                                      itemBuilder: (context, index) {
-                                        if (orders.length <= index) {
-                                          if (orders.length == index) {
-                                            context.read<OrdersBloc>().add(
-                                              FetchOrdersUsecaseEvent(
-                                                isReload: false,
-                                                params: _homeOrdersFetchParams(
-                                                  page: orders.pageNumber,
-                                                ),
-                                              ),
-                                            );
-                                          }
-
-                                          return SizedBox(
-                                            width: 30.w,
-                                            height: 30.h,
-                                            child: FittedBox(
-                                              child:
-                                                  CircularProgressIndicator.adaptive(
-                                                    strokeWidth: 3,
-                                                  ),
-                                            ),
-                                          );
-                                        }
-
-                                        final item = orders.list[index];
-
-                                        return AnimatedSwitcher(
-                                          duration: const Duration(
-                                            milliseconds: 500,
-                                          ),
-                                          transitionBuilder:
-                                              (child, animation) {
-                                                return FadeTransition(
-                                                  opacity: animation,
-                                                  child: SlideTransition(
-                                                    position: Tween<Offset>(
-                                                      begin: const Offset(
-                                                        0,
-                                                        0.03,
-                                                      ),
-                                                      end: Offset.zero,
-                                                    ).animate(animation),
-                                                    child: child,
-                                                  ),
-                                                );
-                                              },
-                                          child: OrderCard(
-                                            key: ValueKey(item.id),
-                                            data: item,
-                                            bloc: context.read<OrdersBloc>(),
-                                            index: index,
-                                          ),
-                                        );
-                                      },
-                                    );
-                                  },
-                                  failedWidget: AppText.labelLarge(
-                                    state.errorMessage?.tr() ?? 'حدث خطأ ما',
-                                    color: context.error,
-                                  ),
-                                  onTapRetry: () {
-                                    _fetchOrdersForSelectedTab(isReload: true);
-                                  },
-                                ),
-                              ],
-                            );
-                          },
+                        _HomeOrdersSection(
+                          selectedTab: _selectedHomeOrdersTab,
+                          onTabSelected: _onHomeOrdersTabSelected,
+                          paramsForPage: (page) => _homeOrdersFetchParams(page: page),
+                          onRetry: () => _fetchOrdersForSelectedTab(isReload: true),
                         ),
                       ],
                     ),
@@ -545,6 +422,157 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+class _HomeOrdersSection extends StatelessWidget {
+  const _HomeOrdersSection({
+    required this.selectedTab,
+    required this.onTabSelected,
+    required this.paramsForPage,
+    required this.onRetry,
+  });
 
+  final HomeOrdersTab selectedTab;
+  final ValueChanged<HomeOrdersTab> onTabSelected;
+  final FetchOrdersUsecaseParams Function(int page) paramsForPage;
+  final VoidCallback onRetry;
 
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<OrdersBloc, OrdersState>(
+      buildWhen: (previous, current) =>
+          previous.ordersUsecase != current.ordersUsecase,
+      builder: (context, state) {
+        final orders = state.ordersUsecase!;
 
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _HomeOrdersTabSelector(
+              selectedTab: selectedTab,
+              onChanged: onTabSelected,
+            ),
+            8.verticalSpace,
+            orders.builder(
+              loadingWidget: Padding(
+                padding: EdgeInsetsDirectional.only(top: 40.h),
+                child: const Center(child: CircularProgressIndicator.adaptive()),
+              ),
+              emptyWidget: AppText.labelMedium(
+                selectedTab.emptyMessage,
+                fontWeight: FontWeight.w400,
+              ),
+              successWidget: () {
+                return ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: orders.listLength(1),
+                  separatorBuilder: (context, index) => 16.verticalSpace,
+                  itemBuilder: (context, index) {
+                    if (orders.length <= index) {
+                      if (orders.length == index) {
+                        context.read<OrdersBloc>().add(
+                              FetchOrdersUsecaseEvent(
+                                isReload: false,
+                                params: paramsForPage(orders.pageNumber),
+                              ),
+                            );
+                      }
+
+                      return SizedBox(
+                        width: 30.w,
+                        height: 30.h,
+                        child: const FittedBox(
+                          child: CircularProgressIndicator.adaptive(
+                            strokeWidth: 3,
+                          ),
+                        ),
+                      );
+                    }
+
+                    final item = orders.list[index];
+
+                    return AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 500),
+                      transitionBuilder: (child, animation) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0, 0.03),
+                              end: Offset.zero,
+                            ).animate(animation),
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: OrderCard(
+                        key: ValueKey(item.id),
+                        data: item,
+                        bloc: context.read<OrdersBloc>(),
+                        index: index,
+                      ),
+                    );
+                  },
+                );
+              },
+              failedWidget: AppText.labelLarge(
+                state.errorMessage?.tr() ?? 'حدث خطأ ما',
+                color: context.error,
+              ),
+              onTapRetry: onRetry,
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _HomeOrdersTabSelector extends StatelessWidget {
+  const _HomeOrdersTabSelector({
+    required this.selectedTab,
+    required this.onChanged,
+  });
+
+  final HomeOrdersTab selectedTab;
+  final ValueChanged<HomeOrdersTab> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: HomeOrdersTab.values.map((tab) {
+        final isSelected = selectedTab == tab;
+        return Expanded(
+          child: InkWell(
+            onTap: () => onChanged(tab),
+            borderRadius: BorderRadius.circular(8.r),
+            child: Padding(
+              padding: EdgeInsetsDirectional.only(bottom: 8.h),
+              child: Column(
+                children: [
+                  AppText.labelLarge(
+                    tab.label,
+                    fontWeight:
+                        isSelected ? FontWeight.w600 : FontWeight.w400,
+                    color: isSelected
+                        ? context.primary
+                        : context.colorScheme.outline,
+                  ),
+                  6.verticalSpace,
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    height: 2.h,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: isSelected ? context.primary : Colors.transparent,
+                      borderRadius: BorderRadius.circular(2.r),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }).toList(growable: false),
+    );
+  }
+}

@@ -1,7 +1,25 @@
 {
   "app": {
-    "title": "cleaning owner",
+    "title": "Dllni",
     "home": "Home",
     "welcome": "Welcome"
+  },
+  "errorMessage": {
+    "noInternetError": "No internet connection. Check your network and try again.",
+    "connectionTimeout": "The connection timed out. Please try again.",
+    "sendTimeout": "The request could not be sent. Please try again.",
+    "receiveTimeout": "The server response timed out. Please try again.",
+    "badCertificate": "The secure connection could not be verified.",
+    "badResponse": "The server returned an invalid response.",
+    "cancelError": "The request was cancelled.",
+    "unknownError": "An unexpected error occurred. Please try again.",
+    "serverError": "A server error occurred. Please try again later.",
+    "unauthorized": "Your session expired. Please log in again.",
+    "forbiddenError": "You are not allowed to perform this action.",
+    "notFound": "The requested item was not found.",
+    "validationError": "Please check the entered data.",
+    "tooManyRequests": "Too many requests. Please try again later.",
+    "invalidSecurityCode": "The security code is invalid.",
+    "expiredSecurityCode": "The security code has expired. Ask the worker for a new code."
   }
 }

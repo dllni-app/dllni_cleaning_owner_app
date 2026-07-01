@@ -16,6 +16,8 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl_phone_number_input/intl_phone_number_input.dart';
 
+import '../../../../core/widgets/phone_number_widget/my_phone_number_field_widget.dart';
+
 @AutoRoutePage()
 class UpdateProfileScreen extends StatefulWidget {
   const UpdateProfileScreen({super.key, required this.params});
@@ -34,10 +36,10 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
   late TextEditingController _dateOfBirthController;
   late TextEditingController _aboutMeController;
   late TextEditingController _cityMeController;
+  late TextEditingController phoneNumberController;
+  late final ValueNotifier<String> phoneNumberValue;
 
   final _phoneFieldKey = GlobalKey<AppPhoneNumberFieldState>();
-  PhoneNumber? _phone;
-  PhoneNumber? _initialPhone;
   bool _isLoadingPhone = true;
 
   File? selectedImage;
@@ -78,16 +80,15 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     );
     _aboutMeController = TextEditingController(text: widget.params.bio ?? '');
     _cityMeController = TextEditingController(text: widget.params.city ?? '');
+    phoneNumberController = TextEditingController();
+    phoneNumberValue = ValueNotifier('');
     _preferredWorkType = widget.params.preferredWorkType ?? 'both';
     _loadInitialPhone();
   }
 
   Future<void> _loadInitialPhone() async {
-    final parsed = await parseInitialPhone(widget.params.phone);
     if (!mounted) return;
     setState(() {
-      _initialPhone = parsed;
-      _phone = parsed;
       _isLoadingPhone = false;
     });
   }
@@ -99,6 +100,8 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     _dateOfBirthController.dispose();
     _aboutMeController.dispose();
     _cityMeController.dispose();
+    phoneNumberController.dispose();
+    phoneNumberValue.dispose();
     super.dispose();
   }
 
@@ -238,15 +241,12 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                               if (_isLoadingPhone)
                                 const Center(child: CircularProgressIndicator())
                               else
-                                AppPhoneNumberField(
-                                  key: _phoneFieldKey,
-                                  label: 'رقم الهاتف الأساسي',
-                                  isRequired: true,
-                                  initialValue: _initialPhone,
-                                  variant: AppPhoneFieldVariant.profile,
-                                  onChanged: (phone) => _phone = phone,
+                                MyPhoneNumberInitField(
+                                  controller: phoneNumberController,
+                                  initialPhoneNumber: widget.params.phone,
+                                  internationalPhoneValue: phoneNumberValue,
+                                  labelText: 'رقم الهاتف الأساسي',
                                 ),
-
                               14.verticalSpace,
                               _buildField(
                                 label: 'البريد الإلكتروني',
@@ -303,15 +303,18 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                                 listenWhen: (previous, current) =>
                                     previous.updateWorkerProfileStatus !=
                                     current.updateWorkerProfileStatus,
+                                buildWhen: (previous, current) =>
+                                    previous.updateWorkerProfileStatus !=
+                                    current.updateWorkerProfileStatus,
                                 listener: (context, state) {
                                   if (state.updateWorkerProfileStatus ==
                                       BlocStatus.success) {
                                     Loading.close();
                                     WidgetsBinding.instance
                                         .addPostFrameCallback((_) {
-                                          if (!context.mounted) return;
-                                          context.maybePop(true);
-                                        });
+                                      if (!context.mounted) return;
+                                      context.maybePop(true);
+                                    });
                                   } else if (state.updateWorkerProfileStatus ==
                                       BlocStatus.failed) {
                                     Loading.close();
@@ -328,15 +331,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                                         return;
                                       }
 
-                                      final phoneError = await _phoneFieldKey
-                                          .currentState
-                                          ?.validate();
-                                      if (phoneError != null) return;
-
-                                      final phone = formatPhoneForApi(_phone);
-                                      if (phone == null) return;
-                                      final email = _emailController.text
-                                          .trim();
+                                      final email = _emailController.text.trim();
 
                                       if (!context.mounted) return;
                                       context.read<ProfileBloc>().add(
@@ -344,13 +339,12 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                                           params: UpdateWorkerProfileParams(
                                             avatar: selectedImage,
                                             bio: _aboutMeController.text,
-                                            birthday:
-                                                _dateOfBirthController.text,
+                                            birthday: _dateOfBirthController.text,
                                             city: _cityMeController.text,
                                             email: email.isEmpty ? '' : email,
                                             isActive: 1,
                                             name: _nameController.text,
-                                            phone: phone,
+                                            phone: phoneNumberValue.value,
                                             preferredWorkType: _preferredWorkType,
                                           ),
                                         ),
@@ -361,13 +355,9 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                                       foregroundColor: Colors.white,
                                       elevation: 0,
                                       shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          10.r,
-                                        ),
+                                        borderRadius: BorderRadius.circular(10.r),
                                       ),
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: 12.h,
-                                      ),
+                                      padding: EdgeInsets.symmetric(vertical: 12.h),
                                     ),
                                     child: AppText.labelLarge(
                                       'حفظ التغييرات',
@@ -384,9 +374,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                                 onPressed: () => context.maybePop(),
                                 style: OutlinedButton.styleFrom(
                                   side: BorderSide(
-                                    color: const Color(
-                                      0xffE11D48,
-                                    ).withAlpha(150),
+                                    color: const Color(0xffE11D48).withAlpha(150),
                                   ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(10.r),

@@ -6,7 +6,6 @@ import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_realtime_contract.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_worker_extension_prompts.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/pusher_manager.dart';
-import 'package:dllni_cleaninig_owner_app/features/main/view/screens/main_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_order_details_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
@@ -17,9 +16,10 @@ import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/order_det
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../manager/bloc/orders_bloc.dart';
-import '../helpers/order_details_realtime_policy.dart';
+import '../controllers/order_details_lifecycle_poller.dart';
 import '../helpers/order_lifecycle_policy.dart';
+import '../manager/bloc/orders_bloc.dart';
+import '../presenters/order_details_extension_decision_presenter.dart';
 import '../widgets/order_details/order_details_map_body.dart';
 
 @AutoRoutePage()
@@ -34,18 +34,16 @@ class OrderDetailsScreen extends StatefulWidget {
 
 class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   static const Duration _fallbackDebounce = Duration(milliseconds: 150);
-  static const Duration _awaitingVerificationPollInterval =
-      Duration(seconds: 12);
 
   late FetchOrdersUsecaseModelDataItem _order;
+  late final OrderDetailsLifecyclePoller _lifecyclePoller;
   final PusherManager _pusherManager = getIt<PusherManager>();
+  final OrderDetailsExtensionDecisionPresenter _extensionDecisionPresenter =
+      OrderDetailsExtensionDecisionPresenter();
   RealtimeListenerHandle? _bookingListenerHandle;
   RealtimeListenerHandle? _workerListenerHandle;
   Timer? _syncFallbackDebounce;
-  Timer? _awaitingVerificationPoll;
   OrdersState? _previousBlocState;
-  final Set<String> _handledExtensionDecisionKeys = <String>{};
-  bool _extensionRejectedDialogOpen = false;
 
   int _stepFor(FetchOrdersUsecaseModelDataItem o) =>
       OrderLifecyclePolicy.detailsStepFor(o);
@@ -56,6 +54,14 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   bool get _shouldPollLifecycleAdvance =>
       _isAwaitingStartVerification ||
       OrderLifecyclePolicy.isAwaitingWorkerStartConfirmation(_order);
+
+  bool get _canShowMissionBody {
+    final status = (_order.status ?? '').trim().toLowerCase();
+    return status == CleaningBookingStatus.inProgress ||
+        status == CleaningBookingStatus.timeExtensionRequested ||
+        status == CleaningBookingStatus.awaitingCustomerCompletion ||
+        status == CleaningBookingStatus.underDispute;
+  }
 
   int? _resolveWorkerId() {
     final fromOrder = _order.workerId;
@@ -69,6 +75,10 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   void initState() {
     super.initState();
     _order = widget.params.order;
+    _lifecyclePoller = OrderDetailsLifecyclePoller(
+      shouldPoll: () => mounted && _shouldPollLifecycleAdvance,
+      onPoll: _pollOrderDetailsForVerificationAdvance,
+    );
     widget.params.bloc.add(ChangeDetailsCurrentStep(step: _stepFor(_order)));
     final id = _order.id;
     if (id != null) {
@@ -104,8 +114,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     final workerId = _resolveWorkerId();
     if (workerId != null && workerId > 0) {
       _workerListenerHandle = await _pusherManager.listen(
-        channelName:
-            '${CleaningRealtimeContract.workerChannelPrefix}$workerId',
+        channelName: '${CleaningRealtimeContract.workerChannelPrefix}$workerId',
         onEvent: (event) {
           _handleRealtimeEvent(
             eventName: event.eventName,
@@ -137,81 +146,35 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     required Map<String, dynamic> payload,
     required int bookingId,
     required bool fromWorkerChannel,
-  })
-  {
+  }) {
     if (!mounted) return;
 
-    if (fromWorkerChannel &&
-        !OrderDetailsRealtimePolicy.shouldHandleWorkerChannelEvent(
-          currentBookingId: bookingId,
-          payload: payload,
-        )) {
+    final normalizedEvent = CleaningRealtimeContract.normalizeEventName(eventName);
+    final payloadBookingId = CleaningRealtimeContract.extractBookingId(payload);
+
+    if (fromWorkerChannel) {
+      if (payloadBookingId == null || payloadBookingId != bookingId) return;
+    } else if (payloadBookingId != null && payloadBookingId != bookingId) {
       return;
     }
 
-    final normalizedEvent = CleaningRealtimeContract.normalizeEventName(
-      eventName,
-    );
-
-    if (normalizedEvent ==
+    final isExtensionRequest = normalizedEvent ==
             CleaningRealtimeContract.serviceExtensionRequested ||
         (normalizedEvent == CleaningRealtimeContract.completionDecisionMade &&
             (payload['decision'] ?? '').toString().trim().toLowerCase() ==
-                'extension_requested')) {
+                'extension_requested');
+    if (isExtensionRequest) {
       unawaited(
         CleaningWorkerExtensionPrompts.dispatchRealtimeEvent(eventName, payload),
       );
     }
 
-    if (normalizedEvent == CleaningRealtimeContract.arrivalVerified) {
-      final patch = OrderDetailsRealtimePolicy.patchFromArrivalVerified(
-        currentStatus: _order.status,
+    if (normalizedEvent == CleaningRealtimeContract.completionDecisionMade) {
+      _extensionDecisionPresenter.maybeShowExtensionRejectedDialog(
+        context: context,
+        order: _order,
         payload: payload,
       );
-      if (patch != null) {
-        _applyLifecyclePatch(
-          status: patch.status,
-          arrivedAt: patch.arrivedAt,
-          workStartedAt: patch.workStartedAt,
-        );
-      }
-    } else if (normalizedEvent == CleaningRealtimeContract.trackingUpdated) {
-      final patch = OrderDetailsRealtimePolicy.patchFromTrackingUpdate(
-        currentStatus: _order.status,
-        payload: payload,
-      );
-      if (patch != null) {
-        _applyLifecyclePatch(
-          status: patch.status,
-          arrivedAt: patch.arrivedAt,
-          workStartedAt: patch.workStartedAt,
-        );
-      }
-    } else if (normalizedEvent ==
-        CleaningRealtimeContract.completionDecisionMade) {
-      final previousStatus = _order.status;
-      final patch = OrderDetailsRealtimePolicy.patchFromCompletionDecision(
-        currentStatus: previousStatus,
-        payload: payload,
-      );
-      if (patch != null) {
-        if (_shouldShowExtensionRejectedDialog(
-          previousStatus: previousStatus,
-          patch: patch,
-          payload: payload,
-        )) {
-          final decisionKey = _extensionDecisionKey(
-            payload: payload,
-            warningId: patch.warningId,
-            decision: patch.decision ?? 'extension_rejected',
-          );
-          if (decisionKey != null) {
-            _handledExtensionDecisionKeys.add(decisionKey);
-          }
-          unawaited(_showExtensionRejectedDialog(patch.message));
-        }
-        _applyLifecyclePatch(status: patch.status);
-      }
     }
 
     if (CleaningRealtimeContract.isLifecycleRefreshEvent(normalizedEvent)) {
@@ -236,9 +199,10 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }
 
   void _scheduleSyncFallback({required int bookingId, required String reason}) {
+    if (_order.id != bookingId) return;
     _syncFallbackDebounce?.cancel();
     _syncFallbackDebounce = Timer(_fallbackDebounce, () {
-      if (!mounted) return;
+      if (!mounted || _order.id != bookingId) return;
       PusherServiceLogger.event(
         'private-cleaning-booking.$bookingId',
         'CleaningBookingTrackingUpdated',
@@ -250,107 +214,14 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     });
   }
 
-  String? _extensionDecisionKey({
-    required Map<String, dynamic> payload,
-    required int? warningId,
-    required String decision,
-  }) {
-    if (warningId != null) {
-      return 'warning_$warningId';
-    }
-    final unwrapped = CleaningRealtimeContract.unwrapPayload(payload);
-    final bookingId = CleaningRealtimeContract.extractBookingId(unwrapped);
-    final decidedAt =
-        (unwrapped['decidedAt'] ?? unwrapped['decided_at'])?.toString();
-    if (bookingId == null) return null;
-    return '${bookingId}_${decision}_$decidedAt';
-  }
-
-  bool _shouldShowExtensionRejectedDialog({
-    required String? previousStatus,
-    required ({
-      String status,
-      String? message,
-      int? warningId,
-      String? decision,
-    })
-    patch,
-    required Map<String, dynamic> payload,
-  }) {
-    final normalizedPrevious = (previousStatus ?? '').trim().toLowerCase();
-    if (normalizedPrevious != CleaningBookingStatus.timeExtensionRequested) {
-      return false;
-    }
-    if (patch.decision != 'extension_rejected') return false;
-    if (patch.status != CleaningBookingStatus.completed) return false;
-
-    final decisionKey = _extensionDecisionKey(
-      payload: payload,
-      warningId: patch.warningId,
-      decision: patch.decision ?? 'extension_rejected',
-    );
-    if (decisionKey == null) return true;
-    return !_handledExtensionDecisionKeys.contains(decisionKey);
-  }
-
-  Future<void> _showExtensionRejectedDialog(String? message) async {
-    if (!mounted || _extensionRejectedDialogOpen) return;
-    _extensionRejectedDialogOpen = true;
-    try {
-      final body = message?.trim().isNotEmpty == true
-          ? message!.trim()
-          : 'تم رفض طلب تمديد الوقت وتم إنهاء الطلب.';
-      await showDialog<void>(
-        context: context,
-        useRootNavigator: true,
-        barrierDismissible: false,
-        builder: (ctx) {
-          return AlertDialog(
-            title: const Text('تم إنهاء طلب التمديد', textAlign: TextAlign.center),
-            content: Text(body, textAlign: TextAlign.center),
-            actions: [
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: () {
-                    final navigator = Navigator.of(ctx, rootNavigator: true);
-                    navigator.pop();
-                    navigator.pushNamedAndRemoveUntil(
-                      '/main',
-                      (route) => false,
-                      arguments: MainScreenParam(returnedPageIndex: 0),
-                    );
-                  },
-                  child: const Text('حسناً'),
-                ),
-              ),
-            ],
-          );
-        },
-      );
-    } finally {
-      _extensionRejectedDialogOpen = false;
-    }
-  }
-
   void _syncAwaitingVerificationPoll() {
     if (!mounted) return;
-    if (!_shouldPollLifecycleAdvance) {
-      _awaitingVerificationPoll?.cancel();
-      _awaitingVerificationPoll = null;
-      return;
-    }
-    if (_awaitingVerificationPoll?.isActive == true) return;
-    _awaitingVerificationPoll = Timer.periodic(
-      _awaitingVerificationPollInterval,
-      (_) => _pollOrderDetailsForVerificationAdvance(),
-    );
+    _lifecyclePoller.sync();
   }
 
   void _pollOrderDetailsForVerificationAdvance() {
     if (!mounted || !_shouldPollLifecycleAdvance) {
-      _awaitingVerificationPoll?.cancel();
-      _awaitingVerificationPoll = null;
+      _lifecyclePoller.stop();
       return;
     }
     final bookingId = _order.id;
@@ -386,12 +257,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         customerConfirmedAt: customerConfirmedAt,
       );
     });
-    final computedStep = _stepFor(_order);
-    final blocStep = widget.params.bloc.state.currentStep;
-    final nextStep = (blocStep != null && blocStep > computedStep)
-        ? blocStep
-        : computedStep;
-    widget.params.bloc.add(ChangeDetailsCurrentStep(step: nextStep));
+    widget.params.bloc.add(ChangeDetailsCurrentStep(step: _stepFor(_order)));
     _syncAwaitingVerificationPoll();
   }
 
@@ -420,9 +286,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         setState(() {
           _order = _mergeDetailsIntoOrder(details);
         });
-        widget.params.bloc.add(
-          ChangeDetailsCurrentStep(step: _stepFor(_order)),
-        );
+        widget.params.bloc.add(ChangeDetailsCurrentStep(step: _stepFor(_order)));
         _syncAwaitingVerificationPoll();
       }
     }
@@ -446,8 +310,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       if (st != null && st.id == oid && st.status != null) {
         _applyLifecyclePatch(
           status: st.status,
-          startedTravelAt:
-              _order.startedTravelAt ?? DateTime.now().toUtc().toIso8601String(),
+          startedTravelAt: _order.startedTravelAt ?? DateTime.now().toUtc().toIso8601String(),
         );
       }
     }
@@ -455,10 +318,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     if (previous == null || state.startWork != previous.startWork) {
       final sw = state.startWork?.data;
       if (sw != null && sw.id == oid) {
-        _applyLifecyclePatch(
-          status: sw.status,
-          workStartedAt: sw.workStartedAt,
-        );
+        _applyLifecyclePatch(status: sw.status, workStartedAt: sw.workStartedAt);
       }
     }
 
@@ -466,15 +326,11 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         state.completeOrderUsecase != previous.completeOrderUsecase) {
       final co = state.completeOrderUsecase?.data;
       if (co != null && co.id == oid) {
-        _applyLifecyclePatch(
-          status: co.status,
-          workFinishedAt: co.workFinishedAt,
-        );
+        _applyLifecyclePatch(status: co.status, workFinishedAt: co.workFinishedAt);
       }
     }
 
-    if (previous == null ||
-        state.acceptOrderUsecase != previous.acceptOrderUsecase) {
+    if (previous == null || state.acceptOrderUsecase != previous.acceptOrderUsecase) {
       final acc = state.acceptOrderUsecase?.data;
       if (acc != null && acc.id == oid && acc.status != null) {
         _applyLifecyclePatch(status: acc.status);
@@ -485,7 +341,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   @override
   void dispose() {
     _syncFallbackDebounce?.cancel();
-    _awaitingVerificationPoll?.cancel();
+    _lifecyclePoller.dispose();
     unawaited(_detachRealtimeListeners());
     super.dispose();
   }
@@ -512,21 +368,28 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           child: BlocBuilder<OrdersBloc, OrdersState>(
             bloc: widget.params.bloc,
             builder: (context, state) {
-              final step = state.currentStep ?? _stepFor(_order);
-              if (step == 0 || step == 1) {
+              final step = _stepFor(_order);
+              if (!_canShowMissionBody && (step == 0 || step == 1)) {
                 return OrderDetailsBody(
                   bloc: widget.params.bloc,
                   index: widget.params.index,
                   order: _order,
                 );
               }
-              if (step == 2) {
+              if (!_canShowMissionBody && step == 2) {
                 return SafeArea(
                   child: OrderDetailsMapBody(
                     order: _order,
                     bloc: widget.params.bloc,
                     index: widget.params.index,
                   ),
+                );
+              }
+              if (!_canShowMissionBody) {
+                return OrderDetailsBody(
+                  bloc: widget.params.bloc,
+                  index: widget.params.index,
+                  order: _order,
                 );
               }
               return OrderDetailsMissionBody(
@@ -546,11 +409,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 
 class OrderDetailsScreenParams {
   final FetchOrdersUsecaseModelDataItem order;
-
   final bool isNewOrder;
-
   final OrdersBloc bloc;
-
   final int index;
 
   OrderDetailsScreenParams({

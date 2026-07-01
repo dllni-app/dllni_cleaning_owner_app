@@ -1,4 +1,5 @@
 import 'package:common_package/common_package.dart';
+import 'package:dllni_cleaninig_owner_app/core/extentions.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -63,8 +64,7 @@ class TodayOverviewCard extends StatelessWidget {
                               textBaseline: TextBaseline.alphabetic,
                               children: [
                                 AppText.displaySmall(
-                                  '${state.homePageUsecase?.totalEarnings
-                                      ?.toStringAsFixed(2)}',
+                                  state.homePageUsecase?.totalEarnings.formatMoney(currency: '')??'0 ل.س',
                                   color: context.onPrimary,
                                   fontWeight: FontWeight.bold,
                                 ),

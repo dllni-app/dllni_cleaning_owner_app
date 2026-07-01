@@ -57,6 +57,8 @@ class WorkerTeamStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String? teamDescription = OrderLifecyclePolicy.teamStateDescription(order);
+
     if (!OrderLifecyclePolicy.isAcceptedWaiting(order)) {
       return const SizedBox.shrink();
     }
@@ -78,12 +80,17 @@ class WorkerTeamStatusCard extends StatelessWidget {
             fontWeight: FontWeight.w800,
           ),
           8.verticalSpace,
-          AppText.bodyMedium(
-            OrderLifecyclePolicy.teamStateDescription(order),
-            color: context.primary,
-            fontWeight: FontWeight.w600,
-            textAlign: TextAlign.start,
-          ),
+          // 1. احصل على القيمة أولاً
+
+// 2. استخدم شرط if قبل الودجت لإخفائه تماماً إذا كان null
+    if (teamDescription != null && teamDescription.isNotEmpty) ...[
+    AppText.bodyMedium(
+    teamDescription,
+    color: context.primary,
+    fontWeight: FontWeight.w600,
+    textAlign: TextAlign.start,
+    ),
+    ],
         ],
       ),
     );

@@ -51,7 +51,8 @@ class OrderLifecyclePolicy {
     FetchOrdersUsecaseModelDataItem order, {
     DateTime? now,
     bool? enforceWindow,
-  }) {
+  })
+  {
     if (!(enforceWindow ?? AppConfig.enforceStartTravelWindow)) return true;
 
     final scheduledAt = _scheduledDateTime(order);
@@ -96,7 +97,7 @@ class OrderLifecyclePolicy {
     }
   }
 
-  static String teamStateDescription(FetchOrdersUsecaseModelDataItem order) {
+  static String? teamStateDescription(FetchOrdersUsecaseModelDataItem order) {
     final accepted =
         order.acceptedWorkersCount ?? order.workerAcceptance?.accepted ?? 0;
     final required =
@@ -112,7 +113,24 @@ class OrderLifecyclePolicy {
       case CleaningWorkerOrderStatus.acceptedWaitingTeam:
         return 'تم قبولك ضمن الفريق. بانتظار اكتمال عدد العمال ($accepted من $required).';
       case CleaningWorkerOrderStatus.acceptedWaitingForOrderStart:
-        return 'اكتمل الفريق. سيتم بدء خطوات الوصول والتحقق عند موعد الطلب.';
+        if(order.numberOfWorkers==null||order.numberOfWorkers==1){
+
+          return null;
+
+        }else{
+          if(accepted==required){
+            return 'اكتمل الفريق. سيتم بدء خطوات الوصول والتحقق عند موعد الطلب.';
+
+
+          }else{
+
+            return 'تم قبولك ضمن الفريق. بانتظار اكتمال عدد العمال ($accepted من $required).';
+
+
+          }
+
+
+        }
       case CleaningWorkerOrderStatus.awaitingWorkerStartConfirmation:
         return 'أكد العميل رمز الوصول. اضغط بدء العمل للمتابعة.';
       default:
@@ -124,15 +142,18 @@ class OrderLifecyclePolicy {
     return teamStateTitle(order);
   }
 
-  static String acceptedWaitingMessage(FetchOrdersUsecaseModelDataItem order) {
+  static String? acceptedWaitingMessage(FetchOrdersUsecaseModelDataItem order) {
     final description = teamStateDescription(order);
-    if (description.isNotEmpty) return description;
-    return acceptedWaitingMessageLegacy(order);
+    // إذا كانت null، أرجع null (ليتم إخفاء الودجت في الواجهة)
+    if (description == null) return null;
+    if (description.isEmpty) return acceptedWaitingMessageLegacy(order);
+    return description;
   }
 
   static String acceptedWaitingMessageLegacy(
     FetchOrdersUsecaseModelDataItem order,
-  ) {
+  )
+  {
     final acceptance = order.workerAcceptance;
     final accepted = acceptance?.accepted;
     final required = acceptance?.required ?? order.numberOfWorkers;
@@ -152,14 +173,17 @@ class OrderLifecyclePolicy {
 
   static bool isAwaitingStartVerification(
     FetchOrdersUsecaseModelDataItem order,
-  ) =>
+  )
+  =>
+
       order.effectiveWorkerStatus ==
           CleaningWorkerOrderStatus.awaitingStartVerification ||
       order.status == CleaningBookingStatus.awaitingStartVerification;
 
   static bool isAwaitingWorkerStartConfirmation(
     FetchOrdersUsecaseModelDataItem order,
-  ) =>
+  )
+  =>
       order.effectiveWorkerStatus ==
           CleaningWorkerOrderStatus.awaitingWorkerStartConfirmation ||
       order.status == CleaningBookingStatus.awaitingWorkerStartConfirmation;
@@ -216,7 +240,8 @@ class OrderLifecyclePolicy {
     required String? currentStatus,
     required String? incomingStatus,
     String? decision,
-  }) {
+  })
+  {
     final normalizedDecision = (decision ?? '').trim().toLowerCase();
     final normalizedIncoming = (incomingStatus ?? '').trim().toLowerCase();
     final normalizedCurrent = (currentStatus ?? '').trim().toLowerCase();
@@ -269,7 +294,8 @@ class OrderLifecyclePolicy {
     required OrdersState state,
     required int orderIndex,
     required BlocStatus? actionStatus,
-  }) => actionStatus == BlocStatus.loading && state.selectedIndex == orderIndex;
+  })
+  => actionStatus == BlocStatus.loading && state.selectedIndex == orderIndex;
 
   static String statusLabel(FetchOrdersUsecaseModelDataItem order) {
     if (isAcceptedWaiting(order)) return acceptedWaitingLabel(order);

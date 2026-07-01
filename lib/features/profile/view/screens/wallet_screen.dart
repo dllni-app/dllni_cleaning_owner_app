@@ -318,49 +318,56 @@ class _SecurityDepositSection extends StatelessWidget {
                     ],
                   ),
                   12.verticalSpace,
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _MetricTile(
-                          title: 'الرصيد الحالي',
-                          value: '${WalletScreen.formatAmount(data?.currentBalance ?? 0)} $currency',
-                          accentColor: const Color(0xff0EA5E9),
-                          isLoading: isLoading,
-                        ),
+                  IntrinsicHeight(
+                    child:   Row(
+                        children: [
+                          Expanded(
+                            child: _MetricTile(
+                              title: 'الرصيد الحالي',
+                              value: '${WalletScreen.formatAmount(data?.currentBalance ?? 0)} $currency',
+                              accentColor: const Color(0xff0EA5E9),
+                              isLoading: isLoading,
+                            ),
+                          ),
+                          10.horizontalSpace,
+                          Expanded(
+                            child: _MetricTile(
+                              title: 'الحد الأدنى المطلوب',
+                              value: '${WalletScreen.formatAmount(data?.minimumRequired ?? 0)} $currency',
+                              accentColor: const Color(0xffF59E0B),
+                              isLoading: isLoading,
+                            ),
+                          ),
+                        ],
                       ),
-                      10.horizontalSpace,
-                      Expanded(
-                        child: _MetricTile(
-                          title: 'الحد الأدنى المطلوب',
-                          value: '${WalletScreen.formatAmount(data?.minimumRequired ?? 0)} $currency',
-                          accentColor: const Color(0xffF59E0B),
-                          isLoading: isLoading,
-                        ),
-                      ),
-                    ],
+
                   ),
                   10.verticalSpace,
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _MetricTile(
-                          title: 'إجمالي الإيداع',
-                          value: '${WalletScreen.formatAmount(data?.depositedTotal ?? 0)} $currency',
-                          accentColor: const Color(0xff10B981),
-                          isLoading: isLoading,
-                        ),
-                      ),
-                      10.horizontalSpace,
-                      Expanded(
-                        child: _MetricTile(
-                          title: 'إجمالي السحب',
-                          value: '${WalletScreen.formatAmount(data?.withdrawnTotal ?? 0)} $currency',
-                          accentColor: const Color(0xffEF4444),
-                          isLoading: isLoading,
-                        ),
-                      ),
-                    ],
-                  ),
+        IntrinsicHeight(
+        child:
+        Row(
+          children: [
+            Expanded(
+              child: _MetricTile(
+                title: 'إجمالي الإيداع',
+                value: '${WalletScreen.formatAmount(data?.depositedTotal ?? 0)} $currency',
+                accentColor: const Color(0xff10B981),
+                isLoading: isLoading,
+              ),
+            ),
+            10.horizontalSpace,
+            Expanded(
+              child: _MetricTile(
+                title: 'إجمالي السحب',
+                value: '${WalletScreen.formatAmount(data?.withdrawnTotal ?? 0)} $currency',
+                accentColor: const Color(0xffEF4444),
+                isLoading: isLoading,
+              ),
+            ),
+          ],
+        ),
+        ),
+
                   if ((data?.exceedanceAmount ?? 0) > 0) ...[
                     12.verticalSpace,
                     Container(
@@ -818,28 +825,32 @@ class _SummaryCard extends StatelessWidget {
         children: [
           AppText.bodyLarge('ملخص المبالغ', color: const Color(0xff111827), fontWeight: FontWeight.w700),
           12.verticalSpace,
-          Row(
-            children: [
-              Expanded(
-                child: _MetricTile(title: 'الايرادات', value: '$grossInvoicesAmount $currencyLabel', accentColor: const Color(0xff0EA5E9), isLoading: isLoading),
-              ),
-              10.horizontalSpace,
-              Expanded(
-                child: _MetricTile(title: 'تم ايداعه للادارة', value: '$depositedToAdminAmount $currencyLabel', accentColor: const Color(0xff10B981), isLoading: isLoading),
-              ),
-            ],
+          IntrinsicHeight(
+            child: Row(
+              children: [
+                Expanded(
+                  child: _MetricTile(title: 'الايرادات', value: '$grossInvoicesAmount $currencyLabel', accentColor: const Color(0xff0EA5E9), isLoading: isLoading),
+                ),
+                10.horizontalSpace,
+                Expanded(
+                  child: _MetricTile(title: 'تم ايداعه للادارة', value: '$depositedToAdminAmount $currencyLabel', accentColor: const Color(0xff10B981), isLoading: isLoading),
+                ),
+              ],
+            ),
           ),
           10.verticalSpace,
-          Row(
-            children: [
-              Expanded(
-                child: _MetricTile(title: 'نسبة الادارة من الارباح', value: '$adminProfitAmount $currencyLabel', accentColor: const Color(0xffF59E0B), isLoading: isLoading),
-              ),
-              10.horizontalSpace,
-              Expanded(
-                child: _MetricTile(title: 'اجمالي عدد الطلبات المكتملة', value: completedOrdersCount, accentColor: const Color(0xff6366F1), isLoading: isLoading),
-              ),
-            ],
+          IntrinsicHeight(
+            child: Row(
+              children: [
+                Expanded(
+                  child: _MetricTile(title: 'نسبة الادارة من الارباح', value: '$adminProfitAmount $currencyLabel', accentColor: const Color(0xffF59E0B), isLoading: isLoading),
+                ),
+                10.horizontalSpace,
+                Expanded(
+                  child: _MetricTile(title: 'اجمالي عدد الطلبات المكتملة', value: completedOrdersCount, accentColor: const Color(0xff6366F1), isLoading: isLoading),
+                ),
+              ],
+            ),
           ),
         ],
       ),

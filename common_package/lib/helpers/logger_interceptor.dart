@@ -16,77 +16,41 @@ class LoggerInterceptor extends Interceptor {
   );
 
   @override
-  void onRequest(
-      RequestOptions options,
-      RequestInterceptorHandler handler,
-      ) {
+  void onRequest(RequestOptions options,
+      RequestInterceptorHandler handler,) {
     if (!kDebugMode) {
       handler.next(options);
       return;
     }
 
-    String body = '';
-
-    if (options.data != null) {
-      body = options.data.toString();
-
-      if (body.length > 1500) {
-        body = '${body.substring(0, 1500)} ... (truncated)';
-      }
-    }
-
     _logger.i(
       '🚀 ${options.method} ${options.uri}\n'
-          'Headers: ${options.headers}\n'
-          '${body.isNotEmpty ? 'Body:\n$body' : ''}',
+          '${options.data ?? ''}',
     );
 
     handler.next(options);
   }
+
   @override
-  void onResponse(
-      Response response,
-      ResponseInterceptorHandler handler,
-      ) {
+  void onResponse(Response response,
+      ResponseInterceptorHandler handler,) {
     if (!kDebugMode) {
       handler.next(response);
       return;
     }
 
-    final data = response.data;
-
-    String summary = '';
-
-    if (data is List) {
-      summary = 'items=${data.length}';
-    } else if (data is Map<String, dynamic>) {
-      summary = data.containsKey('data') && data['data'] is List
-          ? 'items=${(data['data'] as List).length}'
-          : 'keys=${data.keys.length}';
-    }
-
-    String body = data.toString();
-
-    if (body.length > 2000) {
-      body = '${body.substring(0, 2000)} ... (truncated)';
-    }
-
     _logger.i(
-      '✅ ${response.statusCode} '
-          '${response.requestOptions.method} '
-          '${response.requestOptions.uri}'
-          '${summary.isNotEmpty ? ' ($summary)' : ''}\n'
-          'Response:\n$body',
+      '✅ ${response.statusCode} ${response.requestOptions.method} ${response
+          .requestOptions.path}\n'
+          '${response.data}',
     );
 
     handler.next(response);
   }
 
   @override
-  void onError(
-      DioException err,
-      ErrorInterceptorHandler handler,
-      ) {
+  void onError(DioException err,
+      ErrorInterceptorHandler handler,) {
     if (!kDebugMode) {
       handler.next(err);
       return;
@@ -117,7 +81,9 @@ class LoggerInterceptor extends Interceptor {
           'Query Parameters:\n'
           '${request.queryParameters}\n\n'
           '${requestBody.isNotEmpty ? 'Request Body:\n$requestBody\n\n' : ''}'
-          '${responseBody.isNotEmpty ? 'Response Body:\n$responseBody\n\n' : ''}'
+          '${responseBody.isNotEmpty
+          ? 'Response Body:\n$responseBody\n\n'
+          : ''}'
           'StackTrace:\n'
           '${err.stackTrace}',
     );

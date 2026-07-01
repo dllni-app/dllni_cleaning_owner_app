@@ -206,6 +206,13 @@ class _WorkAreasScreenState extends State<WorkAreasScreen> {
             previous.cleaningNeighborhoodsStatus !=
                 current.cleaningNeighborhoodsStatus ||
             previous.cleaningNeighborhoods != current.cleaningNeighborhoods,
+        buildWhen: (previous, current) =>
+            previous.cleaningNeighborhoodsStatus !=
+                current.cleaningNeighborhoodsStatus ||
+            previous.cleaningNeighborhoods != current.cleaningNeighborhoods ||
+            previous.cleaningNeighborhoodsErrorMessage !=
+                current.cleaningNeighborhoodsErrorMessage ||
+            previous.updateWorkAreasStatus != current.updateWorkAreasStatus,
         listener: (context, state) {
           if (state.cleaningNeighborhoodsStatus == BlocStatus.success &&
               state.cleaningNeighborhoods != null) {
@@ -408,6 +415,12 @@ class _WorkAreasScreenState extends State<WorkAreasScreen> {
                       14.h,
                     ),
                     child: BlocConsumer<ProfileBloc, ProfileState>(
+                      listenWhen: (previous, current) =>
+                          previous.updateWorkAreasStatus !=
+                          current.updateWorkAreasStatus,
+                      buildWhen: (previous, current) =>
+                          previous.updateWorkAreasStatus !=
+                          current.updateWorkAreasStatus,
                       listener: (context, state) {
                         if (state.updateWorkAreasStatus == BlocStatus.success) {
                           Loading.close();
