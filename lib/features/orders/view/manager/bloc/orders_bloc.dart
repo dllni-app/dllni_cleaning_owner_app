@@ -37,6 +37,7 @@ import '../../../domain/usecases/start_work_use_case.dart';
 import '../../../data/models/start_work_model.dart';
 import '../../helpers/order_details_to_list_item_mapper.dart';
 import '../../helpers/order_lifecycle_policy.dart';
+import '../../helpers/orders_realtime_hydration_policy.dart';
 import '../../widgets/order_details/location_reporting_policy.dart';
 
 part 'orders_event.dart';
@@ -798,10 +799,9 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     HydrateOrderListFromRealtimeEvent event,
     Emitter<OrdersState> emit,
   ) {
-    final normalizedEvent = CleaningRealtimeContract.normalizeEventName(
+    if (!OrdersRealtimeHydrationPolicy.shouldRefreshLifecycleList(
       event.eventName,
-    );
-    if (!CleaningRealtimeContract.isLifecycleRefreshEvent(normalizedEvent)) {
+    )) {
       return;
     }
     _refreshLastOrdersList();
@@ -811,10 +811,9 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     HydrateOrderDetailsFromRealtimeEvent event,
     Emitter<OrdersState> emit,
   ) {
-    final normalizedEvent = CleaningRealtimeContract.normalizeEventName(
+    if (!OrdersRealtimeHydrationPolicy.shouldRefreshLifecycleDetails(
       event.eventName,
-    );
-    if (!CleaningRealtimeContract.isLifecycleRefreshEvent(normalizedEvent)) {
+    )) {
       return;
     }
     add(SyncOrderFromRealtimeEvent(bookingId: event.bookingId));
@@ -825,14 +824,10 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     Emitter<OrdersState> emit,
   ) async {
     final bookingId = CleaningRealtimeContract.extractBookingId(event.payload);
-    final shouldSync =
-        CleaningRealtimeContract.shouldRefreshPendingOrdersForWorkerEvent(
-      event.eventName,
-      event.payload,
-    );
-    if (!shouldSync &&
-        (bookingId == null ||
-            CleaningRealtimeContract.isLocationEvent(event.eventName))) {
+    if (OrdersRealtimeHydrationPolicy.shouldIgnorePendingSync(
+      eventName: event.eventName,
+      payload: event.payload,
+    )) {
       return;
     }
 
@@ -848,23 +843,32 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
 
     res.fold(
       (_) {
-        if (!event.applyToPendingList) return;
+        if (!OrdersRealtimeHydrationPolicy
+            .shouldRefetchPendingListWhenDetailsMissing(
+          applyToPendingList: event.applyToPendingList,
+        )) {
+          return;
+        }
         _refreshPendingOrders();
       },
       (response) {
         final details = response.data;
         if (details == null) {
-          if (!event.applyToPendingList) return;
+          if (!OrdersRealtimeHydrationPolicy
+              .shouldRefetchPendingListWhenDetailsMissing(
+            applyToPendingList: event.applyToPendingList,
+          )) {
+            return;
+          }
           _refreshPendingOrders();
           return;
         }
 
-        final status = (details.status ?? '').trim().toLowerCase();
-        if (status == CleaningBookingStatus.pending) {
-          final canUpsertPending = event.applyToPendingList ||
-              _lastOrdersStatusFilter == CleaningBookingStatus.pending;
-          if (!canUpsertPending) return;
-
+        if (OrdersRealtimeHydrationPolicy.canUpsertPendingOrder(
+          status: details.status,
+          applyToPendingList: event.applyToPendingList,
+          lastOrdersStatusFilter: _lastOrdersStatusFilter,
+        )) {
           final listItem = OrderDetailsToListItemMapper.fromDetails(details);
           emit(
             state.copyWith(
