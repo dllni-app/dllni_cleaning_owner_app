@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 import 'dart:async';
-import 'dart:convert';
 import 'package:common_package/common_package.dart';
 import '../../../../../core/realtime/cleaning_realtime_contract.dart';
 import '../../../data/models/cleaning_booking_status.dart';
@@ -39,6 +38,7 @@ import '../../helpers/order_details_to_list_item_mapper.dart';
 import '../../helpers/order_lifecycle_policy.dart';
 import '../../helpers/orders_lifecycle_failure_message_mapper.dart';
 import '../../helpers/orders_realtime_hydration_policy.dart';
+import '../../helpers/orders_worker_eligibility_cache.dart';
 import '../../widgets/order_details/location_reporting_policy.dart';
 
 part 'orders_event.dart';
@@ -918,20 +918,6 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
   }
 
   void _cacheWorkerEligibility(FetchOrdersUsecaseModel model) {
-    final eligibility = model.dispatchEligibility;
-    if (eligibility == null) return;
-
-    SharedPreferencesHelper.saveData(
-      key: 'worker_dispatch_eligibility',
-      value: jsonEncode(eligibility.toJson()),
-    );
-    SharedPreferencesHelper.saveData(
-      key: 'worker_can_receive_new_requests',
-      value: eligibility.canReceiveNewRequests == true,
-    );
-    SharedPreferencesHelper.saveData(
-      key: 'worker_eligibility_message_ar',
-      value: eligibility.userMessageAr,
-    );
+    OrdersWorkerEligibilityCache.saveFromOrdersResponse(model);
   }
 }
