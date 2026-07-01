@@ -1,88 +1,79 @@
 class OrderWorkTimerSession {
   const OrderWorkTimerSession({
-    required this.startedAt,
-    required this.duration,
+    required this.sessionStart,
+    required this.maxDuration,
     required this.sessionKey,
-    required this.isOvertime,
+    required this.isExtension,
   });
 
-  final DateTime startedAt;
-  final Duration duration;
+  final DateTime sessionStart;
+  final Duration maxDuration;
   final String sessionKey;
-  final bool isOvertime;
+  final bool isExtension;
 
-  DateTime get expectedFinishAt => startedAt.add(duration);
+  Duration elapsedAt(DateTime now) {
+    final elapsed = now.difference(sessionStart);
+    return elapsed.isNegative ? Duration.zero : elapsed;
+  }
+
+  bool isFinishedAt(DateTime now) => elapsedAt(now) >= maxDuration;
+}
+
+class AcceptedExtensionTimerSeed {
+  const AcceptedExtensionTimerSeed({
+    required this.id,
+    required this.minutes,
+  });
+
+  final int? id;
+  final int minutes;
+
+  String get sessionKey => 'extension:${id ?? 'unknown'}:$minutes';
 }
 
 class OrderWorkTimerHelper {
   const OrderWorkTimerHelper._();
 
-  static OrderWorkTimerSession? resolve({
-    required String? scheduledDate,
-    required String? scheduledTime,
-    required String? workStartedAt,
-    required String? arrivedAt,
+  static Duration? originalBookingDuration({
     required double? totalHours,
     required double? estimatedHours,
-    required List<dynamic>? timeWarnings,
-    bool allowAcceptedOvertime = true,
   }) {
-    if (allowAcceptedOvertime) {
-      final acceptedOvertime = _latestAcceptedOvertime(timeWarnings);
-      if (acceptedOvertime != null) {
-        return OrderWorkTimerSession(
-          startedAt: acceptedOvertime.acceptedAt,
-          duration: Duration(minutes: acceptedOvertime.minutes),
-          sessionKey:
-              'extension:${acceptedOvertime.id ?? 'unknown'}:${acceptedOvertime.acceptedAt.toIso8601String()}:${acceptedOvertime.minutes}',
-          isOvertime: true,
-        );
-      }
-    }
-
-    final actualStart = parseDateTime(workStartedAt);
-    if (actualStart == null) return null;
-
-    final scheduledStart = parseScheduledDateTime(scheduledDate, scheduledTime);
-    final effectiveStart = scheduledStart != null && actualStart.isBefore(scheduledStart)
-        ? scheduledStart
-        : actualStart;
-    final duration = durationFromHours(
+    return durationFromHours(
       totalHours != null && totalHours > 0 ? totalHours : estimatedHours,
     );
-    if (duration == null) return null;
+  }
 
+  static OrderWorkTimerSession startOriginalSession({
+    required DateTime now,
+    required Duration maxDuration,
+  }) {
     return OrderWorkTimerSession(
-      startedAt: effectiveStart,
-      duration: duration,
-      sessionKey: 'base:${effectiveStart.toIso8601String()}:${duration.inMinutes}',
-      isOvertime: false,
+      sessionStart: now,
+      maxDuration: maxDuration,
+      sessionKey: 'base:${now.microsecondsSinceEpoch}:${maxDuration.inSeconds}',
+      isExtension: false,
     );
   }
 
-  static DateTime? parseDateTime(String? value) {
-    final raw = value?.trim();
-    if (raw == null || raw.isEmpty) return null;
-    return DateTime.tryParse(raw);
+  static OrderWorkTimerSession startExtensionSession({
+    required DateTime now,
+    required AcceptedExtensionTimerSeed seed,
+  }) {
+    return OrderWorkTimerSession(
+      sessionStart: now,
+      maxDuration: Duration(minutes: seed.minutes),
+      sessionKey: seed.sessionKey,
+      isExtension: true,
+    );
   }
 
-  static DateTime? parseScheduledDateTime(String? scheduledDate, String? scheduledTime) {
-    final date = scheduledDate?.trim();
-    if (date == null || date.isEmpty) return null;
-    final time = scheduledTime?.trim();
-    if (time == null || time.isEmpty) return DateTime.tryParse(date);
-    return DateTime.tryParse('$date $time') ?? DateTime.tryParse('${date}T$time');
-  }
-
-  static Duration? durationFromHours(double? hours) {
-    if (hours == null || hours <= 0) return null;
-    return Duration(minutes: (hours * 60).round());
-  }
-
-  static _AcceptedOvertime? _latestAcceptedOvertime(List<dynamic>? warnings) {
+  static AcceptedExtensionTimerSeed? latestAcceptedExtensionSeed(
+    List<dynamic>? warnings,
+  ) {
     if (warnings == null || warnings.isEmpty) return null;
 
-    _AcceptedOvertime? latest;
+    AcceptedExtensionTimerSeed? latest;
+    DateTime? latestTime;
     for (final warning in warnings) {
       final map = _asStringMap(warning);
       if (map.isEmpty || !_isAccepted(map)) continue;
@@ -100,7 +91,7 @@ class OrderWorkTimerHelper {
       );
       if (minutes == null || minutes <= 0) continue;
 
-      final acceptedAt = parseDateTime(
+      final responseTime = _parseDateTime(
         _asString(
           _pick(map, const <String>[
             'workerRespondedAt',
@@ -111,21 +102,33 @@ class OrderWorkTimerHelper {
             'accepted_at',
             'updatedAt',
             'updated_at',
+            'createdAt',
+            'created_at',
           ]),
         ),
       );
-      if (acceptedAt == null) continue;
-
-      final candidate = _AcceptedOvertime(
-        id: _asInt(_pick(map, const <String>['id', 'warningId', 'warning_id'])),
-        minutes: minutes,
-        acceptedAt: acceptedAt,
-      );
-      if (latest == null || candidate.acceptedAt.isAfter(latest.acceptedAt)) {
+      final id = _asInt(_pick(map, const <String>['id', 'warningId', 'warning_id']));
+      final candidate = AcceptedExtensionTimerSeed(id: id, minutes: minutes);
+      if (latest == null ||
+          (responseTime != null &&
+              (latestTime == null || responseTime.isAfter(latestTime))) ||
+          (responseTime == null && id != null && (latest.id == null || id > latest.id!))) {
         latest = candidate;
+        latestTime = responseTime;
       }
     }
     return latest;
+  }
+
+  static Duration? durationFromHours(double? hours) {
+    if (hours == null || hours <= 0) return null;
+    return Duration(minutes: (hours * 60).round());
+  }
+
+  static DateTime? _parseDateTime(String? value) {
+    final raw = value?.trim();
+    if (raw == null || raw.isEmpty) return null;
+    return DateTime.tryParse(raw);
   }
 
   static bool _isAccepted(Map<String, dynamic> map) {
@@ -173,16 +176,4 @@ class OrderWorkTimerHelper {
     return int.tryParse(value?.toString() ?? '') ??
         double.tryParse(value?.toString() ?? '')?.toInt();
   }
-}
-
-class _AcceptedOvertime {
-  const _AcceptedOvertime({
-    required this.id,
-    required this.minutes,
-    required this.acceptedAt,
-  });
-
-  final int? id;
-  final int minutes;
-  final DateTime acceptedAt;
 }
