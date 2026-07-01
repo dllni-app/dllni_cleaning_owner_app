@@ -31,6 +31,13 @@ bool? _toBool(dynamic value) {
   return null;
 }
 
+int? _toInt(dynamic value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value) ?? double.tryParse(value)?.toInt();
+  return null;
+}
+
 String? _toStringValue(dynamic value) {
   if (value == null) return null;
   final text = value.toString().trim();
@@ -55,6 +62,8 @@ class WorkerDispatchEligibilityModel {
   final String? title;
   final String? message;
   final FetchDepositAccountUsecaseModel? depositSummary;
+  final int? availableNewOrdersCount;
+  final int? blockedNewOrdersCount;
 
   const WorkerDispatchEligibilityModel({
     this.canReceiveNewRequests,
@@ -66,6 +75,8 @@ class WorkerDispatchEligibilityModel {
     this.title,
     this.message,
     this.depositSummary,
+    this.availableNewOrdersCount,
+    this.blockedNewOrdersCount,
   });
 
   factory WorkerDispatchEligibilityModel.fromJson(Map<String, dynamic> json) {
@@ -108,6 +119,18 @@ class WorkerDispatchEligibilityModel {
       depositSummary: depositJson is Map
           ? FetchDepositAccountUsecaseModel.fromJson(_toMap(depositJson))
           : null,
+      availableNewOrdersCount: _toInt(
+        _pick(json, const <String>[
+          'availableNewOrdersCount',
+          'available_new_orders_count',
+        ]),
+      ),
+      blockedNewOrdersCount: _toInt(
+        _pick(json, const <String>[
+          'blockedNewOrdersCount',
+          'blocked_new_orders_count',
+        ]),
+      ),
     );
   }
 
@@ -131,6 +154,10 @@ class WorkerDispatchEligibilityModel {
         return 'رصيد التأمين أقل من الحد المطلوب لبدء العمل.';
       case 'deposit_below_allowed_balance':
         return 'رصيد التأمين أقل من الحد المسموح. يرجى شحن حساب التأمين لاستقبال الطلبات الجديدة.';
+      case 'insufficient_commission_capacity':
+        final blockedCount = blockedNewOrdersCount ?? 0;
+        final countText = blockedCount > 0 ? ' يوجد $blockedCount طلب غير ظاهر حالياً.' : '';
+        return 'رصيد التأمين المتاح لا يغطي عمولة بعض الطلبات الجديدة.$countText يرجى شحن حساب التأمين أو انتظار تحرير العمولة المحجوزة.';
       default:
         return 'لا يمكن لحسابك استقبال الطلبات الجديدة حالياً.';
     }
@@ -147,6 +174,8 @@ class WorkerDispatchEligibilityModel {
       'title': title,
       'message': message,
       'depositSummary': depositSummary?.toJson(),
+      'availableNewOrdersCount': availableNewOrdersCount,
+      'blockedNewOrdersCount': blockedNewOrdersCount,
     };
   }
 }
