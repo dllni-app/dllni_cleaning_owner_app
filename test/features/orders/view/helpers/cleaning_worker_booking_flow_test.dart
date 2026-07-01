@@ -1,3 +1,4 @@
+import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_worker_global_prompt_coordinator.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_team_models.dart';
@@ -5,6 +6,7 @@ import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orde
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/cleaning_room_display.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/cleaning_worker_order_status.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_lifecycle_policy.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/orders_accept_flow_policy.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -149,6 +151,72 @@ void main() {
       ]);
 
       expect(ids, <int>[10]);
+    });
+  });
+
+  group('OrdersAcceptFlowPolicy', () {
+    test('keeps an accepted order in pending list when backend still returns pending', () {
+      final current = PaginationStateModel<FetchOrdersUsecaseModelDataItem>(
+        status: BlocStatus.success,
+        list: <FetchOrdersUsecaseModelDataItem>[
+          FetchOrdersUsecaseModelDataItem(
+            id: 20,
+            status: CleaningBookingStatus.pending,
+            workerOrderStatus: CleaningBookingStatus.pending,
+          ),
+        ],
+      );
+      final updated = FetchOrdersUsecaseModelDataItem(
+        id: 20,
+        status: CleaningBookingStatus.pending,
+        workerOrderStatus: 'accepted_waiting_for_order_start',
+      );
+
+      final next = OrdersAcceptFlowPolicy.applyAcceptSuccessToPendingList(
+        current: current,
+        bookingId: 20,
+        updatedOrder: updated,
+      );
+
+      expect(next.list.length, 1);
+      expect(next.list.first.id, 20);
+      expect(next.list.first.workerOrderStatus, 'accepted_waiting_for_order_start');
+      expect(
+        OrderLifecyclePolicy.canAcceptReject(next.list.first),
+        isFalse,
+      );
+    });
+
+    test('removes accepted order from pending list when backend moves to worker_assigned', () {
+      final current = PaginationStateModel<FetchOrdersUsecaseModelDataItem>(
+        status: BlocStatus.success,
+        list: <FetchOrdersUsecaseModelDataItem>[
+          FetchOrdersUsecaseModelDataItem(
+            id: 21,
+            status: CleaningBookingStatus.pending,
+            workerOrderStatus: CleaningBookingStatus.pending,
+          ),
+        ],
+      );
+      final updated = FetchOrdersUsecaseModelDataItem(
+        id: 21,
+        status: CleaningBookingStatus.workerAssigned,
+        workerOrderStatus: 'accepted_waiting_for_order_start',
+      );
+
+      final next = OrdersAcceptFlowPolicy.applyAcceptSuccessToPendingList(
+        current: current,
+        bookingId: 21,
+        updatedOrder: updated,
+      );
+
+      expect(next.list, isEmpty);
+      expect(
+        OrdersAcceptFlowPolicy.shouldRefreshWorkerAssignedList(
+          updatedOrder: updated,
+        ),
+        isTrue,
+      );
     });
   });
 }
