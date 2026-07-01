@@ -76,6 +76,31 @@ void main() {
       expect(model.invoicesFourWeeksChart!.first.weekNumber, 1);
     });
 
+    test('parses commission capacity warning payload', () {
+      final model = fetchHomePageUsecaseModelFromJson(<String, dynamic>{
+        'newOrdersCount': 0,
+        'dispatchEligibility': <String, dynamic>{
+          'canReceiveNewRequests': true,
+          'canAcceptNewBookings': true,
+          'reasonCode': 'eligible',
+        },
+        'commissionCapacityEligibility': <String, dynamic>{
+          'canReceiveNewRequests': false,
+          'canAcceptNewBookings': false,
+          'reasonCode': 'insufficient_commission_capacity',
+          'blockedNewOrdersCount': 2,
+          'availableNewOrdersCount': 0,
+        },
+      });
+
+      expect(model.blocksNewRequests, isTrue);
+      expect(model.commissionCapacityEligibility?.blockedNewOrdersCount, 2);
+      expect(
+        model.eligibilityMessageAr,
+        contains('رصيد التأمين المتاح لا يغطي عمولة بعض الطلبات الجديدة'),
+      );
+    });
+
     test('remains backward compatible when new fields are absent', () {
       final model = fetchHomePageUsecaseModelFromJson(<String, dynamic>{
         'totalBookings': 12,
