@@ -8,7 +8,6 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:intl/intl.dart';
 
 import '../../../data/models/arrive_model.dart';
-import '../../../data/models/cleaning_booking_status.dart';
 import '../../../data/models/fetch_orders_usecase_model.dart';
 import '../../../domain/usecases/accept_extension_usecase_use_case.dart';
 import '../../../domain/usecases/complete_order_usecase_use_case.dart';
@@ -49,20 +48,20 @@ class OrderDetailsMissionBody extends StatefulWidget {
 
 class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
   Timer? _timer;
-  Duration _remainingTime = Duration.zero;
-  Duration _overdueTime = Duration.zero;
+  OrderWorkTimerSession? _timerSession;
+  int? _timerOrderId;
+  Duration _elapsedTime = Duration.zero;
   bool _isWorkTimerAvailable = false;
-  bool _isWorkOverdue = false;
+  bool _isSessionFinished = false;
   bool _waitingSheetOpen = false;
   String? _lastCompletionMessage;
-  String? _workTimerSessionKey;
   final Map<String, bool> _taskState = <String, bool>{};
 
   @override
   void initState() {
     super.initState();
-    _workTimerSessionKey = _resolveWorkTimerSession()?.sessionKey;
     _initTasks();
+    _syncTimerSession(resetCurrentSession: true);
     _calculateWorkTimer();
     _startTimer();
   }
@@ -70,26 +69,24 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
   @override
   void didUpdateWidget(covariant OrderDetailsMissionBody oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.order.id != widget.order.id) _lastCompletionMessage = null;
+    if (oldWidget.order.id != widget.order.id) {
+      _lastCompletionMessage = null;
+      _syncTimerSession(resetCurrentSession: true);
+    }
 
-    final nextSessionKey = _resolveWorkTimerSession()?.sessionKey;
     final shouldResetTasks = oldWidget.order.id != widget.order.id ||
         oldWidget.services.length != widget.services.length ||
-        oldWidget.addons.length != widget.addons.length ||
-        nextSessionKey != _workTimerSessionKey;
+        oldWidget.addons.length != widget.addons.length;
     if (shouldResetTasks) {
-      _workTimerSessionKey = nextSessionKey;
       _initTasks();
     }
 
     if (oldWidget.order.id != widget.order.id ||
         oldWidget.order.status != widget.order.status ||
-        oldWidget.order.workStartedAt != widget.order.workStartedAt ||
-        oldWidget.order.scheduledDate != widget.order.scheduledDate ||
-        oldWidget.order.scheduledTime != widget.order.scheduledTime ||
         oldWidget.order.totalHours != widget.order.totalHours ||
         oldWidget.order.estimatedHours != widget.order.estimatedHours ||
         oldWidget.order.timeWarnings != widget.order.timeWarnings) {
+      _syncTimerSession();
       _calculateWorkTimer();
     }
   }
@@ -197,26 +194,68 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     _waitingSheetOpen = false;
   }
 
-  OrderWorkTimerSession? _resolveWorkTimerSession() {
-    return OrderWorkTimerHelper.resolve(
-      scheduledDate: widget.order.scheduledDate,
-      scheduledTime: widget.order.scheduledTime,
-      workStartedAt: widget.order.workStartedAt,
-      arrivedAt: widget.order.arrivedAt,
+  void _syncTimerSession({bool resetCurrentSession = false}) {
+    if (!_uiState.isActiveWork) {
+      _timerSession = null;
+      _timerOrderId = null;
+      return;
+    }
+
+    final extensionSeed =
+        OrderWorkTimerHelper.latestAcceptedExtensionSeed(widget.order.timeWarnings);
+    if (extensionSeed != null) {
+      if (resetCurrentSession || _timerSession?.sessionKey != extensionSeed.sessionKey) {
+        _timerSession = OrderWorkTimerHelper.startExtensionSession(
+          now: DateTime.now(),
+          seed: extensionSeed,
+        );
+        _timerOrderId = widget.order.id;
+      }
+      return;
+    }
+
+    final maxDuration = OrderWorkTimerHelper.originalBookingDuration(
       totalHours: widget.order.totalHours,
       estimatedHours: widget.order.estimatedHours,
-      timeWarnings: widget.order.timeWarnings,
-      allowAcceptedOvertime: _uiState.isActiveWork,
     );
+    if (maxDuration == null) {
+      _timerSession = null;
+      _timerOrderId = null;
+      return;
+    }
+
+    if (resetCurrentSession ||
+        _timerSession == null ||
+        _timerSession!.isExtension ||
+        _timerOrderId != widget.order.id) {
+      _timerSession = OrderWorkTimerHelper.startOriginalSession(
+        now: DateTime.now(),
+        maxDuration: maxDuration,
+      );
+      _timerOrderId = widget.order.id;
+    }
+  }
+
+  void _resetExtensionSessionFromState(OrdersState state) {
+    final data = state.acceptExtensionUsecase?.data;
+    final minutes = data?.approvedMinutes;
+    if (minutes == null || minutes <= 0) return;
+    final seed = AcceptedExtensionTimerSeed(id: data?.id, minutes: minutes);
+    if (_timerSession?.sessionKey == seed.sessionKey) return;
+    _timerSession = OrderWorkTimerHelper.startExtensionSession(
+      now: DateTime.now(),
+      seed: seed,
+    );
+    _timerOrderId = widget.order.id;
+    _calculateWorkTimer();
   }
 
   void _setTimerUnavailable() {
     if (!mounted) return;
     setState(() {
       _isWorkTimerAvailable = false;
-      _isWorkOverdue = false;
-      _remainingTime = Duration.zero;
-      _overdueTime = Duration.zero;
+      _isSessionFinished = false;
+      _elapsedTime = Duration.zero;
     });
   }
 
@@ -225,19 +264,21 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
       _setTimerUnavailable();
       return;
     }
-    final session = _resolveWorkTimerSession();
+    _syncTimerSession();
+    final session = _timerSession;
     if (session == null) {
       _setTimerUnavailable();
       return;
     }
-    final diff = session.expectedFinishAt.difference(DateTime.now());
-    final isOverdue = diff.isNegative;
+
+    final now = DateTime.now();
+    final finished = session.isFinishedAt(now);
+    final elapsed = session.elapsedAt(now);
     if (!mounted) return;
     setState(() {
       _isWorkTimerAvailable = true;
-      _isWorkOverdue = isOverdue;
-      _remainingTime = isOverdue ? Duration.zero : diff;
-      _overdueTime = isOverdue ? diff.abs() : Duration.zero;
+      _isSessionFinished = finished;
+      _elapsedTime = finished ? session.maxDuration : elapsed;
     });
   }
 
@@ -268,7 +309,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     if (_uiState.isWaitingCustomer) {
       return const <Color>[Color(0xff1E2A78), Color(0xff283593)];
     }
-    if (_uiState.isExtensionPending) {
+    if (_uiState.isExtensionPending || _timerSession?.isExtension == true) {
       return const <Color>[Color(0xff7C3AED), Color(0xff6D28D9)];
     }
     if (_uiState.isDispute) {
@@ -277,7 +318,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     if (_uiState.isFinal) {
       return const <Color>[Color(0xff334155), Color(0xff1F2937)];
     }
-    if (_isWorkOverdue) {
+    if (_isSessionFinished) {
       return const <Color>[Color(0xffD97706), Color(0xffF59E0B)];
     }
     return const <Color>[Color(0xff1DBCC8), Color(0xff10A7B2)];
@@ -289,7 +330,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     if (_uiState.isDispute) return 'الطلب قيد المراجعة';
     if (_uiState == OrderDetailsUiState.completed) return 'الطلب مكتمل';
     if (_uiState == OrderDetailsUiState.cancelled) return 'الطلب ملغي';
-    if (_isWorkOverdue) return 'العمل متأخر';
+    if (_isSessionFinished) return 'انتهى وقت الجلسة';
     return 'العمل قيد التنفيذ';
   }
 
@@ -299,8 +340,10 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     if (_uiState.isDispute) return 'تم إيقاف إجراءات الطلب مؤقتاً';
     if (_uiState.isFinal) return 'انتهت دورة هذا الطلب';
     if (!_isWorkTimerAvailable) return 'وقت العمل غير متوفر لهذا الطلب';
-    if (_isWorkOverdue) return 'انتهى الوقت المحدد للعمل';
-    return 'الوقت المتبقي لإنهاء العمل';
+    if (_isSessionFinished) return 'انتهى وقت جلسة العمل';
+    return _timerSession?.isExtension == true
+        ? 'الوقت المستخدم من جلسة التمديد'
+        : 'الوقت المستخدم من جلسة العمل';
   }
 
   String get _timerValueText {
@@ -310,8 +353,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     if (_uiState == OrderDetailsUiState.completed) return 'مكتمل';
     if (_uiState == OrderDetailsUiState.cancelled) return 'ملغي';
     if (!_isWorkTimerAvailable) return '--:--:--';
-    if (_isWorkOverdue) return 'تأخير: ${_formatDuration(_overdueTime)}';
-    return _formatDuration(_remainingTime);
+    return _formatDuration(_elapsedTime);
   }
 
   String? get _timerHelperText {
@@ -320,8 +362,8 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     if (_uiState.isDispute) return 'يرجى انتظار توجيهات الدعم أو الإدارة.';
     if (_uiState.isFinal) return null;
     if (!_isWorkTimerAvailable) return null;
-    if (_isWorkOverdue) {
-      return 'يرجى إنهاء العمل وإرسال طلب التأكيد للعميل عند الانتهاء.';
+    if (_isSessionFinished) {
+      return 'انتهت مدة جلسة العمل الحالية. يرجى طلب تمديد وقت إذا كنت بحاجة للمزيد.';
     }
     return null;
   }
@@ -509,8 +551,17 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
           (previous.completeOrderUsecaseStatus !=
                   current.completeOrderUsecaseStatus &&
               current.completeOrderUsecaseStatus == BlocStatus.success) ||
+          (previous.acceptExtensionUsecaseStatus !=
+                  current.acceptExtensionUsecaseStatus &&
+              current.acceptExtensionUsecaseStatus == BlocStatus.success) ||
           (!_isWaitingFromState(previous) && _isWaitingFromState(current)),
-      listener: (context, state) => unawaited(_showWaitingConfirmationSheet()),
+      listener: (context, state) {
+        if (state.acceptExtensionUsecaseStatus == BlocStatus.success) {
+          _resetExtensionSessionFromState(state);
+          return;
+        }
+        unawaited(_showWaitingConfirmationSheet());
+      },
       child: Padding(
         padding: EdgeInsetsDirectional.symmetric(horizontal: 14.w),
         child: Column(
