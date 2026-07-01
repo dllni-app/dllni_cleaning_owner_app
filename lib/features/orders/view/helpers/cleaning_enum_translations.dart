@@ -110,6 +110,10 @@ class CleaningEnumTranslations {
         return 'شرفة';
       case 'hall':
         return 'صالة';
+      case 'corridor':
+        return 'ممر';
+      case 'toilet':
+        return 'حمام صغير';
       default:
         return valueOrFallback(value, fallback: 'غرفة');
     }

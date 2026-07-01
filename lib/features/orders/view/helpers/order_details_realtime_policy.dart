@@ -72,7 +72,7 @@ class OrderDetailsRealtimePolicy {
     final decision = CleaningRealtimeContract.extractDecision(unwrapped);
     if (decision == null || decision.isEmpty) return null;
 
-    final resolvedStatus = CleaningRealtimeContract.resolveStatusFromPayload(unwrapped);
+    final resolvedStatus = CleaningRealtimeContract.extractTrackingStatus(unwrapped);
     if (resolvedStatus == null || resolvedStatus.isEmpty) return null;
 
     if (!OrderLifecyclePolicy.shouldApplyRealtimeStatus(currentStatus: currentStatus, incomingStatus: resolvedStatus, decision: decision)) {

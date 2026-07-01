@@ -1,93 +1,68 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 import 'package:logger/logger.dart';
+
+import 'dart:convert';
 
 @lazySingleton
 class LoggerInterceptor extends Interceptor {
   final _logger = Logger(
     printer: PrettyPrinter(
       methodCount: 0,
-      errorMethodCount: 0,
-      lineLength: 120,
+      errorMethodCount: 5,
+      lineLength: 75,
       colors: true,
       printEmojis: true,
+      dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
     ),
   );
 
-  @override
-  void onRequest(RequestOptions options,
-      RequestInterceptorHandler handler,) {
-    if (!kDebugMode) {
-      handler.next(options);
-      return;
+  String _prettyJson(dynamic data) {
+    try {
+      if (data is String) {
+        final decoded = json.decode(data);
+        return const JsonEncoder.withIndent('  ').convert(decoded);
+      } else {
+        return const JsonEncoder.withIndent('  ').convert(data);
+      }
+    } catch (_) {
+      return data.toString();
     }
-
-    _logger.i(
-      '🚀 ${options.method} ${options.uri}\n'
-          '${options.data ?? ''}',
-    );
-
-    handler.next(options);
   }
 
   @override
-  void onResponse(Response response,
-      ResponseInterceptorHandler handler,) {
-    if (!kDebugMode) {
-      handler.next(response);
-      return;
-    }
-
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    final requestPath = '${options.baseUrl}${options.path}';
     _logger.i(
-      '✅ ${response.statusCode} ${response.requestOptions.method} ${response
-          .requestOptions.path}\n'
-          '${response.data}',
+      '${options.method} REQUEST => $requestPath\n'
+      'Headers: ${jsonEncode(options.headers)}\n'
+      'Query: ${jsonEncode(options.queryParameters)}\n'
+      'Body: ${_prettyJson(options.data)}',
     );
-
-    handler.next(response);
+    return super.onRequest(options, handler);
   }
 
   @override
-  void onError(DioException err,
-      ErrorInterceptorHandler handler,) {
-    if (!kDebugMode) {
-      handler.next(err);
-      return;
-    }
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    final requestPath =
+        '${response.requestOptions.baseUrl}${response.requestOptions.path}';
+    _logger.i(
+      'RESPONSE [${response.statusCode}] => $requestPath\n'
+      'Data: ${_prettyJson(response.data)}',
+    );
+    return super.onResponse(response, handler);
+  }
 
-    final request = err.requestOptions;
-
-    String requestBody = '';
-    if (request.data != null) {
-      requestBody = request.data.toString();
-    }
-
-    String responseBody = '';
-    if (err.response?.data != null) {
-      responseBody = err.response!.data.toString();
-    }
-
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) {
+    final options = err.requestOptions;
+    final requestPath = '${options.baseUrl}${options.path}';
     _logger.e(
-      '❌ ${err.response?.statusCode ?? 'UNKNOWN'} '
-          '${request.method} '
-          '${request.uri}\n\n'
-          'Message:\n'
-          '${err.message}\n\n'
-          'Type:\n'
-          '${err.type}\n\n'
-          'Headers:\n'
-          '${request.headers}\n\n'
-          'Query Parameters:\n'
-          '${request.queryParameters}\n\n'
-          '${requestBody.isNotEmpty ? 'Request Body:\n$requestBody\n\n' : ''}'
-          '${responseBody.isNotEmpty
-          ? 'Response Body:\n$responseBody\n\n'
-          : ''}'
-          'StackTrace:\n'
-          '${err.stackTrace}',
+      'ERROR => $requestPath\n'
+      'Message: ${err.message}\n'
+      'StatusCode: ${err.response?.statusCode}\n'
+      'Response: ${_prettyJson(err.response?.data)}',
     );
-
-    handler.next(err);
+    return super.onError(err, handler);
   }
 }

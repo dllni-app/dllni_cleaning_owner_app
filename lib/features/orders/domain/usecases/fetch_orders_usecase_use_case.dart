@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:injectable/injectable.dart';
 import 'package:common_package/helpers/typedef.dart';
 
@@ -5,7 +7,8 @@ import '../repository/orders_repo.dart';
 import '../../data/models/fetch_orders_usecase_model.dart';
 
 @lazySingleton
-class FetchOrdersUsecaseUseCase implements UseCase<FetchOrdersUsecaseModel, FetchOrdersUsecaseParams> {
+class FetchOrdersUsecaseUseCase
+    implements UseCase<FetchOrdersUsecaseModel, FetchOrdersUsecaseParams> {
   final OrdersRepo orders;
 
   FetchOrdersUsecaseUseCase({required this.orders});
@@ -38,12 +41,9 @@ class FetchOrdersUsecaseParams with Params {
   @override
   QueryParams getParams() => {
     "filter[forCurrentWorker]": 1,
-    "filter[status]": status,
-    "filter[scheduledDate]": scheduledDate,
-    "filter[scheduledDateFrom]": scheduledDateFrom,
-    "filter[scheduledDateTo]": scheduledDateTo,
-    "perPage": "$perPage",
-    "page": "$page",
-    "sort": sort,
-  }..removeWhere((key, value) => value == null);
+    "filter[status]": "pending",
+    "perPage": perPage,
+    "page": page,
+    "sort": "-createdAt",
+  };
 }

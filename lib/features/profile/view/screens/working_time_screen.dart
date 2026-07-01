@@ -6,26 +6,43 @@ import '../../data/models/fetch_worker_profile_usecase_model.dart';
 import '../widgets/working_time_app_bar.dart';
 import '../widgets/working_time_card.dart';
 
-class WorkingTimeScreenParams {
-  WorkingTimeScreenParams({required this.defaultWorkingHours});
-
-  final FetchWorkerProfileUsecaseModelDataDefaultWorkingHours defaultWorkingHours;
-}
-
 @AutoRoutePage()
 class WorkingTimeScreen extends StatefulWidget {
-  const WorkingTimeScreen({super.key, required this.params});
-
   final WorkingTimeScreenParams params;
+
+  const WorkingTimeScreen({super.key, required this.params});
 
   @override
   State<WorkingTimeScreen> createState() => _WorkingTimeScreenState();
 }
 
-class _WorkingTimeScreenState extends State<WorkingTimeScreen> {
-  static const List<String> arabicDayNames = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+class WorkingTimeScreenParams {
+  final FetchWorkerProfileUsecaseModelDataDefaultWorkingHours
+  defaultWorkingHours;
 
-  static const List<String> englishDayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  WorkingTimeScreenParams({required this.defaultWorkingHours});
+}
+
+class _WorkingTimeScreenState extends State<WorkingTimeScreen> {
+  static const List<String> arabicDayNames = [
+    'الأحد',
+    'الاثنين',
+    'الثلاثاء',
+    'الأربعاء',
+    'الخميس',
+    'الجمعة',
+    'السبت',
+  ];
+
+  static const List<String> englishDayNames = [
+    'Sunday',
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -83,15 +100,24 @@ class _WorkingTimeScreenState extends State<WorkingTimeScreen> {
               ),
             ),
             10.verticalSpace,
-            Padding(
-              padding: EdgeInsetsDirectional.symmetric(horizontal: 24.w),
+            GestureDetector(
+              onTap: () {},
               child: Container(
+                width: double.infinity,
+                margin: EdgeInsets.symmetric(horizontal: 24.w),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8.r),
                   color: context.primary,
                 ),
-                padding: EdgeInsetsDirectional.symmetric(horizontal: 12.w, vertical: 16.h),
-                child: AppText.labelLarge('حفظ التغييرات', color: context.onPrimary, fontWeight: FontWeight.w500),
+                padding: EdgeInsetsDirectional.symmetric(
+                  horizontal: 12.w,
+                  vertical: 16.h,
+                ),
+                child: AppText.labelLarge(
+                  'حفظ التغييرات',
+                  color: context.onPrimary,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
             10.verticalSpace,
