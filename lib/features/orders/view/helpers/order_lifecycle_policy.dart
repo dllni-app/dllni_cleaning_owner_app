@@ -6,6 +6,65 @@ import '../../data/models/fetch_orders_usecase_model.dart';
 import '../manager/bloc/orders_bloc.dart';
 import 'cleaning_worker_order_status.dart';
 
+enum OrderDetailsUiState {
+  newOrder,
+  acceptedWaitingTeam,
+  readyToStartTravel,
+  traveling,
+  awaitingCustomerCode,
+  awaitingWorkerStartConfirmation,
+  startApprovedWaitingTeam,
+  inProgress,
+  extensionPendingWorkerDecision,
+  awaitingCustomerCompletion,
+  underDispute,
+  completed,
+  cancelled,
+  unknown,
+}
+
+extension OrderDetailsUiStateX on OrderDetailsUiState {
+  bool get usesDetailsBody {
+    switch (this) {
+      case OrderDetailsUiState.newOrder:
+      case OrderDetailsUiState.acceptedWaitingTeam:
+      case OrderDetailsUiState.readyToStartTravel:
+      case OrderDetailsUiState.unknown:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  bool get usesMapBody {
+    switch (this) {
+      case OrderDetailsUiState.traveling:
+      case OrderDetailsUiState.awaitingCustomerCode:
+      case OrderDetailsUiState.awaitingWorkerStartConfirmation:
+      case OrderDetailsUiState.startApprovedWaitingTeam:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  bool get usesMissionBody => !usesDetailsBody && !usesMapBody;
+
+  bool get isActiveWork => this == OrderDetailsUiState.inProgress;
+
+  bool get isWaitingCustomer =>
+      this == OrderDetailsUiState.awaitingCustomerCompletion;
+
+  bool get isExtensionPending =>
+      this == OrderDetailsUiState.extensionPendingWorkerDecision;
+
+  bool get isDispute => this == OrderDetailsUiState.underDispute;
+
+  bool get isFinal =>
+      this == OrderDetailsUiState.completed ||
+      this == OrderDetailsUiState.cancelled;
+}
+
 /// Single source of truth for order action visibility (card + details screens).
 class OrderLifecyclePolicy {
   OrderLifecyclePolicy._();
@@ -57,6 +116,44 @@ class OrderLifecyclePolicy {
         break;
     }
     return isPending(order) && hasCurrentWorkerAccepted(order);
+  }
+
+  static OrderDetailsUiState detailsUiStateFor(
+    FetchOrdersUsecaseModelDataItem order,
+  ) {
+    final status = (order.status ?? '').trim().toLowerCase();
+    final workerStatus = order.effectiveWorkerStatus;
+
+    switch (status) {
+      case CleaningBookingStatus.cancelled:
+        return OrderDetailsUiState.cancelled;
+      case CleaningBookingStatus.completed:
+        return OrderDetailsUiState.completed;
+      case CleaningBookingStatus.underDispute:
+        return OrderDetailsUiState.underDispute;
+      case CleaningBookingStatus.awaitingCustomerCompletion:
+        return OrderDetailsUiState.awaitingCustomerCompletion;
+      case CleaningBookingStatus.timeExtensionRequested:
+        return OrderDetailsUiState.extensionPendingWorkerDecision;
+      case CleaningBookingStatus.inProgress:
+        return OrderDetailsUiState.inProgress;
+      case CleaningBookingStatus.awaitingWorkerStartConfirmation:
+        return workerStatus == CleaningWorkerOrderStatus.startApproved
+            ? OrderDetailsUiState.startApprovedWaitingTeam
+            : OrderDetailsUiState.awaitingWorkerStartConfirmation;
+      case CleaningBookingStatus.awaitingStartVerification:
+        return OrderDetailsUiState.awaitingCustomerCode;
+      case CleaningBookingStatus.workerAssigned:
+        return order.startedTravelAt == null
+            ? OrderDetailsUiState.readyToStartTravel
+            : OrderDetailsUiState.traveling;
+      case CleaningBookingStatus.pending:
+        return hasCurrentWorkerAccepted(order)
+            ? OrderDetailsUiState.acceptedWaitingTeam
+            : OrderDetailsUiState.newOrder;
+      default:
+        return OrderDetailsUiState.unknown;
+    }
   }
 
   static bool canAcceptReject(FetchOrdersUsecaseModelDataItem order) =>
@@ -206,9 +303,12 @@ class OrderLifecyclePolicy {
 
   static bool canCompleteWork(String? status) {
     final normalized = (status ?? '').toLowerCase();
-    return normalized == CleaningBookingStatus.inProgress ||
-        normalized == CleaningBookingStatus.timeExtensionRequested;
+    return normalized == CleaningBookingStatus.inProgress;
   }
+
+  static bool canRespondToExtension(String? status) =>
+      (status ?? '').toLowerCase() ==
+      CleaningBookingStatus.timeExtensionRequested;
 
   static bool isAwaitingCustomerCompletion(String? status) =>
       (status ?? '').toLowerCase() ==

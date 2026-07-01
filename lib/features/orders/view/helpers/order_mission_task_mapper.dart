@@ -22,23 +22,13 @@ class OrderMissionTaskMapper {
     for (final service in services) {
       final name = service.name?.trim();
       if (name == null || name.isEmpty) continue;
-      items.add(
-        MissionTaskItem(
-          label: name,
-          detail: service.quantity == null ? null : 'x ${service.quantity}',
-        ),
-      );
+      items.add(MissionTaskItem(label: name));
     }
 
     for (final addon in addons) {
       final name = addon.name?.trim();
       if (name == null || name.isEmpty) continue;
-      items.add(
-        MissionTaskItem(
-          label: name,
-          detail: addon.quantity == null ? null : 'x ${addon.quantity}',
-        ),
-      );
+      items.add(MissionTaskItem(label: name));
     }
 
     if (items.isNotEmpty) return items;
@@ -46,28 +36,10 @@ class OrderMissionTaskMapper {
     if (EventAssistanceOrderHelper.isEventAssistance(order.propertyType)) {
       final task = order.propertyDetails?.customService?.trim();
       if (task == null || task.isEmpty) return const <MissionTaskItem>[];
-
-      final hours = EventAssistanceOrderHelper.resolveBookedHours(
-        propertyHours: order.propertyDetails?.hours,
-        totalHours: order.totalHours,
-        estimatedHours: order.estimatedHours,
-      );
-
-      return <MissionTaskItem>[
-        MissionTaskItem(
-          label: task,
-          detail: hours == null
-              ? null
-              : EventAssistanceOrderHelper.formatHoursDetail(hours),
-        ),
-      ];
+      return <MissionTaskItem>[MissionTaskItem(label: task)];
     }
 
-    return const <MissionTaskItem>[
-      MissionTaskItem(label: 'تنظيف غرفة النوم', detail: 'x 2'),
-      MissionTaskItem(label: 'تنظيف الحمامات', detail: 'x 2'),
-      MissionTaskItem(label: 'تنظيف المطبخ'),
-    ];
+    return const <MissionTaskItem>[];
   }
 
   static String keyFor(MissionTaskItem task, int index) => '${task.label}-$index';
