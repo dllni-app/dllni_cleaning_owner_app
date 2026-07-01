@@ -37,6 +37,7 @@ import '../../../data/models/start_work_model.dart';
 import '../../helpers/order_details_to_list_item_mapper.dart';
 import '../../helpers/order_lifecycle_policy.dart';
 import '../../helpers/orders_lifecycle_failure_message_mapper.dart';
+import '../../helpers/orders_pending_order_list_hydrator.dart';
 import '../../helpers/orders_realtime_hydration_policy.dart';
 import '../../helpers/orders_worker_eligibility_cache.dart';
 import '../../widgets/order_details/location_reporting_policy.dart';
@@ -869,7 +870,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
           final listItem = OrderDetailsToListItemMapper.fromDetails(details);
           emit(
             state.copyWith(
-              ordersUsecase: _upsertPendingOrderListItem(
+              ordersUsecase: OrdersPendingOrderListHydrator.upsert(
                 state.ordersUsecase!,
                 listItem,
               ),
@@ -886,24 +887,6 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
           ),
         );
       },
-    );
-  }
-
-  PaginationStateModel<FetchOrdersUsecaseModelDataItem>
-  _upsertPendingOrderListItem(
-    PaginationStateModel<FetchOrdersUsecaseModelDataItem> pagination,
-    FetchOrdersUsecaseModelDataItem item,
-  ) {
-    final updated = List<FetchOrdersUsecaseModelDataItem>.of(pagination.list);
-    final index = updated.indexWhere((order) => order.id == item.id);
-    if (index >= 0) {
-      updated[index] = item;
-    } else {
-      updated.insert(0, item);
-    }
-    return pagination.copyWith(
-      list: updated,
-      status: BlocStatus.success,
     );
   }
 
