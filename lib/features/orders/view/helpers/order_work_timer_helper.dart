@@ -25,19 +25,22 @@ class OrderWorkTimerHelper {
     required double? totalHours,
     required double? estimatedHours,
     required List<dynamic>? timeWarnings,
+    bool allowAcceptedOvertime = true,
   }) {
-    final acceptedOvertime = _latestAcceptedOvertime(timeWarnings);
-    if (acceptedOvertime != null) {
-      return OrderWorkTimerSession(
-        startedAt: acceptedOvertime.acceptedAt,
-        duration: Duration(minutes: acceptedOvertime.minutes),
-        sessionKey:
-            'extension:${acceptedOvertime.id ?? 'unknown'}:${acceptedOvertime.acceptedAt.toIso8601String()}:${acceptedOvertime.minutes}',
-        isOvertime: true,
-      );
+    if (allowAcceptedOvertime) {
+      final acceptedOvertime = _latestAcceptedOvertime(timeWarnings);
+      if (acceptedOvertime != null) {
+        return OrderWorkTimerSession(
+          startedAt: acceptedOvertime.acceptedAt,
+          duration: Duration(minutes: acceptedOvertime.minutes),
+          sessionKey:
+              'extension:${acceptedOvertime.id ?? 'unknown'}:${acceptedOvertime.acceptedAt.toIso8601String()}:${acceptedOvertime.minutes}',
+          isOvertime: true,
+        );
+      }
     }
 
-    final actualStart = parseDateTime(workStartedAt) ?? parseDateTime(arrivedAt);
+    final actualStart = parseDateTime(workStartedAt);
     if (actualStart == null) return null;
 
     final scheduledStart = parseScheduledDateTime(scheduledDate, scheduledTime);
