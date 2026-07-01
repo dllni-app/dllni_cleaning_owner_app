@@ -383,7 +383,11 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _sectionTitle(context, Icons.person_outline_rounded, 'بيانات الطلب'),
+                      _sectionTitle(
+                        context,
+                        Icons.person_outline_rounded,
+                        'بيانات الطلب',
+                      ),
                       const SizedBox(height: 10),
                       _detailCard(context, [
                         _orderInfoRow(
@@ -403,7 +407,11 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                         ),
                       ]),
                       const SizedBox(height: 16),
-                      _sectionTitle(context, Icons.cleaning_services_outlined, 'الخدمات المطلوبة'),
+                      _sectionTitle(
+                        context,
+                        Icons.cleaning_services_outlined,
+                        'الخدمات المطلوبة',
+                      ),
                       const SizedBox(height: 10),
                       _detailCard(context, _serviceWidgets()),
                       const SizedBox(height: 16),
@@ -428,7 +436,11 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                       const SizedBox(height: 10),
                       _detailCard(context, _propertyDetailsRows()),
                       const SizedBox(height: 16),
-                      _sectionTitle(context, Icons.payments_outlined, 'تفاصيل الدفع'),
+                      _sectionTitle(
+                        context,
+                        Icons.payments_outlined,
+                        'تفاصيل الدفع',
+                      ),
                       const SizedBox(height: 10),
                       _detailCard(context, [
                         WorkerPaymentSummary(
@@ -441,7 +453,11 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                         ),
                       ]),
                       const SizedBox(height: 16),
-                      _sectionTitle(context, Icons.location_on_outlined, 'عنوان العقار'),
+                      _sectionTitle(
+                        context,
+                        Icons.location_on_outlined,
+                        'عنوان العقار',
+                      ),
                       const SizedBox(height: 10),
                       _detailCard(context, [
                         if (_order.displayNeighborhoodName != null)
