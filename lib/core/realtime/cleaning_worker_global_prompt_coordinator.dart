@@ -131,7 +131,7 @@ class CleaningWorkerGlobalPromptCoordinator {
 
   void _runForegroundFallbackPoll() {
     unawaited(pollPendingExtensionPrompts());
-    unawaited(pollPendingOrderPrompts());
+    // unawaited(pollPendingOrderPrompts());
   }
 
   void _scheduleStartupPostFramePoll() {
@@ -253,17 +253,17 @@ class CleaningWorkerGlobalPromptCoordinator {
     }
   }
 
-  Future<void> pollPendingOrderPrompts() async {
-    if (!_started || (!_authBypassForTest && !_hasToken())) return;
-    if (_pendingOrderPollInFlight || _promptSheetOpen) return;
+  // Future<void> pollPendingOrderPrompts() async {
+  //   if (!_started || (!_authBypassForTest && !_hasToken())) return;
+  //   if (_pendingOrderPollInFlight || _promptSheetOpen) return;
 
-    _pendingOrderPollInFlight = true;
-    try {
-      await _promptFirstPendingOrder();
-    } finally {
-      _pendingOrderPollInFlight = false;
-    }
-  }
+  //   _pendingOrderPollInFlight = true;
+  //   try {
+  //     await _promptFirstPendingOrder();
+  //   } finally {
+  //     _pendingOrderPollInFlight = false;
+  //   }
+  // }
 
   @visibleForTesting
   static List<int> findTimeExtensionRequestedBookingIds(List<FetchOrdersUsecaseModelDataItem> orders) {
@@ -283,14 +283,14 @@ class CleaningWorkerGlobalPromptCoordinator {
         .toList(growable: false);
   }
 
-  Future<bool> _promptFirstPendingOrder() async {
-    final pendingOrders = await _loadPendingOrders();
-    for (final order in pendingOrders) {
-      final shown = await _openPendingOrderPromptForOrder(order: order);
-      if (shown) return true;
-    }
-    return false;
-  }
+  // Future<bool> _promptFirstPendingOrder() async {
+  //   final pendingOrders = await _loadPendingOrders();
+  //   for (final order in pendingOrders) {
+  //     final shown = await _openPendingOrderPromptForOrder(order: order);
+  //     if (shown) return true;
+  //   }
+  //   return false;
+  // }
 
   Future<bool> _promptFirstPendingExtensionRequest() async {
     final pending = await _loadPendingExtensionRequests();
@@ -308,25 +308,25 @@ class CleaningWorkerGlobalPromptCoordinator {
     return false;
   }
 
-  Future<bool> _openPendingOrderPromptForOrder({required FetchOrdersUsecaseModelDataItem order}) async {
-    final bookingId = order.id;
-    if (bookingId == null) return false;
-    if (!OrderLifecyclePolicy.isAvailableNewOrderForCurrentWorker(order)) return false;
-    if (_handledPendingPromptBookingIds.contains(bookingId) || _inFlightPendingPromptBookingIds.contains(bookingId)) {
-      return false;
-    }
+  // Future<bool> _openPendingOrderPromptForOrder({required FetchOrdersUsecaseModelDataItem order}) async {
+  //   final bookingId = order.id;
+  //   if (bookingId == null) return false;
+  //   if (!OrderLifecyclePolicy.isAvailableNewOrderForCurrentWorker(order)) return false;
+  //   if (_handledPendingPromptBookingIds.contains(bookingId) || _inFlightPendingPromptBookingIds.contains(bookingId)) {
+  //     return false;
+  //   }
 
-    _inFlightPendingPromptBookingIds.add(bookingId);
-    try {
-      final freshOrder = await _freshPromptablePendingOrder(order);
-      if (freshOrder == null) return false;
-      final shown = await _showPendingOrderSheet(order: freshOrder);
-      if (shown) _handledPendingPromptBookingIds.add(bookingId);
-      return shown;
-    } finally {
-      _inFlightPendingPromptBookingIds.remove(bookingId);
-    }
-  }
+  //   _inFlightPendingPromptBookingIds.add(bookingId);
+  //   try {
+  //     final freshOrder = await _freshPromptablePendingOrder(order);
+  //     if (freshOrder == null) return false;
+  //     final shown = await _showPendingOrderSheet(order: freshOrder);
+  //     if (shown) _handledPendingPromptBookingIds.add(bookingId);
+  //     return shown;
+  //   } finally {
+  //     _inFlightPendingPromptBookingIds.remove(bookingId);
+  //   }
+  // }
 
   Future<FetchOrdersUsecaseModelDataItem?> _freshPromptablePendingOrder(
     FetchOrdersUsecaseModelDataItem order,
@@ -352,36 +352,36 @@ class CleaningWorkerGlobalPromptCoordinator {
         : null;
   }
 
-  Future<bool> _showPendingOrderSheet({required FetchOrdersUsecaseModelDataItem order}) async {
-    if (!OrderLifecyclePolicy.isAvailableNewOrderForCurrentWorker(order)) return false;
+  // Future<bool> _showPendingOrderSheet({required FetchOrdersUsecaseModelDataItem order}) async {
+  //   if (!OrderLifecyclePolicy.isAvailableNewOrderForCurrentWorker(order)) return false;
 
-    final presenter = _pendingOrderPromptPresenter;
-    if (presenter != null) return presenter(WorkerPendingOrderPromptData(order: order));
-    if (_promptSheetOpen) return false;
+  //   final presenter = _pendingOrderPromptPresenter;
+  //   if (presenter != null) return presenter(WorkerPendingOrderPromptData(order: order));
+  //   if (_promptSheetOpen) return false;
 
-    final bloc = _ensurePromptBloc();
-    _promptSheetOpen = true;
-    try {
-      for (var attempt = 0; attempt < 8; attempt++) {
-        final context = _navigatorKey.currentContext;
-        if (context != null && context.mounted) {
-          await AcceptOrderBottomSheet.show(
-            context,
-            useRootNavigator: true,
-            autoRejectOnClose: false,
-            order: order,
-            bloc: bloc,
-            index: -1,
-          );
-          return true;
-        }
-        await Future<void>.delayed(const Duration(milliseconds: 120));
-      }
-      return false;
-    } finally {
-      _promptSheetOpen = false;
-    }
-  }
+  //   final bloc = _ensurePromptBloc();
+  //   _promptSheetOpen = true;
+  //   try {
+  //     for (var attempt = 0; attempt < 8; attempt++) {
+  //       final context = _navigatorKey.currentContext;
+  //       if (context != null && context.mounted) {
+  //         await AcceptOrderBottomSheet.show(
+  //           context,
+  //           useRootNavigator: true,
+  //           autoRejectOnClose: false,
+  //           order: order,
+  //           bloc: bloc,
+  //           index: -1,
+  //         );
+  //         return true;
+  //       }
+  //       await Future<void>.delayed(const Duration(milliseconds: 120));
+  //     }
+  //     return false;
+  //   } finally {
+  //     _promptSheetOpen = false;
+  //   }
+  // }
 
   Future<void> _promptExtensionsFromTimeExtensionOrders() async {
     final fetchOrders = _fetchOrdersUsecaseUseCase;
