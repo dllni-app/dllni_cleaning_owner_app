@@ -259,7 +259,6 @@ class _IntlPhoneFieldState extends State<MyCustomIntlField> {
     );
   }
 
-  // دالة لفحص هل العلم مسار صورة أم emoji
   bool _isAssetPath(String flag) {
     return flag.contains('assets/') ||
         flag.endsWith('.png') ||
