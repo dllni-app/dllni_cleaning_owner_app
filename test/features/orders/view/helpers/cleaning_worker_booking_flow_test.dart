@@ -1,3 +1,4 @@
+import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_worker_global_prompt_coordinator.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_team_models.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
@@ -81,10 +82,73 @@ void main() {
       );
 
       expect(OrderLifecyclePolicy.isAcceptedWaiting(order), isTrue);
+      expect(OrderLifecyclePolicy.canAcceptReject(order), isFalse);
       expect(
         OrderLifecyclePolicy.teamStateDescription(order),
         contains('1 من 2'),
       );
+    });
+
+    test('does not allow accepting an already accepted pending order from worker_order_status', () {
+      final order = FetchOrdersUsecaseModelDataItem(
+        id: 2,
+        status: CleaningBookingStatus.pending,
+        workerOrderStatus: 'accepted_waiting_for_order_start',
+        requiredWorkersCount: 2,
+        acceptedWorkersCount: 1,
+        pendingWorkersCount: 1,
+      );
+
+      expect(order.effectiveWorkerStatus, CleaningWorkerOrderStatus.acceptedWaitingTeam);
+      expect(OrderLifecyclePolicy.hasCurrentWorkerAccepted(order), isTrue);
+      expect(OrderLifecyclePolicy.isAvailableNewOrderForCurrentWorker(order), isFalse);
+      expect(OrderLifecyclePolicy.canAcceptReject(order), isFalse);
+    });
+
+    test('does not allow accepting when my assignment is start approved', () {
+      final order = FetchOrdersUsecaseModelDataItem(
+        id: 3,
+        status: CleaningBookingStatus.pending,
+        myAssignment: CleaningMyAssignmentModel(status: 'start_approved'),
+      );
+
+      expect(OrderLifecyclePolicy.hasCurrentWorkerAccepted(order), isTrue);
+      expect(OrderLifecyclePolicy.canAcceptReject(order), isFalse);
+    });
+
+    test('allows accepting only pending orders with pending worker status', () {
+      final order = FetchOrdersUsecaseModelDataItem(
+        id: 4,
+        status: CleaningBookingStatus.pending,
+        workerOrderStatus: CleaningBookingStatus.pending,
+      );
+
+      expect(OrderLifecyclePolicy.isAvailableNewOrderForCurrentWorker(order), isTrue);
+      expect(OrderLifecyclePolicy.canAcceptReject(order), isTrue);
+    });
+  });
+
+  group('CleaningWorkerGlobalPromptCoordinator pending prompt filtering', () {
+    test('filters already accepted pending orders from promptable pending IDs', () {
+      final ids = CleaningWorkerGlobalPromptCoordinator.findPendingBookingIds([
+        FetchOrdersUsecaseModelDataItem(
+          id: 10,
+          status: CleaningBookingStatus.pending,
+          workerOrderStatus: CleaningBookingStatus.pending,
+        ),
+        FetchOrdersUsecaseModelDataItem(
+          id: 11,
+          status: CleaningBookingStatus.pending,
+          workerOrderStatus: 'accepted_waiting_for_order_start',
+        ),
+        FetchOrdersUsecaseModelDataItem(
+          id: 12,
+          status: CleaningBookingStatus.pending,
+          myAssignment: CleaningMyAssignmentModel(status: 'start_approved'),
+        ),
+      ]);
+
+      expect(ids, <int>[10]);
     });
   });
 }
