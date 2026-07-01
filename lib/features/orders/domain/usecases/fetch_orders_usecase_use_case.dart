@@ -39,11 +39,18 @@ class FetchOrdersUsecaseParams with Params {
   });
 
   @override
-  QueryParams getParams() => {
-    "filter[forCurrentWorker]": 1,
-    "filter[status]": "pending",
-    "perPage": perPage,
-    "page": page,
-    "sort": "-createdAt",
-  };
+  QueryParams getParams() {
+    final params = {
+      "filter[forCurrentWorker]": 1,
+      "filter[status]": status,
+      "filter[scheduledDate]": scheduledDate,
+      "filter[scheduledDateFrom]": scheduledDateFrom,
+      "filter[scheduledDateTo]": scheduledDateTo,
+      "perPage": "$perPage",
+      "page": "$page",
+      "sort": sort,
+    }..removeWhere((key, value) => value == null);
+    log(params.toString());
+    return params;
+  }
 }
