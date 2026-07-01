@@ -12,6 +12,8 @@ class OrderLifecyclePolicy {
 
   static const String startTravelUnavailableMessage =
       'لا يمكنك اجراء هذه العملية حاليا';
+  static const String orderNoLongerAvailableMessage =
+      'تم قبول هذا الطلب مسبقاً أو لم يعد متاحاً.';
 
   static bool isPending(FetchOrdersUsecaseModelDataItem order) =>
       order.status == CleaningBookingStatus.pending;
@@ -24,13 +26,30 @@ class OrderLifecyclePolicy {
 
   static bool hasCurrentWorkerAccepted(FetchOrdersUsecaseModelDataItem order) {
     final assignment = order.myAssignment;
-    if (assignment == null) return false;
-    final status = assignment.status?.trim().toLowerCase();
-    return status == 'accepted' || (assignment.acceptedAt?.isNotEmpty ?? false);
+    return isWorkerAcceptedAssignmentStatusValue(order.workerOrderStatus) ||
+        isWorkerAcceptedAssignmentStatusValue(assignment?.status) ||
+        (assignment?.acceptedAt?.isNotEmpty ?? false);
+  }
+
+  static bool hasCurrentWorkerRejectedOrClosed(
+    FetchOrdersUsecaseModelDataItem order,
+  ) {
+    final assignment = order.myAssignment;
+    return isWorkerRejectedOrClosedAssignmentStatusValue(order.workerOrderStatus) ||
+        isWorkerRejectedOrClosedAssignmentStatusValue(assignment?.status);
+  }
+
+  static bool isAvailableNewOrderForCurrentWorker(
+    FetchOrdersUsecaseModelDataItem order,
+  ) {
+    return isPending(order) &&
+        !hasCurrentWorkerAccepted(order) &&
+        !hasCurrentWorkerRejectedOrClosed(order);
   }
 
   static bool isAcceptedWaiting(FetchOrdersUsecaseModelDataItem order) {
     switch (order.effectiveWorkerStatus) {
+      case CleaningWorkerOrderStatus.accepted:
       case CleaningWorkerOrderStatus.acceptedWaitingTeam:
       case CleaningWorkerOrderStatus.acceptedWaitingForOrderStart:
         return true;
@@ -41,7 +60,7 @@ class OrderLifecyclePolicy {
   }
 
   static bool canAcceptReject(FetchOrdersUsecaseModelDataItem order) =>
-      isPending(order) && !hasCurrentWorkerAccepted(order);
+      isAvailableNewOrderForCurrentWorker(order);
 
   static bool canStartTravel(FetchOrdersUsecaseModelDataItem order) =>
       order.status == CleaningBookingStatus.workerAssigned &&
@@ -51,8 +70,7 @@ class OrderLifecyclePolicy {
     FetchOrdersUsecaseModelDataItem order, {
     DateTime? now,
     bool? enforceWindow,
-  })
-  {
+  }) {
     if (!(enforceWindow ?? AppConfig.enforceStartTravelWindow)) return true;
 
     final scheduledAt = _scheduledDateTime(order);
@@ -86,12 +104,19 @@ class OrderLifecyclePolicy {
 
   static String teamStateTitle(FetchOrdersUsecaseModelDataItem order) {
     switch (order.effectiveWorkerStatus) {
+      case CleaningWorkerOrderStatus.accepted:
       case CleaningWorkerOrderStatus.acceptedWaitingTeam:
         return 'تم قبول الطلب';
       case CleaningWorkerOrderStatus.acceptedWaitingForOrderStart:
         return 'بانتظار بدء الطلب';
       case CleaningWorkerOrderStatus.awaitingWorkerStartConfirmation:
         return 'بانتظار بدء العمل';
+      case CleaningWorkerOrderStatus.startApproved:
+        return 'بانتظار باقي العمال';
+      case CleaningWorkerOrderStatus.rejected:
+        return 'تم رفض الطلب';
+      case CleaningWorkerOrderStatus.withdrawn:
+        return 'تم الانسحاب من الطلب';
       default:
         return order.effectiveWorkerStatusLabel;
     }
@@ -106,33 +131,24 @@ class OrderLifecyclePolicy {
         order.numberOfWorkers ??
         1;
     final pending =
-        order.pendingWorkersCount ??
-        (required - accepted).clamp(0, required);
+        order.pendingWorkersCount ?? (required - accepted).clamp(0, required);
 
     switch (order.effectiveWorkerStatus) {
+      case CleaningWorkerOrderStatus.accepted:
       case CleaningWorkerOrderStatus.acceptedWaitingTeam:
         return 'تم قبولك ضمن الفريق. بانتظار اكتمال عدد العمال ($accepted من $required).';
       case CleaningWorkerOrderStatus.acceptedWaitingForOrderStart:
-        if(order.numberOfWorkers==null||order.numberOfWorkers==1){
-
+        if (order.numberOfWorkers == null || order.numberOfWorkers == 1) {
           return null;
-
-        }else{
-          if(accepted==required){
-            return 'اكتمل الفريق. سيتم بدء خطوات الوصول والتحقق عند موعد الطلب.';
-
-
-          }else{
-
-            return 'تم قبولك ضمن الفريق. بانتظار اكتمال عدد العمال ($accepted من $required).';
-
-
-          }
-
-
         }
+        if (accepted == required) {
+          return 'اكتمل الفريق. سيتم بدء خطوات الوصول والتحقق عند موعد الطلب.';
+        }
+        return 'تم قبولك ضمن الفريق. بانتظار اكتمال عدد العمال ($accepted من $required).';
       case CleaningWorkerOrderStatus.awaitingWorkerStartConfirmation:
         return 'أكد العميل رمز الوصول. اضغط بدء العمل للمتابعة.';
+      case CleaningWorkerOrderStatus.startApproved:
+        return 'تم تأكيد بدء العمل من طرفك. بانتظار باقي العمال لبدء الطلب.';
       default:
         return pending > 0 ? 'بانتظار $pending عامل لإكمال الفريق.' : '';
     }
@@ -144,7 +160,6 @@ class OrderLifecyclePolicy {
 
   static String? acceptedWaitingMessage(FetchOrdersUsecaseModelDataItem order) {
     final description = teamStateDescription(order);
-    // إذا كانت null، أرجع null (ليتم إخفاء الودجت في الواجهة)
     if (description == null) return null;
     if (description.isEmpty) return acceptedWaitingMessageLegacy(order);
     return description;
@@ -152,8 +167,7 @@ class OrderLifecyclePolicy {
 
   static String acceptedWaitingMessageLegacy(
     FetchOrdersUsecaseModelDataItem order,
-  )
-  {
+  ) {
     final acceptance = order.workerAcceptance;
     final accepted = acceptance?.accepted;
     final required = acceptance?.required ?? order.numberOfWorkers;
@@ -173,17 +187,14 @@ class OrderLifecyclePolicy {
 
   static bool isAwaitingStartVerification(
     FetchOrdersUsecaseModelDataItem order,
-  )
-  =>
-
+  ) =>
       order.effectiveWorkerStatus ==
           CleaningWorkerOrderStatus.awaitingStartVerification ||
       order.status == CleaningBookingStatus.awaitingStartVerification;
 
   static bool isAwaitingWorkerStartConfirmation(
     FetchOrdersUsecaseModelDataItem order,
-  )
-  =>
+  ) =>
       order.effectiveWorkerStatus ==
           CleaningWorkerOrderStatus.awaitingWorkerStartConfirmation ||
       order.status == CleaningBookingStatus.awaitingWorkerStartConfirmation;
@@ -240,8 +251,7 @@ class OrderLifecyclePolicy {
     required String? currentStatus,
     required String? incomingStatus,
     String? decision,
-  })
-  {
+  }) {
     final normalizedDecision = (decision ?? '').trim().toLowerCase();
     final normalizedIncoming = (incomingStatus ?? '').trim().toLowerCase();
     final normalizedCurrent = (currentStatus ?? '').trim().toLowerCase();
@@ -294,8 +304,8 @@ class OrderLifecyclePolicy {
     required OrdersState state,
     required int orderIndex,
     required BlocStatus? actionStatus,
-  })
-  => actionStatus == BlocStatus.loading && state.selectedIndex == orderIndex;
+  }) =>
+      actionStatus == BlocStatus.loading && state.selectedIndex == orderIndex;
 
   static String statusLabel(FetchOrdersUsecaseModelDataItem order) {
     if (isAcceptedWaiting(order)) return acceptedWaitingLabel(order);
@@ -303,12 +313,20 @@ class OrderLifecyclePolicy {
     switch (order.effectiveWorkerStatus) {
       case CleaningWorkerOrderStatus.pending:
         return 'طلب جديد';
+      case CleaningWorkerOrderStatus.accepted:
+        return 'تم قبول الطلب';
       case CleaningWorkerOrderStatus.workerAssigned:
         return order.startedTravelAt == null ? 'طلب مؤكد' : 'في الطريق';
       case CleaningWorkerOrderStatus.awaitingStartVerification:
         return 'بانتظار التحقق';
       case CleaningWorkerOrderStatus.awaitingWorkerStartConfirmation:
         return 'تم تحقق العميل - ابدأ العمل';
+      case CleaningWorkerOrderStatus.startApproved:
+        return 'بانتظار باقي العمال';
+      case CleaningWorkerOrderStatus.rejected:
+        return 'تم رفض الطلب';
+      case CleaningWorkerOrderStatus.withdrawn:
+        return 'تم الانسحاب';
       case CleaningWorkerOrderStatus.inProgress:
         return 'قيد التنفيذ';
       case CleaningWorkerOrderStatus.awaitingCustomerCompletion:
