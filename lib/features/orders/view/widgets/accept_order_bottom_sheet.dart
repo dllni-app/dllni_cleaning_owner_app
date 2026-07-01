@@ -6,6 +6,7 @@ import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/reject
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/cleaning_enum_translations.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/event_assistance_order_helper.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_address_visibility_helper.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_lifecycle_policy.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/property_attribute_labels_helper.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
 import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_arabic_time_formatter.dart';
@@ -43,6 +44,13 @@ class AcceptOrderBottomSheet extends StatefulWidget {
     bool autoRejectOnClose = false,
     bool useRootNavigator = false,
   }) async {
+    if (!OrderLifecyclePolicy.canAcceptReject(order)) {
+      AppToast.showErrorGlobal(
+        OrderLifecyclePolicy.orderNoLongerAvailableMessage,
+      );
+      return;
+    }
+
     final closeAction = await showModalBottomSheet<_AcceptOrderSheetCloseAction>(
       context: context,
       useRootNavigator: useRootNavigator,
@@ -514,6 +522,15 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                             ? null
                             : () {
                                 if (_order.id == null) return;
+                                if (!OrderLifecyclePolicy.canAcceptReject(_order)) {
+                                  AppToast.showErrorGlobal(
+                                    OrderLifecyclePolicy.orderNoLongerAvailableMessage,
+                                  );
+                                  Navigator.of(context).pop(
+                                    _AcceptOrderSheetCloseAction.dismissed,
+                                  );
+                                  return;
+                                }
                                 widget.bloc.add(
                                   AcceptOrderUsecaseEvent(
                                     params: AcceptOrderUsecaseParams(

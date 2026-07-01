@@ -123,7 +123,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
 
   EventTransformer<T> droppableProMax<T extends EventWithReload>() {
     return (events, mapper) {
-      return events.transform(ExhaustMapStreamTransformer(mapper));
+      return events.transform(ExhaustMapStreamTransformer(maper: mapper));
     };
   }
 
@@ -285,27 +285,54 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
       ),
     );
     final res = await acceptOrderUsecaseUseCase(event.params);
-    res.fold(
-      (l) {
-        AppToast.showErrorGlobal(l.message);
+    await res.fold(
+      (l) async {
+        final message = _mapAcceptFailureMessage(l);
+        AppToast.showErrorGlobal(message);
+        _refreshOrderDetails(event.params.id);
+        _refreshPendingOrders();
+        if (emit.isDone) return;
         emit(
           state.copyWith(
             acceptOrderUsecaseStatus: BlocStatus.failed,
-            errorMessage: l.message,
+            errorMessage: message,
           ),
         );
       },
-      (r) {
+      (r) async {
         AppToast.showSuccessGlobal('تم قبول الطلب');
-        _refreshPendingOrders();
+        final updatedOrder = await _fetchOrderListItemById(event.params.id);
+        if (emit.isDone) return;
+
+        final updatedStatus =
+            (updatedOrder?.status ?? r.data?.status)?.trim().toLowerCase();
+        final shouldKeepInPending =
+            updatedOrder != null && updatedStatus == CleaningBookingStatus.pending;
+
+        final nextOrders = shouldKeepInPending
+            ? OrdersPendingOrderListHydrator.upsert(
+                state.ordersUsecase!,
+                updatedOrder,
+              )
+            : state.ordersUsecase!.removeWhere(
+                (order) => order.id == event.params.id,
+              );
+
+        if (shouldKeepInPending) {
+          _refreshOrderDetails(event.params.id);
+        } else if (updatedStatus == CleaningBookingStatus.workerAssigned) {
+          _refreshWorkerAssignedOrders();
+          _refreshOrderDetails(event.params.id);
+        } else {
+          _refreshPendingOrders();
+        }
+
         emit(
           state.copyWith(
             acceptOrderUsecaseStatus: BlocStatus.success,
             acceptOrderUsecase: r,
             currentStep: 1,
-            ordersUsecase: state.ordersUsecase!.removeWhere(
-              (order) => order.id == event.params.id,
-            ),
+            ordersUsecase: nextOrders,
           ),
         );
       },
@@ -887,6 +914,37 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
           ),
         );
       },
+    );
+  }
+
+  Future<FetchOrdersUsecaseModelDataItem?> _fetchOrderListItemById(
+    int bookingId,
+  ) async {
+    FetchOrdersUsecaseModelDataItem? listItem;
+    final response = await fetchOrderDetailsUsecaseUseCase(
+      FetchOrderDetailsUsecaseParams(id: bookingId),
+    );
+    response.fold((_) => null, (result) {
+      final details = result.data;
+      if (details == null) return;
+      listItem = OrderDetailsToListItemMapper.fromDetails(details);
+    });
+    return listItem;
+  }
+
+  String _mapAcceptFailureMessage(Failure failure) {
+    final raw = failure.message.toLowerCase();
+    if (raw.contains('already accepted') ||
+        raw.contains('accepted by a worker') ||
+        raw.contains('already been accepted') ||
+        raw.contains('no longer available') ||
+        raw.contains('not available')) {
+      return OrderLifecyclePolicy.orderNoLongerAvailableMessage;
+    }
+
+    return _mapLifecycleFailureMessage(
+      failure,
+      invalidStateMessage: OrderLifecyclePolicy.orderNoLongerAvailableMessage,
     );
   }
 

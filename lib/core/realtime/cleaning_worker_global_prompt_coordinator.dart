@@ -9,6 +9,8 @@ import '../../features/orders/data/models/fetch_orders_usecase_model.dart';
 import '../../features/orders/domain/usecases/fetch_extension_requests_usecas_use_case.dart';
 import '../../features/orders/domain/usecases/fetch_order_details_usecase_use_case.dart';
 import '../../features/orders/domain/usecases/fetch_orders_usecase_use_case.dart';
+import '../../features/orders/view/helpers/order_details_to_list_item_mapper.dart';
+import '../../features/orders/view/helpers/order_lifecycle_policy.dart';
 import '../../features/orders/view/manager/bloc/orders_bloc.dart';
 import '../../features/orders/view/widgets/accept_order_bottom_sheet.dart';
 import '../../features/orders/view/widgets/extension_request_action_sheet.dart';
@@ -275,7 +277,7 @@ class CleaningWorkerGlobalPromptCoordinator {
   @visibleForTesting
   static List<int> findPendingBookingIds(List<FetchOrdersUsecaseModelDataItem> orders) {
     return orders
-        .where((order) => (order.status ?? '').trim().toLowerCase() == CleaningBookingStatus.pending)
+        .where(OrderLifecyclePolicy.isAvailableNewOrderForCurrentWorker)
         .map((order) => order.id)
         .whereType<int>()
         .toList(growable: false);
@@ -309,13 +311,16 @@ class CleaningWorkerGlobalPromptCoordinator {
   Future<bool> _openPendingOrderPromptForOrder({required FetchOrdersUsecaseModelDataItem order}) async {
     final bookingId = order.id;
     if (bookingId == null) return false;
+    if (!OrderLifecyclePolicy.isAvailableNewOrderForCurrentWorker(order)) return false;
     if (_handledPendingPromptBookingIds.contains(bookingId) || _inFlightPendingPromptBookingIds.contains(bookingId)) {
       return false;
     }
 
     _inFlightPendingPromptBookingIds.add(bookingId);
     try {
-      final shown = await _showPendingOrderSheet(order: order);
+      final freshOrder = await _freshPromptablePendingOrder(order);
+      if (freshOrder == null) return false;
+      final shown = await _showPendingOrderSheet(order: freshOrder);
       if (shown) _handledPendingPromptBookingIds.add(bookingId);
       return shown;
     } finally {
@@ -323,7 +328,33 @@ class CleaningWorkerGlobalPromptCoordinator {
     }
   }
 
+  Future<FetchOrdersUsecaseModelDataItem?> _freshPromptablePendingOrder(
+    FetchOrdersUsecaseModelDataItem order,
+  ) async {
+    if (!OrderLifecyclePolicy.isAvailableNewOrderForCurrentWorker(order)) {
+      return null;
+    }
+
+    final bookingId = order.id;
+    final fetchDetails = _fetchOrderDetailsUseCase;
+    if (bookingId == null || fetchDetails == null) return order;
+
+    FetchOrdersUsecaseModelDataItem resolved = order;
+    final response = await fetchDetails(FetchOrderDetailsUsecaseParams(id: bookingId));
+    response.fold((_) => null, (result) {
+      final details = result.data;
+      if (details == null) return;
+      resolved = OrderDetailsToListItemMapper.fromDetails(details);
+    });
+
+    return OrderLifecyclePolicy.isAvailableNewOrderForCurrentWorker(resolved)
+        ? resolved
+        : null;
+  }
+
   Future<bool> _showPendingOrderSheet({required FetchOrdersUsecaseModelDataItem order}) async {
+    if (!OrderLifecyclePolicy.isAvailableNewOrderForCurrentWorker(order)) return false;
+
     final presenter = _pendingOrderPromptPresenter;
     if (presenter != null) return presenter(WorkerPendingOrderPromptData(order: order));
     if (_promptSheetOpen) return false;
@@ -640,7 +671,13 @@ class CleaningWorkerGlobalPromptCoordinator {
 
   Future<List<FetchOrdersUsecaseModelDataItem>> _loadPendingOrders() async {
     final loader = _pendingOrdersLoader;
-    if (loader != null) return loader();
+    if (loader != null) {
+      return loader().then(
+        (orders) => orders
+            .where(OrderLifecyclePolicy.isAvailableNewOrderForCurrentWorker)
+            .toList(growable: false),
+      );
+    }
     final fetchUseCase = _fetchOrdersUsecaseUseCase;
     if (fetchUseCase == null) return const <FetchOrdersUsecaseModelDataItem>[];
 
@@ -649,7 +686,7 @@ class CleaningWorkerGlobalPromptCoordinator {
       final response = await fetchUseCase(FetchOrdersUsecaseParams(page: page, perPage: _pollPageSize, status: CleaningBookingStatus.pending));
       final orders = response.fold((_) => const <FetchOrdersUsecaseModelDataItem>[], (result) => result.data ?? const <FetchOrdersUsecaseModelDataItem>[]);
       if (orders.isEmpty) break;
-      collected.addAll(orders.where((order) => (order.status ?? '').trim().toLowerCase() == CleaningBookingStatus.pending && order.id != null));
+      collected.addAll(orders.where(OrderLifecyclePolicy.isAvailableNewOrderForCurrentWorker));
       if (orders.length < _pollPageSize) break;
     }
     return collected;
