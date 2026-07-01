@@ -108,8 +108,10 @@ class TodayOverviewCard extends StatelessWidget {
           ),
           BlocBuilder<HomeBloc, HomeState>(
             buildWhen: (previous, current) =>
-            previous.homePageUsecase?.blocksNewRequests !=
-                current.homePageUsecase?.blocksNewRequests ||
+                previous.homePageUsecase?.blocksNewRequests !=
+                    current.homePageUsecase?.blocksNewRequests ||
+                previous.homePageUsecase?.eligibilityMessageAr !=
+                    current.homePageUsecase?.eligibilityMessageAr ||
                 previous.homePageUsecaseStatus != current.homePageUsecaseStatus,
             builder: (context, state) {
               final model = state.homePageUsecase;

@@ -79,6 +79,7 @@ class FetchHomePageUsecaseModel {
   bool? isEligibleForNewRequests;
   FetchDepositAccountUsecaseModel? depositSummary;
   WorkerDispatchEligibilityModel? dispatchEligibility;
+  WorkerDispatchEligibilityModel? commissionCapacityEligibility;
   AmountSummary? amountSummary;
   List<BookingsWeeklyChartItem>? bookingsWeeklyChart;
   List<InvoicesFourWeeksChartItem>? invoicesFourWeeksChart;
@@ -100,6 +101,7 @@ class FetchHomePageUsecaseModel {
     this.isEligibleForNewRequests,
     this.depositSummary,
     this.dispatchEligibility,
+    this.commissionCapacityEligibility,
     this.amountSummary,
     this.bookingsWeeklyChart,
     this.invoicesFourWeeksChart,
@@ -109,6 +111,7 @@ class FetchHomePageUsecaseModel {
     final amountSummaryJson = json['amountSummary'];
     final depositSummaryJson = json['depositSummary'];
     final dispatchEligibilityJson = json['dispatchEligibility'];
+    final commissionCapacityEligibilityJson = json['commissionCapacityEligibility'];
     final bookingsWeeklyChartJson = json['bookingsWeeklyChart'];
     final invoicesFourWeeksChartJson = json['invoicesFourWeeksChart'];
 
@@ -135,6 +138,11 @@ class FetchHomePageUsecaseModel {
       dispatchEligibility: dispatchEligibilityJson is Map
           ? WorkerDispatchEligibilityModel.fromJson(
               _asMap(dispatchEligibilityJson),
+            )
+          : null,
+      commissionCapacityEligibility: commissionCapacityEligibilityJson is Map
+          ? WorkerDispatchEligibilityModel.fromJson(
+              _asMap(commissionCapacityEligibilityJson),
             )
           : null,
       amountSummary: amountSummaryJson is Map
@@ -164,15 +172,31 @@ class FetchHomePageUsecaseModel {
   }
 
   bool get blocksNewRequests {
-    final eligibility = dispatchEligibility;
-    if (eligibility != null) return eligibility.blocksNewRequests;
+    final dispatch = dispatchEligibility;
+    if (dispatch != null && dispatch.blocksNewRequests) return true;
+
+    final commissionCapacity = commissionCapacityEligibility;
+    if (commissionCapacity != null && commissionCapacity.blocksNewRequests) {
+      return true;
+    }
+
     return isEligibleForNewRequests == false ||
         depositSummary?.isEligibleForNewRequests == false;
   }
 
-  String get eligibilityMessageAr =>
-      dispatchEligibility?.userMessageAr ??
-      'لا يمكن لحسابك استقبال الطلبات الجديدة حالياً.';
+  String get eligibilityMessageAr {
+    final dispatch = dispatchEligibility;
+    if (dispatch != null && dispatch.blocksNewRequests) {
+      return dispatch.userMessageAr;
+    }
+
+    final commissionCapacity = commissionCapacityEligibility;
+    if (commissionCapacity != null && commissionCapacity.blocksNewRequests) {
+      return commissionCapacity.userMessageAr;
+    }
+
+    return 'لا يمكن لحسابك استقبال الطلبات الجديدة حالياً.';
+  }
 
   Map<String, dynamic> toJson() {
     return {
@@ -192,6 +216,7 @@ class FetchHomePageUsecaseModel {
       'isEligibleForNewRequests': isEligibleForNewRequests,
       'depositSummary': depositSummary?.toJson(),
       'dispatchEligibility': dispatchEligibility?.toJson(),
+      'commissionCapacityEligibility': commissionCapacityEligibility?.toJson(),
       'amountSummary': amountSummary?.toJson(),
       'bookingsWeeklyChart': bookingsWeeklyChart
           ?.map((item) => item.toJson())
