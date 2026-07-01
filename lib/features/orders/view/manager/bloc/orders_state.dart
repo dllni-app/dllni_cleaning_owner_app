@@ -1,38 +1,39 @@
 part of 'orders_bloc.dart';
 
 class OrdersState {
-  BlocStatus? startWorkStatus;
-  StartWorkModel? startWork;
-  BlocStatus? securityCodeStatus;
-  SecurityCodeModel? securityCode;
-  BlocStatus? arriveStatus;
-  ArriveModel? arrive;
-  BlocStatus? rejectOrderUsecaseStatus;
-  RejectOrderUsecaseModel? rejectOrderUsecase;
-  BlocStatus? availabilityUsecaseStatus;
-  UpdateAvailabilityUsecaseModel? availabilityUsecase;
-  BlocStatus? rejectExtensionUsecaseStatus;
-  RejectExtensionUsecaseModel? rejectExtensionUsecase;
-  BlocStatus? acceptExtensionUsecaseStatus;
-  AcceptExtensionUsecaseModel? acceptExtensionUsecase;
-  PaginationStateModel<FetchExtensionRequestsUsecasModelDataItem>? extensionRequestsUsecas;
-  BlocStatus? cancelOrderStatus;
-  CancelOrderModel? cancelOrder;
-  BlocStatus? completeOrderUsecaseStatus;
-  CompleteOrderUsecaseModel? completeOrderUsecase;
-  BlocStatus? startTravelUsecaseStatus;
-  StartTravelUsecaseModel? startTravelUsecase;
-  BlocStatus? acceptOrderUsecaseStatus;
-  AcceptOrderUsecaseModel? acceptOrderUsecase;
-  BlocStatus? orderDetailsUsecaseStatus;
-  FetchOrderDetailsUsecaseModel? orderDetailsUsecase;
-  PaginationStateModel<FetchOrdersUsecaseModelDataItem>? ordersUsecase;
-  String? errorMessage;
+  final BlocStatus? startWorkStatus;
+  final StartWorkModel? startWork;
+  final BlocStatus? securityCodeStatus;
+  final SecurityCodeModel? securityCode;
+  final BlocStatus? arriveStatus;
+  final ArriveModel? arrive;
+  final BlocStatus? rejectOrderUsecaseStatus;
+  final RejectOrderUsecaseModel? rejectOrderUsecase;
+  final BlocStatus? availabilityUsecaseStatus;
+  final UpdateAvailabilityUsecaseModel? availabilityUsecase;
+  final BlocStatus? rejectExtensionUsecaseStatus;
+  final RejectExtensionUsecaseModel? rejectExtensionUsecase;
+  final BlocStatus? acceptExtensionUsecaseStatus;
+  final AcceptExtensionUsecaseModel? acceptExtensionUsecase;
+  final PaginationStateModel<FetchExtensionRequestsUsecasModelDataItem>?
+      extensionRequestsUsecas;
+  final BlocStatus? cancelOrderStatus;
+  final CancelOrderModel? cancelOrder;
+  final BlocStatus? completeOrderUsecaseStatus;
+  final CompleteOrderUsecaseModel? completeOrderUsecase;
+  final BlocStatus? startTravelUsecaseStatus;
+  final StartTravelUsecaseModel? startTravelUsecase;
+  final BlocStatus? acceptOrderUsecaseStatus;
+  final AcceptOrderUsecaseModel? acceptOrderUsecase;
+  final BlocStatus? orderDetailsUsecaseStatus;
+  final FetchOrderDetailsUsecaseModel? orderDetailsUsecase;
+  final PaginationStateModel<FetchOrdersUsecaseModelDataItem>? ordersUsecase;
+  final String? errorMessage;
 
-  int? selectedIndex;
-  int? currentStep;
+  final int? selectedIndex;
+  final int? currentStep;
 
-  OrdersState({
+  const OrdersState({
     this.startWorkStatus,
     this.startWork,
     this.securityCodeStatus,
@@ -64,6 +65,55 @@ class OrdersState {
     this.currentStep = 0,
   });
 
+  List<Object?> get props => <Object?>[
+        startWorkStatus,
+        startWork,
+        securityCodeStatus,
+        securityCode,
+        arriveStatus,
+        arrive,
+        rejectOrderUsecaseStatus,
+        rejectOrderUsecase,
+        availabilityUsecaseStatus,
+        availabilityUsecase,
+        rejectExtensionUsecaseStatus,
+        rejectExtensionUsecase,
+        acceptExtensionUsecaseStatus,
+        acceptExtensionUsecase,
+        extensionRequestsUsecas,
+        cancelOrderStatus,
+        cancelOrder,
+        completeOrderUsecaseStatus,
+        completeOrderUsecase,
+        startTravelUsecaseStatus,
+        startTravelUsecase,
+        acceptOrderUsecaseStatus,
+        acceptOrderUsecase,
+        orderDetailsUsecaseStatus,
+        orderDetailsUsecase,
+        ordersUsecase,
+        errorMessage,
+        selectedIndex,
+        currentStep,
+      ];
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is OrdersState && _listEquals(other.props, props);
+  }
+
+  @override
+  int get hashCode => Object.hashAll(props);
+
+  static bool _listEquals(List<Object?> a, List<Object?> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
   OrdersState copyWith({
     StartWorkModel? startWork,
     BlocStatus? startWorkStatus,
@@ -81,7 +131,8 @@ class OrdersState {
     BlocStatus? completeOrderUsecaseStatus,
     CancelOrderModel? cancelOrder,
     BlocStatus? cancelOrderStatus,
-    PaginationStateModel<FetchExtensionRequestsUsecasModelDataItem>? extensionRequestsUsecas,
+    PaginationStateModel<FetchExtensionRequestsUsecasModelDataItem>?
+        extensionRequestsUsecas,
     AcceptExtensionUsecaseModel? acceptExtensionUsecase,
     BlocStatus? acceptExtensionUsecaseStatus,
     RejectExtensionUsecaseModel? rejectExtensionUsecase,
@@ -94,35 +145,48 @@ class OrdersState {
     int? currentStep,
     ArriveModel? arrive,
     BlocStatus? arriveStatus,
-  }) => OrdersState(
-    startWork: startWork ?? this.startWork,
-    startWorkStatus: startWorkStatus ?? this.startWorkStatus,
-    securityCode: securityCode ?? this.securityCode,
-    securityCodeStatus: securityCodeStatus ?? this.securityCodeStatus,
-    errorMessage: errorMessage ?? this.errorMessage,
-    ordersUsecase: ordersUsecase ?? this.ordersUsecase,
-    orderDetailsUsecase: orderDetailsUsecase ?? this.orderDetailsUsecase,
-    orderDetailsUsecaseStatus: orderDetailsUsecaseStatus ?? this.orderDetailsUsecaseStatus,
-    acceptOrderUsecase: acceptOrderUsecase ?? this.acceptOrderUsecase,
-    acceptOrderUsecaseStatus: acceptOrderUsecaseStatus ?? this.acceptOrderUsecaseStatus,
-    startTravelUsecase: startTravelUsecase ?? this.startTravelUsecase,
-    startTravelUsecaseStatus: startTravelUsecaseStatus ?? this.startTravelUsecaseStatus,
-    completeOrderUsecase: completeOrderUsecase ?? this.completeOrderUsecase,
-    completeOrderUsecaseStatus: completeOrderUsecaseStatus ?? this.completeOrderUsecaseStatus,
-    cancelOrder: cancelOrder ?? this.cancelOrder,
-    cancelOrderStatus: cancelOrderStatus ?? this.cancelOrderStatus,
-    extensionRequestsUsecas: extensionRequestsUsecas ?? this.extensionRequestsUsecas,
-    acceptExtensionUsecase: acceptExtensionUsecase ?? this.acceptExtensionUsecase,
-    acceptExtensionUsecaseStatus: acceptExtensionUsecaseStatus ?? this.acceptExtensionUsecaseStatus,
-    rejectExtensionUsecase: rejectExtensionUsecase ?? this.rejectExtensionUsecase,
-    rejectExtensionUsecaseStatus: rejectExtensionUsecaseStatus ?? this.rejectExtensionUsecaseStatus,
-    availabilityUsecase: availabilityUsecase ?? this.availabilityUsecase,
-    availabilityUsecaseStatus: availabilityUsecaseStatus ?? this.availabilityUsecaseStatus,
-    rejectOrderUsecase: rejectOrderUsecase ?? this.rejectOrderUsecase,
-    rejectOrderUsecaseStatus: rejectOrderUsecaseStatus ?? this.rejectOrderUsecaseStatus,
-    selectedIndex: selectedIndex ?? this.selectedIndex,
-    arrive: arrive ?? this.arrive,
-    arriveStatus: arriveStatus ?? this.arriveStatus,
-    currentStep: currentStep ?? this.currentStep,
-  );
+  }) =>
+      OrdersState(
+        startWork: startWork ?? this.startWork,
+        startWorkStatus: startWorkStatus ?? this.startWorkStatus,
+        securityCode: securityCode ?? this.securityCode,
+        securityCodeStatus: securityCodeStatus ?? this.securityCodeStatus,
+        errorMessage: errorMessage ?? this.errorMessage,
+        ordersUsecase: ordersUsecase ?? this.ordersUsecase,
+        orderDetailsUsecase: orderDetailsUsecase ?? this.orderDetailsUsecase,
+        orderDetailsUsecaseStatus:
+            orderDetailsUsecaseStatus ?? this.orderDetailsUsecaseStatus,
+        acceptOrderUsecase: acceptOrderUsecase ?? this.acceptOrderUsecase,
+        acceptOrderUsecaseStatus:
+            acceptOrderUsecaseStatus ?? this.acceptOrderUsecaseStatus,
+        startTravelUsecase: startTravelUsecase ?? this.startTravelUsecase,
+        startTravelUsecaseStatus:
+            startTravelUsecaseStatus ?? this.startTravelUsecaseStatus,
+        completeOrderUsecase:
+            completeOrderUsecase ?? this.completeOrderUsecase,
+        completeOrderUsecaseStatus:
+            completeOrderUsecaseStatus ?? this.completeOrderUsecaseStatus,
+        cancelOrder: cancelOrder ?? this.cancelOrder,
+        cancelOrderStatus: cancelOrderStatus ?? this.cancelOrderStatus,
+        extensionRequestsUsecas:
+            extensionRequestsUsecas ?? this.extensionRequestsUsecas,
+        acceptExtensionUsecase:
+            acceptExtensionUsecase ?? this.acceptExtensionUsecase,
+        acceptExtensionUsecaseStatus:
+            acceptExtensionUsecaseStatus ?? this.acceptExtensionUsecaseStatus,
+        rejectExtensionUsecase:
+            rejectExtensionUsecase ?? this.rejectExtensionUsecase,
+        rejectExtensionUsecaseStatus:
+            rejectExtensionUsecaseStatus ?? this.rejectExtensionUsecaseStatus,
+        availabilityUsecase: availabilityUsecase ?? this.availabilityUsecase,
+        availabilityUsecaseStatus:
+            availabilityUsecaseStatus ?? this.availabilityUsecaseStatus,
+        rejectOrderUsecase: rejectOrderUsecase ?? this.rejectOrderUsecase,
+        rejectOrderUsecaseStatus:
+            rejectOrderUsecaseStatus ?? this.rejectOrderUsecaseStatus,
+        selectedIndex: selectedIndex ?? this.selectedIndex,
+        arrive: arrive ?? this.arrive,
+        arriveStatus: arriveStatus ?? this.arriveStatus,
+        currentStep: currentStep ?? this.currentStep,
+      );
 }

@@ -64,13 +64,20 @@ class ExtensionRequestsSheet {
                     Expanded(
                       child: BlocConsumer<OrdersBloc, OrdersState>(
                         bloc: ordersBloc,
+                        listenWhen: (previous, current) {
+                          final acceptedNow = previous.acceptExtensionUsecaseStatus != BlocStatus.success &&
+                              current.acceptExtensionUsecaseStatus == BlocStatus.success;
+                          final rejectedNow = previous.rejectExtensionUsecaseStatus != BlocStatus.success &&
+                              current.rejectExtensionUsecaseStatus == BlocStatus.success;
+                          return acceptedNow || rejectedNow;
+                        },
+                        buildWhen: (previous, current) =>
+                            previous.extensionRequestsUsecas != current.extensionRequestsUsecas ||
+                            previous.acceptExtensionUsecaseStatus != current.acceptExtensionUsecaseStatus ||
+                            previous.rejectExtensionUsecaseStatus != current.rejectExtensionUsecaseStatus ||
+                            previous.errorMessage != current.errorMessage,
                         listener: (context, state) {
-                          if (state.acceptExtensionUsecaseStatus ==
-                                  BlocStatus.success ||
-                              state.rejectExtensionUsecaseStatus ==
-                                  BlocStatus.success) {
-                            onChanged?.call();
-                          }
+                          onChanged?.call();
                         },
                         builder: (context, state) {
                           return state.extensionRequestsUsecas!.builder(
