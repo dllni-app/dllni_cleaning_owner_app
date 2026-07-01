@@ -33,7 +33,7 @@ class OrdersState {
   final int? selectedIndex;
   final int? currentStep;
 
-  OrdersState({
+  const OrdersState({
     this.startWorkStatus,
     this.startWork,
     this.securityCodeStatus,
@@ -64,6 +64,55 @@ class OrdersState {
     this.arriveStatus,
     this.currentStep = 0,
   });
+
+  List<Object?> get props => <Object?>[
+        startWorkStatus,
+        startWork,
+        securityCodeStatus,
+        securityCode,
+        arriveStatus,
+        arrive,
+        rejectOrderUsecaseStatus,
+        rejectOrderUsecase,
+        availabilityUsecaseStatus,
+        availabilityUsecase,
+        rejectExtensionUsecaseStatus,
+        rejectExtensionUsecase,
+        acceptExtensionUsecaseStatus,
+        acceptExtensionUsecase,
+        extensionRequestsUsecas,
+        cancelOrderStatus,
+        cancelOrder,
+        completeOrderUsecaseStatus,
+        completeOrderUsecase,
+        startTravelUsecaseStatus,
+        startTravelUsecase,
+        acceptOrderUsecaseStatus,
+        acceptOrderUsecase,
+        orderDetailsUsecaseStatus,
+        orderDetailsUsecase,
+        ordersUsecase,
+        errorMessage,
+        selectedIndex,
+        currentStep,
+      ];
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is OrdersState && _listEquals(other.props, props);
+  }
+
+  @override
+  int get hashCode => Object.hashAll(props);
+
+  static bool _listEquals(List<Object?> a, List<Object?> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
 
   OrdersState copyWith({
     StartWorkModel? startWork,
