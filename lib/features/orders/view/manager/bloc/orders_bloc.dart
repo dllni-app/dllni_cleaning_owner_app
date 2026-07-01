@@ -37,6 +37,7 @@ import '../../../domain/usecases/start_work_use_case.dart';
 import '../../../data/models/start_work_model.dart';
 import '../../helpers/order_details_to_list_item_mapper.dart';
 import '../../helpers/order_lifecycle_policy.dart';
+import '../../helpers/orders_lifecycle_failure_message_mapper.dart';
 import '../../helpers/orders_realtime_hydration_policy.dart';
 import '../../widgets/order_details/location_reporting_policy.dart';
 
@@ -46,10 +47,6 @@ part 'orders_state.dart';
 
 @injectable
 class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
-  static const int _statusForbidden = 403;
-  static const int _statusUnprocessable = 422;
-  static const int _statusTooManyRequests = 429;
-
   final ArriveUseCase arriveUseCase;
   final RejectOrderUsecaseUseCase rejectOrderUsecaseUseCase;
   final UpdateAvailabilityUsecaseUseCase updateAvailabilityUsecaseUseCase;
@@ -914,16 +911,10 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     Failure failure, {
     required String invalidStateMessage,
   }) {
-    switch (failure.statusCode) {
-      case _statusForbidden:
-        return 'غير مسموح بتنفيذ هذا الإجراء على الطلب.';
-      case _statusTooManyRequests:
-        return 'الطلبات كثيرة حالياً، حاول بعد قليل.';
-      case _statusUnprocessable:
-        return invalidStateMessage;
-      default:
-        return failure.message;
-    }
+    return OrdersLifecycleFailureMessageMapper.map(
+      failure,
+      invalidStateMessage: invalidStateMessage,
+    );
   }
 
   void _cacheWorkerEligibility(FetchOrdersUsecaseModel model) {
