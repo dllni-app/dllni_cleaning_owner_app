@@ -174,3 +174,61 @@ class SyncPendingOrderFromRealtimeEvent extends OrdersEvent {
     this.applyToPendingList = false,
   });
 }
+
+StreamTransformer<T, T> ExhaustMapStreamTransformer<T>({
+  required Stream<T> Function(T event) maper,
+}) {
+  return StreamTransformer<T, T>.fromBind((events) {
+    late final StreamController<T> controller;
+    StreamSubscription<T>? outerSubscription;
+    StreamSubscription<T>? innerSubscription;
+    var isInnerActive = false;
+    var isOuterDone = false;
+
+    void closeIfDone() {
+      if (isOuterDone && !isInnerActive && !controller.isClosed) {
+        controller.close();
+      }
+    }
+
+    controller = StreamController<T>(
+      sync: true,
+      onListen: () {
+        outerSubscription = events.listen(
+          (event) {
+            if (isInnerActive) return;
+            isInnerActive = true;
+            innerSubscription = maper(event).listen(
+              controller.add,
+              onError: controller.addError,
+              onDone: () {
+                isInnerActive = false;
+                innerSubscription = null;
+                closeIfDone();
+              },
+            );
+          },
+          onError: controller.addError,
+          onDone: () {
+            isOuterDone = true;
+            closeIfDone();
+          },
+        );
+      },
+      onPause: () {
+        outerSubscription?.pause();
+        innerSubscription?.pause();
+      },
+      onResume: () {
+        outerSubscription?.resume();
+        innerSubscription?.resume();
+      },
+      onCancel: () async {
+        await innerSubscription?.cancel();
+        await outerSubscription?.cancel();
+      },
+    );
+
+    return controller.stream;
+  });
+}
