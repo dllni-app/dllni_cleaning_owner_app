@@ -264,7 +264,10 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   FetchOrdersUsecaseModelDataItem _mergeDetailsIntoOrder(
     FetchOrderDetailsUsecaseModelData details,
   ) {
-    return OrderDetailsToListItemMapper.fromDetails(details).withTeamData(
+    return OrderDetailsToListItemMapper.fromDetails(
+      details,
+      fallback: _order,
+    ).withTeamData(
       assignmentMode: details.assignmentMode,
       numberOfWorkers: details.numberOfWorkers,
       workerAcceptance: details.workerAcceptance,
