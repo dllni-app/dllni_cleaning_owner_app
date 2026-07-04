@@ -86,7 +86,6 @@ class PropertyAttributeLabelsHelper {
   static String formatCount(int count) => count > 0 ? count.toString() : '-';
 
   static const List<String> _roomTypeOrder = <String>[
-    'toilet',
     'balcony',
     'bedroom',
     'kitchen',

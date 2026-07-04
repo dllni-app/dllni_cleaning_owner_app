@@ -51,21 +51,22 @@ class AcceptOrderBottomSheet extends StatefulWidget {
       return;
     }
 
-    final closeAction = await showModalBottomSheet<_AcceptOrderSheetCloseAction>(
-      context: context,
-      useRootNavigator: useRootNavigator,
-      isScrollControlled: true,
-      isDismissible: true,
-      enableDrag: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => AcceptOrderBottomSheet(
-        order: order,
-        bloc: bloc,
-        index: index,
-        autoRejectOnClose: autoRejectOnClose,
-        useRootNavigator: useRootNavigator,
-      ),
-    );
+    final closeAction =
+        await showModalBottomSheet<_AcceptOrderSheetCloseAction>(
+          context: context,
+          useRootNavigator: useRootNavigator,
+          isScrollControlled: true,
+          isDismissible: true,
+          enableDrag: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => AcceptOrderBottomSheet(
+            order: order,
+            bloc: bloc,
+            index: index,
+            autoRejectOnClose: autoRejectOnClose,
+            useRootNavigator: useRootNavigator,
+          ),
+        );
 
     if (!autoRejectOnClose) return;
     final orderId = order.id;
@@ -234,10 +235,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
               color: _titleTextColor,
             ),
           ),
-          AppText.bodySmall(
-            'x${quantity ?? 1}',
-            color: _mutedTextColor,
-          ),
+          AppText.bodySmall('x${quantity ?? 1}', color: _mutedTextColor),
         ],
       ),
     );
@@ -293,7 +291,14 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
         ),
       },
       {
-        'label': 'عدد الخرف',
+        'label': 'عدد الممرات',
+        'value': PropertyAttributeLabelsHelper.roomTypeCountForOrder(
+          _order,
+          roomType: 'corridor',
+        ),
+      },
+      {
+        'label': 'عدد الشرف',
         'value': PropertyAttributeLabelsHelper.roomTypeCountForOrder(
           _order,
           roomType: 'balcony',
@@ -423,7 +428,11 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                       const SizedBox(height: 10),
                       _detailCard(context, _serviceWidgets()),
                       const SizedBox(height: 16),
-                      _sectionTitle(context, Icons.schedule, 'موعد ووقت الخدمة'),
+                      _sectionTitle(
+                        context,
+                        Icons.schedule,
+                        'موعد ووقت الخدمة',
+                      ),
                       const SizedBox(height: 10),
                       _detailCard(context, [
                         _orderInfoRow(label: 'التاريخ', value: _formatDate()),
@@ -439,7 +448,9 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                         _isEventAssistance
                             ? Icons.event_available_outlined
                             : Icons.apartment_outlined,
-                        _isEventAssistance ? 'تفاصيل المناسبة' : 'تفاصيل العقار',
+                        _isEventAssistance
+                            ? 'تفاصيل المناسبة'
+                            : 'تفاصيل العقار',
                       ),
                       const SizedBox(height: 10),
                       _detailCard(context, _propertyDetailsRows()),
@@ -475,7 +486,8 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                           ),
                         AppText.bodyMedium(
                           visibleOrderAddress(
-                            address: _order.propertyDetails?.address ??
+                            address:
+                                _order.propertyDetails?.address ??
                                 _order.locationName,
                             status: _order.status,
                           ),
@@ -522,13 +534,16 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                             ? null
                             : () {
                                 if (_order.id == null) return;
-                                if (!OrderLifecyclePolicy.canAcceptReject(_order)) {
+                                if (!OrderLifecyclePolicy.canAcceptReject(
+                                  _order,
+                                )) {
                                   AppToast.showErrorGlobal(
-                                    OrderLifecyclePolicy.orderNoLongerAvailableMessage,
+                                    OrderLifecyclePolicy
+                                        .orderNoLongerAvailableMessage,
                                   );
-                                  Navigator.of(context).pop(
-                                    _AcceptOrderSheetCloseAction.dismissed,
-                                  );
+                                  Navigator.of(
+                                    context,
+                                  ).pop(_AcceptOrderSheetCloseAction.dismissed);
                                   return;
                                 }
                                 widget.bloc.add(

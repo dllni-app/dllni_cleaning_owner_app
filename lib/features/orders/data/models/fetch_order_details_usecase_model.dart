@@ -584,6 +584,7 @@ class FetchOrderDetailsUsecaseModelDataPropertyDetails {
   final bool? kitchenIncluded;
   final int? kitchens;
   final String? livingRoomSize;
+  final Map<String, dynamic>? roomSizeBreakdown;
   final String? eventType;
   final int? guestCount;
   final String? venueType;
@@ -601,6 +602,7 @@ class FetchOrderDetailsUsecaseModelDataPropertyDetails {
     this.kitchenIncluded,
     this.kitchens,
     this.livingRoomSize,
+    this.roomSizeBreakdown,
     this.eventType,
     this.guestCount,
     this.venueType,
@@ -613,6 +615,11 @@ class FetchOrderDetailsUsecaseModelDataPropertyDetails {
   factory FetchOrderDetailsUsecaseModelDataPropertyDetails.fromJson(
     Map<String, dynamic> json,
   ) {
+    final breakdownRaw = _pick(
+      json,
+      const <String>['roomSizeBreakdown', 'room_size_breakdown'],
+    );
+
     return FetchOrderDetailsUsecaseModelDataPropertyDetails(
       locationName: _toStringValue(
         _pick(json, const <String>['locationName', 'location_name']),
@@ -628,6 +635,7 @@ class FetchOrderDetailsUsecaseModelDataPropertyDetails {
       livingRoomSize: _toStringValue(
         _pick(json, const <String>['livingRoomSize', 'living_room_size']),
       ),
+      roomSizeBreakdown: breakdownRaw == null ? null : _toMap(breakdownRaw),
       eventType: _toStringValue(
         _pick(json, const <String>['event_type', 'eventType']),
       ),
@@ -658,6 +666,7 @@ class FetchOrderDetailsUsecaseModelDataPropertyDetails {
       'kitchen_included': kitchenIncluded,
       'kitchens': kitchens,
       'living_room_size': livingRoomSize,
+      'room_size_breakdown': roomSizeBreakdown,
       'event_type': eventType,
       'guest_count': guestCount,
       'venue_type': venueType,

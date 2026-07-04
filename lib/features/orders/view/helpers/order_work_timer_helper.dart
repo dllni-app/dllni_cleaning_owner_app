@@ -67,6 +67,28 @@ class OrderWorkTimerHelper {
     );
   }
 
+  static int totalAcceptedExtensionMinutes(List<dynamic>? warnings) {
+    if (warnings == null) return 0;
+    var total = 0;
+    for (final warning in warnings) {
+      final map = _asStringMap(warning);
+      if (map.isEmpty || !_isAccepted(map)) continue;
+      final minutes = _asInt(
+        _pick(map, const <String>[
+          'approvedMinutes',
+          'approved_minutes',
+          'additionalMinutes',
+          'additional_minutes',
+          'requestedMinutes',
+          'requested_minutes',
+          'minutes',
+        ]),
+      );
+      if (minutes != null && minutes > 0) total += minutes;
+    }
+    return total;
+  }
+
   static AcceptedExtensionTimerSeed? latestAcceptedExtensionSeed(
     List<dynamic>? warnings,
   ) {

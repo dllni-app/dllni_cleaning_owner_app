@@ -5,14 +5,20 @@ import 'package:toastification/toastification.dart';
 
 class AppToast {
   static GlobalKey<NavigatorState>? _navigatorKey;
+  static bool _suppressErrorToasts = false;
 
   /// Call once at app startup with the same [GlobalKey] passed to [MaterialApp.navigatorKey].
   static void bindNavigatorKey(GlobalKey<NavigatorState> key) {
     _navigatorKey = key;
   }
 
+  /// Suppresses [showErrorGlobal] while session-expiry redirect is in progress.
+  static void setSuppressErrorToasts(bool value) =>
+      _suppressErrorToasts = value;
+
   static const String defaultSuccessMessage = 'تمت العملية بنجاح';
   static const String defaultErrorMessage = 'حدث خطأ';
+  static const String defaultWarningMessage = 'تنبيه';
 
   static String _nonEmptyOr(String? message, String fallback) {
     final t = message?.trim();
@@ -22,6 +28,7 @@ class AppToast {
 
   /// Shows an error toast using the root navigator context (no [BuildContext] required).
   static void showErrorGlobal([String? message]) {
+    if (_suppressErrorToasts) return;
     final context = _navigatorKey?.currentContext;
     if (context == null) {
       if (kDebugMode) {
@@ -49,6 +56,23 @@ class AppToast {
       context: context,
       message: _nonEmptyOr(message, defaultSuccessMessage),
       type: ToastificationType.success,
+    );
+  }
+
+  /// Shows a warning toast using the root navigator context (no [BuildContext] required).
+  /// Not affected by [setSuppressErrorToasts].
+  static void showWarningGlobal([String? message]) {
+    final context = _navigatorKey?.currentContext;
+    if (context == null) {
+      if (kDebugMode) {
+        debugPrint('AppToast.showWarningGlobal: no navigator context');
+      }
+      return;
+    }
+    showToast(
+      context: context,
+      message: _nonEmptyOr(message, defaultWarningMessage),
+      type: ToastificationType.warning,
     );
   }
 
