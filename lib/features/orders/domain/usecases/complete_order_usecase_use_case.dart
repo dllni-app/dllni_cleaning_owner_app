@@ -35,7 +35,9 @@ class CompleteOrderUsecaseParams with Params {
     return {
       if (message != null && message.isNotEmpty) 'completionMessage': message,
       'cleaning_services': cleaningServices,
+      'cleaningServices': cleaningServices,
       'propertiesRooms': propertiesRooms,
+      'properties_rooms': propertiesRooms,
     };
   }
 }
