@@ -21,9 +21,9 @@ class OrderMissionTaskMapper {
     final propertyDetails = order.propertyDetails;
     final cleaningModeLabel = _cleaningModeLabel(propertyDetails);
 
-    if (cleaningModeLabel != null) {
-      items.add(MissionTaskItem(label: 'نوع التنظيف', detail: cleaningModeLabel));
-    }
+    // if (cleaningModeLabel != null) {
+    //   items.add(MissionTaskItem(label: 'نوع التنظيف', detail: cleaningModeLabel));
+    // }
 
     var hasExplicitTasks = false;
 
@@ -48,18 +48,18 @@ class OrderMissionTaskMapper {
       if (task == null || task.isEmpty) return items;
       return <MissionTaskItem>[...items, MissionTaskItem(label: task)];
     }
-
-    _addCountTask(items, 'عدد الغرف', propertyDetails?.rooms ?? order.numberOfRooms);
+    //
+    // _addCountTask(items, 'عدد الغرف', propertyDetails?.rooms ?? order.numberOfRooms);
     _addCountTask(items, 'غرف النوم', propertyDetails?.bedRooms);
     _addCountTask(items, 'الحمامات', propertyDetails?.bathrooms);
     _addCountTask(items, 'المطابخ', propertyDetails?.kitchens ?? order.numberOfKitchens);
     _addCountTask(items, 'الشرفات', propertyDetails?.balconies ?? order.numberOfBalconies);
 
-    final livingRoomSize = _clean(propertyDetails?.livingRoomSizeLabel) ??
-        _roomSizeLabel(propertyDetails?.livingRoomSize);
-    if (livingRoomSize != null) {
-      items.add(MissionTaskItem(label: 'حجم الصالة', detail: livingRoomSize));
-    }
+    // final livingRoomSize = _clean(propertyDetails?.livingRoomSizeLabel) ??
+    //     _roomSizeLabel(propertyDetails?.livingRoomSize);
+    // if (livingRoomSize != null) {
+    //   items.add(MissionTaskItem(label: 'حجم الصالة', detail: livingRoomSize));
+    // }
 
     return items;
   }
