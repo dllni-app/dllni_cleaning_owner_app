@@ -135,6 +135,44 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
         ));
   }
 
+  bool get _usesServiceCompletionSnapshots {
+    if (widget.services.isNotEmpty || widget.addons.isNotEmpty) return true;
+    final propertyType = (widget.order.propertyType ?? '').trim().toLowerCase();
+    return propertyType == 'event_assistance' || propertyType == 'event_assisent';
+  }
+
+  List<Map<String, Object?>> _checkedTaskSnapshots() {
+    final snapshots = <Map<String, Object?>>[];
+    for (final entry in _tasks.asMap().entries) {
+      final task = entry.value;
+      if (!_isTaskChecked(task, entry.key)) continue;
+
+      final label = task.label.trim();
+      final detail = task.detail?.trim();
+      if (label.isEmpty) continue;
+
+      snapshots.add(<String, Object?>{
+        'name': label,
+        'label': detail == null || detail.isEmpty ? label : '$label: $detail',
+        if (detail != null && detail.isNotEmpty) 'detail': detail,
+        'sort': entry.key,
+      });
+    }
+    return snapshots;
+  }
+
+  List<Map<String, Object?>> _checkedCleaningServiceSnapshots() {
+    return _usesServiceCompletionSnapshots
+        ? _checkedTaskSnapshots()
+        : const <Map<String, Object?>>[];
+  }
+
+  List<Map<String, Object?>> _checkedPropertyRoomSnapshots() {
+    return _usesServiceCompletionSnapshots
+        ? const <Map<String, Object?>>[]
+        : _checkedTaskSnapshots();
+  }
+
   bool get _isChecklistLocked => !_uiState.isActiveWork;
 
   String _effectiveStatus(OrdersState state) {
@@ -171,6 +209,8 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
         params: CompleteOrderUsecaseParams(
           id: widget.order.id!,
           completionMessage: trimmed,
+          cleaningServices: _checkedCleaningServiceSnapshots(),
+          propertiesRooms: _checkedPropertyRoomSnapshots(),
         ),
       ),
     );
