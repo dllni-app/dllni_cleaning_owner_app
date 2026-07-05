@@ -87,6 +87,7 @@ class FetchDepositTransactionsUsecaseModelDataItem {
   final num? balanceAfter;
   final String? reference;
   final String? notes;
+  final int? cleaningBookingId;
   final String? createdAt;
   final String? updatedAt;
 
@@ -98,6 +99,7 @@ class FetchDepositTransactionsUsecaseModelDataItem {
     this.balanceAfter,
     this.reference,
     this.notes,
+    this.cleaningBookingId,
     this.createdAt,
     this.updatedAt,
   });
@@ -117,6 +119,9 @@ class FetchDepositTransactionsUsecaseModelDataItem {
       ),
       reference: _toStringValue(_pick(json, const <String>['reference'])),
       notes: _toStringValue(_pick(json, const <String>['notes'])),
+      cleaningBookingId: _toInt(
+        _pick(json, const <String>['cleaningBookingId', 'cleaning_booking_id']),
+      ),
       createdAt: _toStringValue(
         _pick(json, const <String>['createdAt', 'created_at']),
       ),
@@ -135,6 +140,7 @@ class FetchDepositTransactionsUsecaseModelDataItem {
       'balanceAfter': balanceAfter,
       'reference': reference,
       'notes': notes,
+      'cleaningBookingId': cleaningBookingId,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
     };
