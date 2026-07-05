@@ -19,6 +19,7 @@ import '../../helpers/order_work_timer_helper.dart';
 import 'mission/completion_message_sheet.dart';
 import 'mission/mission_finish_button.dart';
 import 'mission/mission_payment_summary_card.dart';
+import 'mission/mission_services_info_card.dart';
 import 'mission/mission_support_button.dart';
 import 'mission/mission_task_card.dart';
 import 'mission/mission_timer_card.dart';
@@ -74,10 +75,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
       _syncTimerSession(resetCurrentSession: true);
     }
 
-    final shouldResetTasks = oldWidget.order.id != widget.order.id ||
-        oldWidget.services.length != widget.services.length ||
-        oldWidget.addons.length != widget.addons.length;
-    if (shouldResetTasks) {
+    if (oldWidget.order.id != widget.order.id) {
       _initTasks();
     }
 
@@ -100,8 +98,11 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
   OrderDetailsUiState get _uiState =>
       OrderLifecyclePolicy.detailsUiStateFor(widget.order);
 
-  List<MissionTaskItem> get _tasks => OrderMissionTaskMapper.build(
-        order: widget.order,
+  List<MissionTaskItem> get _tasks =>
+      OrderMissionTaskMapper.build(order: widget.order);
+
+  List<MissionTaskItem> get _servicesInfo =>
+      OrderMissionTaskMapper.buildServicesInfo(
         services: widget.services,
         addons: widget.addons,
       );
@@ -135,12 +136,6 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
         ));
   }
 
-  bool get _usesServiceCompletionSnapshots {
-    if (widget.services.isNotEmpty || widget.addons.isNotEmpty) return true;
-    final propertyType = (widget.order.propertyType ?? '').trim().toLowerCase();
-    return propertyType == 'event_assistance' || propertyType == 'event_assisent';
-  }
-
   List<Map<String, Object?>> _checkedTaskSnapshots() {
     final snapshots = <Map<String, Object?>>[];
     for (final entry in _tasks.asMap().entries) {
@@ -159,18 +154,6 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
       });
     }
     return snapshots;
-  }
-
-  List<Map<String, Object?>> _checkedCleaningServiceSnapshots() {
-    return _usesServiceCompletionSnapshots
-        ? _checkedTaskSnapshots()
-        : const <Map<String, Object?>>[];
-  }
-
-  List<Map<String, Object?>> _checkedPropertyRoomSnapshots() {
-    return _usesServiceCompletionSnapshots
-        ? const <Map<String, Object?>>[]
-        : _checkedTaskSnapshots();
   }
 
   bool get _isChecklistLocked => !_uiState.isActiveWork;
@@ -209,8 +192,8 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
         params: CompleteOrderUsecaseParams(
           id: widget.order.id!,
           completionMessage: trimmed,
-          cleaningServices: _checkedCleaningServiceSnapshots(),
-          propertiesRooms: _checkedPropertyRoomSnapshots(),
+          cleaningServices: const <Map<String, Object?>>[],
+          propertiesRooms: _checkedTaskSnapshots(),
         ),
       ),
     );
@@ -704,6 +687,12 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                           : null,
                     ),
                     14.verticalSpace,
+                    if (!_uiState.isDispute &&
+                        !_uiState.isFinal &&
+                        _servicesInfo.isNotEmpty) ...[
+                      MissionServicesInfoCard(services: _servicesInfo),
+                      14.verticalSpace,
+                    ],
                     if (!_uiState.isDispute && !_uiState.isFinal)
                       MissionTaskCard(
                         tasks: _tasks,
@@ -754,7 +743,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
         if (!visible) return const SizedBox.shrink();
         return MissionFinishButton(
           loading: loading,
-          enabled: _canFinish && _allTasksChecked && !loading,
+          enabled: _canFinish && !loading,
           text: _finishButtonText,
           onPressed: () => unawaited(_showCompletionMessageSheet()),
         );
