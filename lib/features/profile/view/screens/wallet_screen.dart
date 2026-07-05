@@ -130,7 +130,7 @@ class _WalletScreenState extends State<WalletScreen> {
         final amountSummary = model?.amountSummary;
         final currency = WalletScreen.resolveCurrencyLabel(amountSummary?.currency);
         return Column(children: [
-          if (state.homePageUsecaseStatus == BlocStatus.failed) ...[_errorBanner(state.errorMessage ?? 'حدث خطأ ما', () => context.read<HomeBloc>().add(FetchHomePageUsecaseEvent(params: FetchHomePageUsecaseParams()))), 16.verticalSpace],
+          if (state.homePageUsecaseStatus == BlocStatus.failed) ...[_errorBanner(ErrorMessageFormatter.format(state.errorMessage, fallback: 'حدث خطأ ما'), () => context.read<HomeBloc>().add(FetchHomePageUsecaseEvent(params: FetchHomePageUsecaseParams()))), 16.verticalSpace],
           _card(
             shadow: true,
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -154,7 +154,7 @@ class _WalletScreenState extends State<WalletScreen> {
         final data = state.depositAccount;
         const currency = 'ل.س';
         return Column(children: [
-          if (state.depositAccountStatus == BlocStatus.failed) ...[_errorBanner(state.errorMessage ?? 'تعذر تحميل بيانات التأمين', () => context.read<ProfileBloc>().add(FetchDepositAccountEvent())), 12.verticalSpace],
+          if (state.depositAccountStatus == BlocStatus.failed) ...[_errorBanner(ErrorMessageFormatter.format(state.errorMessage, fallback: 'تعذر تحميل بيانات التأمين'), () => context.read<ProfileBloc>().add(FetchDepositAccountEvent())), 12.verticalSpace],
           _debtCard(WalletScreen.formatAmount(data?.debtAmount ?? 0), currency, isLoading),
           12.verticalSpace,
           _card(
@@ -200,7 +200,7 @@ class _WalletScreenState extends State<WalletScreen> {
       builder: (context, state) {
         final pagination = state.ordersUsecase;
         if (pagination == null || pagination.isLoading) return _historyCard('سجل الطلبات', Column(children: const [_HistoryLoadingItem(), SizedBox(height: 10), _HistoryLoadingItem(), SizedBox(height: 10), _HistoryLoadingItem()]));
-        if (pagination.isFailed) return _errorBanner(pagination.errorMessage.isNotEmpty ? pagination.errorMessage : (state.errorMessage ?? 'تعذر تحميل سجل الطلبات'), () => context.read<OrdersBloc>().add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, perPage: WalletScreen.ordersPerPage, status: CleaningBookingStatus.completed), isReload: true)));
+        if (pagination.isFailed) return _errorBanner(ErrorMessageFormatter.format(pagination.errorMessage.isNotEmpty ? pagination.errorMessage : state.errorMessage, fallback: 'تعذر تحميل سجل الطلبات'), () => context.read<OrdersBloc>().add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, perPage: WalletScreen.ordersPerPage, status: CleaningBookingStatus.completed), isReload: true)));
         final body = pagination.isEmpty ? const Padding(padding: EdgeInsetsDirectional.symmetric(vertical: 24), child: Center(child: Text('السجل فارغ'))) : ListView.separated(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), itemCount: pagination.list.length, separatorBuilder: (_, __) => 10.verticalSpace, itemBuilder: (context, index) => _orderTile(pagination.list[index], index));
         return _historyCard('سجل الطلبات', body, footer: _loadMoreOrders(pagination));
       },
@@ -213,7 +213,7 @@ class _WalletScreenState extends State<WalletScreen> {
       builder: (context, state) {
         final pagination = state.depositTransactionsPagination;
         if (pagination.isLoading) return _historyCard('سجل الحركة المالية', Column(children: const [_HistoryLoadingItem(), SizedBox(height: 10), _HistoryLoadingItem(), SizedBox(height: 10), _HistoryLoadingItem()]));
-        if (pagination.isFailed) return _errorBanner(pagination.errorMessage.isNotEmpty ? pagination.errorMessage : (state.errorMessage ?? 'تعذر تحميل سجل الحركة المالية'), () => context.read<ProfileBloc>().add(FetchDepositTransactionsEvent(params: FetchDepositTransactionsParams(page: 1, perPage: WalletScreen.transfersPerPage, type: state.depositTransactionsTypeFilter), isReload: true, typeFilter: state.depositTransactionsTypeFilter)));
+        if (pagination.isFailed) return _errorBanner(ErrorMessageFormatter.format(pagination.errorMessage.isNotEmpty ? pagination.errorMessage : state.errorMessage, fallback: 'تعذر تحميل سجل الحركة المالية'), () => context.read<ProfileBloc>().add(FetchDepositTransactionsEvent(params: FetchDepositTransactionsParams(page: 1, perPage: WalletScreen.transfersPerPage, type: state.depositTransactionsTypeFilter), isReload: true, typeFilter: state.depositTransactionsTypeFilter)));
         final list = pagination.isEmpty ? const Padding(padding: EdgeInsetsDirectional.symmetric(vertical: 24), child: Center(child: Text('السجل فارغ'))) : ListView.separated(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), itemCount: pagination.list.length, separatorBuilder: (_, __) => 10.verticalSpace, itemBuilder: (_, index) => _transactionTile(pagination.list[index]));
         return _historyCard('سجل الحركة المالية', Column(children: [_transferFilters(state.depositTransactionsTypeFilter), 12.verticalSpace, list]), footer: _loadMoreTransactions(pagination, state.depositTransactionsTypeFilter));
       },

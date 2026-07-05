@@ -67,13 +67,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         listener: (context, state) {
           final action = state.notificationActionError;
           if (action != null && action.isNotEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(action)));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(ErrorMessageFormatter.format(action)),
+              ),
+            );
             return;
           }
           if (state.errorMessage == null || state.errorMessage!.isEmpty) {
             return;
           }
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.errorMessage!)));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(ErrorMessageFormatter.format(state.errorMessage)),
+            ),
+          );
         },
         child: Scaffold(
           backgroundColor: const Color(0xffF9FAFB),

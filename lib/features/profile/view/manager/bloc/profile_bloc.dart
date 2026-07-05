@@ -29,6 +29,9 @@ import '../../../domain/usecases/fetch_worker_reviews_use_case.dart';
 import '../../../data/models/fetch_worker_reviews_model.dart';
 import '../../../domain/usecases/fetch_cleaning_neighborhoods_use_case.dart';
 import '../../../data/models/cleaning_neighborhood_model.dart';
+import '../../../domain/usecases/fetch_worker_working_hours_use_case.dart';
+import '../../../domain/usecases/update_worker_working_hours_use_case.dart';
+import '../../../data/models/worker_working_hours_model.dart';
 part 'profile_event.dart';
 
 part 'profile_state.dart';
@@ -49,6 +52,8 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   final MarkNotificationReadUseCase markNotificationReadUseCase;
   final FetchWorkerReviewsUseCase fetchWorkerReviewsUseCase;
   final FetchCleaningNeighborhoodsUseCase fetchCleaningNeighborhoodsUseCase;
+  final FetchWorkerWorkingHoursUseCase fetchWorkerWorkingHoursUseCase;
+  final UpdateWorkerWorkingHoursUseCase updateWorkerWorkingHoursUseCase;
 
   ProfileBloc(
     this.fetchWorkerProfileUsecaseUseCase,
@@ -65,6 +70,8 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     this.markNotificationReadUseCase,
     this.fetchWorkerReviewsUseCase,
     this.fetchCleaningNeighborhoodsUseCase,
+    this.fetchWorkerWorkingHoursUseCase,
+    this.updateWorkerWorkingHoursUseCase,
   ) : super(ProfileState()) {
     on<FetchWorkerProfileUsecaseEvent>(_fetchWorkerProfileUsecase);
     on<FetchDisputesUsecaseEvent>(
@@ -92,6 +99,8 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       transformer: droppableProMax(),
     );
     on<FetchCleaningNeighborhoodsEvent>(_fetchCleaningNeighborhoods);
+    on<FetchWorkerWorkingHoursEvent>(_fetchWorkerWorkingHours);
+    on<UpdateWorkerWorkingHoursEvent>(_updateWorkerWorkingHours);
   }
 
   FutureOr<void> _fetchWorkerProfileUsecase(
@@ -642,6 +651,71 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
             cleaningNeighborhoodsStatus: BlocStatus.success,
             cleaningNeighborhoods: r.data,
             clearCleaningNeighborhoodsErrorMessage: true,
+          ),
+        );
+      },
+    );
+  }
+
+  FutureOr<void> _fetchWorkerWorkingHours(
+    FetchWorkerWorkingHoursEvent event,
+    Emitter<ProfileState> emit,
+  ) async {
+    emit(state.copyWith(fetchWorkingHoursStatus: BlocStatus.loading));
+    final res = await fetchWorkerWorkingHoursUseCase(NoParams());
+    res.fold(
+      (l) {
+        emit(
+          state.copyWith(
+            fetchWorkingHoursStatus: BlocStatus.failed,
+            errorMessage: l.message,
+          ),
+        );
+      },
+      (r) {
+        emit(
+          state.copyWith(
+            fetchWorkingHoursStatus: BlocStatus.success,
+            workingHours: r,
+          ),
+        );
+      },
+    );
+  }
+
+  FutureOr<void> _updateWorkerWorkingHours(
+    UpdateWorkerWorkingHoursEvent event,
+    Emitter<ProfileState> emit,
+  ) async {
+    emit(state.copyWith(updateWorkingHoursStatus: BlocStatus.loading));
+    final res = await updateWorkerWorkingHoursUseCase(event.params);
+    res.fold(
+      (l) {
+        AppToast.showErrorGlobal(l.message);
+        emit(
+          state.copyWith(
+            updateWorkingHoursStatus: BlocStatus.failed,
+            errorMessage: l.message,
+          ),
+        );
+      },
+      (r) {
+        AppToast.showSuccessGlobal('تم تحديث ساعات العمل');
+
+        final currentProfile = state.workerProfileUsecase;
+        if (currentProfile?.data != null) {
+          currentProfile!.data!.defaultWorkingHours = r.defaultWorkingHours;
+          SharedPreferencesHelper.saveData(
+            key: 'user',
+            value: fetchWorkerProfileUsecaseModelToJson(currentProfile),
+          );
+        }
+
+        emit(
+          state.copyWith(
+            updateWorkingHoursStatus: BlocStatus.success,
+            workingHours: r,
+            workerProfileUsecase: currentProfile ?? state.workerProfileUsecase,
           ),
         );
       },

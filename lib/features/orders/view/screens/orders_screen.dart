@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:common_package/helpers/error_message_formatter.dart';
 import 'package:common_package/helpers/pusher_service_logger.dart';
 import 'package:common_package/widgets/app_text.dart';
 import 'package:common_package/helpers/shared_preferences_helper.dart';
@@ -257,7 +258,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       padding: const EdgeInsetsDirectional.only(top: 40),
                       child: Center(
                         child: AppText.labelMedium(
-                          orders.errorMessage.isNotEmpty ? orders.errorMessage : (state.errorMessage ?? 'تعذر تحميل المهام'),
+                          ErrorMessageFormatter.format(
+                            orders.errorMessage.isNotEmpty
+                                ? orders.errorMessage
+                                : state.errorMessage,
+                            fallback: 'تعذر تحميل المهام',
+                          ),
                           fontWeight: FontWeight.w400,
                           textAlign: TextAlign.center,
                         ),

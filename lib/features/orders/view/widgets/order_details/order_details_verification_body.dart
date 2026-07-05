@@ -188,7 +188,9 @@ class _OrderDetailsVerificationBodyState extends State<OrderDetailsVerificationB
     setState(() => _priceAdjustmentLoading = false);
 
     response.fold(
-      (failure) => AppToast.showErrorGlobal(failure.message),
+      (failure) => AppToast.showErrorGlobal(
+        ErrorMessageFormatter.format(failure.message),
+      ),
       (_) {
         setState(() => _priceAdjustmentSent = true);
         AppToast.showSuccessGlobal(
@@ -219,7 +221,15 @@ class _OrderDetailsVerificationBodyState extends State<OrderDetailsVerificationB
                   return Center(child: CircularProgressIndicator.adaptive());
                 }
                 if (state.securityCodeStatus == BlocStatus.failed) {
-                  return Center(child: AppText.bodyMedium(state.errorMessage ?? 'تعذر تحميل الرمز', color: context.error));
+                  return Center(
+                    child: AppText.bodyMedium(
+                      ErrorMessageFormatter.format(
+                        state.errorMessage,
+                        fallback: 'تعذر تحميل الرمز',
+                      ),
+                      color: context.error,
+                    ),
+                  );
                 }
                 final code = state.securityCode?.data?.securityCode ?? '----';
                 final expires = state.securityCode?.data?.expiresAt;

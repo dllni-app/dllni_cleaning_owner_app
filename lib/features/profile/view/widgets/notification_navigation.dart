@@ -41,7 +41,9 @@ Future<void> tryNavigateFromNotificationPayload(
   if (!context.mounted) return;
 
   response.fold(
-    (failure) => AppToast.showErrorGlobal(failure.message),
+    (failure) => AppToast.showErrorGlobal(
+      ErrorMessageFormatter.format(failure.message),
+    ),
     (result) {
       final details = result.data;
       if (details == null || !context.mounted) return;

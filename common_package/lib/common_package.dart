@@ -9,6 +9,7 @@ export 'helpers/bloc_observer.dart';
 export 'helpers/dio_network.dart';
 export 'helpers/droppable_helper.dart';
 export 'helpers/error_handler.dart';
+export 'helpers/error_message_formatter.dart';
 export 'helpers/logger_interceptor.dart';
 export 'helpers/pusher_service_logger.dart';
 export 'helpers/notification_helper.dart';

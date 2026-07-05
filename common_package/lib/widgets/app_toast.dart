@@ -1,4 +1,5 @@
 import 'package:common_package/extensions/theme_extension.dart';
+import 'package:common_package/helpers/error_message_formatter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:toastification/toastification.dart';
@@ -38,7 +39,10 @@ class AppToast {
     }
     showToast(
       context: context,
-      message: _nonEmptyOr(message, defaultErrorMessage),
+      message: ErrorMessageFormatter.format(
+        message,
+        fallback: defaultErrorMessage,
+      ),
       type: ToastificationType.error,
     );
   }
@@ -71,7 +75,10 @@ class AppToast {
     }
     showToast(
       context: context,
-      message: _nonEmptyOr(message, defaultWarningMessage),
+      message: ErrorMessageFormatter.format(
+        message,
+        fallback: defaultWarningMessage,
+      ),
       type: ToastificationType.warning,
     );
   }

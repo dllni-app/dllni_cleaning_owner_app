@@ -112,7 +112,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         borderRadius: BorderRadius.circular(16.r),
         color: const Color(0xff10B981).withAlpha(27),
       ),
-      padding: EdgeInsetsDirectional.symmetric(horizontal: 12.w, vertical: 12.h),
+      padding: EdgeInsetsDirectional.symmetric(
+        horizontal: 12.w,
+        vertical: 12.h,
+      ),
       child: Row(
         children: [
           Container(
@@ -166,7 +169,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       'مناطق عملي',
       'موقع بدء المهمة',
       'أوقات العمل',
-      'سجل المعاملات',
+      // 'سجل المعاملات',
       'الدعم والمساعدة',
       'التقييمات والتعليقات',
     ];
@@ -175,7 +178,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       'يمكنك إدارة أماكن عملك',
       'للمساعدة على حساب تكلفة التنقل',
       'يمكنك تعديل أوقات عملك',
-      'يمكنك تتبع أدائك',
+      // 'يمكنك تتبع أدائك',
       'التواصل مع الدعم الفني',
       'للاطلاع على تقييمات العملاء وتعليقاتهم',
     ];
@@ -184,7 +187,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       Icons.location_on_outlined,
       Icons.flag_outlined,
       Icons.alarm,
-      Icons.signal_cellular_alt,
+      // Icons.signal_cellular_alt,
       Icons.headphones,
       Icons.star_outline_rounded,
     ];
@@ -194,7 +197,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       Color(0xffEAB308),
       Color(0xffF97316),
       Color(0xffA855F7),
-      Color(0xff22C55E),
+      // Color(0xff22C55E),
       Color(0xff6366F1),
       Color(0xffF59E0B),
     ];

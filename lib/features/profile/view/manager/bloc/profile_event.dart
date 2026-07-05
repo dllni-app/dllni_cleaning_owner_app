@@ -106,3 +106,11 @@ class FetchCleaningNeighborhoodsEvent extends ProfileEvent {
 
   FetchCleaningNeighborhoodsEvent({required this.params});
 }
+
+class FetchWorkerWorkingHoursEvent extends ProfileEvent {}
+
+class UpdateWorkerWorkingHoursEvent extends ProfileEvent {
+  final UpdateWorkerWorkingHoursParams params;
+
+  UpdateWorkerWorkingHoursEvent({required this.params});
+}

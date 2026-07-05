@@ -1,5 +1,8 @@
 import '../../data/models/arrive_model.dart';
+import '../../data/models/cleaning_team_models.dart';
 import '../../data/models/fetch_orders_usecase_model.dart';
+import 'cleaning_enum_translations.dart';
+import 'cleaning_room_display.dart';
 
 class MissionTaskItem {
   const MissionTaskItem({required this.label, this.detail});
@@ -11,26 +14,35 @@ class MissionTaskItem {
 class OrderMissionTaskMapper {
   const OrderMissionTaskMapper._();
 
+  static const List<String> _roomTypeOrder = <String>[
+    'balcony',
+    'bedroom',
+    'kitchen',
+    'bathroom',
+    'corridor',
+    'living_room',
+    'hall',
+  ];
+
+  static const List<String> _sizeOrder = <String>['large', 'medium', 'small'];
+
   static List<MissionTaskItem> build({
     required FetchOrdersUsecaseModelDataItem order,
   }) {
-    final items = <MissionTaskItem>[];
-    final propertyDetails = order.propertyDetails;
+    final rooms = _resolveRooms(order);
+    if (rooms.isNotEmpty) {
+      return _tasksFromRoomAssignments(rooms);
+    }
 
-    _addCountTask(items, 'غرف النوم', propertyDetails?.bedRooms);
-    _addCountTask(items, 'الحمامات', propertyDetails?.bathrooms);
-    _addCountTask(
-      items,
-      'المطابخ',
-      propertyDetails?.kitchens ?? order.numberOfKitchens,
-    );
-    _addCountTask(
-      items,
-      'الشرفات',
-      propertyDetails?.balconies ?? order.numberOfBalconies,
-    );
+    final breakdown = order.propertyDetails?.roomSizeBreakdown;
+    if (breakdown != null && _hasAnyBreakdownCounts(breakdown)) {
+      return _tasksFromBreakdown(
+        breakdown,
+        propertyDetails: order.propertyDetails,
+      );
+    }
 
-    return items;
+    return const <MissionTaskItem>[];
   }
 
   static List<MissionTaskItem> buildServicesInfo({
@@ -66,8 +78,127 @@ class OrderMissionTaskMapper {
 
   static String keyFor(MissionTaskItem task, int index) => '${task.label}-$index';
 
-  static void _addCountTask(List<MissionTaskItem> items, String label, int? count) {
-    if (count == null || count <= 0) return;
-    items.add(MissionTaskItem(label: label, detail: count.toString()));
+  static List<CleaningRoomAssignmentModel> _resolveRooms(
+    FetchOrdersUsecaseModelDataItem order,
+  ) {
+    final assigned = order.myAssignedRooms;
+    if (assigned.isNotEmpty) return assigned;
+    return order.roomAssignments ?? const <CleaningRoomAssignmentModel>[];
+  }
+
+  static List<MissionTaskItem> _tasksFromRoomAssignments(
+    List<CleaningRoomAssignmentModel> rooms,
+  ) {
+    return rooms
+        .asMap()
+        .entries
+        .map((entry) => _taskFromRoomAssignment(entry.value, entry.key))
+        .toList(growable: false);
+  }
+
+  static MissionTaskItem _taskFromRoomAssignment(
+    CleaningRoomAssignmentModel room,
+    int index,
+  ) {
+    final displayLabel = room.displayLabel?.trim();
+
+    if (displayLabel != null &&
+        displayLabel.isNotEmpty &&
+        CleaningEnumTranslations.isArabicLabel(displayLabel)) {
+      return MissionTaskItem(label: displayLabel);
+    }
+
+    final type = CleaningEnumTranslations.preferArabicLabel(
+      room.roomTypeLabel,
+      room.roomType,
+      CleaningEnumTranslations.roomType,
+      fallback: 'غرفة',
+    );
+    final size = CleaningEnumTranslations.preferArabicLabel(
+      room.roomSizeLabel,
+      room.roomSize,
+      CleaningEnumTranslations.roomSize,
+      fallback: '',
+    );
+
+    final ordinal = extractRoomNumber(room.roomKey) ??
+        extractRoomNumber(displayLabel) ??
+        index + 1;
+
+    final hasSize = size.isNotEmpty && size != 'غير محدد';
+
+    return MissionTaskItem(
+      label: '$type $ordinal',
+      detail: hasSize ? size : null,
+    );
+  }
+
+  static List<MissionTaskItem> _tasksFromBreakdown(
+    PropertyRoomSizeBreakdown breakdown, {
+    PropertyDetailsData? propertyDetails,
+  }) {
+    final items = <MissionTaskItem>[];
+
+    for (final roomType in _roomTypeOrder) {
+      final counts = breakdown.countsForRoomType(roomType);
+      if (counts == null) continue;
+
+      final typeLabel = CleaningEnumTranslations.roomType(roomType);
+      var ordinal = 1;
+
+      for (final size in _sizeOrder) {
+        final count = counts.countFor(size);
+        if (count <= 0) continue;
+
+        final sizeLabel = CleaningEnumTranslations.roomSize(size);
+        for (var i = 0; i < count; i++) {
+          items.add(
+            MissionTaskItem(
+              label: '$typeLabel $ordinal',
+              detail: sizeLabel,
+            ),
+          );
+          ordinal++;
+        }
+      }
+    }
+
+    if (breakdown.livingRoom == null || breakdown.livingRoom!.total <= 0) {
+      final livingRoomTask = _livingRoomTaskFromLegacy(propertyDetails);
+      if (livingRoomTask != null) items.add(livingRoomTask);
+    }
+
+    return items;
+  }
+
+  static MissionTaskItem? _livingRoomTaskFromLegacy(
+    PropertyDetailsData? propertyDetails,
+  ) {
+    if (propertyDetails == null) return null;
+
+    final sizeLabel = CleaningEnumTranslations.preferArabicLabel(
+      propertyDetails.livingRoomSizeLabel,
+      propertyDetails.livingRoomSize,
+      CleaningEnumTranslations.livingRoomSize,
+      fallback: '',
+    );
+    if (sizeLabel.isEmpty ||
+        sizeLabel == 'غير محدد' ||
+        sizeLabel == 'لا يوجد') {
+      return null;
+    }
+
+    return MissionTaskItem(
+      label: '${CleaningEnumTranslations.roomType('living_room')} 1',
+      detail: sizeLabel,
+    );
+  }
+
+  static bool _hasAnyBreakdownCounts(PropertyRoomSizeBreakdown breakdown) {
+    for (final roomType in _roomTypeOrder) {
+      final counts = breakdown.countsForRoomType(roomType);
+      if (counts != null && counts.total > 0) return true;
+    }
+    return false;
   }
 }

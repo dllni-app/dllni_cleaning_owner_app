@@ -75,7 +75,9 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
       _syncTimerSession(resetCurrentSession: true);
     }
 
-    if (oldWidget.order.id != widget.order.id) {
+    if (oldWidget.order.id != widget.order.id ||
+        oldWidget.order.roomAssignments?.length !=
+            widget.order.roomAssignments?.length) {
       _initTasks();
     }
 
