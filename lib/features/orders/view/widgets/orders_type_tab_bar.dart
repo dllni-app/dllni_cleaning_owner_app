@@ -45,7 +45,11 @@ class _OrdersTypeTabBarState extends State<OrdersTypeTabBar>
     widget.orderNotifier.changeStatus(tab.status);
     context.read<OrdersBloc>().add(
       FetchOrdersUsecaseEvent(
-        params: FetchOrdersUsecaseParams(page: 1, status: tab.status),
+        params: FetchOrdersUsecaseParams(
+          page: 1,
+          status: tab.status,
+          assignedToCurrentWorker: true,
+        ),
         isReload: true,
       ),
     );
