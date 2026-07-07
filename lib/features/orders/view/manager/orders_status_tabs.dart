@@ -8,10 +8,10 @@ class OrdersStatusTab {
 }
 
 const List<OrdersStatusTab> ordersStatusTabs = <OrdersStatusTab>[
-  /*OrdersStatusTab(
+  OrdersStatusTab(
     status: CleaningBookingStatus.pending,
-    label: 'جديدة',
-  ),*/
+    label: 'بانتظار اكتمال الفريق',
+  ),
   OrdersStatusTab(status: CleaningBookingStatus.workerAssigned, label: 'مؤكدة'),
   OrdersStatusTab(
     status: CleaningBookingStatus.awaitingStartVerification,
