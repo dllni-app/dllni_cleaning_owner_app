@@ -29,7 +29,7 @@ class LoginUsecaseParams with Params {
     final body = <String, dynamic>{
       'phone': phone,
       'password': password,
-      'module': 'cleaning',
+      'module': 'cleaning_worker',
     };
     final fcmToken = _readStoredFcmToken();
     if (fcmToken != null) {
