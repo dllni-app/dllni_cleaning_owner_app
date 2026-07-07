@@ -104,9 +104,10 @@ class _WorkerReviewsScreenState extends State<WorkerReviewsScreen> {
                         child: _ReviewsStateCard(
                           icon: Icons.error_outline_rounded,
                           title: 'تعذر تحميل التقييمات',
-                          message:
-                              state.errorMessage ??
-                              'حدث خطأ غير متوقع، حاول مرة أخرى.',
+                          message: ErrorMessageFormatter.format(
+                            state.errorMessage,
+                            fallback: 'حدث خطأ غير متوقع، حاول مرة أخرى.',
+                          ),
                           actionLabel: 'إعادة المحاولة',
                           onAction: _fetchFirstPage,
                         ),
@@ -169,7 +170,10 @@ class _WorkerReviewsScreenState extends State<WorkerReviewsScreen> {
                         return _ReviewsStateCard(
                           icon: Icons.error_outline_rounded,
                           title: 'تعذر تحميل المزيد',
-                          message: state.errorMessage ?? 'حاول مرة أخرى.',
+                          message: ErrorMessageFormatter.format(
+                            state.errorMessage,
+                            fallback: 'حاول مرة أخرى.',
+                          ),
                           actionLabel: 'إعادة المحاولة',
                           onAction: _fetchNextPage,
                         );

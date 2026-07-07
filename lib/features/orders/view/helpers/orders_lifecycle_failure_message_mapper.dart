@@ -19,7 +19,7 @@ class OrdersLifecycleFailureMessageMapper {
       case _statusUnprocessable:
         return invalidStateMessage;
       default:
-        return failure.message;
+        return ErrorMessageFormatter.format(failure.message);
     }
   }
 }

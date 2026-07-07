@@ -10,6 +10,10 @@ class MissionTimerCard extends StatelessWidget {
     required this.valueText,
     required this.gradientColors,
     this.helperText,
+    this.startTimeLabel,
+    this.startTimeValue,
+    this.endTimeLabel,
+    this.endTimeValue,
   });
 
   final String serviceDate;
@@ -18,6 +22,13 @@ class MissionTimerCard extends StatelessWidget {
   final String valueText;
   final String? helperText;
   final List<Color> gradientColors;
+  final String? startTimeLabel;
+  final String? startTimeValue;
+  final String? endTimeLabel;
+  final String? endTimeValue;
+
+  bool get _hasTwoTimes =>
+      startTimeValue != null && endTimeValue != null;
 
   @override
   Widget build(BuildContext context) {
@@ -50,18 +61,42 @@ class MissionTimerCard extends StatelessWidget {
             ),
             child: Column(
               children: [
-                AppText.bodyMedium(
-                  titleText,
-                  color: Colors.white,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 4),
-                AppText.bodyLarge(
-                  valueText,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  textAlign: TextAlign.center,
-                ),
+                if (_hasTwoTimes)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _TimeColumn(
+                          label: startTimeLabel ?? '',
+                          value: startTimeValue!,
+                        ),
+                      ),
+                      Container(
+                        width: 1,
+                        height: 40,
+                        color: Colors.white.withAlpha(64),
+                      ),
+                      Expanded(
+                        child: _TimeColumn(
+                          label: endTimeLabel ?? '',
+                          value: endTimeValue!,
+                        ),
+                      ),
+                    ],
+                  )
+                else ...[
+                  AppText.bodyMedium(
+                    titleText,
+                    color: Colors.white,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 4),
+                  AppText.bodyLarge(
+                    valueText,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    textAlign: TextAlign.center,
+                  ),
+                ],
                 if (helperText != null) ...[
                   const SizedBox(height: 6),
                   AppText.bodySmall(
@@ -75,6 +110,36 @@ class MissionTimerCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _TimeColumn extends StatelessWidget {
+  const _TimeColumn({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        AppText.bodySmall(
+          label,
+          color: Colors.white,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 4),
+        AppText.bodyLarge(
+          value,
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          textAlign: TextAlign.center,
+        ),
+      ],
     );
   }
 }

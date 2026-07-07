@@ -19,6 +19,7 @@ import '../../helpers/order_work_timer_helper.dart';
 import 'mission/completion_message_sheet.dart';
 import 'mission/mission_finish_button.dart';
 import 'mission/mission_payment_summary_card.dart';
+import 'mission/mission_services_info_card.dart';
 import 'mission/mission_support_button.dart';
 import 'mission/mission_task_card.dart';
 import 'mission/mission_timer_card.dart';
@@ -74,10 +75,9 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
       _syncTimerSession(resetCurrentSession: true);
     }
 
-    final shouldResetTasks = oldWidget.order.id != widget.order.id ||
-        oldWidget.services.length != widget.services.length ||
-        oldWidget.addons.length != widget.addons.length;
-    if (shouldResetTasks) {
+    if (oldWidget.order.id != widget.order.id ||
+        oldWidget.order.roomAssignments?.length !=
+            widget.order.roomAssignments?.length) {
       _initTasks();
     }
 
@@ -100,8 +100,11 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
   OrderDetailsUiState get _uiState =>
       OrderLifecyclePolicy.detailsUiStateFor(widget.order);
 
-  List<MissionTaskItem> get _tasks => OrderMissionTaskMapper.build(
-        order: widget.order,
+  List<MissionTaskItem> get _tasks =>
+      OrderMissionTaskMapper.build(order: widget.order);
+
+  List<MissionTaskItem> get _servicesInfo =>
+      OrderMissionTaskMapper.buildServicesInfo(
         services: widget.services,
         addons: widget.addons,
       );
@@ -133,6 +136,26 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
           entry.value,
           entry.key,
         ));
+  }
+
+  List<Map<String, Object?>> _checkedTaskSnapshots() {
+    final snapshots = <Map<String, Object?>>[];
+    for (final entry in _tasks.asMap().entries) {
+      final task = entry.value;
+      if (!_isTaskChecked(task, entry.key)) continue;
+
+      final label = task.label.trim();
+      final detail = task.detail?.trim();
+      if (label.isEmpty) continue;
+
+      snapshots.add(<String, Object?>{
+        'name': label,
+        'label': detail == null || detail.isEmpty ? label : '$label: $detail',
+        if (detail != null && detail.isNotEmpty) 'detail': detail,
+        'sort': entry.key,
+      });
+    }
+    return snapshots;
   }
 
   bool get _isChecklistLocked => !_uiState.isActiveWork;
@@ -171,6 +194,8 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
         params: CompleteOrderUsecaseParams(
           id: widget.order.id!,
           completionMessage: trimmed,
+          cleaningServices: const <Map<String, Object?>>[],
+          propertiesRooms: _checkedTaskSnapshots(),
         ),
       ),
     );
@@ -295,6 +320,64 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     final minutes = duration.inMinutes.remainder(60);
     final seconds = duration.inSeconds.remainder(60);
     return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  String _formatClock(DateTime dateTime) {
+    return DateFormat('hh:mm a', 'en').format(dateTime);
+  }
+
+  DateTime? get _orderStartTime {
+    final workStarted = DateTime.tryParse(widget.order.workStartedAt ?? '');
+    if (workStarted != null) return workStarted;
+
+    final scheduled = _parseScheduledDateTime();
+    if (scheduled != null) return scheduled;
+
+    return _timerSession?.sessionStart;
+  }
+
+  DateTime? _parseScheduledDateTime() {
+    final dateRaw = widget.order.scheduledDate?.trim();
+    if (dateRaw == null || dateRaw.isEmpty) return null;
+
+    final timeRaw = widget.order.scheduledTime?.trim();
+    if (timeRaw == null || timeRaw.isEmpty) {
+      return DateTime.tryParse(dateRaw);
+    }
+
+    final combined = DateTime.tryParse('${dateRaw}T$timeRaw');
+    if (combined != null) return combined;
+
+    final dateOnly = DateTime.tryParse(dateRaw);
+    if (dateOnly == null) return null;
+
+    final timeParts = timeRaw.split(':');
+    if (timeParts.length < 2) return dateOnly;
+    final hour = int.tryParse(timeParts[0]);
+    final minute = int.tryParse(timeParts[1]);
+    if (hour == null || minute == null) return dateOnly;
+    return DateTime(dateOnly.year, dateOnly.month, dateOnly.day, hour, minute);
+  }
+
+  DateTime? get _orderEndTime {
+    final start = _orderStartTime;
+    if (start == null) return null;
+
+    final estimate = OrderWorkTimerHelper.originalBookingDuration(
+      totalHours: widget.order.totalHours,
+      estimatedHours: widget.order.estimatedHours,
+    );
+    if (estimate == null) return null;
+
+    final extensionMinutes = OrderWorkTimerHelper.totalAcceptedExtensionMinutes(
+      widget.order.timeWarnings,
+    );
+    return start.add(estimate + Duration(minutes: extensionMinutes));
+  }
+
+  bool get _canShowTwoTimes {
+    if (!_uiState.isActiveWork || !_isWorkTimerAvailable) return false;
+    return _orderStartTime != null && _orderEndTime != null;
   }
 
   String _serviceDate() {
@@ -593,8 +676,25 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                       valueText: _timerValueText,
                       helperText: _timerHelperText,
                       gradientColors: _timerGradientColors,
+                      startTimeLabel:
+                          _canShowTwoTimes ? 'وقت بدء العمل' : null,
+                      startTimeValue: _canShowTwoTimes
+                          ? _formatClock(_orderStartTime!)
+                          : null,
+                      endTimeLabel: _canShowTwoTimes
+                          ? 'وقت الانتهاء المتوقع'
+                          : null,
+                      endTimeValue: _canShowTwoTimes
+                          ? _formatClock(_orderEndTime!)
+                          : null,
                     ),
                     14.verticalSpace,
+                    if (!_uiState.isDispute &&
+                        !_uiState.isFinal &&
+                        _servicesInfo.isNotEmpty) ...[
+                      MissionServicesInfoCard(services: _servicesInfo),
+                      14.verticalSpace,
+                    ],
                     if (!_uiState.isDispute && !_uiState.isFinal)
                       MissionTaskCard(
                         tasks: _tasks,
@@ -645,7 +745,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
         if (!visible) return const SizedBox.shrink();
         return MissionFinishButton(
           loading: loading,
-          enabled: _canFinish && _allTasksChecked && !loading,
+          enabled: _canFinish && !loading,
           text: _finishButtonText,
           onPressed: () => unawaited(_showCompletionMessageSheet()),
         );

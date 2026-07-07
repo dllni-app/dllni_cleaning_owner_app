@@ -104,7 +104,7 @@ class MissionTaskCard extends StatelessWidget {
           if (!isChecklistLocked && !allTasksChecked) ...[
             const SizedBox(height: 2),
             AppText.bodySmall(
-              'يرجى تحديد جميع المهام قبل إنهاء العمل',
+              'حدّد المهام التي أنجزتها قبل إرسال طلب الإنهاء',
               color: context.error,
             ),
           ],

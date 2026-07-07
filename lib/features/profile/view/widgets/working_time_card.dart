@@ -22,10 +22,10 @@ class WorkingTimeCard extends StatefulWidget {
   final int dayIndex;
 
   @override
-  State<WorkingTimeCard> createState() => _WorkingTimeCardState();
+  State<WorkingTimeCard> createState() => WorkingTimeCardState();
 }
 
-class _WorkingTimeCardState extends State<WorkingTimeCard> {
+class WorkingTimeCardState extends State<WorkingTimeCard> {
   static const List<String> periods = [
     'الفترة الأولى',
     'الفترة الثانية',
@@ -84,6 +84,25 @@ class _WorkingTimeCardState extends State<WorkingTimeCard> {
       periodsList[index].from = from;
       periodsList[index].to = to;
     });
+  }
+
+  WorkingDay toWorkingDay() {
+    if (!isEnabled) {
+      return WorkingDay.offline();
+    }
+
+    final hours = periodsList
+        .where(
+          (period) =>
+              period.from?.trim().isNotEmpty == true &&
+              period.to?.trim().isNotEmpty == true,
+        )
+        .map(
+          (period) => WorkingDayItem(from: period.from, to: period.to),
+        )
+        .toList();
+
+    return WorkingDay(isWorking: true, hours: hours);
   }
 
   @override
@@ -163,6 +182,9 @@ class _WorkingTimeCardState extends State<WorkingTimeCard> {
                 onChanged: (value) {
                   setState(() {
                     isEnabled = value;
+                    if (isEnabled && periodsList.isEmpty) {
+                      periodsList.add(PeriodData());
+                    }
                   });
                 },
               ),

@@ -169,7 +169,10 @@ class ExtensionRequestsSheet {
                               );
                             },
                             failedWidget: AppText.bodyMedium(
-                              state.errorMessage ?? 'خطأ',
+                              ErrorMessageFormatter.format(
+                                state.errorMessage,
+                                fallback: 'خطأ',
+                              ),
                               color: context.error,
                             ),
                             onTapRetry: () {

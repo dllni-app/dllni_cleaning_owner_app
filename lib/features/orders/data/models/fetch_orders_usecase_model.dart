@@ -964,6 +964,14 @@ class RoomSizeCounts {
       small: _toInt(json['small']) ?? 0,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'large': large,
+      'medium': medium,
+      'small': small,
+    };
+  }
 }
 
 class PropertyRoomSizeBreakdown {
@@ -974,6 +982,7 @@ class PropertyRoomSizeBreakdown {
     this.bathroom,
     this.livingRoom,
     this.hall,
+    this.corridor,
   });
 
   final RoomSizeCounts? balcony;
@@ -982,6 +991,7 @@ class PropertyRoomSizeBreakdown {
   final RoomSizeCounts? bathroom;
   final RoomSizeCounts? livingRoom;
   final RoomSizeCounts? hall;
+  final RoomSizeCounts? corridor;
 
   RoomSizeCounts? countsForRoomType(String roomType) {
     switch (roomType) {
@@ -997,6 +1007,8 @@ class PropertyRoomSizeBreakdown {
         return livingRoom;
       case 'hall':
         return hall;
+      case 'corridor':
+        return corridor;
       default:
         return null;
     }
@@ -1016,7 +1028,20 @@ class PropertyRoomSizeBreakdown {
       bathroom: countsFor('bathroom'),
       livingRoom: countsFor('living_room'),
       hall: countsFor('hall'),
+      corridor: countsFor('corridor'),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      if (balcony != null) 'balcony': balcony!.toJson(),
+      if (bedroom != null) 'bedroom': bedroom!.toJson(),
+      if (kitchen != null) 'kitchen': kitchen!.toJson(),
+      if (bathroom != null) 'bathroom': bathroom!.toJson(),
+      if (livingRoom != null) 'living_room': livingRoom!.toJson(),
+      if (hall != null) 'hall': hall!.toJson(),
+      if (corridor != null) 'corridor': corridor!.toJson(),
+    };
   }
 }
 
@@ -1139,6 +1164,7 @@ class PropertyDetailsData {
       'living_room_size_label': livingRoomSizeLabel,
       'cleaning_mode': cleaningMode,
       'cleaning_mode_label': cleaningModeLabel,
+      'room_size_breakdown': roomSizeBreakdown?.toJson(),
       'event_type': eventType,
       'guest_count': guestCount,
       'venue_type': venueType,

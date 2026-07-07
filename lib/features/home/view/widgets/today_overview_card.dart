@@ -1,6 +1,5 @@
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/extentions.dart';
-import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shimmer/shimmer.dart';
@@ -55,7 +54,7 @@ class TodayOverviewCard extends StatelessWidget {
                             );
                           case BlocStatus.failed:
                             return AppText.labelMedium(
-                              state.errorMessage!.tr(),
+                              ErrorMessageFormatter.format(state.errorMessage),
                               color: context.error,
                             );
                           case BlocStatus.success:

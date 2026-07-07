@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
-import 'orders_status_tabs.dart';
+import '../../data/models/cleaning_booking_status.dart';
 
 class OrderNotifier {
-  OrderNotifier() : status = ValueNotifier(ordersStatusTabs.first.status);
+  OrderNotifier()
+      : status = ValueNotifier(CleaningBookingStatus.workerAssigned);
 
   ValueNotifier<String> status;
 

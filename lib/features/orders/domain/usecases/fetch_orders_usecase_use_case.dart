@@ -25,6 +25,7 @@ class FetchOrdersUsecaseParams with Params {
   final String? scheduledDateFrom;
   final String? scheduledDateTo;
   final String? sort;
+  final bool assignedToCurrentWorker;
   final int page;
   final int perPage;
 
@@ -34,6 +35,7 @@ class FetchOrdersUsecaseParams with Params {
     this.scheduledDateFrom,
     this.scheduledDateTo,
     this.sort,
+    this.assignedToCurrentWorker = false,
     required this.page,
     this.perPage = 10,
   });
@@ -42,6 +44,7 @@ class FetchOrdersUsecaseParams with Params {
   QueryParams getParams() {
     final params = {
       "filter[forCurrentWorker]": 1,
+      "filter[assignedToCurrentWorker]": assignedToCurrentWorker ? 1 : null,
       "filter[status]": status,
       "filter[scheduledDate]": scheduledDate,
       "filter[scheduledDateFrom]": scheduledDateFrom,

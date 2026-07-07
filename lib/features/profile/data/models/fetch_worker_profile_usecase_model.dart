@@ -230,11 +230,29 @@ class WorkingDay {
   }
 
   dynamic toJson() {
+    if (!isWorking) {
+      return {
+        'available': false,
+        'data': <Map<String, String>>[],
+      };
+    }
+
+    final data = hours
+        .where(
+          (item) =>
+              item.from?.trim().isNotEmpty == true &&
+              item.to?.trim().isNotEmpty == true,
+        )
+        .map((item) => {item.from!: item.to!})
+        .toList();
+
     return {
-      "available": isWorking,
-      "data": hours.map((e) => {e.from: e.to}).toList(),
+      'available': true,
+      'data': data,
     };
   }
+
+  static WorkingDay offline() => WorkingDay(isWorking: false, hours: const []);
 }
 
 class FetchWorkerProfileUsecaseModelDataDefaultWorkingHours {
@@ -269,14 +287,17 @@ class FetchWorkerProfileUsecaseModelDataDefaultWorkingHours {
   }
 
   Map<String, dynamic> toJson() => {
-    'sunday': sunday?.toJson(),
-    'monday': monday?.toJson(),
-    'tuesday': tuesday?.toJson(),
-    'wednesday': wednesday?.toJson(),
-    'thursday': thursday?.toJson(),
-    'friday': friday?.toJson(),
-    'saturday': saturday?.toJson(),
-  };
+        'sunday': _dayToJson(sunday),
+        'monday': _dayToJson(monday),
+        'tuesday': _dayToJson(tuesday),
+        'wednesday': _dayToJson(wednesday),
+        'thursday': _dayToJson(thursday),
+        'friday': _dayToJson(friday),
+        'saturday': _dayToJson(saturday),
+      };
+
+  static dynamic _dayToJson(WorkingDay? day) =>
+      (day ?? WorkingDay.offline()).toJson();
 }
 
 class FetchWorkerProfileUsecaseModelDataUser {

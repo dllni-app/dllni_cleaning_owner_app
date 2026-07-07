@@ -515,7 +515,10 @@ class _HomeOrdersSection extends StatelessWidget {
                 );
               },
               failedWidget: AppText.labelLarge(
-                state.errorMessage?.tr() ?? 'حدث خطأ ما',
+                ErrorMessageFormatter.format(
+                  state.errorMessage,
+                  fallback: 'حدث خطأ ما',
+                ),
                 color: context.error,
               ),
               onTapRetry: onRetry,

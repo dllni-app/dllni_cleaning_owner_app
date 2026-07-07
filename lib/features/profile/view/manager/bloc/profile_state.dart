@@ -28,6 +28,9 @@ class ProfileState {
   BlocStatus? cleaningNeighborhoodsStatus;
   List<CleaningNeighborhoodModel>? cleaningNeighborhoods;
   String? cleaningNeighborhoodsErrorMessage;
+  BlocStatus? fetchWorkingHoursStatus;
+  BlocStatus? updateWorkingHoursStatus;
+  WorkerWorkingHoursModel? workingHours;
   String? errorMessage;
 
   ProfileState({
@@ -63,6 +66,9 @@ class ProfileState {
     this.cleaningNeighborhoodsStatus,
     this.cleaningNeighborhoods,
     this.cleaningNeighborhoodsErrorMessage,
+    this.fetchWorkingHoursStatus,
+    this.updateWorkingHoursStatus,
+    this.workingHours,
   });
 
   ProfileState copyWith({
@@ -98,6 +104,9 @@ class ProfileState {
     List<CleaningNeighborhoodModel>? cleaningNeighborhoods,
     String? cleaningNeighborhoodsErrorMessage,
     bool clearCleaningNeighborhoodsErrorMessage = false,
+    BlocStatus? fetchWorkingHoursStatus,
+    BlocStatus? updateWorkingHoursStatus,
+    WorkerWorkingHoursModel? workingHours,
   }) => ProfileState(
     errorMessage: errorMessage ?? this.errorMessage,
     workerProfileUsecase: workerProfileUsecase ?? this.workerProfileUsecase,
@@ -142,6 +151,11 @@ class ProfileState {
         ? null
         : (cleaningNeighborhoodsErrorMessage ??
               this.cleaningNeighborhoodsErrorMessage),
+    fetchWorkingHoursStatus:
+        fetchWorkingHoursStatus ?? this.fetchWorkingHoursStatus,
+    updateWorkingHoursStatus:
+        updateWorkingHoursStatus ?? this.updateWorkingHoursStatus,
+    workingHours: workingHours ?? this.workingHours,
   );
 
   BlocStatus get notificationsStatus => notificationsPagination.status;

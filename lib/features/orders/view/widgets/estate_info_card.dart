@@ -20,27 +20,18 @@ class EstateInfoCard extends StatefulWidget {
 }
 
 class _EstateInfoCardState extends State<EstateInfoCard> {
-  List<String> attributes = [];
-
   bool get _isEventAssistance =>
       EventAssistanceOrderHelper.isEventAssistance(widget.order.propertyType);
 
+  String get address => visibleOrderAddress(
+        address:
+            widget.order.propertyDetails?.address ?? widget.order.locationName,
+        status: widget.order.status,
+      );
 
- late final String address ;
-  @override
-  void initState() {
-    address= visibleOrderAddress(
-      address:
-      widget.order.propertyDetails?.address ?? widget.order.locationName,
-      status: widget.order.status,
-    );
-    super.initState();
-    _refreshAttributes();
-  }
-
-  void _refreshAttributes() {
+  List<String> get attributes {
     if (_isEventAssistance) {
-      attributes = <String>[];
+      final labels = <String>[];
       final guests = widget.order.propertyDetails?.guestCount;
       final venue = widget.order.propertyDetails?.venueType;
       final hours = EventAssistanceOrderHelper.resolveBookedHours(
@@ -51,21 +42,20 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
       log('guests: ${guests.toString()}');
       log('venue: ${venue.toString()}');
       log('hours: ${hours.toString()}');
-      if (guests != null) attributes.add('$guests ضيف');
+      if (guests != null) labels.add('$guests ضيف');
       if (venue != null && venue.isNotEmpty) {
-        attributes.add(CleaningEnumTranslations.venueType(venue));
+        labels.add(CleaningEnumTranslations.venueType(venue));
       }
       if (hours != null) {
-        attributes.add(EventAssistanceOrderHelper.formatHours(hours));
+        labels.add(EventAssistanceOrderHelper.formatHours(hours));
       }
-      return;
+      return labels;
     }
 
-    attributes = PropertyAttributeLabelsHelper.build(
+    return PropertyAttributeLabelsHelper.build(
       widget.order.propertyDetails,
     );
   }
-
 
   @override
   Widget build(BuildContext context) {

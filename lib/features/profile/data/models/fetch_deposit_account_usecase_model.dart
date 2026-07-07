@@ -63,6 +63,7 @@ class FetchDepositAccountUsecaseModel {
   final num? minimumRequired;
   final String? status;
   final num? exceedanceAmount;
+  final num? rawDebtAmount;
   final bool? isEligibleForNewRequests;
   final String? createdAt;
   final String? updatedAt;
@@ -75,10 +76,23 @@ class FetchDepositAccountUsecaseModel {
     this.minimumRequired,
     this.status,
     this.exceedanceAmount,
+    this.rawDebtAmount,
     this.isEligibleForNewRequests,
     this.createdAt,
     this.updatedAt,
   });
+
+  /// Outstanding admin debt owed by the worker.
+  ///
+  /// Newer API responses may send this as `debtAmount` / `debt_amount`.
+  /// Older responses already contain the enough balance fields to derive it:
+  /// deposited principal - withdrawals - current balance.
+  num get debtAmount {
+    if (rawDebtAmount != null) return rawDebtAmount! < 0 ? 0 : rawDebtAmount!;
+
+    final calculated = (depositedTotal ?? 0) - (withdrawnTotal ?? 0) - (currentBalance ?? 0);
+    return calculated > 0 ? calculated : 0;
+  }
 
   factory FetchDepositAccountUsecaseModel.fromJson(Map<String, dynamic> json) {
     return FetchDepositAccountUsecaseModel(
@@ -98,6 +112,9 @@ class FetchDepositAccountUsecaseModel {
       status: _toStringValue(_pick(json, const <String>['status'])),
       exceedanceAmount: _toNum(
         _pick(json, const <String>['exceedanceAmount', 'exceedance_amount']),
+      ),
+      rawDebtAmount: _toNum(
+        _pick(json, const <String>['debtAmount', 'debt_amount', 'commissionDue', 'commission_due']),
       ),
       isEligibleForNewRequests: _toBool(
         _pick(json, const <String>[
@@ -123,6 +140,7 @@ class FetchDepositAccountUsecaseModel {
       'minimumRequired': minimumRequired,
       'status': status,
       'exceedanceAmount': exceedanceAmount,
+      'debtAmount': debtAmount,
       'isEligibleForNewRequests': isEligibleForNewRequests,
       'createdAt': createdAt,
       'updatedAt': updatedAt,

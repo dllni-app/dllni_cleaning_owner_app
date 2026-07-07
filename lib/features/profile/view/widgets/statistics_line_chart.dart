@@ -43,9 +43,23 @@ class StatisticsLineChart extends StatelessWidget {
             builder: (context, state) {
               switch (state.workerProfileUsecaseStatus) {
                 case null:
-                  return AppText.labelMedium(state.errorMessage ?? 'حدث خطا ما', color: context.error, fontWeight: FontWeight.bold);
+                  return AppText.labelMedium(
+                    ErrorMessageFormatter.format(
+                      state.errorMessage,
+                      fallback: 'حدث خطا ما',
+                    ),
+                    color: context.error,
+                    fontWeight: FontWeight.bold,
+                  );
                 case BlocStatus.failed:
-                  return AppText.labelMedium(state.errorMessage ?? 'حدث خطا ما', color: context.error, fontWeight: FontWeight.bold);
+                  return AppText.labelMedium(
+                    ErrorMessageFormatter.format(
+                      state.errorMessage,
+                      fallback: 'حدث خطا ما',
+                    ),
+                    color: context.error,
+                    fontWeight: FontWeight.bold,
+                  );
                 case BlocStatus.success:
                   return AppText.displaySmall(
                     state.workerProfileUsecase?.data?.totalCompletedJobs == null ? '-' : '${state.workerProfileUsecase?.data?.totalCompletedJobs}',
@@ -80,9 +94,23 @@ class StatisticsLineChart extends StatelessWidget {
             builder: (context, state) {
               switch (state.workerProfileUsecaseStatus) {
                 case null:
-                  return AppText.labelMedium(state.errorMessage ?? 'حدث خطا ما', color: context.error, fontWeight: FontWeight.bold);
+                  return AppText.labelMedium(
+                    ErrorMessageFormatter.format(
+                      state.errorMessage,
+                      fallback: 'حدث خطا ما',
+                    ),
+                    color: context.error,
+                    fontWeight: FontWeight.bold,
+                  );
                 case BlocStatus.failed:
-                  return AppText.labelMedium(state.errorMessage ?? 'حدث خطا ما', color: context.error, fontWeight: FontWeight.bold);
+                  return AppText.labelMedium(
+                    ErrorMessageFormatter.format(
+                      state.errorMessage,
+                      fallback: 'حدث خطا ما',
+                    ),
+                    color: context.error,
+                    fontWeight: FontWeight.bold,
+                  );
                 case BlocStatus.success:
                   return AppText.labelLarge('%${state.workerProfileUsecase?.data?.trustScore} نقاط الثقة', fontWeight: FontWeight.w400);
                 case BlocStatus.loading:
@@ -120,7 +148,14 @@ class StatisticsLineChart extends StatelessWidget {
                     return Center(child: CircularProgressIndicator.adaptive());
                   case BlocStatus.failed:
                     return Center(
-                      child: AppText.labelMedium(state.errorMessage ?? 'حدث خطا ما', color: context.error, fontWeight: FontWeight.bold),
+                      child: AppText.labelMedium(
+                        ErrorMessageFormatter.format(
+                          state.errorMessage,
+                          fallback: 'حدث خطا ما',
+                        ),
+                        color: context.error,
+                        fontWeight: FontWeight.bold,
+                      ),
                     );
                   case BlocStatus.success:
                     final chartData = state.workerStatistics?.chart;

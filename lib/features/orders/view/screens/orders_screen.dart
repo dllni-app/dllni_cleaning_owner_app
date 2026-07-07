@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:common_package/helpers/error_message_formatter.dart';
 import 'package:common_package/helpers/pusher_service_logger.dart';
 import 'package:common_package/widgets/app_text.dart';
 import 'package:common_package/helpers/shared_preferences_helper.dart';
@@ -85,10 +86,21 @@ class _OrdersScreenState extends State<OrdersScreen> {
     }
 
     return (
-    canReceive: canReceive,
-    message: (message == null || message.isEmpty)
-        ? 'لا يمكن لحسابك استقبال الطلبات الجديدة حالياً.'
-        : message,
+      canReceive: canReceive,
+      message: (message == null || message.isEmpty)
+          ? 'لا يمكن لحسابك استقبال الطلبات الجديدة حالياً.'
+          : message,
+    );
+  }
+
+  FetchOrdersUsecaseParams _assignedOrdersParams({
+    required int page,
+    String? status,
+  }) {
+    return FetchOrdersUsecaseParams(
+      page: page,
+      status: status ?? orderNotifier.status.value,
+      assignedToCurrentWorker: true,
     );
   }
 
@@ -123,10 +135,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final initialStatus = widget.initialStatus;
     final hasInitialStatus = initialStatus != null && initialStatus.trim().isNotEmpty;
     final firstFetchStatus = hasInitialStatus ? initialStatus : CleaningBookingStatus.workerAssigned;
-    if (hasInitialStatus) {
-      orderNotifier.changeStatus(initialStatus);
-    }
-    _ordersBloc = getIt<OrdersBloc>()..add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: firstFetchStatus), isReload: true));
+    orderNotifier.changeStatus(firstFetchStatus);
+    _ordersBloc = getIt<OrdersBloc>()
+      ..add(
+        FetchOrdersUsecaseEvent(
+          params: _assignedOrdersParams(page: 1, status: firstFetchStatus),
+          isReload: true,
+        ),
+      );
 
     _workerId = _resolveWorkerId();
     if (_workerId != null) {
@@ -201,11 +217,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
         eventHandledAtMs: DateTime.now().millisecondsSinceEpoch,
         fallbackReason: reason,
       );
-      _ordersBloc.add(FetchOrdersUsecaseEvent(
-          params: FetchOrdersUsecaseParams(page: 1, status: orderNotifier.status.value),
+      _ordersBloc.add(
+        FetchOrdersUsecaseEvent(
+          params: _assignedOrdersParams(page: 1),
           isReload: true,
-          silent: true
-      ));
+          silent: true,
+        ),
+      );
     });
   }
 
@@ -257,7 +275,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       padding: const EdgeInsetsDirectional.only(top: 40),
                       child: Center(
                         child: AppText.labelMedium(
-                          orders.errorMessage.isNotEmpty ? orders.errorMessage : (state.errorMessage ?? 'تعذر تحميل المهام'),
+                          ErrorMessageFormatter.format(
+                            orders.errorMessage.isNotEmpty
+                                ? orders.errorMessage
+                                : state.errorMessage,
+                            fallback: 'تعذر تحميل المهام',
+                          ),
                           fontWeight: FontWeight.w400,
                           textAlign: TextAlign.center,
                         ),
@@ -280,7 +303,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                 context.read<OrdersBloc>().add(
                                   FetchOrdersUsecaseEvent(
                                     isReload: false,
-                                    params: FetchOrdersUsecaseParams(
+                                    params: _assignedOrdersParams(
                                       page: orders.pageNumber,
                                       status: status,
                                     ),
@@ -327,7 +350,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       );
                     },
                     onTapRetry: () {
-                      context.read<OrdersBloc>().add(FetchOrdersUsecaseEvent(params: FetchOrdersUsecaseParams(page: 1, status: orderNotifier.status.value), isReload: true));
+                      context.read<OrdersBloc>().add(
+                        FetchOrdersUsecaseEvent(
+                          params: _assignedOrdersParams(page: 1),
+                          isReload: true,
+                        ),
+                      );
                     },
                   );
                 },

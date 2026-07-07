@@ -94,6 +94,8 @@ import '../../features/profile/domain/usecases/fetch_worker_reviews_use_case.dar
     as _i959;
 import '../../features/profile/domain/usecases/fetch_worker_statistics_use_case.dart'
     as _i280;
+import '../../features/profile/domain/usecases/fetch_worker_working_hours_use_case.dart'
+    as _i134;
 import '../../features/profile/domain/usecases/mark_all_notifications_read_use_case.dart'
     as _i10;
 import '../../features/profile/domain/usecases/mark_notification_read_use_case.dart'
@@ -104,6 +106,8 @@ import '../../features/profile/domain/usecases/update_worker_profile_use_case.da
     as _i857;
 import '../../features/profile/domain/usecases/update_worker_work_areas_use_case.dart'
     as _i780;
+import '../../features/profile/domain/usecases/update_worker_working_hours_use_case.dart'
+    as _i787;
 import '../../features/profile/view/manager/bloc/profile_bloc.dart' as _i821;
 import '../realtime/cleaning_booking_pusher_service.dart' as _i432;
 import 'injection.dart' as _i464;
@@ -251,6 +255,10 @@ _i174.GetIt $initGetIt(
   gh.lazySingleton<_i280.FetchWorkerStatisticsUseCase>(
     () => _i280.FetchWorkerStatisticsUseCase(profile: gh<_i275.ProfileRepo>()),
   );
+  gh.lazySingleton<_i134.FetchWorkerWorkingHoursUseCase>(
+    () =>
+        _i134.FetchWorkerWorkingHoursUseCase(profile: gh<_i275.ProfileRepo>()),
+  );
   gh.lazySingleton<_i973.UpdateDisputeUseCase>(
     () => _i973.UpdateDisputeUseCase(profile: gh<_i275.ProfileRepo>()),
   );
@@ -259,6 +267,10 @@ _i174.GetIt $initGetIt(
   );
   gh.lazySingleton<_i780.UpdateWorkerWorkAreasUseCase>(
     () => _i780.UpdateWorkerWorkAreasUseCase(profile: gh<_i275.ProfileRepo>()),
+  );
+  gh.lazySingleton<_i787.UpdateWorkerWorkingHoursUseCase>(
+    () =>
+        _i787.UpdateWorkerWorkingHoursUseCase(profile: gh<_i275.ProfileRepo>()),
   );
   gh.lazySingleton<_i976.AuthRepo>(
     () => _i751.AuthRepoImpl(
@@ -284,6 +296,8 @@ _i174.GetIt $initGetIt(
       gh<_i338.MarkNotificationReadUseCase>(),
       gh<_i959.FetchWorkerReviewsUseCase>(),
       gh<_i906.FetchCleaningNeighborhoodsUseCase>(),
+      gh<_i134.FetchWorkerWorkingHoursUseCase>(),
+      gh<_i787.UpdateWorkerWorkingHoursUseCase>(),
     ),
   );
   gh.factory<_i648.HomeBloc>(
