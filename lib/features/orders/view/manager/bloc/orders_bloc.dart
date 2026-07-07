@@ -63,7 +63,11 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
   final PostBookingLocationUseCase postBookingLocationUseCase;
   final FetchSecurityCodeUseCase fetchSecurityCodeUseCase;
   final StartWorkUseCase startWorkUseCase;
-  String _lastOrdersStatusFilter = CleaningBookingStatus.workerAssigned;
+  FetchOrdersUsecaseParams _lastOrdersFilter = FetchOrdersUsecaseParams(
+    page: 1,
+    status: CleaningBookingStatus.workerAssigned,
+    assignedToCurrentWorker: true,
+  );
   int? _arrivingBookingId;
   int? _securityCodeInFlightForBookingId;
   int? _securityCodeLoadedForBookingId;
@@ -115,12 +119,15 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
   }
 
   void _setOrdersListFilter(
-    SetOrdersListFilterEvent event,
-    Emitter<OrdersState> emit,
-  ) {
-    _lastOrdersStatusFilter = event.status;
+      SetOrdersListFilterEvent event,
+      Emitter<OrdersState> emit,
+      ) {
+    _lastOrdersFilter = FetchOrdersUsecaseParams(
+      page: 1,
+      status: event.status,
+      assignedToCurrentWorker: true,
+    );
   }
-
   EventTransformer<T> droppableProMax<T extends EventWithReload>() {
     return (events, mapper) {
       return events.transform(ExhaustMapStreamTransformer(maper: mapper));
@@ -137,7 +144,8 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
   FutureOr<void> _fetchOrdersUsecase(
     FetchOrdersUsecaseEvent event,
     Emitter<OrdersState> emit,
-  ) async {
+  )
+  async {
     _rememberOrdersListFilter(event.params);
     if (!state.ordersUsecase!.isEndPage || event.isReload) {
       if (event.silent) {
@@ -193,13 +201,23 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
   }
 
   void _rememberOrdersListFilter(FetchOrdersUsecaseParams params) {
-    _lastOrdersStatusFilter = params.status ?? _lastOrdersStatusFilter;
+    _lastOrdersFilter = params;
   }
 
   void _refreshOrdersList({required String status, bool silent = true}) {
     add(
       FetchOrdersUsecaseEvent(
-        params: FetchOrdersUsecaseParams(page: 1, status: status),
+        params: FetchOrdersUsecaseParams(
+          page: 1,
+          perPage: _lastOrdersFilter.perPage,
+          status: status,
+          scheduledDate: _lastOrdersFilter.scheduledDate,
+          scheduledDateFrom: _lastOrdersFilter.scheduledDateFrom,
+          scheduledDateTo: _lastOrdersFilter.scheduledDateTo,
+          sort: _lastOrdersFilter.sort,
+          assignedToCurrentWorker:
+          _lastOrdersFilter.assignedToCurrentWorker,
+        ),
         isReload: true,
         silent: silent,
       ),
@@ -207,7 +225,23 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
   }
 
   void _refreshLastOrdersList({bool silent = true}) {
-    _refreshOrdersList(status: _lastOrdersStatusFilter, silent: silent);
+    add(
+      FetchOrdersUsecaseEvent(
+        params: FetchOrdersUsecaseParams(
+          page: 1,
+          perPage: _lastOrdersFilter.perPage,
+          status: _lastOrdersFilter.status,
+          scheduledDate: _lastOrdersFilter.scheduledDate,
+          scheduledDateFrom: _lastOrdersFilter.scheduledDateFrom,
+          scheduledDateTo: _lastOrdersFilter.scheduledDateTo,
+          sort: _lastOrdersFilter.sort,
+          assignedToCurrentWorker:
+          _lastOrdersFilter.assignedToCurrentWorker,
+        ),
+        isReload: true,
+        silent: silent,
+      ),
+    );
   }
 
   void _refreshPendingOrders({bool silent = true}) {
@@ -277,7 +311,8 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
   FutureOr<void> _acceptOrderUsecase(
     AcceptOrderUsecaseEvent event,
     Emitter<OrdersState> emit,
-  ) async {
+  )
+  async {
     emit(
       state.copyWith(
         acceptOrderUsecaseStatus: BlocStatus.loading,
@@ -892,7 +927,8 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
         if (OrdersRealtimeHydrationPolicy.canUpsertPendingOrder(
           status: details.status,
           applyToPendingList: event.applyToPendingList,
-          lastOrdersStatusFilter: _lastOrdersStatusFilter,
+          lastOrdersStatusFilter:
+          _lastOrdersFilter.status ?? CleaningBookingStatus.workerAssigned,
         )) {
           final listItem = OrderDetailsToListItemMapper.fromDetails(details);
           emit(
