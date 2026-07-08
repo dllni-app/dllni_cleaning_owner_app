@@ -1,3 +1,4 @@
+import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_realtime_contract.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/pusher_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pusher_channels_flutter/pusher_channels_flutter.dart';
@@ -73,6 +74,36 @@ void main() {
       await handle.dispose();
     });
 
+    test('matches Laravel dot-prefixed and FQCN broadcast event names', () async {
+      final fakeBridge = _FakePusherClientBridge();
+      final manager = PusherManager(clientBridge: fakeBridge);
+
+      var receivedCount = 0;
+      final handle = await manager.listen(
+        channelName: 'private-test.created',
+        eventNames: const <String>{CleaningRealtimeContract.bookingCreated},
+        onEvent: (_) => receivedCount++,
+      );
+
+      fakeBridge.emitEvent(
+        PusherEvent(
+          channelName: 'private-test.created',
+          eventName: '.CleaningBookingCreated',
+          data: const <String, dynamic>{'bookingId': 10},
+        ),
+      );
+      fakeBridge.emitEvent(
+        PusherEvent(
+          channelName: 'private-test.created',
+          eventName: r'Modules\Cleaning\Events\CleaningBookingCreated',
+          data: const <String, dynamic>{'bookingId': 11},
+        ),
+      );
+
+      expect(receivedCount, 2);
+      await handle.dispose();
+    });
+
     test('filters events by name', () async {
       final fakeBridge = _FakePusherClientBridge();
       final manager = PusherManager(clientBridge: fakeBridge);
@@ -116,7 +147,7 @@ class _FakePusherClientBridge implements PusherClientBridge {
 
   late void Function(String channelName, dynamic data) _onSubscriptionSucceeded;
   late void Function(String currentState, String previousState)
-  _onConnectionStateChange;
+      _onConnectionStateChange;
   late void Function(PusherEvent event) _onEvent;
 
   @override
@@ -138,14 +169,13 @@ class _FakePusherClientBridge implements PusherClientBridge {
       String channelName,
       String socketId,
       dynamic options,
-    )
-    onAuthorizer,
+    ) onAuthorizer,
     required void Function(String message, dynamic error) onSubscriptionError,
     required void Function(String message, int? code, dynamic error) onError,
     required void Function(String channelName, dynamic data)
-    onSubscriptionSucceeded,
+        onSubscriptionSucceeded,
     required void Function(String currentState, String previousState)
-    onConnectionStateChange,
+        onConnectionStateChange,
     required void Function(PusherEvent event) onEvent,
   }) async {
     _onSubscriptionSucceeded = onSubscriptionSucceeded;
