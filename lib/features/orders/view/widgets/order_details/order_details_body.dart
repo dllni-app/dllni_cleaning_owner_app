@@ -40,6 +40,11 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
   bool get _isEventAssistance =>
       EventAssistanceOrderHelper.isEventAssistance(widget.order.propertyType);
 
+  bool get _shouldShowAssignedRooms =>
+      !_isEventAssistance &&
+      widget.order.numberOfWorkers != null &&
+      widget.order.numberOfWorkers! > 1;
+
   String _formatHours(double? hours) {
     if (hours == null) return '-';
     return hours % 1 == 0 ? hours.toInt().toString() : hours.toString();
@@ -189,8 +194,8 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                   WorkerTeamStatusCard(order: widget.order),
                   if (OrderLifecyclePolicy.isAcceptedWaiting(widget.order))
                     SizedBox(height: 14),
-                  if(widget.order.numberOfWorkers != null && widget.order.numberOfWorkers! > 1)
-                  WorkerRoomAssignmentsCard(order: widget.order),
+                  if (_shouldShowAssignedRooms)
+                    WorkerRoomAssignmentsCard(order: widget.order),
                   SizedBox(height: 14),
                   PaymentInfoCard(order: widget.order),
                   SizedBox(height: 10),
