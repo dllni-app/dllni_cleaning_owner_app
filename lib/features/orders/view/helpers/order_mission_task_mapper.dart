@@ -3,6 +3,7 @@ import '../../data/models/cleaning_team_models.dart';
 import '../../data/models/fetch_orders_usecase_model.dart';
 import 'cleaning_enum_translations.dart';
 import 'cleaning_room_display.dart';
+import 'event_assistance_order_helper.dart';
 
 class MissionTaskItem {
   const MissionTaskItem({required this.label, this.detail});
@@ -29,6 +30,10 @@ class OrderMissionTaskMapper {
   static List<MissionTaskItem> build({
     required FetchOrdersUsecaseModelDataItem order,
   }) {
+    if (EventAssistanceOrderHelper.isEventAssistance(order.propertyType)) {
+      return const <MissionTaskItem>[];
+    }
+
     final rooms = _resolveRooms(order);
     if (rooms.isNotEmpty) {
       return _tasksFromRoomAssignments(rooms);
