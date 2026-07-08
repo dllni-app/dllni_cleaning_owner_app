@@ -398,21 +398,11 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                     children: [
                       _sectionTitle(
                         context,
-                        Icons.person_outline_rounded,
+                        Icons.receipt_long_outlined,
                         'بيانات الطلب',
                       ),
                       const SizedBox(height: 10),
                       _detailCard(context, [
-                        _orderInfoRow(
-                          label: 'اسم العميل',
-                          value: _valueOrDash(_order.customer?.name),
-                        ),
-                        _orderInfoRow(
-                          label: 'رقم الهاتف',
-                          value: _valueOrDash(
-                            _order.customer?.phone.formatAsPhoneNumber,
-                          ),
-                        ),
                         _orderInfoRow(
                           label: 'السعر الإجمالي',
                           value: _order.totalPrice.formatMoney(),
