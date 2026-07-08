@@ -73,6 +73,32 @@ void main() {
       expect(tasks[1].detail, 'متوسطة');
     });
 
+    test('does not build room checklist for event assistance orders', () {
+      final order = FetchOrdersUsecaseModelDataItem.fromJson(<String, dynamic>{
+        'id': 91,
+        'propertyType': 'event_assistance',
+        'roomAssignments': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 183,
+            'roomKey': 'bedroom.large.1',
+            'roomType': 'bedroom',
+            'roomSize': 'large',
+          },
+        ],
+        'propertyDetails': <String, dynamic>{
+          'room_size_breakdown': <String, dynamic>{
+            'bedroom': <String, dynamic>{
+              'large': 1,
+            },
+          },
+        },
+      });
+
+      final tasks = OrderMissionTaskMapper.build(order: order);
+
+      expect(tasks, isEmpty);
+    });
+
     test('expands room size breakdown into individual room tasks', () {
       final order = FetchOrdersUsecaseModelDataItem.fromJson(<String, dynamic>{
         'id': 10,
