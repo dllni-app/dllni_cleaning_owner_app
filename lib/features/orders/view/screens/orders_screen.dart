@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:common_package/helpers/error_message_formatter.dart';
+import 'package:common_package/helpers/pagination_helper.dart';
 import 'package:common_package/helpers/pusher_service_logger.dart';
 import 'package:common_package/widgets/app_text.dart';
 import 'package:common_package/helpers/shared_preferences_helper.dart';
@@ -37,6 +38,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
   final OrderNotifier orderNotifier = OrderNotifier();
   late final OrdersBloc _ordersBloc;
+  int _ordersCurrentPage = 1;
+  late final VoidCallback _statusListener;
   int? _workerId;
   Timer? _fallbackRefreshDebounce;
 
@@ -136,6 +139,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final hasInitialStatus = initialStatus != null && initialStatus.trim().isNotEmpty;
     final firstFetchStatus = hasInitialStatus ? initialStatus : CleaningBookingStatus.workerAssigned;
     orderNotifier.changeStatus(firstFetchStatus);
+    _statusListener = () {
+      // Any status tab change triggers a page reset inside the tab bar.
+      _ordersCurrentPage = 1;
+    };
+    orderNotifier.status.addListener(_statusListener);
     _ordersBloc = getIt<OrdersBloc>()
       ..add(
         FetchOrdersUsecaseEvent(
@@ -219,7 +227,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
       );
       _ordersBloc.add(
         FetchOrdersUsecaseEvent(
-          params: _assignedOrdersParams(page: 1),
+          params: _assignedOrdersParams(page: _ordersCurrentPage),
           isReload: true,
           silent: true,
         ),
@@ -235,6 +243,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
     unawaited(_workerListenerHandle?.dispose());
     _workerListenerHandle = null;
 
+    orderNotifier.status.removeListener(_statusListener);
     _ordersBloc.close();
     super.dispose();
   }
@@ -244,8 +253,15 @@ class _OrdersScreenState extends State<OrdersScreen> {
     return BlocProvider<OrdersBloc>(
       lazy: false,
       create: (context) => _ordersBloc,
-      child: SafeArea(
-        child: Column(
+      child: BlocListener<OrdersBloc, OrdersState>(
+        listenWhen: (previous, current) => previous.ordersUsecase != current.ordersUsecase,
+        listener: (context, state) {
+          if (state.ordersUsecase?.status != BlocStatus.success) return;
+          _ordersCurrentPage =
+              context.read<OrdersBloc>().lastAppliedOrdersListFilter.page;
+        },
+        child: SafeArea(
+          child: Column(
           children: [
             OrdersAppBar(),
             SizedBox(height: 20),
@@ -352,7 +368,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     onTapRetry: () {
                       context.read<OrdersBloc>().add(
                         FetchOrdersUsecaseEvent(
-                          params: _assignedOrdersParams(page: 1),
+                          params: _assignedOrdersParams(page: _ordersCurrentPage),
                           isReload: true,
                         ),
                       );
@@ -364,6 +380,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
           ],
         ),
       ),
-    );
+    ));
   }
 }

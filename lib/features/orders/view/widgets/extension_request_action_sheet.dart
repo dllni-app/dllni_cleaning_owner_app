@@ -1,8 +1,6 @@
 import 'package:common_package/common_package.dart';
-import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/accept_extension_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/fetch_order_details_usecase_use_case.dart';
-import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/fetch_orders_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/reject_extension_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/extension_time_format_helper.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
@@ -128,21 +126,6 @@ class _ExtensionRequestActionSheetBodyState extends State<_ExtensionRequestActio
         params: FetchOrderDetailsUsecaseParams(id: bookingId),
       ),
     );
-    for (final status in const <String>[
-      CleaningBookingStatus.timeExtensionRequested,
-      CleaningBookingStatus.inProgress,
-      CleaningBookingStatus.workerAssigned,
-      CleaningBookingStatus.awaitingCustomerCompletion,
-      CleaningBookingStatus.completed,
-    ]) {
-      widget.bloc.add(
-        FetchOrdersUsecaseEvent(
-          params: FetchOrdersUsecaseParams(page: 1, status: status),
-          isReload: true,
-          silent: true,
-        ),
-      );
-    }
   }
 
   @override

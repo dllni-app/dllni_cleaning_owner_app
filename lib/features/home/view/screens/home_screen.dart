@@ -31,15 +31,17 @@ import '../widgets/statistics_row.dart';
 enum HomeOrdersTab { newOrders, todayOrders }
 
 extension HomeOrdersTabX on HomeOrdersTab {
-  String get label => switch (this) {
-    HomeOrdersTab.newOrders => 'طلبات جديدة',
-    HomeOrdersTab.todayOrders => 'طلبات اليوم',
-  };
+  String get label =>
+      switch (this) {
+        HomeOrdersTab.newOrders => 'طلبات جديدة',
+        HomeOrdersTab.todayOrders => 'طلبات اليوم',
+      };
 
-  String get emptyMessage => switch (this) {
-    HomeOrdersTab.newOrders => 'لا توجد طلبات جديدة',
-    HomeOrdersTab.todayOrders => 'لا توجد طلبات اليوم',
-  };
+  String get emptyMessage =>
+      switch (this) {
+        HomeOrdersTab.newOrders => 'لا توجد طلبات جديدة',
+        HomeOrdersTab.todayOrders => 'لا توجد طلبات اليوم',
+      };
 }
 
 class HomeScreen extends StatefulWidget {
@@ -51,18 +53,18 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   static final Set<String> _homePusherEvents =
-      CleaningRealtimeContract.expandEventFilter(const <String>{
-        CleaningRealtimeContract.trackingUpdated,
-        CleaningRealtimeContract.teamUpdated,
-        CleaningRealtimeContract.bookingCreated,
-        CleaningRealtimeContract.workerArrived,
-        CleaningRealtimeContract.awaitingStartVerification,
-        CleaningRealtimeContract.arrivalVerified,
-        CleaningRealtimeContract.awaitingWorkerStartConfirmation,
-        CleaningRealtimeContract.awaitingCustomerCompletion,
-        CleaningRealtimeContract.completionDecisionMade,
-        CleaningRealtimeContract.serviceExtensionRequested,
-      });
+  CleaningRealtimeContract.expandEventFilter(const <String>{
+    CleaningRealtimeContract.trackingUpdated,
+    CleaningRealtimeContract.teamUpdated,
+    CleaningRealtimeContract.bookingCreated,
+    CleaningRealtimeContract.workerArrived,
+    CleaningRealtimeContract.awaitingStartVerification,
+    CleaningRealtimeContract.arrivalVerified,
+    CleaningRealtimeContract.awaitingWorkerStartConfirmation,
+    CleaningRealtimeContract.awaitingCustomerCompletion,
+    CleaningRealtimeContract.completionDecisionMade,
+    CleaningRealtimeContract.serviceExtensionRequested,
+  });
 
   FetchWorkerProfileUsecaseModel? user;
   bool _isIncompleteDialogOpen = false;
@@ -75,21 +77,24 @@ class _HomeScreenState extends State<HomeScreen> {
   StreamSubscription<RemoteMessage>? _fcmForegroundSubscription;
   int? _workerId;
   HomeOrdersTab _selectedHomeOrdersTab = HomeOrdersTab.newOrders;
+  int _homeOrdersCurrentPage = 1;
 
   String get _todayScheduledDate =>
       DateFormat('yyyy-MM-dd', 'en').format(DateTime.now());
 
   FetchOrdersUsecaseParams _homeOrdersFetchParams({int page = 1}) {
     return switch (_selectedHomeOrdersTab) {
-      HomeOrdersTab.newOrders => FetchOrdersUsecaseParams(
-        page: page,
-        status: CleaningBookingStatus.pending,
-      ),
-      HomeOrdersTab.todayOrders => FetchOrdersUsecaseParams(
-        page: page,
-        status: CleaningBookingStatus.workerAssigned,
-        scheduledDate: _todayScheduledDate,
-      ),
+      HomeOrdersTab.newOrders =>
+          FetchOrdersUsecaseParams(
+            page: page,
+            status: CleaningBookingStatus.pending,
+          ),
+      HomeOrdersTab.todayOrders =>
+          FetchOrdersUsecaseParams(
+            page: page,
+            status: CleaningBookingStatus.workerAssigned,
+            scheduledDate: _todayScheduledDate,
+          ),
     };
   }
 
@@ -97,9 +102,10 @@ class _HomeScreenState extends State<HomeScreen> {
     bool isReload = false,
     bool silent = false,
   }) {
+    final page = isReload ? _homeOrdersCurrentPage : 1;
     _ordersBloc.add(
       FetchOrdersUsecaseEvent(
-        params: _homeOrdersFetchParams(),
+        params: _homeOrdersFetchParams(page: page),
         isReload: isReload,
         silent: silent,
       ),
@@ -109,6 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _onHomeOrdersTabSelected(HomeOrdersTab tab) {
     if (_selectedHomeOrdersTab == tab) return;
     setState(() => _selectedHomeOrdersTab = tab);
+    _homeOrdersCurrentPage = 1;
     _fetchOrdersForSelectedTab(isReload: true);
   }
 
@@ -203,12 +210,15 @@ class _HomeScreenState extends State<HomeScreen> {
       _workerChannelName,
       eventName,
       payload,
-      eventHandledAtMs: DateTime.now().millisecondsSinceEpoch,
+      eventHandledAtMs: DateTime
+          .now()
+          .millisecondsSinceEpoch,
     );
 
     if (CleaningRealtimeContract.isLocationEvent(eventName)) return;
 
-    final hasBookingId = CleaningRealtimeContract.extractBookingId(payload) != null;
+    final hasBookingId = CleaningRealtimeContract.extractBookingId(payload) !=
+        null;
     final canSyncVisiblePendingList =
         _selectedHomeOrdersTab == HomeOrdersTab.newOrders && hasBookingId;
 
@@ -231,7 +241,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     developer.log(
       '[Home] FCM foreground => data=${message.data} '
-      'title=${message.notification?.title}',
+          'title=${message.notification?.title}',
     );
 
     _refreshHomeData(source: 'fcm_foreground');
@@ -342,8 +352,8 @@ class _HomeScreenState extends State<HomeScreen> {
       ],
       child: BlocListener<ProfileBloc, ProfileState>(
         listenWhen: (previous, current) =>
-            previous.workerProfileUsecaseStatus !=
-                current.workerProfileUsecaseStatus ||
+        previous.workerProfileUsecaseStatus !=
+            current.workerProfileUsecaseStatus ||
             previous.workerProfileUsecase?.data?.id !=
                 current.workerProfileUsecase?.data?.id,
         listener: (context, state) {
@@ -352,72 +362,89 @@ class _HomeScreenState extends State<HomeScreen> {
             unawaited(_bindWorkerRealtimeListener());
           }
         },
-        child: SafeArea(
-          child: Column(
-            children: [
-              const HomeAppBar(),
-              Expanded(
-                child: RefreshIndicator(
-                  onRefresh: _refreshHomeScreen,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: EdgeInsetsDirectional.only(
-                      start: 24.w,
-                      end: 24.w,
-                      bottom: 20.h,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        16.verticalSpace,
-                        AppText.labelLarge(
-                          'نظرة عامة عن اليوم',
-                          fontWeight: FontWeight.w400,
-                        ),
-                        12.verticalSpace,
-                        TodayOverviewCard(),
-                        12.verticalSpace,
-                        Builder(
-                          builder: (innerContext) {
-                            return StatisticsRow(
-                              onStatisticsTap: () {
-                                Navigator.of(innerContext).push<void>(
-                                  MaterialPageRoute<void>(
-                                    builder: (_) => BlocProvider.value(
-                                      value: innerContext.read<ProfileBloc>(),
-                                      child: const WalletScreen(),
+        child: BlocListener<OrdersBloc, OrdersState>(
+          listenWhen: (previous, current) =>
+          previous.ordersUsecase != current.ordersUsecase,
+          listener: (context, state) {
+            if (state.ordersUsecase?.status != BlocStatus.success) return;
+            _homeOrdersCurrentPage =
+                context
+                    .read<OrdersBloc>()
+                    .lastAppliedOrdersListFilter
+                    .page;
+          },
+          child: SafeArea(
+            child: Column(
+              children: [
+                const HomeAppBar(),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: _refreshHomeScreen,
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: EdgeInsetsDirectional.only(
+                        start: 24.w,
+                        end: 24.w,
+                        bottom: 20.h,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          16.verticalSpace,
+                          AppText.labelLarge(
+                            'نظرة عامة عن اليوم',
+                            fontWeight: FontWeight.w400,
+                          ),
+                          12.verticalSpace,
+                          TodayOverviewCard(),
+                          12.verticalSpace,
+                          Builder(
+                            builder: (innerContext) {
+                              return StatisticsRow(
+                                onStatisticsTap: () {
+                                  Navigator.of(innerContext).push<void>(
+                                    MaterialPageRoute<void>(
+                                      builder: (_) =>
+                                          BlocProvider.value(
+                                            value: innerContext.read<
+                                                ProfileBloc>(),
+                                            child: const WalletScreen(),
+                                          ),
                                     ),
-                                  ),
-                                );
-                              },
-                              onStatusTap: (status) {
-                                innerContext.pushRouteAndRemoveUntil(
-                                  '/main',
-                                  arguments: MainScreenParam(
-                                    returnedPageIndex: 2,
-                                    ordersInitialStatus: status,
-                                  ),
-                                );
-                              },
-                            );
-                          },
-                        ),
-                        16.verticalSpace,
-                        _HomeOrdersSection(
-                          selectedTab: _selectedHomeOrdersTab,
-                          onTabSelected: _onHomeOrdersTabSelected,
-                          paramsForPage: (page) => _homeOrdersFetchParams(page: page),
-                          onRetry: () => _fetchOrdersForSelectedTab(isReload: true),
-                        ),
-                      ],
+                                  );
+                                },
+                                onStatusTap: (status) {
+                                  innerContext.pushRouteAndRemoveUntil(
+                                    '/main',
+                                    arguments: MainScreenParam(
+                                      returnedPageIndex: 2,
+                                      ordersInitialStatus: status,
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                          16.verticalSpace,
+                          _HomeOrdersSection(
+                            selectedTab: _selectedHomeOrdersTab,
+                            onTabSelected: _onHomeOrdersTabSelected,
+                            paramsForPage: (page) =>
+                                _homeOrdersFetchParams(page: page),
+                            onRetry: () =>
+                                _fetchOrdersForSelectedTab(isReload: true),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
+
     );
   }
 }
@@ -439,7 +466,7 @@ class _HomeOrdersSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<OrdersBloc, OrdersState>(
       buildWhen: (previous, current) =>
-          previous.ordersUsecase != current.ordersUsecase,
+      previous.ordersUsecase != current.ordersUsecase,
       builder: (context, state) {
         final orders = state.ordersUsecase!;
 
@@ -454,7 +481,8 @@ class _HomeOrdersSection extends StatelessWidget {
             orders.builder(
               loadingWidget: Padding(
                 padding: EdgeInsetsDirectional.only(top: 40.h),
-                child: const Center(child: CircularProgressIndicator.adaptive()),
+                child: const Center(
+                    child: CircularProgressIndicator.adaptive()),
               ),
               emptyWidget: AppText.labelMedium(
                 selectedTab.emptyMessage,
@@ -470,11 +498,11 @@ class _HomeOrdersSection extends StatelessWidget {
                     if (orders.length <= index) {
                       if (orders.length == index) {
                         context.read<OrdersBloc>().add(
-                              FetchOrdersUsecaseEvent(
-                                isReload: false,
-                                params: paramsForPage(orders.pageNumber),
-                              ),
-                            );
+                          FetchOrdersUsecaseEvent(
+                            isReload: false,
+                            params: paramsForPage(orders.pageNumber),
+                          ),
+                        );
                       }
 
                       return SizedBox(
@@ -555,7 +583,7 @@ class _HomeOrdersTabSelector extends StatelessWidget {
                   AppText.labelLarge(
                     tab.label,
                     fontWeight:
-                        isSelected ? FontWeight.w600 : FontWeight.w400,
+                    isSelected ? FontWeight.w600 : FontWeight.w400,
                     color: isSelected
                         ? context.primary
                         : context.colorScheme.outline,
