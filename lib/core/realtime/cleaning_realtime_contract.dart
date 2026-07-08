@@ -56,16 +56,21 @@ class CleaningRealtimeContract {
   static Map<String, String> _buildNormalizedEventAliases() {
     final aliases = <String, String>{};
     void addAlias(String key, String value, {bool overrideExisting = true}) {
-      final trimmed = key.trim();
-      if (trimmed.isEmpty) return;
-      final lower = trimmed.toLowerCase();
-      if (overrideExisting) {
-        aliases[trimmed] = value;
-        aliases[lower] = value;
-        return;
+      final keys = <String>{
+        key.trim(),
+        _canonicalEventKey(key),
+      }..removeWhere((item) => item.isEmpty);
+
+      for (final eventKey in keys) {
+        final lower = eventKey.toLowerCase();
+        if (overrideExisting) {
+          aliases[eventKey] = value;
+          aliases[lower] = value;
+          continue;
+        }
+        aliases.putIfAbsent(eventKey, () => value);
+        aliases.putIfAbsent(lower, () => value);
       }
-      aliases.putIfAbsent(trimmed, () => value);
-      aliases.putIfAbsent(lower, () => value);
     }
 
     for (final entry in legacyEventAliases.entries) {
@@ -94,11 +99,27 @@ class CleaningRealtimeContract {
   }
 
   static String normalizeEventName(String eventName) {
-    final raw = eventName.trim();
+    final raw = _canonicalEventKey(eventName);
     if (raw.isEmpty) return raw;
     return _normalizedEventAliases[raw] ??
         _normalizedEventAliases[raw.toLowerCase()] ??
         raw;
+  }
+
+  static String _canonicalEventKey(String eventName) {
+    var raw = eventName.trim();
+    while (raw.startsWith('.')) {
+      raw = raw.substring(1).trimLeft();
+    }
+    if (raw.isEmpty) return raw;
+
+    // Raw Pusher payloads can expose Laravel FQCN events when broadcastAs is
+    // not used, e.g. Modules\\Cleaning\\Events\\CleaningBookingCreated.
+    if (raw.contains('\\')) {
+      raw = raw.split('\\').last.trim();
+    }
+
+    return raw;
   }
 
   static Set<String> expandEventFilter(Iterable<String> canonicalEventNames) {
@@ -109,6 +130,7 @@ class CleaningRealtimeContract {
       for (final entry in legacyEventAliases.entries) {
         if (entry.value == canonical) {
           expanded.add(entry.key);
+          expanded.add(_canonicalEventKey(entry.key));
         }
       }
     }
@@ -117,7 +139,8 @@ class CleaningRealtimeContract {
 
   static bool matchesEventFilter(Set<String> filter, String rawEventName) {
     if (filter.contains(rawEventName)) return true;
-    return filter.contains(normalizeEventName(rawEventName));
+    final normalized = normalizeEventName(rawEventName);
+    return filter.contains(normalized) || filter.contains(normalized.toLowerCase());
   }
 
   static Map<String, dynamic> unwrapPayload(Map<String, dynamic> payload) {
