@@ -35,12 +35,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       },
       (r) async {
         await SharedPreferencesHelper.saveData(key: 'token', value: r.token!);
-        final workerId = r.user?.workerId ?? r.user?.id;
-        if (workerId != null) {
+        final workerId = r.user?.workerId;
+        if (workerId != null && workerId > 0) {
           await SharedPreferencesHelper.saveData(
             key: 'worker_id',
             value: workerId,
           );
+        } else {
+          await SharedPreferencesHelper.removeData(key: 'worker_id');
         }
         await NotificationHelper.syncStoredToken(
           tokenKey: LoginUsecaseParams.fcmTokenPrefsKey,
