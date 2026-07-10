@@ -88,7 +88,16 @@ class ExtensionRequestsSheet {
                               child: AppText.bodyMedium('لا توجد طلبات'),
                             ),
                             successWidget: () {
-                              final list = state.extensionRequestsUsecas!.list;
+                              final list = state.extensionRequestsUsecas!.list
+                                  .where((item) => item.isPendingWorkerResponse)
+                                  .toList(growable: false);
+
+                              if (list.isEmpty) {
+                                return Center(
+                                  child: AppText.bodyMedium('لا توجد طلبات'),
+                                );
+                              }
+
                               return ListView.builder(
                                 controller: scrollController,
                                 padding: EdgeInsetsDirectional.symmetric(
@@ -107,7 +116,7 @@ class ExtensionRequestsSheet {
                                             CrossAxisAlignment.start,
                                         children: [
                                           AppText.bodyMedium(
-                                            'حجز #${item.bookingId} — ${item.requestedMinutes} دقيقة',
+                                            'حجز #${item.bookingId} — ${item.resolvedAdditionalMinutes} دقيقة',
                                           ),
                                           12.verticalSpace,
                                           Row(
