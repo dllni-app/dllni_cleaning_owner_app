@@ -90,6 +90,7 @@ class _ExtensionRequestActionSheetBody extends StatefulWidget {
 class _ExtensionRequestActionSheetBodyState extends State<_ExtensionRequestActionSheetBody> {
   final _messageController = TextEditingController();
   String? _rejectError;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -98,7 +99,11 @@ class _ExtensionRequestActionSheetBodyState extends State<_ExtensionRequestActio
   }
 
   void _onReject() {
-    setState(() => _rejectError = null);
+    if (_isSubmitting) return;
+    setState(() {
+      _rejectError = null;
+      _isSubmitting = true;
+    });
     widget.bloc.add(
       RejectExtensionUsecaseEvent(
         params: RejectExtensionUsecaseParams(id: widget.warningId),
@@ -107,7 +112,11 @@ class _ExtensionRequestActionSheetBodyState extends State<_ExtensionRequestActio
   }
 
   void _onAccept() {
-    setState(() => _rejectError = null);
+    if (_isSubmitting) return;
+    setState(() {
+      _rejectError = null;
+      _isSubmitting = true;
+    });
     widget.bloc.add(
       AcceptExtensionUsecaseEvent(
         params: AcceptExtensionUsecaseParams(
@@ -156,7 +165,11 @@ class _ExtensionRequestActionSheetBodyState extends State<_ExtensionRequestActio
               current.acceptExtensionUsecaseStatus == BlocStatus.success;
           final rejectedNow = previous.rejectExtensionUsecaseStatus != BlocStatus.success &&
               current.rejectExtensionUsecaseStatus == BlocStatus.success;
-          return acceptedNow || rejectedNow;
+          final acceptFailedNow = previous.acceptExtensionUsecaseStatus != BlocStatus.failed &&
+              current.acceptExtensionUsecaseStatus == BlocStatus.failed;
+          final rejectFailedNow = previous.rejectExtensionUsecaseStatus != BlocStatus.failed &&
+              current.rejectExtensionUsecaseStatus == BlocStatus.failed;
+          return acceptedNow || rejectedNow || acceptFailedNow || rejectFailedNow;
         },
         buildWhen: (previous, current) =>
             previous.acceptExtensionUsecaseStatus != current.acceptExtensionUsecaseStatus ||
@@ -166,10 +179,19 @@ class _ExtensionRequestActionSheetBodyState extends State<_ExtensionRequestActio
               state.rejectExtensionUsecaseStatus == BlocStatus.success) {
             _refreshBookingAfterDecision();
             Navigator.of(context).pop(true);
+            return;
+          }
+
+          if (state.acceptExtensionUsecaseStatus == BlocStatus.failed ||
+              state.rejectExtensionUsecaseStatus == BlocStatus.failed) {
+            if (mounted) {
+              setState(() => _isSubmitting = false);
+            }
           }
         },
         builder: (context, state) {
-          final isLoading = state.acceptExtensionUsecaseStatus == BlocStatus.loading ||
+          final isLoading = _isSubmitting ||
+              state.acceptExtensionUsecaseStatus == BlocStatus.loading ||
               state.rejectExtensionUsecaseStatus == BlocStatus.loading;
           return SingleChildScrollView(
             child: Column(
