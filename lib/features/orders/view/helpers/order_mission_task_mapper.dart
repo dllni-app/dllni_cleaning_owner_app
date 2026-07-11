@@ -6,10 +6,15 @@ import 'cleaning_room_display.dart';
 import 'event_assistance_order_helper.dart';
 
 class MissionTaskItem {
-  const MissionTaskItem({required this.label, this.detail});
+  const MissionTaskItem({
+    required this.label,
+    this.detail,
+    this.isReadOnlyInfo = false,
+  });
 
   final String label;
   final String? detail;
+  final bool isReadOnlyInfo;
 }
 
 class OrderMissionTaskMapper {
@@ -31,7 +36,7 @@ class OrderMissionTaskMapper {
     required FetchOrdersUsecaseModelDataItem order,
   }) {
     if (EventAssistanceOrderHelper.isEventAssistance(order.propertyType)) {
-      return const <MissionTaskItem>[];
+      return _eventAssistanceInfoTasks(order);
     }
 
     final rooms = _resolveRooms(order);
@@ -82,6 +87,31 @@ class OrderMissionTaskMapper {
   }
 
   static String keyFor(MissionTaskItem task, int index) => '${task.label}-$index';
+
+  static List<MissionTaskItem> _eventAssistanceInfoTasks(
+    FetchOrdersUsecaseModelDataItem order,
+  ) {
+    final customService = order.propertyDetails?.customService?.trim();
+    final specialRequirement =
+        order.propertyDetails?.specialRequirement?.trim();
+
+    return <MissionTaskItem>[
+      MissionTaskItem(
+        label: 'طبيعة المساعدة المطلوبة',
+        detail: customService != null && customService.isNotEmpty
+            ? customService
+            : 'غير محددة',
+        isReadOnlyInfo: true,
+      ),
+      MissionTaskItem(
+        label: 'متطلبات خاصة',
+        detail: specialRequirement != null && specialRequirement.isNotEmpty
+            ? specialRequirement
+            : 'لا يوجد',
+        isReadOnlyInfo: true,
+      ),
+    ];
+  }
 
   static List<CleaningRoomAssignmentModel> _resolveRooms(
     FetchOrdersUsecaseModelDataItem order,

@@ -41,6 +41,7 @@ void main() {
       expect(tasks, hasLength(2));
       expect(tasks[0].label, 'غرفة نوم 1');
       expect(tasks[0].detail, 'كبيرة');
+      expect(tasks[0].isReadOnlyInfo, isFalse);
       expect(tasks[1].label, 'حمام 1');
       expect(tasks[1].detail, 'متوسطة');
     });
@@ -73,30 +74,60 @@ void main() {
       expect(tasks[1].detail, 'متوسطة');
     });
 
-    test('does not build room checklist for event assistance orders', () {
-      final order = FetchOrdersUsecaseModelDataItem.fromJson(<String, dynamic>{
-        'id': 91,
-        'propertyType': 'event_assistance',
-        'roomAssignments': <Map<String, dynamic>>[
+    test(
+      'builds event assistance details instead of the room checklist',
+      () {
+        final order = FetchOrdersUsecaseModelDataItem.fromJson(
           <String, dynamic>{
-            'id': 183,
-            'roomKey': 'bedroom.large.1',
-            'roomType': 'bedroom',
-            'roomSize': 'large',
-          },
-        ],
-        'propertyDetails': <String, dynamic>{
-          'room_size_breakdown': <String, dynamic>{
-            'bedroom': <String, dynamic>{
-              'large': 1,
+            'id': 91,
+            'propertyType': 'event_assistance',
+            'roomAssignments': <Map<String, dynamic>>[
+              <String, dynamic>{
+                'id': 183,
+                'roomKey': 'bedroom.large.1',
+                'roomType': 'bedroom',
+                'roomSize': 'large',
+              },
+            ],
+            'propertyDetails': <String, dynamic>{
+              'custom_service': 'تقديم الطعام وتنظيم الضيافة',
+              'special_requirement': 'الوصول قبل بدء المناسبة بنصف ساعة',
+              'room_size_breakdown': <String, dynamic>{
+                'bedroom': <String, dynamic>{
+                  'large': 1,
+                },
+              },
             },
           },
+        );
+
+        final tasks = OrderMissionTaskMapper.build(order: order);
+
+        expect(tasks, hasLength(2));
+        expect(tasks[0].label, 'طبيعة المساعدة المطلوبة');
+        expect(tasks[0].detail, 'تقديم الطعام وتنظيم الضيافة');
+        expect(tasks[0].isReadOnlyInfo, isTrue);
+        expect(tasks[1].label, 'متطلبات خاصة');
+        expect(tasks[1].detail, 'الوصول قبل بدء المناسبة بنصف ساعة');
+        expect(tasks[1].isReadOnlyInfo, isTrue);
+      },
+    );
+
+    test('shows no special requirements when the event has none', () {
+      final order = FetchOrdersUsecaseModelDataItem.fromJson(<String, dynamic>{
+        'id': 92,
+        'propertyType': 'event_assistance',
+        'propertyDetails': <String, dynamic>{
+          'customService': 'تنظيف المكان بعد المناسبة',
         },
       });
 
       final tasks = OrderMissionTaskMapper.build(order: order);
 
-      expect(tasks, isEmpty);
+      expect(tasks, hasLength(2));
+      expect(tasks[0].detail, 'تنظيف المكان بعد المناسبة');
+      expect(tasks[1].label, 'متطلبات خاصة');
+      expect(tasks[1].detail, 'لا يوجد');
     });
 
     test('expands room size breakdown into individual room tasks', () {
