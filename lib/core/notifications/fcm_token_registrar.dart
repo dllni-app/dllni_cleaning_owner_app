@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 
@@ -17,7 +15,7 @@ class FcmTokenRegistrar {
         .toString()
         .trim();
     if (authToken.isEmpty) {
-      log('Skipping FCM token registration: user is not authenticated.');
+      appLog('Skipping FCM token registration: user is not authenticated.');
       return;
     }
 
@@ -26,9 +24,9 @@ class FcmTokenRegistrar {
         endPoint: '/api/v1/cleaning/worker/account/notifications/token',
         data: <String, dynamic>{'fcmToken': token},
       );
-      log('FCM token registered with backend.');
+      appLog('FCM token registered with backend.');
     } catch (error, stackTrace) {
-      log(
+      appLog(
         'Failed to register FCM token with backend: $error',
         stackTrace: stackTrace,
       );

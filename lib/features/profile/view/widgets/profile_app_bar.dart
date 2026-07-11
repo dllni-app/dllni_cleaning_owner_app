@@ -1,10 +1,10 @@
 import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_rating/flutter_rating.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../manager/bloc/profile_bloc.dart';
+import 'circular_star_rating.dart';
 
 class ProfileAppBar extends StatelessWidget {
   const ProfileAppBar({super.key});
@@ -18,11 +18,21 @@ class ProfileAppBar extends StatelessWidget {
           end: AlignmentGeometry.centerRight,
           begin: AlignmentGeometry.centerLeft,
         ),
-        borderRadius: BorderRadius.only(bottomRight: Radius.circular(16), bottomLeft: Radius.circular(16)),
-        boxShadow: [BoxShadow(color: Colors.black.withAlpha(27), offset: Offset(0, -2), blurRadius: 12, spreadRadius: 0)],
+        borderRadius: BorderRadius.only(
+          bottomRight: Radius.circular(16),
+          bottomLeft: Radius.circular(16),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(27),
+            offset: Offset(0, -2),
+            blurRadius: 12,
+            spreadRadius: 0,
+          ),
+        ],
       ),
       width: context.width,
-      height: 100,
+      height: 110,
       padding: EdgeInsetsDirectional.symmetric(horizontal: 24),
       child: BlocBuilder<ProfileBloc, ProfileState>(
         builder: (context, state) {
@@ -32,17 +42,13 @@ class ProfileAppBar extends StatelessWidget {
             case BlocStatus.failed:
               return failedWidget(context);
             case BlocStatus.success:
-              final rating = (state.workerReviews?.meta?.averageRating ??
-                      state.workerProfileUsecase?.data?.averageRating ??
-                      0)
-                  .clamp(0.0, 5.0)
-                  .toDouble();
-
               return Row(
                 children: [
                   CircleAvatar(
                     radius: 30,
-                    backgroundImage: NetworkImage(state.workerProfileUsecase?.data?.avatar?.url ?? ''),
+                    backgroundImage: NetworkImage(
+                      state.workerProfileUsecase?.data?.avatar?.url ?? '',
+                    ),
                     backgroundColor: context.onPrimaryContainer,
                   ),
                   SizedBox(width: 12),
@@ -67,20 +73,14 @@ class ProfileAppBar extends StatelessWidget {
                               fontWeight: FontWeight.w500,
                               textAlign: TextAlign.start,
                             ),
-                            StarRating(
-                              rating: rating,
-                              color: Color(0xffFAE13D),
-                              size: 17,
-                              halfFilledIcon: Icons.star_rate_rounded,
-                              allowHalfRating: true,
-                              filledIcon: Icons.star_rate_rounded,
-                              emptyIcon: Icons.star_outline_rounded,
-                              starCount: 5,
-                            ),
                           ],
                         ),
                       ],
                     ),
+                  ),
+                  CircularStarRating(
+                    rating:
+                        state.workerProfileUsecase?.data?.averageRating ?? 0,
                   ),
                 ],
               );
@@ -99,7 +99,10 @@ class ProfileAppBar extends StatelessWidget {
       Shimmer.fromColors(
         baseColor: context.surface,
         highlightColor: context.primary,
-        child: CircleAvatar(radius: 30, backgroundColor: context.onPrimaryContainer),
+        child: CircleAvatar(
+          radius: 30,
+          backgroundColor: context.onPrimaryContainer,
+        ),
       ),
       SizedBox(width: 12),
       Expanded(
@@ -111,7 +114,10 @@ class ProfileAppBar extends StatelessWidget {
               baseColor: context.surface,
               highlightColor: context.primary,
               child: Container(
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: context.onPrimary),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: context.onPrimary,
+                ),
                 height: 10,
                 width: 60,
               ),
@@ -121,7 +127,10 @@ class ProfileAppBar extends StatelessWidget {
               baseColor: context.surface,
               highlightColor: context.primary,
               child: Container(
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: context.onPrimary),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: context.onPrimary,
+                ),
                 height: 10,
                 width: 100,
               ),
@@ -145,9 +154,19 @@ class ProfileAppBar extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            AppText.labelMedium('-', color: context.onPrimary, fontWeight: FontWeight.w500, textAlign: TextAlign.start),
+            AppText.labelMedium(
+              '-',
+              color: context.onPrimary,
+              fontWeight: FontWeight.w500,
+              textAlign: TextAlign.start,
+            ),
             SizedBox(height: 12),
-            AppText.labelMedium('-', color: context.onPrimary, fontWeight: FontWeight.w500, textAlign: TextAlign.start),
+            AppText.labelMedium(
+              '-',
+              color: context.onPrimary,
+              fontWeight: FontWeight.w500,
+              textAlign: TextAlign.start,
+            ),
           ],
         ),
       ),

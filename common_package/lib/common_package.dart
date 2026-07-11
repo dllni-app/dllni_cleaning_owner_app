@@ -4,6 +4,7 @@ export 'extensions/size_extensions.dart';
 export 'extensions/string_extensions.dart';
 export 'extensions/theme_extension.dart';
 export 'helpers/api_handler.dart';
+export 'helpers/app_log.dart';
 export 'helpers/app_bootstrap_helper.dart';
 export 'helpers/bloc_observer.dart';
 export 'helpers/dio_network.dart';

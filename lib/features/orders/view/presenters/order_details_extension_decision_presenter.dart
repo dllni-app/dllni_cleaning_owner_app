@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_realtime_contract.dart';
+import 'package:dllni_cleaninig_owner_app/features/main/navigation/main_tab_navigation.dart';
 import 'package:dllni_cleaninig_owner_app/features/main/view/screens/main_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
@@ -28,7 +29,8 @@ class OrderDetailsExtensionDecisionPresenter {
       warningId: warningId,
       decision: decision ?? 'extension_rejected',
     );
-    if (decisionKey != null && _handledExtensionDecisionKeys.contains(decisionKey)) {
+    if (decisionKey != null &&
+        _handledExtensionDecisionKeys.contains(decisionKey)) {
       return;
     }
     if (decisionKey != null) _handledExtensionDecisionKeys.add(decisionKey);
@@ -49,8 +51,8 @@ class OrderDetailsExtensionDecisionPresenter {
     if (warningId != null) return 'warning_$warningId';
     final unwrapped = CleaningRealtimeContract.unwrapPayload(payload);
     final bookingId = CleaningRealtimeContract.extractBookingId(unwrapped);
-    final decidedAt =
-        (unwrapped['decidedAt'] ?? unwrapped['decided_at'])?.toString();
+    final decidedAt = (unwrapped['decidedAt'] ?? unwrapped['decided_at'])
+        ?.toString();
     if (bookingId == null) return null;
     return '${bookingId}_${decision}_$decidedAt';
   }
@@ -71,7 +73,10 @@ class OrderDetailsExtensionDecisionPresenter {
         barrierDismissible: false,
         builder: (ctx) {
           return AlertDialog(
-            title: const Text('تم إنهاء طلب التمديد', textAlign: TextAlign.center),
+            title: const Text(
+              'تم إنهاء طلب التمديد',
+              textAlign: TextAlign.center,
+            ),
             content: Text(body, textAlign: TextAlign.center),
             actions: [
               SizedBox(
@@ -80,11 +85,14 @@ class OrderDetailsExtensionDecisionPresenter {
                   onPressed: () {
                     final navigator = Navigator.of(ctx, rootNavigator: true);
                     navigator.pop();
-                    navigator.pushNamedAndRemoveUntil(
-                      '/main',
-                      (route) => false,
-                      arguments: MainScreenParam(returnedPageIndex: 0),
-                    );
+                    final opened = MainTabNavigation.instance.jumpToTab(0);
+                    if (!opened) {
+                      navigator.pushNamedAndRemoveUntil(
+                        '/main',
+                        (route) => false,
+                        arguments: MainScreenParam(returnedPageIndex: 0),
+                      );
+                    }
                   },
                   child: const Text('حسناً'),
                 ),

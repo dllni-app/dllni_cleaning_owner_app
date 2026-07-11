@@ -1,5 +1,4 @@
-import 'dart:developer';
-
+import 'package:common_package/helpers/app_log.dart';
 import 'package:common_package/helpers/shared_preferences_helper.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -22,18 +21,18 @@ class TokenInterceptor extends Interceptor {
       if (tokenKey != null) {
         final token = SharedPreferencesHelper.getData(key: tokenKey!) ?? '';
         options.headers['Authorization'] = 'Bearer $token';
-        log('========================> token: $token');
+        appLog('========================> token: $token');
       }
 
       if (fcmKey != null) {
         final fcm = SharedPreferencesHelper.getData(key: fcmKey!) ?? '';
         options.headers['fcm-token'] = fcm;
-        log('========================> fcm: $fcm');
+        appLog('========================> fcm: $fcm');
       }
 
       if (lang != null) {
         options.headers['App-Language'] = lang;
-        log('========================> lang: $lang');
+        appLog('========================> lang: $lang');
       }
     } catch (e) {
       debugPrint('TokenInterceptor Error: $e');

@@ -1,5 +1,6 @@
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
+import 'package:dllni_cleaninig_owner_app/features/main/navigation/main_tab_navigation.dart';
 import 'package:dllni_cleaninig_owner_app/features/main/view/screens/main_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/data/models/cleaning_neighborhood_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/data/models/fetch_worker_profile_usecase_model.dart';
@@ -46,8 +47,7 @@ class _WorkAreasScreenState extends State<WorkAreasScreen> {
     _areas = neighborhoods
         .map((n) {
           final alreadySelected = widget.params.zones.any(
-            (zone) =>
-                zone.neighborhoodId == n.id || zone.name == n.displayName,
+            (zone) => zone.neighborhoodId == n.id || zone.name == n.displayName,
           );
           return _WorkAreaItem(
             neighborhoodId: n.id,
@@ -424,10 +424,15 @@ class _WorkAreasScreenState extends State<WorkAreasScreen> {
                       listener: (context, state) {
                         if (state.updateWorkAreasStatus == BlocStatus.success) {
                           Loading.close();
-                          context.pushRouteAndRemoveUntil(
-                            '/main',
-                            arguments: MainScreenParam(returnedPageIndex: 3),
+                          final opened = MainTabNavigation.instance.jumpToTab(
+                            3,
                           );
+                          if (!opened) {
+                            context.pushRouteAndRemoveUntil(
+                              '/main',
+                              arguments: MainScreenParam(returnedPageIndex: 3),
+                            );
+                          }
                         } else if (state.updateWorkAreasStatus ==
                             BlocStatus.loading) {
                           Loading.show(context);

@@ -25,9 +25,10 @@ import '../widgets/orders_app_bar.dart';
 import '../widgets/orders_type_tab_bar.dart';
 
 class OrdersScreen extends StatefulWidget {
-  const OrdersScreen({super.key, this.initialStatus});
+  const OrdersScreen({super.key, this.initialStatus, this.statusRequestId = 0});
 
   final String? initialStatus;
+  final int statusRequestId;
 
   @override
   State<OrdersScreen> createState() => _OrdersScreenState();
@@ -112,7 +113,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
       final eligibility = _cachedEligibility();
       if (eligibility.canReceive == false) {
         return Padding(
-          padding: const EdgeInsetsDirectional.only(top: 40, start: 24, end: 24),
+          padding: const EdgeInsetsDirectional.only(
+            top: 40,
+            start: 24,
+            end: 24,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -135,9 +140,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   @override
   void initState() {
     super.initState();
-    final initialStatus = widget.initialStatus;
-    final hasInitialStatus = initialStatus != null && initialStatus.trim().isNotEmpty;
-    final firstFetchStatus = hasInitialStatus ? initialStatus : CleaningBookingStatus.workerAssigned;
+    final firstFetchStatus = _resolveStatus(widget.initialStatus);
     orderNotifier.changeStatus(firstFetchStatus);
     _statusListener = () {
       // Any status tab change triggers a page reset inside the tab bar.
@@ -156,6 +159,29 @@ class _OrdersScreenState extends State<OrdersScreen> {
     if (_workerId != null) {
       _initPusher();
     }
+  }
+
+  @override
+  void didUpdateWidget(covariant OrdersScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.statusRequestId == widget.statusRequestId) return;
+    final requestedStatus = _resolveStatus(widget.initialStatus);
+    orderNotifier.changeStatus(requestedStatus);
+    _ordersCurrentPage = 1;
+    _ordersBloc.add(
+      FetchOrdersUsecaseEvent(
+        params: _assignedOrdersParams(page: 1, status: requestedStatus),
+        isReload: true,
+      ),
+    );
+  }
+
+  String _resolveStatus(String? status) {
+    final normalized = status?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      return CleaningBookingStatus.workerAssigned;
+    }
+    return normalized;
   }
 
   Future<void> _initPusher() async {
@@ -178,10 +204,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 CleaningRealtimeContract.serviceExtensionRequested ||
             (normalizedEvent ==
                     CleaningRealtimeContract.completionDecisionMade &&
-                (payload['decision'] ?? '')
-                        .toString()
-                        .trim()
-                        .toLowerCase() ==
+                (payload['decision'] ?? '').toString().trim().toLowerCase() ==
                     'extension_requested')) {
           unawaited(
             CleaningWorkerExtensionPrompts.dispatchRealtimeEvent(
@@ -254,132 +277,146 @@ class _OrdersScreenState extends State<OrdersScreen> {
       lazy: false,
       create: (context) => _ordersBloc,
       child: BlocListener<OrdersBloc, OrdersState>(
-        listenWhen: (previous, current) => previous.ordersUsecase != current.ordersUsecase,
+        listenWhen: (previous, current) =>
+            previous.ordersUsecase != current.ordersUsecase,
         listener: (context, state) {
           if (state.ordersUsecase?.status != BlocStatus.success) return;
-          _ordersCurrentPage =
-              context.read<OrdersBloc>().lastAppliedOrdersListFilter.page;
+          _ordersCurrentPage = context
+              .read<OrdersBloc>()
+              .lastAppliedOrdersListFilter
+              .page;
         },
         child: SafeArea(
           child: Column(
-          children: [
-            OrdersAppBar(),
-            SizedBox(height: 20),
-            Padding(
-              padding: EdgeInsetsDirectional.symmetric(horizontal: 24),
-              child: OrdersTypeTabBar(orderNotifier: orderNotifier),
-            ),
-            SizedBox(height: 20),
-            Expanded(
-              child: BlocBuilder<OrdersBloc, OrdersState>(
-                buildWhen: (previous, current) => previous.ordersUsecase != current.ordersUsecase,
-                builder: (context, state) {
-                  final orders = state.ordersUsecase;
-                  if (orders == null) {
-                    return const Padding(
-                      padding: EdgeInsetsDirectional.only(top: 40),
-                      child: Center(child: CircularProgressIndicator.adaptive()),
-                    );
-                  }
-                  return orders.builder(
-                    loadingWidget: Padding(
-                      padding: EdgeInsetsDirectional.only(top: 40),
-                      child: Center(child: CircularProgressIndicator.adaptive()),
-                    ),
-                    emptyWidget: _emptyOrdersWidget(orderNotifier.status.value),
-                    failedWidget: Padding(
-                      padding: const EdgeInsetsDirectional.only(top: 40),
-                      child: Center(
-                        child: AppText.labelMedium(
-                          ErrorMessageFormatter.format(
-                            orders.errorMessage.isNotEmpty
-                                ? orders.errorMessage
-                                : state.errorMessage,
-                            fallback: 'تعذر تحميل المهام',
-                          ),
-                          fontWeight: FontWeight.w400,
-                          textAlign: TextAlign.center,
+            children: [
+              OrdersAppBar(),
+              SizedBox(height: 20),
+              Padding(
+                padding: EdgeInsetsDirectional.symmetric(horizontal: 24),
+                child: OrdersTypeTabBar(orderNotifier: orderNotifier),
+              ),
+              SizedBox(height: 20),
+              Expanded(
+                child: BlocBuilder<OrdersBloc, OrdersState>(
+                  buildWhen: (previous, current) =>
+                      previous.ordersUsecase != current.ordersUsecase,
+                  builder: (context, state) {
+                    final orders = state.ordersUsecase;
+                    if (orders == null) {
+                      return const Padding(
+                        padding: EdgeInsetsDirectional.only(top: 40),
+                        child: Center(
+                          child: CircularProgressIndicator.adaptive(),
+                        ),
+                      );
+                    }
+                    return orders.builder(
+                      loadingWidget: Padding(
+                        padding: EdgeInsetsDirectional.only(top: 40),
+                        child: Center(
+                          child: CircularProgressIndicator.adaptive(),
                         ),
                       ),
-                    ),
-                    successWidget: () {
-                      return ValueListenableBuilder(
-                        valueListenable: orderNotifier.status,
-                        builder: (context, status, _) => ListView.separated(
-                          padding: const EdgeInsetsDirectional.only(
-                            start: 24,
-                            end: 24,
-                            bottom: 20,
+                      emptyWidget: _emptyOrdersWidget(
+                        orderNotifier.status.value,
+                      ),
+                      failedWidget: Padding(
+                        padding: const EdgeInsetsDirectional.only(top: 40),
+                        child: Center(
+                          child: AppText.labelMedium(
+                            ErrorMessageFormatter.format(
+                              orders.errorMessage.isNotEmpty
+                                  ? orders.errorMessage
+                                  : state.errorMessage,
+                              fallback: 'تعذر تحميل المهام',
+                            ),
+                            fontWeight: FontWeight.w400,
+                            textAlign: TextAlign.center,
                           ),
-                          itemCount: orders.listLength(1),
-                          separatorBuilder: (context, index) => const SizedBox(height: 16),
-                          itemBuilder: (context, index) {
-                            if (orders.length <= index) {
-                              if (orders.length == index) {
-                                context.read<OrdersBloc>().add(
-                                  FetchOrdersUsecaseEvent(
-                                    isReload: false,
-                                    params: _assignedOrdersParams(
-                                      page: orders.pageNumber,
-                                      status: status,
+                        ),
+                      ),
+                      successWidget: () {
+                        return ValueListenableBuilder(
+                          valueListenable: orderNotifier.status,
+                          builder: (context, status, _) => ListView.separated(
+                            padding: const EdgeInsetsDirectional.only(
+                              start: 24,
+                              end: 24,
+                              bottom: 20,
+                            ),
+                            itemCount: orders.listLength(1),
+                            separatorBuilder: (context, index) =>
+                                const SizedBox(height: 16),
+                            itemBuilder: (context, index) {
+                              if (orders.length <= index) {
+                                if (orders.length == index) {
+                                  context.read<OrdersBloc>().add(
+                                    FetchOrdersUsecaseEvent(
+                                      isReload: false,
+                                      params: _assignedOrdersParams(
+                                        page: orders.pageNumber,
+                                        status: status,
+                                      ),
+                                    ),
+                                  );
+                                }
+
+                                return const SizedBox(
+                                  width: 30,
+                                  height: 30,
+                                  child: FittedBox(
+                                    child: CircularProgressIndicator.adaptive(
+                                      strokeWidth: 3,
                                     ),
                                   ),
                                 );
                               }
 
-                              return const SizedBox(
-                                width: 30,
-                                height: 30,
-                                child: FittedBox(
-                                  child: CircularProgressIndicator.adaptive(
-                                    strokeWidth: 3,
-                                  ),
+                              final item = orders.list[index];
+
+                              return AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 500),
+                                transitionBuilder: (child, animation) {
+                                  return FadeTransition(
+                                    opacity: animation,
+                                    child: SlideTransition(
+                                      position: Tween<Offset>(
+                                        begin: const Offset(0, 0.03),
+                                        end: Offset.zero,
+                                      ).animate(animation),
+                                      child: child,
+                                    ),
+                                  );
+                                },
+                                child: OrderCard(
+                                  key: ValueKey(item.id),
+                                  data: item,
+                                  bloc: context.read<OrdersBloc>(),
+                                  index: index,
                                 ),
                               );
-                            }
-
-                            final item = orders.list[index];
-
-                            return AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 500),
-                              transitionBuilder: (child, animation) {
-                                return FadeTransition(
-                                  opacity: animation,
-                                  child: SlideTransition(
-                                    position: Tween<Offset>(
-                                      begin: const Offset(0, 0.03),
-                                      end: Offset.zero,
-                                    ).animate(animation),
-                                    child: child,
-                                  ),
-                                );
-                              },
-                              child: OrderCard(
-                                key: ValueKey(item.id),
-                                data: item,
-                                bloc: context.read<OrdersBloc>(),
-                                index: index,
-                              ),
-                            );
-                          },
-                        ),
-                      );
-                    },
-                    onTapRetry: () {
-                      context.read<OrdersBloc>().add(
-                        FetchOrdersUsecaseEvent(
-                          params: _assignedOrdersParams(page: _ordersCurrentPage),
-                          isReload: true,
-                        ),
-                      );
-                    },
-                  );
-                },
+                            },
+                          ),
+                        );
+                      },
+                      onTapRetry: () {
+                        context.read<OrdersBloc>().add(
+                          FetchOrdersUsecaseEvent(
+                            params: _assignedOrdersParams(
+                              page: _ordersCurrentPage,
+                            ),
+                            isReload: true,
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ));
+    );
   }
 }

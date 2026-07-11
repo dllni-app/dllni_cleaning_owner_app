@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:developer';
-
+import 'package:common_package/helpers/app_log.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:common_package/extensions/route_extensions.dart';
 import 'package:common_package/helpers/shared_preferences_helper.dart';
@@ -67,7 +66,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   //   ),
   // );
 
-  log(
+  appLog(
     'Background message received: '
         '${message.messageId} ${message.data}',
   );
@@ -75,7 +74,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 @pragma('vm:entry-point')
 Future<void> onActionReceivedMethod(ReceivedAction action) async {
-  log('Notification clicked: ${action.payload}');
+  appLog('Notification clicked: ${action.payload}');
   await NotificationHelper.handleAwesomeAction(action);
 }
 
@@ -153,7 +152,7 @@ class NotificationHelper {
       return;
     }
 
-    log(
+    appLog(
       'FCM token is unavailable right now. App startup will continue and token can be fetched later.',
     );
   }
@@ -161,11 +160,11 @@ class NotificationHelper {
   static Future<void> _requestMessagingPermission() async {
     try {
       final settings = await FirebaseMessaging.instance.requestPermission();
-      log(
+      appLog(
         'FCM notification permission status: ${settings.authorizationStatus.name}',
       );
     } catch (error, stackTrace) {
-      log('Failed to request FCM permission: $error', stackTrace: stackTrace);
+      appLog('Failed to request FCM permission: $error', stackTrace: stackTrace);
     }
   }
 
@@ -177,10 +176,10 @@ class NotificationHelper {
           return token;
         }
 
-        log('FCM token attempt $attempt returned empty token.');
+        appLog('FCM token attempt $attempt returned empty token.');
       } catch (error, stackTrace) {
         final retryable = _isRetryableTokenFailure(error);
-        log(
+        appLog(
           'FCM token attempt $attempt failed (retryable: $retryable): $error',
           stackTrace: stackTrace,
         );
@@ -219,7 +218,7 @@ class NotificationHelper {
             await _persistToken(tokenKey, token);
           },
           onError: (Object error, StackTrace stackTrace) {
-            log(
+            appLog(
               'FCM token refresh stream failed: $error',
               stackTrace: stackTrace,
             );
@@ -229,7 +228,7 @@ class NotificationHelper {
 
   static Future<void> _persistToken(String tokenKey, String token) async {
     await SharedPreferencesHelper.saveData(key: tokenKey, value: token);
-    log('FCM Token: $token');
+    appLog('FCM Token: $token');
     await _notifyTokenAvailable(token);
   }
 
@@ -239,7 +238,7 @@ class NotificationHelper {
     try {
       await Future.sync(() => callback.call(token));
     } catch (error, stackTrace) {
-      log(
+      appLog(
         'FCM token registration callback failed: $error',
         stackTrace: stackTrace,
       );
@@ -265,7 +264,7 @@ class NotificationHelper {
     FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
 
     FirebaseMessaging.onMessageOpenedApp.listen((message) async {
-      log('Background notification tapped: ${message.data}');
+      appLog('Background notification tapped: ${message.data}');
       await _handleNotificationTap(message, NotificationLifeCycle.Background);
     });
 
@@ -296,7 +295,7 @@ class NotificationHelper {
     final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
 
     if (initialMessage != null) {
-      log('App opened from terminated notification: ${initialMessage.data}');
+      appLog('App opened from terminated notification: ${initialMessage.data}');
       await _handleNotificationTap(
         initialMessage,
         NotificationLifeCycle.Terminated,
@@ -313,7 +312,7 @@ class NotificationHelper {
       return;
     }
 
-    log(
+    appLog(
       'App opened from awesome notification action: ${initialAction.payload}',
     );
     await handleAwesomeAction(initialAction);
@@ -328,7 +327,7 @@ class NotificationHelper {
 
     final message = RemoteMessage(data: payload);
     final lifeCycle = _detectNotificationLifeCycle(action, payload);
-    log(
+    appLog(
       'Detected notification lifecycle: ${lifeCycle.name} for action: ${action.id}',
     );
     await _handleNotificationTap(message, lifeCycle);
@@ -340,7 +339,7 @@ class NotificationHelper {
   ) {
     // First, check if Awesome Notifications provided a lifecycle
     if (action.actionLifeCycle != null) {
-      log(
+      appLog(
         'Using Awesome Notifications lifecycle: ${action.actionLifeCycle!.name}',
       );
       return action.actionLifeCycle!;
@@ -353,10 +352,10 @@ class NotificationHelper {
         final lifecycle = NotificationLifeCycle.values.firstWhere(
           (lc) => lc.name == storedLifecycle,
         );
-        log('Using stored lifecycle marker: ${lifecycle.name}');
+        appLog('Using stored lifecycle marker: ${lifecycle.name}');
         return lifecycle;
       } catch (_) {
-        log('Invalid stored lifecycle marker: $storedLifecycle');
+        appLog('Invalid stored lifecycle marker: $storedLifecycle');
       }
     }
 
@@ -366,21 +365,21 @@ class NotificationHelper {
       if (lifecycleState != null) {
         // App is running - determine if foreground or background
         if (lifecycleState == AppLifecycleState.resumed) {
-          log('Detected app in foreground (resumed)');
+          appLog('Detected app in foreground (resumed)');
           return NotificationLifeCycle.Foreground;
         } else if (lifecycleState == AppLifecycleState.paused ||
             lifecycleState == AppLifecycleState.inactive) {
-          log('Detected app in background (paused/inactive)');
+          appLog('Detected app in background (paused/inactive)');
           return NotificationLifeCycle.Background;
         }
       }
     } catch (e) {
-      log('Failed to detect app lifecycle state: $e');
+      appLog('Failed to detect app lifecycle state: $e');
     }
 
     // Default to Terminated if we can't determine the state
     // This typically happens when the app was completely closed
-    log('Could not determine lifecycle, defaulting to Terminated');
+    appLog('Could not determine lifecycle, defaulting to Terminated');
     return NotificationLifeCycle.Terminated;
   }
 
@@ -396,7 +395,7 @@ class NotificationHelper {
     );
 
     if (_isDuplicateTap(fingerprint)) {
-      log('Duplicate notification tap ignored for ${lifeCycle.name}.');
+      appLog('Duplicate notification tap ignored for ${lifeCycle.name}.');
       return;
     }
     _rememberTap(fingerprint);
@@ -414,7 +413,7 @@ class NotificationHelper {
     try {
       final decoded = json.decode(rawArgs);
       if (decoded is! Map) {
-        log('Notification args payload is not a map: $decoded');
+        appLog('Notification args payload is not a map: $decoded');
         return null;
       }
 
@@ -423,7 +422,7 @@ class NotificationHelper {
       );
       final routeValue = argsMap.remove('route');
       if (routeValue is! String || routeValue.isEmpty) {
-        log(
+        appLog(
           'Notification args payload does not contain a valid route: $argsMap',
         );
         return null;
@@ -432,7 +431,7 @@ class NotificationHelper {
       final navArgs = _buildArgumentsForRoute(routeValue, argsMap);
       return _ResolvedRoute(route: routeValue, arguments: navArgs);
     } catch (error, stackTrace) {
-      log(
+      appLog(
         'Failed to parse notification args payload: $error',
         stackTrace: stackTrace,
       );
@@ -451,7 +450,7 @@ class NotificationHelper {
           Map<String, dynamic>.from(argsMap),
         );
       } catch (error, stackTrace) {
-        log(
+        appLog(
           'routeArgumentsBuilder failed for route $route: $error',
           stackTrace: stackTrace,
         );
@@ -472,7 +471,7 @@ class NotificationHelper {
 
     final context = _navigatorKey?.currentContext;
     if (context == null) {
-      log(
+      appLog(
         'Navigator context is not available. Skipping navigation to ${resolvedRoute.route}.',
       );
       return;
@@ -484,7 +483,7 @@ class NotificationHelper {
         arguments: resolvedRoute.arguments,
       );
     } catch (error, stackTrace) {
-      log(
+      appLog(
         'Failed to navigate to ${resolvedRoute.route}: $error',
         stackTrace: stackTrace,
       );
@@ -501,23 +500,23 @@ class NotificationHelper {
       NotificationLifeCycle.Terminated => _onTerminatedTap,
     };
 
-    log(
+    appLog(
       'Invoking tap callback for ${lifeCycle.name}. Callback ${callback == null ? "is null" : "exists"}.',
     );
 
     if (callback == null) {
-      log('No callback registered for ${lifeCycle.name} lifecycle');
+      appLog('No callback registered for ${lifeCycle.name} lifecycle');
       return;
     }
 
     try {
-      log(
+      appLog(
         'Calling ${lifeCycle.name} tap callback with message data: ${message.data}',
       );
       await Future.sync(() => callback.call(message));
-      log('Successfully invoked ${lifeCycle.name} tap callback');
+      appLog('Successfully invoked ${lifeCycle.name} tap callback');
     } catch (error, stackTrace) {
-      log(
+      appLog(
         'Notification tap callback failed for ${lifeCycle.name}: $error',
         stackTrace: stackTrace,
       );

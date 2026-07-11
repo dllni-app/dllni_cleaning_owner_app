@@ -1,23 +1,22 @@
-import 'dart:developer';
-
+import 'package:common_package/helpers/app_log.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class AppBlocObserver extends BlocObserver {
   @override
   void onCreate(BlocBase bloc) {
-    log('Create ---> ${bloc.runtimeType}');
+    appLog('Create ---> ${bloc.runtimeType}');
     super.onCreate(bloc);
   }
 
   @override
   void onClose(BlocBase bloc) {
-    log('Close ---> ${bloc.runtimeType}');
+    appLog('Close ---> ${bloc.runtimeType}');
     super.onClose(bloc);
   }
 
   @override
   void onError(BlocBase bloc, Object error, StackTrace stackTrace) {
-    log(
+    appLog(
       'Error  occurred in ${bloc.runtimeType}\n'
       '-----------------StackTrace--------------------\n'
       '${stackTrace.toString()}',
@@ -27,7 +26,7 @@ class AppBlocObserver extends BlocObserver {
 
   @override
   void onTransition(Bloc bloc, Transition transition) {
-    log(
+    appLog(
       '-----------------Bloc Transition------------------------\n'
       'bloc: ${bloc.runtimeType}\n'
       'Event: ${transition.event.runtimeType}\n'
@@ -41,7 +40,7 @@ class AppBlocObserver extends BlocObserver {
 
   @override
   void onEvent(Bloc bloc, Object? event) {
-    log(
+    appLog(
       '--------------------------Bloc Event-----------------------\n'
       'bloc: ${bloc.runtimeType}\n'
       'event: ${event.runtimeType}\n'

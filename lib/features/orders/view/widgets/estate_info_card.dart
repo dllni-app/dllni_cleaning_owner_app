@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
@@ -39,9 +37,9 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
         totalHours: widget.order.totalHours,
         estimatedHours: widget.order.estimatedHours,
       );
-      log('guests: ${guests.toString()}');
-      log('venue: ${venue.toString()}');
-      log('hours: ${hours.toString()}');
+      appLog('guests: ${guests.toString()}');
+      appLog('venue: ${venue.toString()}');
+      appLog('hours: ${hours.toString()}');
       if (guests != null) labels.add('$guests ضيف');
       if (venue != null && venue.isNotEmpty) {
         labels.add(CleaningEnumTranslations.venueType(venue));

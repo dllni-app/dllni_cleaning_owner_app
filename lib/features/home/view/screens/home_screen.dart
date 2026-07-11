@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:developer' as developer;
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_realtime_contract.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/pusher_manager.dart';
@@ -17,6 +16,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/di/injection.dart';
+import '../../../main/navigation/main_tab_navigation.dart';
 import '../../../main/view/screens/main_screen.dart';
 import '../../../orders/data/models/cleaning_booking_status.dart';
 import '../../../orders/domain/usecases/fetch_orders_usecase_use_case.dart';
@@ -32,14 +32,14 @@ enum HomeOrdersTab { newOrders, todayOrders }
 
 extension HomeOrdersTabX on HomeOrdersTab {
   String get label => switch (this) {
-        HomeOrdersTab.newOrders => 'طلبات جديدة',
-        HomeOrdersTab.todayOrders => 'طلبات اليوم',
-      };
+    HomeOrdersTab.newOrders => 'طلبات جديدة',
+    HomeOrdersTab.todayOrders => 'طلبات اليوم',
+  };
 
   String get emptyMessage => switch (this) {
-        HomeOrdersTab.newOrders => 'لا توجد طلبات جديدة',
-        HomeOrdersTab.todayOrders => 'لا توجد طلبات اليوم',
-      };
+    HomeOrdersTab.newOrders => 'لا توجد طلبات جديدة',
+    HomeOrdersTab.todayOrders => 'لا توجد طلبات اليوم',
+  };
 }
 
 class HomeScreen extends StatefulWidget {
@@ -52,17 +52,17 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   static final Set<String> _homePusherEvents =
       CleaningRealtimeContract.expandEventFilter(const <String>{
-    CleaningRealtimeContract.trackingUpdated,
-    CleaningRealtimeContract.teamUpdated,
-    CleaningRealtimeContract.bookingCreated,
-    CleaningRealtimeContract.workerArrived,
-    CleaningRealtimeContract.awaitingStartVerification,
-    CleaningRealtimeContract.arrivalVerified,
-    CleaningRealtimeContract.awaitingWorkerStartConfirmation,
-    CleaningRealtimeContract.awaitingCustomerCompletion,
-    CleaningRealtimeContract.completionDecisionMade,
-    CleaningRealtimeContract.serviceExtensionRequested,
-  });
+        CleaningRealtimeContract.trackingUpdated,
+        CleaningRealtimeContract.teamUpdated,
+        CleaningRealtimeContract.bookingCreated,
+        CleaningRealtimeContract.workerArrived,
+        CleaningRealtimeContract.awaitingStartVerification,
+        CleaningRealtimeContract.arrivalVerified,
+        CleaningRealtimeContract.awaitingWorkerStartConfirmation,
+        CleaningRealtimeContract.awaitingCustomerCompletion,
+        CleaningRealtimeContract.completionDecisionMade,
+        CleaningRealtimeContract.serviceExtensionRequested,
+      });
 
   FetchWorkerProfileUsecaseModel? user;
   bool _isIncompleteDialogOpen = false;
@@ -83,14 +83,14 @@ class _HomeScreenState extends State<HomeScreen> {
   FetchOrdersUsecaseParams _homeOrdersFetchParams({int page = 1}) {
     return switch (_selectedHomeOrdersTab) {
       HomeOrdersTab.newOrders => FetchOrdersUsecaseParams(
-          page: page,
-          status: CleaningBookingStatus.pending,
-        ),
+        page: page,
+        status: CleaningBookingStatus.pending,
+      ),
       HomeOrdersTab.todayOrders => FetchOrdersUsecaseParams(
-          page: page,
-          status: CleaningBookingStatus.workerAssigned,
-          scheduledDate: _todayScheduledDate,
-        ),
+        page: page,
+        status: CleaningBookingStatus.workerAssigned,
+        scheduledDate: _todayScheduledDate,
+      ),
     };
   }
 
@@ -136,8 +136,9 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     _workerId = _resolveWorkerId();
     unawaited(_bindWorkerRealtimeListener());
-    _fcmForegroundSubscription =
-        FirebaseMessaging.onMessage.listen(_onForegroundPushMessage);
+    _fcmForegroundSubscription = FirebaseMessaging.onMessage.listen(
+      _onForegroundPushMessage,
+    );
   }
 
   int? _resolveWorkerId() {
@@ -163,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _bindWorkerRealtimeListener() async {
     final workerId = _resolveWorkerId();
     if (workerId == null || workerId <= 0) {
-      developer.log('[Home] skip pusher bind: worker_id missing');
+      appLog('[Home] skip pusher bind: worker_id missing');
       return;
     }
 
@@ -177,7 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!mounted) return;
 
     final channelName = _workerChannelName;
-    developer.log('[Home] subscribe pusher => $channelName');
+    appLog('[Home] subscribe pusher => $channelName');
 
     final handle = await _pusherManager.listen(
       channelName: channelName,
@@ -197,7 +198,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     _workerRealtimeHandle = handle;
-    developer.log('[Home] pusher listener ready on $channelName');
+    appLog('[Home] pusher listener ready on $channelName');
   }
 
   void _onWorkerPusherEvent(String eventName, Map<String, dynamic> payload) {
@@ -234,7 +235,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _onForegroundPushMessage(RemoteMessage message) {
     if (!mounted) return;
 
-    developer.log(
+    appLog(
       '[Home] FCM foreground => data=${message.data} '
       'title=${message.notification?.title}',
     );
@@ -244,7 +245,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _refreshHomeSummary({required String source}) {
     if (!mounted) return;
-    developer.log('[Home] summary refresh triggered by $source');
+    appLog('[Home] summary refresh triggered by $source');
     _homeBloc.add(
       FetchHomePageUsecaseEvent(
         params: FetchHomePageUsecaseParams(),
@@ -256,7 +257,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _refreshHomeData({required String source}) {
     if (!mounted) return;
 
-    developer.log('[Home] refresh triggered by $source');
+    appLog('[Home] refresh triggered by $source');
 
     _homeBloc.add(
       FetchHomePageUsecaseEvent(
@@ -311,10 +312,10 @@ class _HomeScreenState extends State<HomeScreen> {
           onCompleteNow: () {
             Navigator.of(dialogContext).pop();
             if (!mounted) return;
-            context.pushRouteAndRemoveUntil(
-              '/main',
-              arguments: MainScreenParam(returnedPageIndex: 3),
-            );
+            final opened = MainTabNavigation.instance.jumpToTab(3);
+            if (!opened) {
+              context.pushRouteAndRemoveUntil('/main');
+            }
           },
         );
       },
@@ -414,13 +415,20 @@ class _HomeScreenState extends State<HomeScreen> {
                                   );
                                 },
                                 onStatusTap: (status) {
-                                  innerContext.pushRouteAndRemoveUntil(
-                                    '/main',
-                                    arguments: MainScreenParam(
-                                      returnedPageIndex: 2,
-                                      ordersInitialStatus: status,
-                                    ),
-                                  );
+                                  final opened = MainTabNavigation.instance
+                                      .jumpToTab(
+                                        2,
+                                        ordersInitialStatus: status,
+                                      );
+                                  if (!opened) {
+                                    innerContext.pushRouteAndRemoveUntil(
+                                      '/main',
+                                      arguments: MainScreenParam(
+                                        returnedPageIndex: 2,
+                                        ordersInitialStatus: status,
+                                      ),
+                                    );
+                                  }
                                 },
                               );
                             },
@@ -480,7 +488,9 @@ class _HomeOrdersSection extends StatelessWidget {
             orders.builder(
               loadingWidget: Padding(
                 padding: EdgeInsetsDirectional.only(top: 40.h),
-                child: const Center(child: CircularProgressIndicator.adaptive()),
+                child: const Center(
+                  child: CircularProgressIndicator.adaptive(),
+                ),
               ),
               emptyWidget: AppText.labelMedium(
                 selectedTab.emptyMessage,
@@ -496,11 +506,11 @@ class _HomeOrdersSection extends StatelessWidget {
                     if (orders.length <= index) {
                       if (orders.length == index) {
                         context.read<OrdersBloc>().add(
-                              FetchOrdersUsecaseEvent(
-                                isReload: false,
-                                params: paramsForPage(orders.pageNumber),
-                              ),
-                            );
+                          FetchOrdersUsecaseEvent(
+                            isReload: false,
+                            params: paramsForPage(orders.pageNumber),
+                          ),
+                        );
                       }
 
                       return SizedBox(
@@ -568,39 +578,45 @@ class _HomeOrdersTabSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      children: HomeOrdersTab.values.map((tab) {
-        final isSelected = selectedTab == tab;
-        return Expanded(
-          child: InkWell(
-            onTap: () => onChanged(tab),
-            borderRadius: BorderRadius.circular(8.r),
-            child: Padding(
-              padding: EdgeInsetsDirectional.only(bottom: 8.h),
-              child: Column(
-                children: [
-                  AppText.labelLarge(
-                    tab.label,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                    color: isSelected
-                        ? context.primary
-                        : context.colorScheme.outline,
+      children: HomeOrdersTab.values
+          .map((tab) {
+            final isSelected = selectedTab == tab;
+            return Expanded(
+              child: InkWell(
+                onTap: () => onChanged(tab),
+                borderRadius: BorderRadius.circular(8.r),
+                child: Padding(
+                  padding: EdgeInsetsDirectional.only(bottom: 8.h),
+                  child: Column(
+                    children: [
+                      AppText.labelLarge(
+                        tab.label,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                        color: isSelected
+                            ? context.primary
+                            : context.colorScheme.outline,
+                      ),
+                      6.verticalSpace,
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        height: 2.h,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? context.primary
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(2.r),
+                        ),
+                      ),
+                    ],
                   ),
-                  6.verticalSpace,
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    height: 2.h,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: isSelected ? context.primary : Colors.transparent,
-                      borderRadius: BorderRadius.circular(2.r),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-        );
-      }).toList(growable: false),
+            );
+          })
+          .toList(growable: false),
     );
   }
 }

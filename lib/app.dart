@@ -4,7 +4,6 @@ import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_booking_pusher_service.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_worker_extension_prompts.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_worker_global_prompt_coordinator.dart';
-import 'package:dllni_cleaninig_owner_app/core/widgets/worker_technical_support_call_button.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:toastification/toastification.dart';
@@ -24,22 +23,10 @@ class App extends StatefulWidget {
 class _AppState extends State<App> {
   late final CleaningWorkerGlobalPromptCoordinator _workerPromptCoordinator;
   late final AppLifecycleListener _lifecycleListener;
-  late final WorkerTechnicalSupportRouteObserver _supportCallRouteObserver;
-  String? _currentRouteName;
-
-  bool get _shouldShowSupportCallButton =>
-      SharedPreferencesHelper.getData(key: 'token') != null &&
-      _currentRouteName != '/login';
 
   @override
   void initState() {
     super.initState();
-    _supportCallRouteObserver = WorkerTechnicalSupportRouteObserver(
-      onRouteChanged: (routeName) {
-        if (!mounted) return;
-        setState(() => _currentRouteName = routeName);
-      },
-    );
     final pusher = getIt<CleaningBookingPusherService>();
     unawaited(pusher.ensureInitialized());
     _workerPromptCoordinator = CleaningWorkerGlobalPromptCoordinator(
@@ -62,23 +49,17 @@ class _AppState extends State<App> {
 
   @override
   Widget build(BuildContext context) {
+    final hasToken = SharedPreferencesHelper.getData(key: 'token') != null;
     return ToastificationWrapper(
       child: MaterialApp(
         navigatorKey: widget.navigatorKey,
-        navigatorObservers: <NavigatorObserver>[_supportCallRouteObserver],
         title: 'cleaning owner',
         debugShowCheckedModeBanner: false,
         locale: context.locale,
         supportedLocales: context.supportedLocales,
         localizationsDelegates: context.localizationDelegates,
         onGenerateRoute: AppRouter.onGenerateRoute,
-        builder: (context, child) => WorkerTechnicalSupportCallOverlay(
-          visible: _shouldShowSupportCallButton,
-          child: child ?? const SizedBox.shrink(),
-        ),
-        home: SharedPreferencesHelper.getData(key: 'token') != null
-            ? const MainScreen()
-            : const LoginScreen(),
+        home: hasToken ? const MainScreen() : const LoginScreen(),
         theme: ThemeData(
           fontFamily: 'cairo',
           colorScheme: ColorScheme(

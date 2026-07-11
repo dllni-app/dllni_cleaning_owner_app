@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'dart:io';
 
 import 'package:common_package/common_package.dart';
@@ -458,7 +457,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
         return File(pickedFile.path);
       }
     } catch (e) {
-      log('Error picking image: $e');
+      appLog('Error picking image: $e');
     }
     return null;
   }

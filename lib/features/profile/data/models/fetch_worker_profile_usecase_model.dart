@@ -125,7 +125,7 @@ class FetchWorkerProfileUsecaseModelData {
       firstName: _asString(json['firstName']),
       avatar: json['avatar'] is Map ? Avatar.fromJson(Map<String, dynamic>.from(json['avatar'])) : null,
       bio: _asString(json['bio']),
-      averageRating: _asDouble(json['averageRating']),
+      averageRating: _asDouble(json['averageRating'] ?? json['average_rating']),
       totalCompletedJobs: _asInt(json['totalCompletedJobs']),
       trustScore: _asInt(json['trustScore']),
       acceptanceRate: _asDouble(json['acceptanceRate']),

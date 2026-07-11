@@ -1,7 +1,6 @@
-import 'dart:developer';
-
-import 'package:injectable/injectable.dart';
+import 'package:common_package/helpers/app_log.dart';
 import 'package:common_package/helpers/typedef.dart';
+import 'package:injectable/injectable.dart';
 
 import '../repository/orders_repo.dart';
 import '../../data/models/fetch_orders_usecase_model.dart';
@@ -53,7 +52,7 @@ class FetchOrdersUsecaseParams with Params {
       "page": "$page",
       "sort": sort,
     }..removeWhere((key, value) => value == null);
-    log(params.toString());
+    appLog(params.toString());
     return params;
   }
 }

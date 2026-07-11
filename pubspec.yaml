@@ -45,6 +45,8 @@ dependencies:
   pusher_channels_flutter: ^2.2.0
   animated_list_plus: ^0.5.2
   intl_phone_field: ^3.2.0
+  path_provider: ^2.1.5
+  persistent_bottom_nav_bar: ^6.2.1
 
 
 dev_dependencies:
