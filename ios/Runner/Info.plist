@@ -22,6 +22,10 @@
       <string>location</string>
       <string>remote-notification</string>
     </array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>نستخدم موقعك لتحديث موقع العامل أثناء تنفيذ الطلب.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>نحتاج الوصول للموقع في الخلفية لإبقاء تحديث حالة الطلب والموقع مستمراً أثناء التنفيذ.</string>
 	<key>CFBundleName</key>
 	<string>عامل عالندهة</string>
 	<key>CFBundlePackageType</key>

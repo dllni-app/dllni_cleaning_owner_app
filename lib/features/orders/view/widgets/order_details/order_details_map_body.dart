@@ -7,6 +7,7 @@ import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/arrive
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/fetch_security_code_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/post_booking_location_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/start_work_use_case.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -209,8 +210,18 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
     if (permission == LocationPermission.deniedForever) {
       await Geolocator.openAppSettings();
     }
+    final locationSettings = switch (defaultTargetPlatform) {
+      TargetPlatform.iOS || TargetPlatform.macOS => AppleSettings(
+        accuracy: LocationAccuracy.bestForNavigation,
+        activityType: ActivityType.automotiveNavigation,
+        pauseLocationUpdatesAutomatically: false,
+        showBackgroundLocationIndicator: true,
+        allowBackgroundLocationUpdates: true,
+      ),
+      _ => const LocationSettings(accuracy: LocationAccuracy.high),
+    };
     return Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      locationSettings: locationSettings,
     );
   }
 

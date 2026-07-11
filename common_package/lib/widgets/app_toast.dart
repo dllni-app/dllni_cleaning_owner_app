@@ -1,4 +1,5 @@
 import 'package:common_package/extensions/theme_extension.dart';
+import 'package:common_package/helpers/app_foreground_gate.dart';
 import 'package:common_package/helpers/error_message_formatter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +8,9 @@ import 'package:toastification/toastification.dart';
 class AppToast {
   static GlobalKey<NavigatorState>? _navigatorKey;
   static bool _suppressErrorToasts = false;
+  static const Duration _errorToastDedupeWindow = Duration(seconds: 5);
+  static final Map<String, DateTime> _recentErrorMessages =
+      <String, DateTime>{};
 
   /// Call once at app startup with the same [GlobalKey] passed to [MaterialApp.navigatorKey].
   static void bindNavigatorKey(GlobalKey<NavigatorState> key) {
@@ -29,7 +33,7 @@ class AppToast {
 
   /// Shows an error toast using the root navigator context (no [BuildContext] required).
   static void showErrorGlobal([String? message]) {
-    if (_suppressErrorToasts) return;
+    if (_suppressErrorToasts || !AppForegroundGate.isForeground) return;
     final context = _navigatorKey?.currentContext;
     if (context == null) {
       if (kDebugMode) {
@@ -37,14 +41,32 @@ class AppToast {
       }
       return;
     }
+    final formatted = ErrorMessageFormatter.format(
+      message,
+      fallback: defaultErrorMessage,
+    );
+    if (_isDuplicateError(formatted)) return;
     showToast(
       context: context,
-      message: ErrorMessageFormatter.format(
-        message,
-        fallback: defaultErrorMessage,
-      ),
+      message: formatted,
       type: ToastificationType.error,
     );
+  }
+
+  static bool _isDuplicateError(String message) {
+    final normalized = message.trim();
+    if (normalized.isEmpty) return false;
+    final now = DateTime.now();
+    _recentErrorMessages.removeWhere(
+      (_, shownAt) => now.difference(shownAt) > _errorToastDedupeWindow,
+    );
+    final lastShownAt = _recentErrorMessages[normalized];
+    if (lastShownAt != null &&
+        now.difference(lastShownAt) <= _errorToastDedupeWindow) {
+      return true;
+    }
+    _recentErrorMessages[normalized] = now;
+    return false;
   }
 
   /// Shows a success toast using the root navigator context (no [BuildContext] required).

@@ -7,6 +7,7 @@ import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_worker_global_p
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:toastification/toastification.dart';
+import 'core/lifecycle/background_keep_alive.dart';
 import 'core/routes/app_router.dart';
 import 'features/auth/view/screens/login_screen.dart';
 import 'features/main/view/screens/main_screen.dart';
@@ -27,6 +28,8 @@ class _AppState extends State<App> {
   @override
   void initState() {
     super.initState();
+    AppForegroundGate.onResumed();
+    unawaited(BackgroundKeepAlive.instance.initialize());
     final pusher = getIt<CleaningBookingPusherService>();
     unawaited(pusher.ensureInitialized());
     _workerPromptCoordinator = CleaningWorkerGlobalPromptCoordinator(
@@ -34,7 +37,20 @@ class _AppState extends State<App> {
     );
     CleaningWorkerExtensionPrompts.coordinator = _workerPromptCoordinator;
     _lifecycleListener = AppLifecycleListener(
-      onResume: () => unawaited(_workerPromptCoordinator.onAppResumed()),
+      onResume: () {
+        AppForegroundGate.onResumed();
+        unawaited(BackgroundKeepAlive.instance.stop());
+        unawaited(_workerPromptCoordinator.onAppResumed());
+      },
+      onPause: () {
+        AppForegroundGate.onPaused();
+        unawaited(BackgroundKeepAlive.instance.startIfAuthenticated());
+      },
+      onInactive: AppForegroundGate.onInactive,
+      onHide: () {
+        AppForegroundGate.onHidden();
+        unawaited(BackgroundKeepAlive.instance.startIfAuthenticated());
+      },
     );
     unawaited(_workerPromptCoordinator.start());
   }
@@ -42,6 +58,7 @@ class _AppState extends State<App> {
   @override
   void dispose() {
     _lifecycleListener.dispose();
+    unawaited(BackgroundKeepAlive.instance.stop());
     CleaningWorkerExtensionPrompts.coordinator = null;
     unawaited(_workerPromptCoordinator.stop());
     super.dispose();
@@ -60,6 +77,17 @@ class _AppState extends State<App> {
         localizationsDelegates: context.localizationDelegates,
         onGenerateRoute: AppRouter.onGenerateRoute,
         home: hasToken ? const MainScreen() : const LoginScreen(),
+        builder: (context, child) {
+          final mediaQuery = MediaQuery.of(context);
+          final clampedScaler = mediaQuery.textScaler.clamp(
+            minScaleFactor: 1.0,
+            maxScaleFactor: 1.2,
+          );
+          return MediaQuery(
+            data: mediaQuery.copyWith(textScaler: clampedScaler),
+            child: child ?? const SizedBox.shrink(),
+          );
+        },
         theme: ThemeData(
           fontFamily: 'cairo',
           colorScheme: ColorScheme(

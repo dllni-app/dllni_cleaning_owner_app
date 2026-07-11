@@ -270,7 +270,9 @@ class CleaningWorkerGlobalPromptCoordinator {
   }
 
   Future<void> pollPendingExtensionPrompts() async {
-    if (!_started || (!_authBypassForTest && !_hasToken())) return;
+    if (!_started || (!_authBypassForTest && !_hasToken())) {
+      return;
+    }
     if (_extensionPollInFlight || _promptSheetOpen) return;
 
     _extensionPollInFlight = true;

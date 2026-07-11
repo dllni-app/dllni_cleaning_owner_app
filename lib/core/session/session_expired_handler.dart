@@ -1,5 +1,6 @@
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
+import 'package:dllni_cleaninig_owner_app/core/lifecycle/background_keep_alive.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_booking_pusher_service.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
@@ -21,6 +22,7 @@ class SessionExpiredHandler {
     _isHandling = true;
     AppToast.setSuppressErrorToasts(true);
     try {
+      await BackgroundKeepAlive.instance.stop();
       final pusherService = getIt<CleaningBookingPusherService>();
       await pusherService.disposeAllForSession();
 
