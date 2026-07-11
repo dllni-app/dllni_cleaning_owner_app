@@ -32,15 +32,23 @@ Future<void> main() async {
             builder: (context, child) => App(navigatorKey: navigatorKey),
           ),
           configureDependencies: configureInjection,
-          enableNotifications: true,
+          enableNotifications: false,
           startLocale: Locale('ar'),
           fallbackLocale: const Locale('ar'),
           supportedLocales: const <Locale>[Locale('en'), Locale('ar')],
           translationsAssetPath: 'assets/translations',
-          fcmTokenKey: 'fcm',
-          onFcmTokenAvailable: FcmTokenRegistrar.registerIfAuthenticated,
         ),
       );
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        unawaited(
+          NotificationHelper.initAllNotifications(
+            tokenKey: 'fcm',
+            navigatorKey: navigatorKey,
+            onFcmTokenAvailable: FcmTokenRegistrar.registerIfAuthenticated,
+          ),
+        );
+      });
     },
     (error, stackTrace) {
       AppDebugLogger.recordError('UNCAUGHT', error, stackTrace);
