@@ -183,4 +183,25 @@ void main() {
       expect(tasks[2].label, 'مكواة');
     });
   });
+
+  group('OrderMissionTaskMapper.buildCompletionServiceSnapshots', () {
+    test('sends every displayed service and addon to the customer', () {
+      final snapshots =
+          OrderMissionTaskMapper.buildCompletionServiceSnapshots(
+        services: <Service>[
+          Service(name: 'تنظيف عميق', quantity: 1),
+          Service(name: 'تنظيف نوافذ', quantity: 2),
+        ],
+        addons: <Addon>[
+          Addon(name: 'مكواة', quantity: 1),
+        ],
+      );
+
+      expect(snapshots, hasLength(3));
+      expect(snapshots[0], containsPair('label', 'تنظيف عميق'));
+      expect(snapshots[1], containsPair('label', 'تنظيف نوافذ: x2'));
+      expect(snapshots[1], containsPair('detail', 'x2'));
+      expect(snapshots[2], containsPair('name', 'مكواة'));
+    });
+  });
 }
