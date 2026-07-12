@@ -16,6 +16,7 @@ import '../../../domain/usecases/reject_extension_usecase_use_case.dart';
 import '../../helpers/order_lifecycle_policy.dart';
 import '../../helpers/order_mission_task_mapper.dart';
 import '../../helpers/order_work_timer_helper.dart';
+import 'mission/completion_message_sheet.dart';
 import 'mission/mission_finish_button.dart';
 import 'mission/mission_payment_summary_card.dart';
 import 'mission/mission_services_info_card.dart';
@@ -178,15 +179,26 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     return trimmed == null || trimmed.isEmpty ? null : trimmed;
   }
 
-  void _sendCompleteOrderRequest() {
+  Future<void> _showCompletionMessageSheet() async {
     if (!_canFinish || widget.order.id == null) return;
+    final message = await CompletionMessageSheet.show(
+      context,
+      initialMessage: _lastCompletionMessage,
+    );
+    if (message == null || widget.order.id == null) return;
 
-    setState(() => _lastCompletionMessage = null);
+    final trimmed = message.trim();
+    setState(() => _lastCompletionMessage = trimmed.isEmpty ? null : trimmed);
     widget.bloc.add(
       CompleteOrderUsecaseEvent(
         params: CompleteOrderUsecaseParams(
           id: widget.order.id!,
-          cleaningServices: const <Map<String, Object?>>[],
+          completionMessage: trimmed,
+          cleaningServices:
+              OrderMissionTaskMapper.buildCompletionServiceSnapshots(
+            services: widget.services,
+            addons: widget.addons,
+          ),
           propertiesRooms: _checkedTaskSnapshots(),
         ),
       ),
@@ -221,7 +233,8 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     final extensionSeed =
         OrderWorkTimerHelper.latestAcceptedExtensionSeed(widget.order.timeWarnings);
     if (extensionSeed != null) {
-      if (resetCurrentSession || _timerSession?.sessionKey != extensionSeed.sessionKey) {
+      if (resetCurrentSession ||
+          _timerSession?.sessionKey != extensionSeed.sessionKey) {
         _timerSession = OrderWorkTimerHelper.startExtensionSession(
           now: DateTime.now(),
           seed: extensionSeed,
@@ -432,8 +445,12 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
   }
 
   String? get _timerHelperText {
-    if (_uiState.isWaitingCustomer) return 'تم قفل قائمة المهام بعد إرسال طلب الإنهاء.';
-    if (_uiState.isExtensionPending) return 'لا يتم قبول أو رفض التمديد تلقائياً. اختر الإجراء المناسب.';
+    if (_uiState.isWaitingCustomer) {
+      return 'تم قفل قائمة المهام بعد إرسال طلب الإنهاء.';
+    }
+    if (_uiState.isExtensionPending) {
+      return 'لا يتم قبول أو رفض التمديد تلقائياً. اختر الإجراء المناسب.';
+    }
     if (_uiState.isDispute) return 'يرجى انتظار توجيهات الدعم أو الإدارة.';
     if (_uiState.isFinal) return null;
     if (!_isWorkTimerAvailable) return null;
@@ -470,12 +487,16 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
   Map<String, dynamic> _asStringMap(dynamic value) {
     if (value is Map<String, dynamic>) return value;
     if (value is Map) {
-      return value.map((key, nestedValue) => MapEntry(key.toString(), nestedValue));
+      return value.map(
+        (key, nestedValue) => MapEntry(key.toString(), nestedValue),
+      );
     }
     return const <String, dynamic>{};
   }
 
-  Future<void> _showRejectExtensionDialog(_PendingExtension extension) async {
+  Future<void> _showRejectExtensionDialog(
+    _PendingExtension extension,
+  ) async {
     final controller = TextEditingController();
     final message = await showDialog<String>(
       context: context,
@@ -573,7 +594,8 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                 child: OutlinedButton(
                   onPressed: loading || extension == null
                       ? null
-                      : () => unawaited(_showRejectExtensionDialog(extension)),
+                      : () =>
+                          unawaited(_showRejectExtensionDialog(extension)),
                   child: const Text('رفض'),
                 ),
               ),
@@ -673,9 +695,8 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                       startTimeValue: _canShowTwoTimes
                           ? _formatClock(_orderStartTime!)
                           : null,
-                      endTimeLabel: _canShowTwoTimes
-                          ? 'وقت الانتهاء المتوقع'
-                          : null,
+                      endTimeLabel:
+                          _canShowTwoTimes ? 'وقت الانتهاء المتوقع' : null,
                       endTimeValue: _canShowTwoTimes
                           ? _formatClock(_orderEndTime!)
                           : null,
@@ -739,7 +760,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
           loading: loading,
           enabled: _canFinish && !loading,
           text: _finishButtonText,
-          onPressed: _sendCompleteOrderRequest,
+          onPressed: () => unawaited(_showCompletionMessageSheet()),
         );
       },
     );
