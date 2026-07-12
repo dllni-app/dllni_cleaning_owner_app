@@ -1,4 +1,5 @@
 import 'package:common_package/common_package.dart';
+import 'package:dllni_cleaninig_owner_app/core/widgets/worker_technical_support_call_button.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/core/lifecycle/background_keep_alive.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_booking_pusher_service.dart';
@@ -15,7 +16,6 @@ import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/worker_r
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../manager/bloc/profile_bloc.dart';
 import '../widgets/profile_app_bar.dart';
@@ -332,17 +332,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         ),
                                       );
                                     }
+                                  /*
                                   : i == 4
                                   ? () {
                                       context.pushRoute('/transactionhistory');
-                                    }
-                                  : i == 5
+                                    } 
+                                  */
+                                  : i == 4
                                   ? () async {
-                                      await launchUrl(
-                                        Uri.parse(
-                                          'https://wa.me/message/XJOZBNT3VS5SJ1',
-                                        ),
-                                      );
+                                      await launchSupportWhatsApp(context);
                                     }
                                   : () {
                                       Navigator.of(context).push<void>(

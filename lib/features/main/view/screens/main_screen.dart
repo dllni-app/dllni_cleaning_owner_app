@@ -98,7 +98,7 @@ class _MainScreenState extends State<MainScreen> {
       customWidget: MainPersistentBottomNavBar(
         controller: _tabController,
         onItemSelected: (index) => _tabNavigation.jumpToTab(index),
-        onSupportTap: () => launchSupportCall(context),
+        onSupportTap: () => launchSupportWhatsApp(context),
       ),
     );
   }

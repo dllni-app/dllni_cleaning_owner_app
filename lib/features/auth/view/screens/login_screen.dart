@@ -9,6 +9,7 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:intl_phone_number_input/intl_phone_number_input.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/widgets/app_phone_number_field.dart';
+import '../../../../core/widgets/worker_technical_support_call_button.dart';
 import '../../../../core/widgets/phone_number_widget/my_phone_number_field_widget.dart';
 import '../../../../generated/assets.dart';
 import '../manager/bloc/auth_bloc.dart';
@@ -198,13 +199,20 @@ class _LoginScreenState extends State<LoginScreen> {
                     SizedBox(height: 24),
                     AppText.labelMedium('هل تواجه مشكلة في تسجيل الدخول؟', color: Colors.grey.shade600, textAlign: TextAlign.center),
                     SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.headset_mic_outlined, color: context.secondary, size: 18),
-                        SizedBox(width: 6),
-                        AppText.bodyMedium('تواصل مع الدعم الفني', color: context.secondary, fontWeight: FontWeight.bold),
-                      ],
+                    InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () async => launchSupportWhatsApp(context),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.headset_mic_outlined, color: context.secondary, size: 18),
+                            SizedBox(width: 6),
+                            AppText.bodyMedium('تواصل مع الدعم الفني', color: context.secondary, fontWeight: FontWeight.bold),
+                          ],
+                        ),
+                      ),
                     ),
                     SizedBox(height: 24),
                     AppText.labelSmall('© 2026 تطبيق تاجر. جميع الحقوق محفوظة', color: Colors.grey.shade500, textAlign: TextAlign.center),
