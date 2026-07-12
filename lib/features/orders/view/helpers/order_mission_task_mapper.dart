@@ -86,6 +86,29 @@ class OrderMissionTaskMapper {
     return items;
   }
 
+  /// Builds the completed-service snapshot sent to the backend when the worker
+  /// requests customer completion confirmation. Services are informational in
+  /// the worker UI, so every displayed service/add-on is included.
+  static List<Map<String, Object?>> buildCompletionServiceSnapshots({
+    required List<Service> services,
+    required List<Addon> addons,
+  }) {
+    final items = buildServicesInfo(services: services, addons: addons);
+
+    return items.asMap().entries.map((entry) {
+      final item = entry.value;
+      final label = item.label.trim();
+      final detail = item.detail?.trim();
+
+      return <String, Object?>{
+        'name': label,
+        'label': detail == null || detail.isEmpty ? label : '$label: $detail',
+        if (detail != null && detail.isNotEmpty) 'detail': detail,
+        'sort': entry.key,
+      };
+    }).toList(growable: false);
+  }
+
   static String keyFor(MissionTaskItem task, int index) => '${task.label}-$index';
 
   static List<MissionTaskItem> _eventAssistanceInfoTasks(
