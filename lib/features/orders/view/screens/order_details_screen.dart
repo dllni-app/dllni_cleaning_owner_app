@@ -44,6 +44,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   RealtimeListenerHandle? _workerListenerHandle;
   Timer? _syncFallbackDebounce;
   OrdersState? _previousBlocState;
+  String? _lastShownCustomerNoteKey;
 
   int _stepFor(FetchOrdersUsecaseModelDataItem o) =>
       OrderLifecyclePolicy.detailsStepFor(o);
@@ -175,6 +176,10 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         order: _order,
         payload: payload,
       );
+      _showCustomerCompletionNoteIfNeeded(
+        bookingId: bookingId,
+        payload: payload,
+      );
     }
 
     if (CleaningRealtimeContract.isLifecycleRefreshEvent(normalizedEvent)) {
@@ -185,6 +190,50 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             : 'owner_details_lifecycle_event_refresh',
       );
     }
+  }
+
+  void _showCustomerCompletionNoteIfNeeded({
+    required int bookingId,
+    required Map<String, dynamic> payload,
+  }) {
+    final decision = (payload['decision'] ?? '')
+        .toString()
+        .trim()
+        .toLowerCase();
+    if (decision != 'rejected') return;
+
+    final rawMessage = payload['message'] ??
+        payload['reason'] ??
+        payload['customerMessage'] ??
+        payload['customer_message'];
+    final message = rawMessage?.toString().trim();
+    if (message == null || message.isEmpty) return;
+
+    final decidedAt = payload['decidedAt'] ??
+        payload['decided_at'] ??
+        payload['updatedAt'] ??
+        payload['updated_at'] ??
+        '';
+    final noteKey = '$bookingId:$decidedAt:$message';
+    if (_lastShownCustomerNoteKey == noteKey) return;
+    _lastShownCustomerNoteKey = noteKey;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('ملاحظة العميل'),
+          content: Text(message),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('حسناً'),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   void _onRealtimeChannelError(RealtimeChannelError error) {
@@ -313,7 +362,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       if (st != null && st.id == oid && st.status != null) {
         _applyLifecyclePatch(
           status: st.status,
-          startedTravelAt: _order.startedTravelAt ?? DateTime.now().toUtc().toIso8601String(),
+          startedTravelAt:
+              _order.startedTravelAt ?? DateTime.now().toUtc().toIso8601String(),
         );
       }
     }
@@ -321,7 +371,10 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     if (previous == null || state.startWork != previous.startWork) {
       final sw = state.startWork?.data;
       if (sw != null && sw.id == oid) {
-        _applyLifecyclePatch(status: sw.status, workStartedAt: sw.workStartedAt);
+        _applyLifecyclePatch(
+          status: sw.status,
+          workStartedAt: sw.workStartedAt,
+        );
       }
     }
 
@@ -329,7 +382,10 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         state.completeOrderUsecase != previous.completeOrderUsecase) {
       final co = state.completeOrderUsecase?.data;
       if (co != null && co.id == oid) {
-        _applyLifecyclePatch(status: co.status, workFinishedAt: co.workFinishedAt);
+        _applyLifecyclePatch(
+          status: co.status,
+          workFinishedAt: co.workFinishedAt,
+        );
       }
     }
 
@@ -339,6 +395,17 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         _applyLifecyclePatch(status: acc.status);
       }
     }
+  }
+
+  List<T> _preferNonEmpty<T>(
+    List<T>? first,
+    List<T>? second,
+    List<T>? third,
+  ) {
+    if (first != null && first.isNotEmpty) return first;
+    if (second != null && second.isNotEmpty) return second;
+    if (third != null && third.isNotEmpty) return third;
+    return <T>[];
   }
 
   @override
@@ -399,8 +466,16 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                 order: _order,
                 bloc: widget.params.bloc,
                 index: widget.params.index,
-                addons: state.arrive?.data?.addons ?? _order.addons ?? [],
-                services: state.arrive?.data?.services ?? _order.services ?? [],
+                addons: _preferNonEmpty<Addon>(
+                  state.arrive?.data?.addons,
+                  state.orderDetailsUsecase?.data?.addons,
+                  _order.addons,
+                ),
+                services: _preferNonEmpty<Service>(
+                  state.arrive?.data?.services,
+                  state.orderDetailsUsecase?.data?.services,
+                  _order.services,
+                ),
               );
             },
           ),
