@@ -124,15 +124,16 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
   }
 
   void _setOrdersListFilter(
-      SetOrdersListFilterEvent event,
-      Emitter<OrdersState> emit,
-      ) {
+    SetOrdersListFilterEvent event,
+    Emitter<OrdersState> emit,
+  ) {
     _lastOrdersFilter = FetchOrdersUsecaseParams(
       page: 1,
       status: event.status,
       assignedToCurrentWorker: true,
     );
   }
+
   EventTransformer<T> droppableProMax<T extends EventWithReload>() {
     return (events, mapper) {
       return events.transform(ExhaustMapStreamTransformer(maper: mapper));
@@ -149,26 +150,22 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
   FutureOr<void> _fetchOrdersUsecase(
     FetchOrdersUsecaseEvent event,
     Emitter<OrdersState> emit,
-  )
-  async {
+  ) async {
     if (!state.ordersUsecase!.isEndPage || event.isReload) {
       if (event.silent) {
         final res = await fetchOrdersUsecaseUseCase(event.params);
         if (emit.isDone) return;
-        res.fold(
-          (l) {},
-          (r) {
-            _rememberOrdersListFilter(event.params);
-            _cacheWorkerEligibility(r);
-            emit(
-              state.copyWith(
-                ordersUsecase: state.ordersUsecase!.setSuccessReplace(
-                  data: r.data!,
-                ),
+        res.fold((l) {}, (r) {
+          _rememberOrdersListFilter(event.params);
+          _cacheWorkerEligibility(r);
+          emit(
+            state.copyWith(
+              ordersUsecase: state.ordersUsecase!.setSuccessReplace(
+                data: r.data!,
               ),
-            );
-          },
-        );
+            ),
+          );
+        });
         return;
       }
 
@@ -221,8 +218,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
           scheduledDateFrom: _lastOrdersFilter.scheduledDateFrom,
           scheduledDateTo: _lastOrdersFilter.scheduledDateTo,
           sort: _lastOrdersFilter.sort,
-          assignedToCurrentWorker:
-          _lastOrdersFilter.assignedToCurrentWorker,
+          assignedToCurrentWorker: _lastOrdersFilter.assignedToCurrentWorker,
         ),
         isReload: true,
         silent: silent,
@@ -282,8 +278,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
   FutureOr<void> _acceptOrderUsecase(
     AcceptOrderUsecaseEvent event,
     Emitter<OrdersState> emit,
-  )
-  async {
+  ) async {
     emit(
       state.copyWith(
         acceptOrderUsecaseStatus: BlocStatus.loading,
@@ -310,10 +305,12 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
         final updatedOrder = await _fetchOrderListItemById(event.params.id);
         if (emit.isDone) return;
 
-        final updatedStatus =
-            (updatedOrder?.status ?? r.data?.status)?.trim().toLowerCase();
+        final updatedStatus = (updatedOrder?.status ?? r.data?.status)
+            ?.trim()
+            .toLowerCase();
         final shouldKeepInPending =
-            updatedOrder != null && updatedStatus == CleaningBookingStatus.pending;
+            updatedOrder != null &&
+            updatedStatus == CleaningBookingStatus.pending;
 
         final nextOrders = shouldKeepInPending
             ? OrdersPendingOrderListHydrator.upsert(
@@ -733,10 +730,9 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     _securityCodeInFlightForBookingId = null;
     res.fold(
       (l) {
-        final message = _mapLifecycleFailureMessage(
-          l,
-          invalidStateMessage: 'لا يمكن جلب رمز التحقق في حالة الطلب الحالية.',
-        );
+        final message = ErrorMessageFormatter.format(l.message).trim().isEmpty
+            ? 'تعذر جلب رمز التحقق.'
+            : ErrorMessageFormatter.format(l.message);
         if (event.force) {
           AppToast.showErrorGlobal(message);
         }
@@ -875,8 +871,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
 
     res.fold(
       (_) {
-        if (!OrdersRealtimeHydrationPolicy
-            .shouldRefetchPendingListWhenDetailsMissing(
+        if (!OrdersRealtimeHydrationPolicy.shouldRefetchPendingListWhenDetailsMissing(
           applyToPendingList: event.applyToPendingList,
         )) {
           return;
@@ -886,8 +881,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
       (response) {
         final details = response.data;
         if (details == null) {
-          if (!OrdersRealtimeHydrationPolicy
-              .shouldRefetchPendingListWhenDetailsMissing(
+          if (!OrdersRealtimeHydrationPolicy.shouldRefetchPendingListWhenDetailsMissing(
             applyToPendingList: event.applyToPendingList,
           )) {
             return;
@@ -900,7 +894,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
           status: details.status,
           applyToPendingList: event.applyToPendingList,
           lastOrdersStatusFilter:
-          _lastOrdersFilter.status ?? CleaningBookingStatus.workerAssigned,
+              _lastOrdersFilter.status ?? CleaningBookingStatus.workerAssigned,
         )) {
           final listItem = OrderDetailsToListItemMapper.fromDetails(details);
           emit(
