@@ -16,7 +16,6 @@ import '../../../domain/usecases/reject_extension_usecase_use_case.dart';
 import '../../helpers/order_lifecycle_policy.dart';
 import '../../helpers/order_mission_task_mapper.dart';
 import '../../helpers/order_work_timer_helper.dart';
-import 'mission/completion_message_sheet.dart';
 import 'mission/mission_finish_button.dart';
 import 'mission/mission_payment_summary_card.dart';
 import 'mission/mission_services_info_card.dart';
@@ -179,21 +178,14 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     return trimmed == null || trimmed.isEmpty ? null : trimmed;
   }
 
-  Future<void> _showCompletionMessageSheet() async {
+  void _sendCompleteOrderRequest() {
     if (!_canFinish || widget.order.id == null) return;
-    final message = await CompletionMessageSheet.show(
-      context,
-      initialMessage: _lastCompletionMessage,
-    );
-    if (message == null || widget.order.id == null) return;
 
-    final trimmed = message.trim();
-    setState(() => _lastCompletionMessage = trimmed.isEmpty ? null : trimmed);
+    setState(() => _lastCompletionMessage = null);
     widget.bloc.add(
       CompleteOrderUsecaseEvent(
         params: CompleteOrderUsecaseParams(
           id: widget.order.id!,
-          completionMessage: trimmed,
           cleaningServices: const <Map<String, Object?>>[],
           propertiesRooms: _checkedTaskSnapshots(),
         ),
@@ -747,7 +739,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
           loading: loading,
           enabled: _canFinish && !loading,
           text: _finishButtonText,
-          onPressed: () => unawaited(_showCompletionMessageSheet()),
+          onPressed: _sendCompleteOrderRequest,
         );
       },
     );
