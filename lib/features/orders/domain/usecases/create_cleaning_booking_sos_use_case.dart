@@ -43,17 +43,20 @@ class CreateCleaningBookingSosParams with Params {
   @override
   BodyMap getBody() {
     final body = <String, dynamic>{
-      'emergency_type': emergencyType,
-      'message': message.trim(),
+      'kind': 'emergency',
+      'bookingId': cleaningBookingId,
+      'bookingType': 'cleaning_booking',
+      'emergencyType': emergencyType,
+      'description': message.trim(),
     };
 
     if (latitude != null && longitude != null) {
-      body['lat'] = latitude;
-      body['lng'] = longitude;
+      body['latitude'] = latitude;
+      body['longitude'] = longitude;
     }
 
     if (clientRequestId != null && clientRequestId!.trim().isNotEmpty) {
-      body['client_request_id'] = clientRequestId!.trim();
+      body['clientRequestId'] = clientRequestId!.trim();
     }
 
     return body;
