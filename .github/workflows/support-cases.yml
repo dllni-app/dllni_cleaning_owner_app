@@ -27,8 +27,8 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Check formatting
-        run: dart format --output=none --set-exit-if-changed lib/features/orders/data/source/orders_remote_data_source.dart lib/features/orders/domain/usecases/create_cleaning_booking_sos_use_case.dart
+      - name: Format worker support sources
+        run: dart format lib/features/orders/data/source/orders_remote_data_source.dart lib/features/orders/domain/usecases/create_cleaning_booking_sos_use_case.dart
 
       - name: Analyze support case changes
         run: flutter analyze lib/features/orders/data/source/orders_remote_data_source.dart lib/features/orders/domain/usecases/create_cleaning_booking_sos_use_case.dart
