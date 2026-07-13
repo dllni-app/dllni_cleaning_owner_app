@@ -131,7 +131,6 @@ class OrdersRemoteDataSource with HandlingApiManager {
     );
   }
 
-
   Future<ArriveModel> arrive(ArriveParams params) {
     return wrapHandlingApi(
       tryCall: () => dioNetwork.postData(endPoint: '/api/v1/cleaning-bookings/${params.id}/arrive', data: params.getBody(), params: params.getParams()),
@@ -190,7 +189,7 @@ class OrdersRemoteDataSource with HandlingApiManager {
   ) {
     return wrapHandlingApi(
       tryCall: () => dioNetwork.postData(
-        endPoint: '/api/v1/cleaning-bookings/${params.cleaningBookingId}/sos',
+        endPoint: '/api/v1/support-cases',
         data: params.getBody(),
       ),
       jsonConvert: cleaningSosAlertModelFromJson,
