@@ -1,0 +1,36 @@
+name: Cleaning Worker Tracking
+
+on:
+  pull_request:
+    paths:
+      - 'lib/core/location/location_reporter.dart'
+      - 'lib/features/orders/data/models/cleaning_team_models.dart'
+      - 'test/features/orders/data/models/cleaning_team_models_test.dart'
+      - '.github/workflows/cleaning-worker-tracking.yml'
+
+jobs:
+  tracking:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Check formatting
+        run: dart format --output=none --set-exit-if-changed lib/core/location/location_reporter.dart lib/features/orders/data/models/cleaning_team_models.dart test/features/orders/data/models/cleaning_team_models_test.dart
+
+      - name: Analyze tracking sources
+        run: flutter analyze lib/core/location/location_reporter.dart lib/features/orders/data/models/cleaning_team_models.dart
+
+      - name: Run tracking tests
+        run: flutter test test/features/orders/data/models/cleaning_team_models_test.dart
