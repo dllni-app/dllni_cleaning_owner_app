@@ -21,6 +21,7 @@ class ProfileState {
   final String? depositTransactionsTypeFilter;
   final PaginationStateModel<FetchNotificationsModelDataItem>
   notificationsPagination;
+  final int? unreadNotification;
   final BlocStatus? markAllNotificationsReadStatus;
   final String? notificationActionError;
   BlocStatus? workerReviewsStatus;
@@ -59,6 +60,7 @@ class ProfileState {
         const PaginationStateModel<FetchNotificationsModelDataItem>(
           perPage: 10,
         ),
+    this.unreadNotification,
     this.markAllNotificationsReadStatus,
     this.notificationActionError,
     this.workerReviewsStatus,
@@ -94,6 +96,8 @@ class ProfileState {
     bool clearDepositTransactionsTypeFilter = false,
     PaginationStateModel<FetchNotificationsModelDataItem>?
     notificationsPagination,
+    int? unreadNotification,
+    bool clearUnreadNotification = false,
     BlocStatus? markAllNotificationsReadStatus,
     bool clearMarkAllNotificationsReadStatus = false,
     String? notificationActionError,
@@ -135,6 +139,9 @@ class ProfileState {
         : (depositTransactionsTypeFilter ?? this.depositTransactionsTypeFilter),
     notificationsPagination:
         notificationsPagination ?? this.notificationsPagination,
+    unreadNotification: clearUnreadNotification
+        ? null
+        : (unreadNotification ?? this.unreadNotification),
     markAllNotificationsReadStatus: clearMarkAllNotificationsReadStatus
         ? null
         : (markAllNotificationsReadStatus ??

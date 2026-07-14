@@ -88,14 +88,21 @@ class PaginationMetaModel {
   final int? currentPage;
   final int? perPage;
   final int? total;
+  final int? countUnread;
 
-  const PaginationMetaModel({this.currentPage, this.perPage, this.total});
+  const PaginationMetaModel({
+    this.currentPage,
+    this.perPage,
+    this.total,
+    this.countUnread,
+  });
 
   factory PaginationMetaModel.fromJson(Map<String, dynamic> json) {
     return PaginationMetaModel(
       currentPage: _asInt(json['current_page']),
       perPage: _asInt(json['per_page']),
       total: _asInt(json['total']),
+      countUnread: _asInt(json['countUnread']),
     );
   }
 }
@@ -103,10 +110,19 @@ class PaginationMetaModel {
 class FetchNotificationsPageModel {
   final List<NotificationResourceModel>? data;
   final PaginationMetaModel? meta;
+  final int? countUnread;
 
-  const FetchNotificationsPageModel({this.data, this.meta});
+  const FetchNotificationsPageModel({this.data, this.meta, this.countUnread});
+
+  int? get resolvedCountUnread => countUnread ?? meta?.countUnread;
 
   factory FetchNotificationsPageModel.fromJson(Map<String, dynamic> json) {
+    final meta = json['meta'] is Map
+        ? PaginationMetaModel.fromJson(
+            Map<String, dynamic>.from(json['meta'] as Map),
+          )
+        : null;
+
     return FetchNotificationsPageModel(
       data: json['data'] is List
           ? (json['data'] as List)
@@ -118,11 +134,8 @@ class FetchNotificationsPageModel {
                 )
                 .toList()
           : null,
-      meta: json['meta'] is Map
-          ? PaginationMetaModel.fromJson(
-              Map<String, dynamic>.from(json['meta'] as Map),
-            )
-          : null,
+      meta: meta,
+      countUnread: _asInt(json['countUnread']) ?? meta?.countUnread,
     );
   }
 }

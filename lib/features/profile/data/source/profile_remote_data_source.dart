@@ -26,7 +26,6 @@ import '../models/fetch_worker_reviews_model.dart';
 import '../../domain/usecases/fetch_worker_reviews_use_case.dart';
 import '../models/cleaning_neighborhoods_response_model.dart';
 import '../../domain/usecases/fetch_cleaning_neighborhoods_use_case.dart';
-import '../../domain/usecases/fetch_worker_working_hours_use_case.dart';
 import '../../domain/usecases/update_worker_working_hours_use_case.dart';
 import '../models/worker_working_hours_model.dart';
 
@@ -130,7 +129,7 @@ class ProfileRemoteDataSource with HandlingApiManager {
   ) {
     return wrapHandlingApi(
       tryCall: () => dioNetwork.getData(
-        endPoint: '/api/v1/notifications',
+        endPoint: '/api/v1/user/notifications',
         params: params.getParams(),
         data: params.getBody().isEmpty ? null : params.getBody(),
       ),
@@ -165,7 +164,7 @@ class ProfileRemoteDataSource with HandlingApiManager {
   Future<ActionResultModel> markAllNotificationsRead(NoParams params) {
     return wrapHandlingApi(
       tryCall: () => dioNetwork.patchData(
-        endPoint: '/api/v1/notifications/read-all',
+        endPoint: '/api/v1/user/notifications/read-all',
         data: params.getBody().isEmpty ? {} : params.getBody(),
       ),
       jsonConvert: actionResultModelFromJson,
@@ -177,7 +176,7 @@ class ProfileRemoteDataSource with HandlingApiManager {
   ) {
     return wrapHandlingApi(
       tryCall: () => dioNetwork.patchData(
-        endPoint: '/api/v1/notifications/${params.notificationId}/read',
+        endPoint: '/api/v1/user/notifications/${params.notificationId}/read',
         data: params.getBody().isEmpty ? {} : params.getBody(),
       ),
       jsonConvert: actionResultModelFromJson,

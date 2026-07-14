@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
 import '../../../profile/view/manager/bloc/profile_bloc.dart';
+import '../../../profile/view/screens/notifications_screen.dart';
 
 class HomeAppBar extends StatelessWidget {
   const HomeAppBar({super.key});
@@ -44,8 +45,43 @@ class HomeAppBar extends StatelessWidget {
               ),
               InkWell(
                 borderRadius: BorderRadius.circular(12),
-                onTap: () => context.pushRoute('/notifications'),
-                child: Icon(Icons.notifications_none_outlined, color: context.primaryContainer),
+                onTap: () {
+                  final profileBloc = context.read<ProfileBloc>();
+                  context.pushRoute(
+                    '/notifications',
+                    arguments: NotificationsScreenParams(profileBloc: profileBloc),
+                  );
+                },
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Icon(Icons.notifications_none_outlined, color: context.primaryContainer),
+                    if (state.unreadNotification != null && state.unreadNotification! > 0)
+                      Positioned(
+                        top: -4,
+                        right: -4,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: context.primaryContainer,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: context.onPrimary,
+                              width: 2,
+                            ),
+                          ),
+                          child: Text(
+                            state.unreadNotification.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 8,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ],
           );

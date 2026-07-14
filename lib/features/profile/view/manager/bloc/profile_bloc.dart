@@ -455,43 +455,68 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       ),
     );
     response.fold(
-      (failure) => emit(
-        state.copyWith(
-          notificationsPagination: pagination.setFaild(
+      (failure) {
+        emit(
+          state.copyWith(
+            notificationsPagination: pagination.setFaild(
+              errorMessage: failure.message,
+            ),
             errorMessage: failure.message,
           ),
-          errorMessage: failure.message,
-        ),
-      ),
+        );
+      },
       (result) {
         final mapped = (result.data ?? const <NotificationResourceModel>[])
             .map(_toNotificationItem)
             .toList();
+        final countUnread = result.resolvedCountUnread;
         emit(
           state.copyWith(
             notificationsPagination: pagination.setSuccess(
               data: mapped,
               perPage: result.meta?.perPage ?? perPage,
             ),
+            unreadNotification: countUnread,
           ),
         );
+        if (event.markAllReadOnSuccess) {
+          final hasUnread = (countUnread ?? 0) > 0 ||
+              mapped.any((item) => item.isRead != true);
+          if (hasUnread) {
+            add(MarkAllNotificationsReadEvent(silent: true));
+          }
+        }
       },
     );
+  }
+
+  List<FetchNotificationsModelDataItem> _markNotificationsAsRead(
+    List<FetchNotificationsModelDataItem> notifications,
+  ) {
+    return notifications
+        .map(
+          (item) => item.copyWith(isRead: true, showTrailingAccent: false),
+        )
+        .toList();
   }
 
   FutureOr<void> _markAllNotificationsRead(
     MarkAllNotificationsReadEvent event,
     Emitter<ProfileState> emit,
   ) async {
-    emit(
-      state.copyWith(
-        markAllNotificationsReadStatus: BlocStatus.loading,
-        clearNotificationActionError: true,
-      ),
-    );
+    if (!event.silent) {
+      emit(
+        state.copyWith(
+          markAllNotificationsReadStatus: BlocStatus.loading,
+          clearNotificationActionError: true,
+          unreadNotification: 0,
+        ),
+      );
+    }
     final response = await markAllNotificationsReadUseCase(NoParams());
     await response.fold(
       (failure) async {
+        if (event.silent) return;
         emit(
           state.copyWith(
             clearMarkAllNotificationsReadStatus: true,
@@ -500,17 +525,16 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         );
       },
       (_) async {
-        final updatedNotifications = state.notifications
-            .map(
-              (item) => item.copyWith(isRead: true, showTrailingAccent: false),
-            )
-            .toList();
+        final updatedNotifications = _markNotificationsAsRead(
+          state.notifications,
+        );
         emit(
           state.copyWith(
-            clearMarkAllNotificationsReadStatus: true,
+            clearMarkAllNotificationsReadStatus: !event.silent,
             notificationsPagination: state.notificationsPagination.copyWith(
               list: updatedNotifications,
             ),
+            unreadNotification: 0,
           ),
         );
       },

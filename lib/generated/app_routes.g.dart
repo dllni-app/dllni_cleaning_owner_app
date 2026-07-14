@@ -48,10 +48,13 @@ class GeneratedAppRoutes {
         }
         return _errorRoute(settings);
       case '/notifications':
-        return MaterialPageRoute(
-          builder: (_) => NotificationsScreen(),
-          settings: settings,
-        );
+        if (args is NotificationsScreenParams) {
+          return MaterialPageRoute(
+            builder: (_) => NotificationsScreen(args: args),
+            settings: settings,
+          );
+        }
+        return _errorRoute(settings);
       case '/transactiondetails':
         if (args is TransactionDetailsScreenParam) {
           return MaterialPageRoute(

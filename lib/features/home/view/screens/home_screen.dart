@@ -9,6 +9,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:dllni_cleaninig_owner_app/features/home/view/widgets/today_overview_card.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/data/models/fetch_worker_profile_usecase_model.dart';
+import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/fetch_notifications_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/fetch_worker_profile_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/helpers/worker_profile_completeness_helper.dart';
 import 'package:flutter/material.dart';
@@ -132,6 +133,12 @@ class _HomeScreenState extends State<HomeScreen> {
       ..add(
         FetchWorkerProfileUsecaseEvent(
           params: FetchWorkerProfileUsecaseParams(),
+        ),
+      )
+      ..add(
+        FetchNotificationsEvent(
+          params: FetchNotificationsParams(),
+          isReload: true,
         ),
       );
     _workerId = _resolveWorkerId();
@@ -266,6 +273,12 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
     _fetchOrdersForSelectedTab(isReload: true, silent: true);
+    _profileBloc.add(
+      FetchNotificationsEvent(
+        params: FetchNotificationsParams(),
+        isReload: true,
+      ),
+    );
   }
 
   void _dispatchHomeRefresh({bool isReload = true, bool silent = false}) {
@@ -278,6 +291,12 @@ class _HomeScreenState extends State<HomeScreen> {
     _fetchOrdersForSelectedTab(isReload: isReload, silent: silent);
     _profileBloc.add(
       FetchWorkerProfileUsecaseEvent(params: FetchWorkerProfileUsecaseParams()),
+    );
+    _profileBloc.add(
+      FetchNotificationsEvent(
+        params: FetchNotificationsParams(),
+        isReload: true,
+      ),
     );
   }
 
