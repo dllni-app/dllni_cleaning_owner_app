@@ -20,15 +20,19 @@ class RejectExtensionUsecaseUseCase implements UseCase<RejectExtensionUsecaseMod
 class RejectExtensionUsecaseParams with Params {
   RejectExtensionUsecaseParams({required this.id, this.message});
 
+  static const String defaultRejectionMessage =
+      'رفض العامل طلب تمديد وقت الخدمة.';
+
   final int id;
   final String? message;
 
   @override
   BodyMap getBody() {
     final value = message?.trim();
-    if (value == null || value.isEmpty) {
-      return <String, dynamic>{};
-    }
-    return <String, dynamic>{'message': value};
+    return <String, dynamic>{
+      'message': value == null || value.isEmpty
+          ? defaultRejectionMessage
+          : value,
+    };
   }
 }
