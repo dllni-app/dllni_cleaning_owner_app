@@ -1,5 +1,7 @@
-import 'package:dio/dio.dart';
+import 'dart:developer';
+
 import 'package:common_package/common_package.dart';
+import 'package:dio/dio.dart';
 
 import '../app_config.dart';
 
@@ -18,7 +20,10 @@ class LocationReporter {
       final token = (SharedPreferencesHelper.getData(key: _tokenKey) ?? '')
           .toString()
           .trim();
-      if (token.isEmpty) return;
+      if (token.isEmpty) {
+        log('Skipping cleaning location report: missing auth token.');
+        return;
+      }
 
       final dio = Dio(
         BaseOptions(
@@ -29,12 +34,27 @@ class LocationReporter {
           },
         ),
       );
-      await dio.post(
+      final response = await dio.post(
         '/api/v1/cleaning-bookings/$bookingId/location',
         data: <String, double>{'latitude': latitude, 'longitude': longitude},
       );
-    } catch (_) {
-      // Ignore background reporting failures to keep tracking loop alive.
+
+      final body = response.data;
+      final data = body is Map ? body['data'] : null;
+      final ignored = data is Map && data['ignored'] == true;
+      if (ignored) {
+        log(
+          'Cleaning location report ignored by lifecycle policy '
+          '(bookingId=$bookingId, statusCode=${response.statusCode}).',
+        );
+      }
+    } catch (error, stackTrace) {
+      // Keep the tracker alive, but retain enough diagnostics to investigate
+      // permission, authentication, connectivity, and lifecycle failures.
+      log(
+        'Cleaning location report failed (bookingId=$bookingId): $error',
+        stackTrace: stackTrace,
+      );
     }
   }
 }
