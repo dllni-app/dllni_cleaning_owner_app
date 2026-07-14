@@ -1,7 +1,7 @@
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/widgets/worker_technical_support_call_button.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
-import 'package:dllni_cleaninig_owner_app/core/lifecycle/background_keep_alive.dart';
+import 'package:dllni_cleaninig_owner_app/core/location/worker_location_tracker.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_booking_pusher_service.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/data/models/fetch_worker_profile_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/fetch_worker_profile_usecase_use_case.dart';
@@ -54,7 +54,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _logout(BuildContext context) async {
-    await BackgroundKeepAlive.instance.stop();
+    await WorkerLocationTracker.instance.stop();
     await getIt<CleaningBookingPusherService>().disposeAllForSession();
     await SharedPreferencesHelper.clearData();
     if (!context.mounted) return;

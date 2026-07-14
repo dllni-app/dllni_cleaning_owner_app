@@ -5,7 +5,6 @@ import 'package:dio/dio.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/arrive_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/fetch_security_code_use_case.dart';
-import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/post_booking_location_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/start_work_use_case.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +21,6 @@ import '../../helpers/order_lifecycle_policy.dart';
 import '../../manager/bloc/orders_bloc.dart';
 import '../order_details_map_app_bar.dart';
 import '../../helpers/cleaning_security_code_display.dart';
-import 'location_reporting_policy.dart';
 
 bool _securityCodeInFlightForBooking(OrdersBloc bloc, int bookingId) {
   return bloc.state.securityCodeStatus == BlocStatus.loading &&
@@ -47,7 +45,6 @@ class OrderDetailsMapBody extends StatefulWidget {
 
 class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
   final Dio _dio = Dio();
-  Timer? _locationTimer;
 
   List<LatLng> _road = <LatLng>[];
   LatLng? _myLocation;
@@ -90,22 +87,11 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
 
   bool get _canArrive => OrderLifecyclePolicy.canArrive(widget.order);
 
-  bool _shouldReportLocationFor(OrdersState state) {
-    if (_suppressLocationReporting) return false;
-    if (_shouldShowVerificationUi(state)) return false;
-    return shouldReportWorkerLocation(
-      status: widget.order.status,
-      startedTravelAt: widget.order.startedTravelAt,
-      arrivedAt: widget.order.arrivedAt,
-    );
-  }
-
   @override
   void initState() {
     super.initState();
     _loadInitialMap();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _syncLocationTrackingState();
       if (_isAwaitingVerification) {
         _requestSecurityCodeIfNeeded();
       }
@@ -134,12 +120,6 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
       _suppressLocationReporting = false;
       _autoVerificationDialogShown = false;
     }
-    if (oldWidget.order.status != widget.order.status ||
-        oldWidget.order.startedTravelAt != widget.order.startedTravelAt ||
-        oldWidget.order.arrivedAt != widget.order.arrivedAt ||
-        oldWidget.order.id != widget.order.id) {
-      _syncLocationTrackingState();
-    }
     if (oldWidget.order.status != widget.order.status &&
         _isAwaitingVerification) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -151,7 +131,6 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
 
   @override
   void dispose() {
-    _locationTimer?.cancel();
     _closeVerificationDialogIfOpen();
     super.dispose();
   }
@@ -220,9 +199,7 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
       ),
       _ => const LocationSettings(accuracy: LocationAccuracy.high),
     };
-    return Geolocator.getCurrentPosition(
-      locationSettings: locationSettings,
-    );
+    return Geolocator.getCurrentPosition(locationSettings: locationSettings);
   }
 
   Future<void> _drawRoad(LatLng start) async {
@@ -237,52 +214,6 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
     if (!mounted) return;
     setState(() {
       _road = road;
-    });
-  }
-
-  void _syncLocationTrackingState() {
-    if (_shouldReportLocationFor(widget.bloc.state) &&
-        widget.order.id != null) {
-      _startLocationTracking();
-      return;
-    }
-    _locationTimer?.cancel();
-    _locationTimer = null;
-  }
-
-  void _startLocationTracking() {
-    final id = widget.order.id;
-    if (id == null || !_shouldReportLocationFor(widget.bloc.state)) {
-      _locationTimer?.cancel();
-      _locationTimer = null;
-      return;
-    }
-    if (_locationTimer?.isActive == true) return;
-    _locationTimer?.cancel();
-    _locationTimer = Timer.periodic(const Duration(seconds: 4), (_) async {
-      if (!_shouldReportLocationFor(widget.bloc.state)) {
-        _locationTimer?.cancel();
-        _locationTimer = null;
-        return;
-      }
-      try {
-        final pos = await _getCurrentLocation();
-        if (!mounted) return;
-        if (!_shouldReportLocationFor(widget.bloc.state)) {
-          _locationTimer?.cancel();
-          _locationTimer = null;
-          return;
-        }
-        widget.bloc.add(
-          ReportBookingLocationEvent(
-            params: PostBookingLocationParams(
-              id: id,
-              latitude: pos.latitude,
-              longitude: pos.longitude,
-            ),
-          ),
-        );
-      } catch (_) {}
     });
   }
 
@@ -499,7 +430,6 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
           ? null
           : () {
               setState(() => _suppressLocationReporting = true);
-              _syncLocationTrackingState();
               widget.bloc.add(
                 ArriveEvent(
                   params: ArriveParams(id: widget.order.id!),
@@ -717,7 +647,6 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
           previous.arrive != current.arrive ||
           previous.securityCodeStatus != current.securityCodeStatus,
       listener: (_, state) {
-        _syncLocationTrackingState();
         if (state.arriveStatus == BlocStatus.success &&
             _isAwaitingVerificationAfterArrive(state)) {
           _requestSecurityCodeIfNeeded();

@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:common_package/common_package.dart';
+import 'package:common_package/helpers/shared_preferences_helper.dart';
 import 'package:dllni_cleaninig_owner_app/core/extentions.dart';
 import 'package:dllni_cleaninig_owner_app/core/widgets/cancel_order_dialog.dart';
 import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_relative_time_formatter.dart';
@@ -15,6 +17,7 @@ import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_lif
 import 'package:dllni_cleaninig_owner_app/features/orders/view/screens/order_details_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/accept_order_bottom_sheet.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/extension_request_action_sheet.dart';
+import 'package:dllni_cleaninig_owner_app/features/profile/data/models/fetch_worker_profile_usecase_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_arabic_time_formatter.dart';
@@ -70,6 +73,29 @@ class OrderCard extends StatelessWidget {
       return const Color(0xff10B981);
     }
     return const Color(0xff64748B);
+  }
+
+  int? _currentAccountId() {
+    final rawProfile = SharedPreferencesHelper.getData(key: 'user');
+    if (rawProfile == null) return null;
+
+    try {
+      final decodedProfile = rawProfile is String
+          ? json.decode(rawProfile)
+          : rawProfile;
+      final profile = fetchWorkerProfileUsecaseModelFromJson(decodedProfile);
+      return profile.data?.userId ?? profile.data?.user?.id;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  bool get _isDedicatedToMe {
+    final preferredWorkerId = data.preferredWorkerId;
+    final currentAccountId = _currentAccountId();
+    return preferredWorkerId != null &&
+        currentAccountId != null &&
+        preferredWorkerId == currentAccountId;
   }
 
   Widget _acceptedWaitingBanner(BuildContext context) {
@@ -361,260 +387,378 @@ class OrderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final statusColor = _statusColor(context);
     final bookingLabel = data.bookingNumber ?? '${data.id ?? '-'}';
+    final isDedicatedToMe = _isDedicatedToMe;
 
     return InkWell(
       onTap: () => _openDetails(context),
       borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsetsDirectional.fromSTEB(12, 12, 12, 14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xffE5E7EB)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(15),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
+      child: Stack(
+        children: [
+          Container(
+            padding: EdgeInsetsDirectional.fromSTEB(
+              12,
+              isDedicatedToMe ? 38 : 12,
+              12,
+              14,
             ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      AppText.titleSmall(
-                        _serviceName(),
-                        fontWeight: FontWeight.bold,
-                        textAlign: TextAlign.start,
-                      ),
-                      const SizedBox(height: 4),
-                      AppText.labelSmall(
-                        _bookingSubtitle(bookingLabel),
-                        color: const Color(0xff6B7280),
-                        textAlign: TextAlign.start,
-                      ),
-                      if (data.displayNeighborhoodName != null) ...[
-                        const SizedBox(height: 4),
-                        AppText.labelSmall(
-                          'الحي: ${data.displayNeighborhoodName}',
-                          color: const Color(0xff475569),
-                          fontWeight: FontWeight.w600,
-                          textAlign: TextAlign.start,
-                        ),
-                      ],
-                    ],
-                  ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xffE5E7EB)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(15),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
                 ),
-                const SizedBox(width: 8),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsetsDirectional.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: statusColor.withAlpha(30),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          CircleAvatar(
-                            radius: 3.5,
-                            backgroundColor: statusColor,
+                          AppText.titleSmall(
+                            _serviceName(),
+                            fontWeight: FontWeight.bold,
+                            textAlign: TextAlign.start,
                           ),
-                          const SizedBox(width: 6),
+                          const SizedBox(height: 4),
                           AppText.labelSmall(
-                            _statusLabel(),
-                            color: statusColor,
-                            fontWeight: FontWeight.w700,
+                            _bookingSubtitle(bookingLabel),
+                            color: const Color(0xff6B7280),
+                            textAlign: TextAlign.start,
                           ),
+                          if (data.displayNeighborhoodName != null) ...[
+                            const SizedBox(height: 4),
+                            AppText.labelSmall(
+                              'الحي: ${data.displayNeighborhoodName}',
+                              color: const Color(0xff475569),
+                              fontWeight: FontWeight.w600,
+                              textAlign: TextAlign.start,
+                            ),
+                          ],
                         ],
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    AppText.titleSmall(
-                      data.totalPrice.formatMoney(),
-                      color: const Color(0xff1E2A78),
-                      fontWeight: FontWeight.bold,
-                    ),
-                    const SizedBox(height: 4),
+                    const SizedBox(width: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Container(
+                          padding: const EdgeInsetsDirectional.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: statusColor.withAlpha(30),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 3.5,
+                                backgroundColor: statusColor,
+                              ),
+                              const SizedBox(width: 6),
+                              AppText.labelSmall(
+                                _statusLabel(),
+                                color: statusColor,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        AppText.titleSmall(
+                          data.totalPrice.formatMoney(),
+                          color: const Color(0xff1E2A78),
+                          fontWeight: FontWeight.bold,
+                        ),
+                        const SizedBox(height: 4),
 
-                    isSameDate(data.createdAt,data.scheduledDate)
-                        ? Container(
-                            padding: const EdgeInsetsDirectional.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: context.error.withAlpha(30),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              children: [
-                                CircleAvatar(
-                                  radius: 3.5,
-                                  backgroundColor: context.error,
+                        isSameDate(data.createdAt, data.scheduledDate)
+                            ? Container(
+                                padding: const EdgeInsetsDirectional.symmetric(
+                                  horizontal: 10,
+                                  vertical: 5,
                                 ),
-                                const SizedBox(width: 6),
-                                AppText.labelSmall(
-                                  'طلب ساخن',
-                                  color: context.error,
-                                  fontWeight: FontWeight.w700,
+                                decoration: BoxDecoration(
+                                  color: context.error.withAlpha(30),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                              ],
-                            ),
-                          )
-                        : SizedBox(),
-
-                    // Container(
-                    //   decoration: BoxDecoration(
-                    //     color: context.primaryContainer,
-                    //     borderRadius: BorderRadius.circular(8),
-                    //   ),
-                    //   padding: const EdgeInsetsDirectional.symmetric(
-                    //     horizontal: 12,
-                    //     vertical: 5,
-                    //   ),
-                    //   child: AppText.labelSmall(
-                    //     'نقدي',
-                    //     color: context.onPrimaryContainer,
-                    //     fontWeight: FontWeight.w700,
-                    //   ),
-                    // ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            Row(
-              children: [
-                Expanded(
-                  child: _metaTile(
-                    context: context,
-                    title: 'جدولة الحجز',
-                    value: _formatDate(),
-                    icon: Icons.calendar_today_rounded,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _metaTile(
-                    context: context,
-                    title: 'موعد الخدمة',
-                    value: _formatTime(),
-                    icon: Icons.schedule_rounded,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            if (OrderLifecyclePolicy.isAcceptedWaiting(data)) ...[
-              const SizedBox(height: 10),
-              _acceptedWaitingBanner(context),
-            ],
-            const SizedBox(height: 12),
-            if (OrderLifecyclePolicy.canAcceptReject(data))
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: BlocBuilder<OrdersBloc, OrdersState>(
-                      bloc: bloc,
-                      builder: (context, state) {
-                        final loading =
-                            OrderLifecyclePolicy.isLoadingForOrderIndex(
-                              state: state,
-                              orderIndex: index,
-                              actionStatus: state.acceptOrderUsecaseStatus,
-                            );
-                        return InkWell(
-                          onTap: loading
-                              ? null
-                              : () {
-                                  AcceptOrderBottomSheet.show(
-                                    context,
-                                    order: data,
-                                    bloc: bloc,
-                                    index: index,
-                                  );
-                                },
-                          borderRadius: BorderRadius.circular(10),
-                          child: Container(
-                            height: 44,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              color: context.primary,
-                            ),
-                            child: Center(
-                              child: loading
-                                  ? SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: context.onPrimary,
-                                      ),
-                                    )
-                                  : AppText.labelMedium(
-                                      'قبول الطلب',
-                                      color: context.onPrimary,
+                                child: Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 3.5,
+                                      backgroundColor: context.error,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    AppText.labelSmall(
+                                      'طلب ساخن',
+                                      color: context.error,
                                       fontWeight: FontWeight.w700,
                                     ),
-                            ),
-                          ),
-                        );
-                      },
+                                  ],
+                                ),
+                              )
+                            : const SizedBox(),
+
+                        // Container(
+                        //   decoration: BoxDecoration(
+                        //     color: context.primaryContainer,
+                        //     borderRadius: BorderRadius.circular(8),
+                        //   ),
+                        //   padding: const EdgeInsetsDirectional.symmetric(
+                        //     horizontal: 12,
+                        //     vertical: 5,
+                        //   ),
+                        //   child: AppText.labelSmall(
+                        //     'نقدي',
+                        //     color: context.onPrimaryContainer,
+                        //     fontWeight: FontWeight.w700,
+                        //   ),
+                        // ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: BlocBuilder<OrdersBloc, OrdersState>(
-                      bloc: bloc,
-                      builder: (context, state) {
-                        final isPending =
-                            data.status == CleaningBookingStatus.pending;
-                        final loading =
-                            OrderLifecyclePolicy.isLoadingForOrderIndex(
-                              state: state,
-                              orderIndex: index,
-                              actionStatus: isPending
-                                  ? state.rejectOrderUsecaseStatus
-                                  : state.cancelOrderStatus,
-                            );
-                        return InkWell(
-                          onTap: loading
-                              ? null
-                              : () {
-                                  if (data.id == null) return;
-                                  if (isPending) {
-                                    bloc.add(
-                                      RejectOrderUsecaseEvent(
-                                        params: RejectOrderUsecaseParams(
-                                          id: data.id!,
-                                        ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: _metaTile(
+                        context: context,
+                        title: 'جدولة الحجز',
+                        value: _formatDate(),
+                        icon: Icons.calendar_today_rounded,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _metaTile(
+                        context: context,
+                        title: 'موعد الخدمة',
+                        value: _formatTime(),
+                        icon: Icons.schedule_rounded,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (OrderLifecyclePolicy.isAcceptedWaiting(data)) ...[
+                  const SizedBox(height: 10),
+                  _acceptedWaitingBanner(context),
+                ],
+                const SizedBox(height: 12),
+                if (OrderLifecyclePolicy.canAcceptReject(data))
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: BlocBuilder<OrdersBloc, OrdersState>(
+                          bloc: bloc,
+                          builder: (context, state) {
+                            final loading =
+                                OrderLifecyclePolicy.isLoadingForOrderIndex(
+                                  state: state,
+                                  orderIndex: index,
+                                  actionStatus: state.acceptOrderUsecaseStatus,
+                                );
+                            return InkWell(
+                              onTap: loading
+                                  ? null
+                                  : () {
+                                      AcceptOrderBottomSheet.show(
+                                        context,
+                                        order: data,
+                                        bloc: bloc,
                                         index: index,
-                                      ),
-                                    );
-                                    return;
-                                  }
+                                      );
+                                    },
+                              borderRadius: BorderRadius.circular(10),
+                              child: Container(
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  color: context.primary,
+                                ),
+                                child: Center(
+                                  child: loading
+                                      ? SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: context.onPrimary,
+                                          ),
+                                        )
+                                      : AppText.labelMedium(
+                                          'قبول الطلب',
+                                          color: context.onPrimary,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: BlocBuilder<OrdersBloc, OrdersState>(
+                          bloc: bloc,
+                          builder: (context, state) {
+                            final isPending =
+                                data.status == CleaningBookingStatus.pending;
+                            final loading =
+                                OrderLifecyclePolicy.isLoadingForOrderIndex(
+                                  state: state,
+                                  orderIndex: index,
+                                  actionStatus: isPending
+                                      ? state.rejectOrderUsecaseStatus
+                                      : state.cancelOrderStatus,
+                                );
+                            return InkWell(
+                              onTap: loading
+                                  ? null
+                                  : () {
+                                      if (data.id == null) return;
+                                      if (isPending) {
+                                        bloc.add(
+                                          RejectOrderUsecaseEvent(
+                                            params: RejectOrderUsecaseParams(
+                                              id: data.id!,
+                                            ),
+                                            index: index,
+                                          ),
+                                        );
+                                        return;
+                                      }
+                                      CancelOrderDialog.show(
+                                        context,
+                                        bloc: bloc,
+                                        orderId: data.id!,
+                                        orderNum:
+                                            data.bookingNumber ?? bookingLabel,
+                                        index: index,
+                                      );
+                                    },
+                              borderRadius: BorderRadius.circular(10),
+                              child: Container(
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  color: context.error.withAlpha(20),
+                                  border: Border.all(color: context.error),
+                                ),
+                                child: Center(
+                                  child: loading
+                                      ? SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: context.error,
+                                          ),
+                                        )
+                                      : AppText.labelMedium(
+                                          isPending ? 'رفض' : 'إلغاء',
+                                          color: context.error,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  )
+                else if (OrderLifecyclePolicy.canStartTravel(data))
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: BlocBuilder<OrdersBloc, OrdersState>(
+                          bloc: bloc,
+                          builder: (context, state) {
+                            final loading =
+                                OrderLifecyclePolicy.isLoadingForOrderIndex(
+                                  state: state,
+                                  orderIndex: index,
+                                  actionStatus: state.startTravelUsecaseStatus,
+                                );
+                            return InkWell(
+                              onTap: loading
+                                  ? null
+                                  : () {
+                                      if (data.id == null) return;
+                                      if (!OrderLifecyclePolicy.isStartTravelWithinAllowedWindow(
+                                        data,
+                                      )) {
+                                        AppToast.showErrorGlobal(
+                                          OrderLifecyclePolicy
+                                              .startTravelUnavailableMessage,
+                                        );
+                                        return;
+                                      }
+                                      bloc.add(
+                                        StartTravelUsecaseEvent(
+                                          params: StartTravelUsecaseParams(
+                                            id: data.id!,
+                                          ),
+                                          index: index,
+                                        ),
+                                      );
+                                    },
+                              borderRadius: BorderRadius.circular(10),
+                              child: Container(
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  color: context.primary,
+                                ),
+                                child: Center(
+                                  child: loading
+                                      ? SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: context.onPrimary,
+                                          ),
+                                        )
+                                      : AppText.labelMedium(
+                                          'أنا في الطريق',
+                                          color: context.onPrimary,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: InkWell(
+                          onTap: OrderLifecyclePolicy.canCancel(data)
+                              ? () {
                                   CancelOrderDialog.show(
                                     context,
                                     bloc: bloc,
                                     orderId: data.id!,
-                                    orderNum:
-                                        data.bookingNumber ?? bookingLabel,
+                                    orderNum: data.bookingNumber!,
                                     index: index,
                                   );
-                                },
+                                }
+                              : null,
                           borderRadius: BorderRadius.circular(10),
                           child: Container(
                             height: 44,
@@ -624,154 +768,69 @@ class OrderCard extends StatelessWidget {
                               border: Border.all(color: context.error),
                             ),
                             child: Center(
-                              child: loading
-                                  ? SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: context.error,
-                                      ),
-                                    )
-                                  : AppText.labelMedium(
-                                      isPending ? 'رفض' : 'إلغاء',
-                                      color: context.error,
-                                      fontWeight: FontWeight.w700,
-                                    ),
+                              child: AppText.labelMedium(
+                                'إلغاء',
+                                color: context.error,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              )
-            else if (OrderLifecyclePolicy.canStartTravel(data))
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: BlocBuilder<OrdersBloc, OrdersState>(
-                      bloc: bloc,
-                      builder: (context, state) {
-                        final loading =
-                            OrderLifecyclePolicy.isLoadingForOrderIndex(
-                              state: state,
-                              orderIndex: index,
-                              actionStatus: state.startTravelUsecaseStatus,
-                            );
-                        return InkWell(
-                          onTap: loading
-                              ? null
-                              : () {
-                                  if (data.id == null) return;
-                                  if (!OrderLifecyclePolicy.isStartTravelWithinAllowedWindow(
-                                    data,
-                                  )) {
-                                    AppToast.showErrorGlobal(
-                                      OrderLifecyclePolicy
-                                          .startTravelUnavailableMessage,
-                                    );
-                                    return;
-                                  }
-                                  bloc.add(
-                                    StartTravelUsecaseEvent(
-                                      params: StartTravelUsecaseParams(
-                                        id: data.id!,
-                                      ),
-                                      index: index,
-                                    ),
-                                  );
-                                },
-                          borderRadius: BorderRadius.circular(10),
-                          child: Container(
-                            height: 44,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              color: context.primary,
-                            ),
-                            child: Center(
-                              child: loading
-                                  ? SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: context.onPrimary,
-                                      ),
-                                    )
-                                  : AppText.labelMedium(
-                                      'أنا في الطريق',
-                                      color: context.onPrimary,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: InkWell(
-                      onTap: OrderLifecyclePolicy.canCancel(data)
-                          ? () {
-                              CancelOrderDialog.show(
-                                context,
-                                bloc: bloc,
-                                orderId: data.id!,
-                                orderNum: data.bookingNumber!,
-                                index: index,
-                              );
-                            }
-                          : null,
-                      borderRadius: BorderRadius.circular(10),
-                      child: Container(
-                        height: 44,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10),
-                          color: context.error.withAlpha(20),
-                          border: Border.all(color: context.error),
                         ),
-                        child: Center(
-                          child: AppText.labelMedium(
-                            'إلغاء',
-                            color: context.error,
-                            fontWeight: FontWeight.w700,
-                          ),
+                      ),
+                    ],
+                  )
+                else
+                  InkWell(
+                    onTap: () {
+                      if (OrderLifecyclePolicy.isTimeExtensionRequested(data)) {
+                        unawaited(_openExtensionRequestActionSheet(context));
+                        return;
+                      }
+                      _openDetails(context);
+                    },
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      height: 44,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        color: context.primaryContainer,
+                      ),
+                      child: Center(
+                        child: AppText.labelMedium(
+                          'متابعة الطلب',
+                          color: context.onPrimaryContainer,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
                   ),
-                ],
-              )
-            else
-              InkWell(
-                onTap: () {
-                  if (OrderLifecyclePolicy.isTimeExtensionRequested(data)) {
-                    unawaited(_openExtensionRequestActionSheet(context));
-                    return;
-                  }
-                  _openDetails(context);
-                },
-                borderRadius: BorderRadius.circular(10),
-                child: Container(
-                  height: 44,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    color: context.primaryContainer,
-                  ),
-                  child: Center(
-                    child: AppText.labelMedium(
-                      'متابعة الطلب',
-                      color: context.onPrimaryContainer,
-                      fontWeight: FontWeight.w700,
-                    ),
+              ],
+            ),
+          ),
+          if (isDedicatedToMe)
+            Positioned(
+              top: 0,
+              right: 0,
+              child: Container(
+                padding: const EdgeInsetsDirectional.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: context.primary,
+                  borderRadius: const BorderRadius.only(
+                    topRight: Radius.circular(16),
+                    bottomLeft: Radius.circular(12),
                   ),
                 ),
+                child: AppText.labelSmall(
+                  'مخصص لك',
+                  color: context.onPrimary,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }

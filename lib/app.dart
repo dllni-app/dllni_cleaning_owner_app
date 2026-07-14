@@ -8,6 +8,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:toastification/toastification.dart';
 import 'core/lifecycle/background_keep_alive.dart';
+import 'core/location/worker_location_tracker.dart';
 import 'core/routes/app_router.dart';
 import 'features/auth/view/screens/login_screen.dart';
 import 'features/main/view/screens/main_screen.dart';
@@ -39,17 +40,14 @@ class _AppState extends State<App> {
     _lifecycleListener = AppLifecycleListener(
       onResume: () {
         AppForegroundGate.onResumed();
-        unawaited(BackgroundKeepAlive.instance.stop());
         unawaited(_workerPromptCoordinator.onAppResumed());
       },
       onPause: () {
         AppForegroundGate.onPaused();
-        unawaited(BackgroundKeepAlive.instance.startIfAuthenticated());
       },
       onInactive: AppForegroundGate.onInactive,
       onHide: () {
         AppForegroundGate.onHidden();
-        unawaited(BackgroundKeepAlive.instance.startIfAuthenticated());
       },
     );
     unawaited(_workerPromptCoordinator.start());
@@ -58,7 +56,7 @@ class _AppState extends State<App> {
   @override
   void dispose() {
     _lifecycleListener.dispose();
-    unawaited(BackgroundKeepAlive.instance.stop());
+    unawaited(WorkerLocationTracker.instance.stop());
     CleaningWorkerExtensionPrompts.coordinator = null;
     unawaited(_workerPromptCoordinator.stop());
     super.dispose();

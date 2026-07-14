@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 import 'dart:async';
 import 'package:common_package/common_package.dart';
+import '../../../../../core/location/worker_location_tracker.dart';
 import '../../../../../core/realtime/cleaning_realtime_contract.dart';
 import '../../../data/models/cleaning_booking_status.dart';
 import '../../../domain/usecases/fetch_orders_usecase_use_case.dart';
@@ -264,6 +265,15 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
         final step = status != null
             ? OrderLifecyclePolicy.detailsStepForStatus(status)
             : state.currentStep;
+        final details = r.data;
+        if (details?.id != null) {
+          _syncWorkerLocationTracking(
+            bookingId: details!.id!,
+            status: details.status,
+            startedTravelAt: details.startedTravelAt,
+            arrivedAt: details.arrivedAt,
+          );
+        }
         emit(
           state.copyWith(
             orderDetailsUsecaseStatus: BlocStatus.success,
@@ -370,6 +380,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
       (r) {
         AppToast.showSuccessGlobal('تم بدء التحرك');
         _refreshLastOrdersList();
+        unawaited(WorkerLocationTracker.instance.start(event.params.id));
         emit(
           state.copyWith(
             startTravelUsecaseStatus: BlocStatus.success,
@@ -403,6 +414,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
       },
       (r) {
         AppToast.showSuccessGlobal('تم إكمال الطلب');
+        _stopTrackingForBooking(event.params.id);
         _refreshOrderDetails(event.params.id);
         _refreshLastOrdersList();
         emit(
@@ -438,6 +450,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
       },
       (r) {
         AppToast.showSuccessGlobal('تم إلغاء الطلب');
+        _stopTrackingForBooking(event.params.id);
         _refreshLastOrdersList();
         emit(
           state.copyWith(
@@ -642,6 +655,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
         _arrivingBookingId = null;
         AppToast.showSuccessGlobal('تم تأكيد الوصول');
         final bookingId = r.data?.id ?? event.params.id;
+        _stopTrackingForBooking(bookingId);
         _refreshLastOrdersList();
         _refreshOrderDetails(bookingId);
 
@@ -781,6 +795,38 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     return (status: null, startedTravelAt: null, arrivedAt: null);
   }
 
+  void _syncWorkerLocationTracking({
+    required int bookingId,
+    required String? status,
+    required String? startedTravelAt,
+    required String? arrivedAt,
+  }) {
+    final shouldTrack = shouldReportWorkerLocation(
+      status: status,
+      startedTravelAt: startedTravelAt,
+      arrivedAt: arrivedAt,
+    );
+    final tracker = WorkerLocationTracker.instance;
+    final trackedBookingId = tracker.activeBookingId;
+
+    if (shouldTrack) {
+      if (trackedBookingId != bookingId) {
+        unawaited(tracker.start(bookingId));
+      }
+      return;
+    }
+
+    if (trackedBookingId == bookingId) {
+      unawaited(tracker.stop());
+    }
+  }
+
+  void _stopTrackingForBooking(int bookingId) {
+    final tracker = WorkerLocationTracker.instance;
+    if (tracker.activeBookingId != bookingId) return;
+    unawaited(tracker.stop());
+  }
+
   FutureOr<void> _startWork(
     StartWorkEvent event,
     Emitter<OrdersState> emit,
@@ -803,6 +849,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
       },
       (r) {
         AppToast.showSuccessGlobal('تم بدء العمل');
+        _stopTrackingForBooking(event.params.id);
         _refreshOrderDetails(event.params.id);
         _refreshLastOrdersList();
         emit(
