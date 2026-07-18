@@ -27,12 +27,11 @@ class WorkerPaymentSummary extends StatelessWidget {
   final num? workerAmount;
   final bool useWorkerShare;
 
-
-
   @override
   Widget build(BuildContext context) {
     final serviceAmount = useWorkerShare ? serviceShareAmount : basePrice;
-    final totalAmount = useWorkerShare ? workerAmount : totalPrice;
+    final netProfit = workerAmount ??
+        ((totalPrice ?? 0) - (adminMargin ?? 0));
 
     return Column(
       children: [
@@ -44,18 +43,17 @@ class WorkerPaymentSummary extends StatelessWidget {
         _PaymentRow(
           label: 'رسوم التنقل',
           amount: travelFee.formatMoney(),
-          // labelColor: context.primaryContainer,
-          // amountColor: context.primaryContainer,
         ),
         12.verticalSpace,
-
+        _PaymentRow(
+          label: 'الإجمالي',
+          amount: totalPrice.formatMoney(),
+        ),
+        12.verticalSpace,
         _PaymentRow(
           label: 'هامش الإدارة',
           amount: adminMargin.formatMoney(),
-
-
         ),
-
         18.verticalSpace,
         LayoutBuilder(
           builder: (context, constraints) {
@@ -77,12 +75,11 @@ class WorkerPaymentSummary extends StatelessWidget {
         ),
         18.verticalSpace,
         _PaymentRow(
-          label: useWorkerShare ? 'صافي أرباحك :' : 'الإجمالي',
-          amount: totalPrice.formatMoney(),
+          label: 'صافي الربح',
+          amount: netProfit.formatMoney(),
           isTotal: true,
           labelColor: context.primaryContainer,
           amountColor: context.primaryContainer,
-
         ),
       ],
     );
