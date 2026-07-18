@@ -149,15 +149,32 @@ class CleaningEnumTranslations {
 
   static String venueType(String? value) {
     switch (_normalize(value)) {
+      case 'apartment':
+      case 'flat':
+      case 'شقة':
+        return 'شقة';
+      case 'villa':
+      case 'فيلا':
+        return 'فيلا';
+      case 'house':
       case 'home':
+      case 'منزل':
         return 'منزل';
       case 'hall':
+      case 'قاعة':
         return 'قاعة';
       case 'outdoor':
+      case 'خارجي':
         return 'خارجي';
       case 'office':
+      case 'مكتب':
         return 'مكتب';
+      case 'studio':
+      case 'ستوديو':
+      case 'استوديو':
+        return 'استوديو';
       case 'other':
+      case 'أخرى':
         return 'أخرى';
       default:
         return valueOrFallback(value);

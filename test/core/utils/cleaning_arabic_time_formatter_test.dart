@@ -38,5 +38,24 @@ void main() {
       expect(formatted, isNot(contains('PM')));
       expect(formatted, anyOf(contains('ص'), contains('م')));
     });
+
+    test('formatScheduledDate includes Arabic weekday', () {
+      // 2026-07-16 is Thursday
+      expect(
+        CleaningArabicTimeFormatter.formatScheduledDate('2026-07-16'),
+        'الخميس 2026-07-16',
+      );
+      expect(
+        CleaningArabicTimeFormatter.formatScheduledDate(
+          '2026-07-17',
+          includeWeekday: false,
+        ),
+        '2026-07-17',
+      );
+      expect(
+        CleaningArabicTimeFormatter.formatScheduledDate(null),
+        '-',
+      );
+    });
   });
 }

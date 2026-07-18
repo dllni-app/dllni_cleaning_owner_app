@@ -99,11 +99,9 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
   }
 
   String _formatDate() {
-    final raw = _order.scheduledDate;
-    if (raw == null || raw.isEmpty) return '-';
-    final parsed = DateTime.tryParse(raw);
-    if (parsed == null) return raw;
-    return '${parsed.year}-${parsed.month.toString().padLeft(2, '0')}-${parsed.day.toString().padLeft(2, '0')}';
+    return CleaningArabicTimeFormatter.formatScheduledDate(
+      _order.scheduledDate,
+    );
   }
 
   String _formatTime() {

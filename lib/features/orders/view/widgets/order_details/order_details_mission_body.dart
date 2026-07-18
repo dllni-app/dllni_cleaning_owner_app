@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:common_package/common_package.dart';
+import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_arabic_time_formatter.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -386,11 +387,10 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
   }
 
   String _serviceDate() {
-    final raw = widget.order.scheduledDate;
-    if (raw == null || raw.isEmpty) return '-';
-    final date = DateTime.tryParse(raw);
-    if (date == null) return raw;
-    return DateFormat('yyyy/MM/dd', 'en').format(date);
+    return CleaningArabicTimeFormatter.formatScheduledDate(
+      widget.order.scheduledDate,
+      pattern: 'yyyy/MM/dd',
+    );
   }
 
   List<Color> get _timerGradientColors {

@@ -3,6 +3,35 @@ import 'package:intl/intl.dart';
 class CleaningArabicTimeFormatter {
   const CleaningArabicTimeFormatter._();
 
+  /// Dart [DateTime.weekday]: Monday=1 … Sunday=7.
+  static const List<String> _arabicWeekdayNames = [
+    'الاثنين',
+    'الثلاثاء',
+    'الأربعاء',
+    'الخميس',
+    'الجمعة',
+    'السبت',
+    'الأحد',
+  ];
+
+  static String arabicWeekdayName(DateTime date) {
+    return _arabicWeekdayNames[date.weekday - 1];
+  }
+
+  static String formatScheduledDate(
+    String? rawDate, {
+    String emptyValue = '-',
+    bool includeWeekday = true,
+    String pattern = 'yyyy-MM-dd',
+  }) {
+    if (rawDate == null || rawDate.trim().isEmpty) return emptyValue;
+    final parsed = DateTime.tryParse(rawDate.trim());
+    if (parsed == null) return rawDate;
+    final dateStr = DateFormat(pattern, 'en').format(parsed);
+    if (!includeWeekday) return dateStr;
+    return '${arabicWeekdayName(parsed)} $dateStr';
+  }
+
   static String replaceAmPmWithArabic(String formatted) {
     return formatted
         .replaceAll(RegExp(r'\bAM\b', caseSensitive: false), 'ص')

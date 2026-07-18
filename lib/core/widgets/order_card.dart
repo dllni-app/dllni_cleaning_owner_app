@@ -134,11 +134,10 @@ class OrderCard extends StatelessWidget {
   }
 
   String _formatDate() {
-    final raw = data.scheduledDate;
-    if (raw == null || raw.isEmpty) return '-';
-    final parsed = DateTime.tryParse(raw);
-    if (parsed == null) return raw;
-    return '${parsed.year} / ${parsed.month} / ${parsed.day}';
+    return CleaningArabicTimeFormatter.formatScheduledDate(
+      data.scheduledDate,
+      pattern: 'yyyy / M / d',
+    );
   }
 
   String _formatTime() {

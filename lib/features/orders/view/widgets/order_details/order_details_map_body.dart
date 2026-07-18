@@ -45,9 +45,11 @@ class OrderDetailsMapBody extends StatefulWidget {
 
 class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
   final Dio _dio = Dio();
+  final MapController _mapController = MapController();
 
   List<LatLng> _road = <LatLng>[];
   LatLng? _myLocation;
+  StreamSubscription<Position>? _positionSub;
   bool _requestedSecurityCode = false;
   bool _suppressLocationReporting = false;
   bool _isVerificationDialogOpen = false;
@@ -131,8 +133,40 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
 
   @override
   void dispose() {
+    _positionSub?.cancel();
+    _mapController.dispose();
     _closeVerificationDialogIfOpen();
     super.dispose();
+  }
+
+  LocationSettings _locationSettings() {
+    return switch (defaultTargetPlatform) {
+      TargetPlatform.iOS || TargetPlatform.macOS => AppleSettings(
+        accuracy: LocationAccuracy.bestForNavigation,
+        activityType: ActivityType.automotiveNavigation,
+        pauseLocationUpdatesAutomatically: false,
+        showBackgroundLocationIndicator: true,
+        allowBackgroundLocationUpdates: true,
+      ),
+      _ => const LocationSettings(accuracy: LocationAccuracy.high),
+    };
+  }
+
+  void _startLocationStream() {
+    _positionSub?.cancel();
+    _positionSub =
+        Geolocator.getPositionStream(
+          locationSettings: _locationSettings(),
+        ).listen((position) {
+          if (!mounted) return;
+          final next = LatLng(position.latitude, position.longitude);
+          setState(() => _myLocation = next);
+          try {
+            _mapController.move(next, _mapController.camera.zoom);
+          } catch (_) {
+            // Map not rendered yet; next update will recenter.
+          }
+        });
   }
 
   Future<void> _loadInitialMap() async {
@@ -141,6 +175,8 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
       if (!mounted) return;
       _myLocation = LatLng(position.latitude, position.longitude);
       await _drawRoad(_myLocation!);
+      if (!mounted) return;
+      _startLocationStream();
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -189,17 +225,9 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
     if (permission == LocationPermission.deniedForever) {
       await Geolocator.openAppSettings();
     }
-    final locationSettings = switch (defaultTargetPlatform) {
-      TargetPlatform.iOS || TargetPlatform.macOS => AppleSettings(
-        accuracy: LocationAccuracy.bestForNavigation,
-        activityType: ActivityType.automotiveNavigation,
-        pauseLocationUpdatesAutomatically: false,
-        showBackgroundLocationIndicator: true,
-        allowBackgroundLocationUpdates: true,
-      ),
-      _ => const LocationSettings(accuracy: LocationAccuracy.high),
-    };
-    return Geolocator.getCurrentPosition(locationSettings: locationSettings);
+    return Geolocator.getCurrentPosition(
+      locationSettings: _locationSettings(),
+    );
   }
 
   Future<void> _drawRoad(LatLng start) async {
@@ -659,6 +687,7 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
             child: _myLocation == null
                 ? const Center(child: CircularProgressIndicator.adaptive())
                 : FlutterMap(
+                    mapController: _mapController,
                     options: MapOptions(
                       initialCenter: _myLocation!,
                       initialZoom: 13,
@@ -679,19 +708,19 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
                             ),
                           ],
                         ),
-                      if (_road.isNotEmpty)
-                        MarkerLayer(
-                          markers: [
-                            Marker(
-                              point: _road.first,
-                              width: 40,
-                              height: 40,
-                              child: const Icon(
-                                Icons.location_on,
-                                color: Colors.red,
-                                size: 40,
-                              ),
+                      MarkerLayer(
+                        markers: [
+                          Marker(
+                            point: _myLocation!,
+                            width: 40,
+                            height: 40,
+                            child: const Icon(
+                              Icons.navigation,
+                              color: Colors.blue,
+                              size: 36,
                             ),
+                          ),
+                          if (_road.isNotEmpty)
                             Marker(
                               point: _road.last,
                               width: 40,
@@ -701,9 +730,24 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
                                 color: Colors.red,
                                 size: 40,
                               ),
+                            )
+                          else if (widget.order.addressLatitude != null &&
+                              widget.order.addressLongitude != null)
+                            Marker(
+                              point: LatLng(
+                                widget.order.addressLatitude!,
+                                widget.order.addressLongitude!,
+                              ),
+                              width: 40,
+                              height: 40,
+                              child: const Icon(
+                                Icons.location_on,
+                                color: Colors.red,
+                                size: 40,
+                              ),
                             ),
-                          ],
-                        ),
+                        ],
+                      ),
                     ],
                   ),
           ),
