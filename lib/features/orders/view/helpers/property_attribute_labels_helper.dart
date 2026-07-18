@@ -62,6 +62,8 @@ class PropertyAttributeLabelsHelper {
         return null;
       case 'balcony':
         return property?.balconies ?? order.numberOfBalconies;
+      case 'shed':
+        return property?.sheds ?? order.numberOfSheds;
       default:
         return null;
     }
@@ -92,6 +94,7 @@ class PropertyAttributeLabelsHelper {
     'bathroom',
     'corridor',
     'living_room',
+    'shed',
   ];
 
   static const List<String> _sizeOrder = <String>['large', 'medium', 'small'];
@@ -177,6 +180,11 @@ class PropertyAttributeLabelsHelper {
     final balconies = property.balconies;
     if (balconies != null && balconies > 0) {
       labels.add('$balconies شرفة');
+    }
+
+    final sheds = property.sheds;
+    if (sheds != null && sheds > 0) {
+      labels.add('$sheds سقيفة');
     }
 
     final livingRoomLabel = _livingRoomLabel(property);

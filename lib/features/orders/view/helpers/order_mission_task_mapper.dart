@@ -28,6 +28,7 @@ class OrderMissionTaskMapper {
     'corridor',
     'living_room',
     'hall',
+    'shed',
   ];
 
   static const List<String> _sizeOrder = <String>['large', 'medium', 'small'];

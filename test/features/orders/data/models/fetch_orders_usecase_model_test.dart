@@ -22,6 +22,7 @@ void main() {
               'bedrooms': 19,
               'kitchens': 3,
               'balconies': 3,
+              'sheds': 2,
               'bathrooms': 7,
               'room_size_breakdown': <String, dynamic>{
                 'balcony': <String, dynamic>{
@@ -49,6 +50,11 @@ void main() {
                   'small': 1,
                   'medium': 1,
                 },
+                'shed': <String, dynamic>{
+                  'large': 1,
+                  'small': 0,
+                  'medium': 1,
+                },
               },
             },
             'cleaning_services': <String>[
@@ -65,6 +71,7 @@ void main() {
             'numberOfRooms': 19,
             'numberOfKitchens': 3,
             'numberOfBalconies': 3,
+            'numberOfSheds': 2,
             'travelFee': 702.5,
             'deliveryFee': 702.5,
             'totalPrice': 5915.25,
@@ -104,6 +111,9 @@ void main() {
       expect(order.statusLabel, 'قيد الانتظار');
       expect(order.propertyTypeLabel, 'مكتب');
       expect(order.numberOfBalconies, 3);
+      expect(order.numberOfSheds, 2);
+      expect(order.propertyDetails?.sheds, 2);
+      expect(order.propertyDetails?.roomSizeBreakdown?.shed?.total, 2);
       expect(order.currency, 'SYP');
       expect(order.travelFee, 702.5);
       expect(order.addressLatitude, 36.219866);

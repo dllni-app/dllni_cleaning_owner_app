@@ -309,6 +309,7 @@ class FetchOrdersUsecaseModelDataItem {
   final int? numberOfRooms;
   final int? numberOfKitchens;
   final int? numberOfBalconies;
+  final int? numberOfSheds;
   final double? estimatedHours;
   final double? totalHours;
 
@@ -389,6 +390,7 @@ class FetchOrdersUsecaseModelDataItem {
     this.numberOfRooms,
     this.numberOfKitchens,
     this.numberOfBalconies,
+    this.numberOfSheds,
     this.estimatedHours,
     this.totalHours,
     this.basePrice,
@@ -494,6 +496,9 @@ class FetchOrdersUsecaseModelDataItem {
       ),
       numberOfBalconies: _toInt(
         _pick(m, const <String>['numberOfBalconies', 'number_of_balconies']),
+      ),
+      numberOfSheds: _toInt(
+        _pick(m, const <String>['numberOfSheds', 'number_of_sheds']),
       ),
       estimatedHours: _toDouble(
         _pick(m, const <String>['estimatedHours', 'estimated_hours']),
@@ -697,6 +702,7 @@ class FetchOrdersUsecaseModelDataItem {
       'numberOfRooms': numberOfRooms,
       'numberOfKitchens': numberOfKitchens,
       'numberOfBalconies': numberOfBalconies,
+      'numberOfSheds': numberOfSheds,
       'estimatedHours': estimatedHours,
       'totalHours': totalHours,
       'basePrice': basePrice,
@@ -771,6 +777,7 @@ class FetchOrdersUsecaseModelDataItem {
       numberOfRooms: numberOfRooms,
       numberOfKitchens: numberOfKitchens,
       numberOfBalconies: numberOfBalconies,
+      numberOfSheds: numberOfSheds,
       estimatedHours: estimatedHours,
       totalHours: totalHours,
       basePrice: basePrice,
@@ -845,6 +852,7 @@ class FetchOrdersUsecaseModelDataItem {
       numberOfRooms: numberOfRooms,
       numberOfKitchens: numberOfKitchens,
       numberOfBalconies: numberOfBalconies,
+      numberOfSheds: numberOfSheds,
       estimatedHours: estimatedHours,
       totalHours: totalHours,
       basePrice: basePrice,
@@ -983,6 +991,7 @@ class PropertyRoomSizeBreakdown {
     this.livingRoom,
     this.hall,
     this.corridor,
+    this.shed,
   });
 
   final RoomSizeCounts? balcony;
@@ -992,6 +1001,7 @@ class PropertyRoomSizeBreakdown {
   final RoomSizeCounts? livingRoom;
   final RoomSizeCounts? hall;
   final RoomSizeCounts? corridor;
+  final RoomSizeCounts? shed;
 
   RoomSizeCounts? countsForRoomType(String roomType) {
     switch (roomType) {
@@ -1009,6 +1019,8 @@ class PropertyRoomSizeBreakdown {
         return hall;
       case 'corridor':
         return corridor;
+      case 'shed':
+        return shed;
       default:
         return null;
     }
@@ -1029,6 +1041,7 @@ class PropertyRoomSizeBreakdown {
       livingRoom: countsFor('living_room'),
       hall: countsFor('hall'),
       corridor: countsFor('corridor'),
+      shed: countsFor('shed'),
     );
   }
 
@@ -1041,6 +1054,7 @@ class PropertyRoomSizeBreakdown {
       if (livingRoom != null) 'living_room': livingRoom!.toJson(),
       if (hall != null) 'hall': hall!.toJson(),
       if (corridor != null) 'corridor': corridor!.toJson(),
+      if (shed != null) 'shed': shed!.toJson(),
     };
   }
 }
@@ -1055,6 +1069,7 @@ class PropertyDetailsData {
   final bool? kitchenIncluded;
   final int? kitchens;
   final int? balconies;
+  final int? sheds;
   final String? livingRoomSize;
   final String? livingRoomSizeLabel;
   final String? cleaningMode;
@@ -1078,6 +1093,7 @@ class PropertyDetailsData {
     this.kitchenIncluded,
     this.kitchens,
     this.balconies,
+    this.sheds,
     this.livingRoomSize,
     this.livingRoomSizeLabel,
     this.cleaningMode,
@@ -1112,6 +1128,7 @@ class PropertyDetailsData {
       ),
       kitchens: _toInt(_pick(json, const <String>['kitchens'])),
       balconies: _toInt(_pick(json, const <String>['balconies'])),
+      sheds: _toInt(_pick(json, const <String>['sheds'])),
       livingRoomSize: _toStringValue(
         _pick(json, const <String>['livingRoomSize', 'living_room_size']),
       ),
@@ -1160,6 +1177,7 @@ class PropertyDetailsData {
       'kitchen_included': kitchenIncluded,
       'kitchens': kitchens,
       'balconies': balconies,
+      'sheds': sheds,
       'living_room_size': livingRoomSize,
       'living_room_size_label': livingRoomSizeLabel,
       'cleaning_mode': cleaningMode,

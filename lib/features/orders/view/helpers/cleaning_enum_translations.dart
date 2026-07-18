@@ -112,6 +112,8 @@ class CleaningEnumTranslations {
         return 'صالة';
       case 'corridor':
         return 'ممر';
+      case 'shed':
+        return 'سقيفة';
       case 'toilet':
         return 'حمام صغير';
       default:

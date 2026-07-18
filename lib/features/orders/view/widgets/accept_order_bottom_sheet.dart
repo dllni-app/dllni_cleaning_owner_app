@@ -303,6 +303,13 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
         ),
       },
       {
+        'label': 'عدد السقائف',
+        'value': PropertyAttributeLabelsHelper.roomTypeCountForOrder(
+          _order,
+          roomType: 'shed',
+        ),
+      },
+      {
         'label': 'عدد غرف النوم',
         'value': PropertyAttributeLabelsHelper.roomTypeCountForOrder(
           _order,

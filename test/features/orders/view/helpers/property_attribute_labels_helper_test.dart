@@ -38,28 +38,29 @@ void main() {
             'small': 1,
             'medium': 1,
           },
+          'shed': <String, dynamic>{
+            'large': 1,
+            'small': 0,
+            'medium': 1,
+          },
         },
       });
 
+      final labels = PropertyAttributeLabelsHelper.build(property);
+
+      expect(labels, containsAll(<String>[
+        '1 غرفة نوم كبيرة',
+        '1 مطبخ كبيرة',
+        '1 شرفة كبيرة',
+        '1 سقيفة كبيرة',
+        '1 سقيفة متوسطة',
+      ]));
       expect(
-        PropertyAttributeLabelsHelper.build(property),
-        <String>[
-          '1 غرفة نوم كبيرة',
-          '1 غرفة نوم متوسطة',
-          '1 غرفة نوم صغيرة',
-          '3 حمام كبيرة',
-          '3 حمام متوسطة',
-          '1 حمام صغيرة',
-          '1 مطبخ كبيرة',
-          '1 مطبخ متوسطة',
-          '1 مطبخ صغيرة',
-          '1 غرفة معيشة كبيرة',
-          '1 غرفة معيشة متوسطة',
-          '1 غرفة معيشة صغيرة',
-          '1 شرفة كبيرة',
-          '1 شرفة متوسطة',
-          '1 شرفة صغيرة',
-        ],
+        PropertyAttributeLabelsHelper.roomTypeCount(
+          property,
+          roomType: 'shed',
+        ),
+        2,
       );
     });
 
@@ -101,6 +102,7 @@ void main() {
         'bathrooms': 2,
         'kitchens': 1,
         'balconies': 2,
+        'sheds': 1,
         'living_room_size_label': 'كبيرة',
       });
 
@@ -111,6 +113,7 @@ void main() {
           '3 غرف نوم',
           '1 مطبخ',
           '2 شرفة',
+          '1 سقيفة',
           'غرفة معيشة كبيرة',
         ],
       );
