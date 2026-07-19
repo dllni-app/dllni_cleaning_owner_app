@@ -9,8 +9,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
-import '../../../../core/widgets/phone_number_widget/my_phone_number_field_widget.dart';
-
 @AutoRoutePage()
 class UpdateProfileScreen extends StatefulWidget {
   const UpdateProfileScreen({super.key, required this.params});
@@ -30,9 +28,6 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
   late TextEditingController _aboutMeController;
   late TextEditingController _cityMeController;
   late TextEditingController phoneNumberController;
-  late final ValueNotifier<String> phoneNumberValue;
-
-  bool _isLoadingPhone = true;
 
   String _preferredWorkType = 'both';
 
@@ -71,17 +66,10 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     );
     _aboutMeController = TextEditingController(text: widget.params.bio ?? '');
     _cityMeController = TextEditingController(text: widget.params.city ?? '');
-    phoneNumberController = TextEditingController();
-    phoneNumberValue = ValueNotifier('');
+    phoneNumberController = TextEditingController(
+      text: widget.params.phone ?? '',
+    );
     _preferredWorkType = widget.params.preferredWorkType ?? 'both';
-    _loadInitialPhone();
-  }
-
-  Future<void> _loadInitialPhone() async {
-    if (!mounted) return;
-    setState(() {
-      _isLoadingPhone = false;
-    });
   }
 
   @override
@@ -92,7 +80,6 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     _aboutMeController.dispose();
     _cityMeController.dispose();
     phoneNumberController.dispose();
-    phoneNumberValue.dispose();
     super.dispose();
   }
 
@@ -203,17 +190,11 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                                 enabled: false,
                               ),
                               14.verticalSpace,
-                              if (_isLoadingPhone)
-                                const Center(child: CircularProgressIndicator())
-                              else
-                                MyPhoneNumberInitField(
-                                  controller: phoneNumberController,
-                                  initialPhoneNumber: widget.params.phone,
-                                  internationalPhoneValue: phoneNumberValue,
-                                  labelText: 'رقم الهاتف الأساسي',
-                                  enabled: false,
-                                  readOnly: true,
-                                ),
+                              _buildField(
+                                label: 'رقم الهاتف الأساسي',
+                                controller: phoneNumberController,
+                                enabled: false,
+                              ),
                               14.verticalSpace,
                               _buildField(
                                 label: 'البريد الإلكتروني',
