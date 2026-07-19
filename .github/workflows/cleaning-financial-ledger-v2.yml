@@ -9,19 +9,14 @@ on:
       - 'test/features/profile/data/models/fetch_deposit_account_usecase_model_test.dart'
       - '.github/workflows/cleaning-financial-ledger-v2.yml'
 
-permissions:
-  contents: write
-
 jobs:
   wallet:
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
     steps:
-      - name: Checkout pull-request branch
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref }}
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -32,31 +27,13 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Format financial wallet sources
+      - name: Check financial wallet formatting
         run: |
-          dart format \
+          dart format --output=none --set-exit-if-changed \
             lib/features/profile/data/models/fetch_deposit_account_usecase_model.dart \
             lib/features/profile/data/models/fetch_deposit_transactions_usecase_model.dart \
             lib/features/profile/view/screens/wallet_screen.dart \
             test/features/profile/data/models/fetch_deposit_account_usecase_model_test.dart
-
-      - name: Commit formatting when needed
-        shell: bash
-        run: |
-          if git diff --quiet; then
-            echo "No formatting changes required."
-            exit 0
-          fi
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            lib/features/profile/data/models/fetch_deposit_account_usecase_model.dart \
-            lib/features/profile/data/models/fetch_deposit_transactions_usecase_model.dart \
-            lib/features/profile/view/screens/wallet_screen.dart \
-            test/features/profile/data/models/fetch_deposit_account_usecase_model_test.dart
-          git commit -m "chore: format financial wallet sources"
-          git push
 
       - name: Analyze financial wallet sources
         run: |
