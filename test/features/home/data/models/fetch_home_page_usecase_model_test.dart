@@ -101,6 +101,26 @@ void main() {
       );
     });
 
+    test('shows an explicit admin suspension warning', () {
+      final model = fetchHomePageUsecaseModelFromJson(<String, dynamic>{
+        'newOrdersCount': 0,
+        'isEligibleForNewRequests': false,
+        'dispatchEligibility': <String, dynamic>{
+          'canReceiveNewRequests': false,
+          'canAcceptNewBookings': false,
+          'reasonCode': 'worker_suspended',
+        },
+      });
+
+      expect(model.blocksNewRequests, isTrue);
+      expect(
+        model.dispatchEligibility?.userTitleAr,
+        'تم إيقافك من قبل الإدارة',
+      );
+      expect(model.eligibilityMessageAr, contains('أوقفت الإدارة حسابك'));
+      expect(model.eligibilityMessageAr, contains('لن تصلك أي طلبات جديدة'));
+    });
+
     test('remains backward compatible when new fields are absent', () {
       final model = fetchHomePageUsecaseModelFromJson(<String, dynamic>{
         'totalBookings': 12,
