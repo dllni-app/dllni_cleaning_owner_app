@@ -63,7 +63,7 @@ class TodayOverviewCard extends StatelessWidget {
                               textBaseline: TextBaseline.alphabetic,
                               children: [
                                 AppText.displaySmall(
-                                  state.homePageUsecase?.totalEarnings.formatMoney(currency: '')??'0 ل.س',
+                                  state.homePageUsecase?.totalEarnings.formatMoney(currency: '') ?? '0 ل.س',
                                   color: context.onPrimary,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -111,6 +111,8 @@ class TodayOverviewCard extends StatelessWidget {
                     current.homePageUsecase?.blocksNewRequests ||
                 previous.homePageUsecase?.eligibilityMessageAr !=
                     current.homePageUsecase?.eligibilityMessageAr ||
+                previous.homePageUsecase?.dispatchEligibility?.reasonCode !=
+                    current.homePageUsecase?.dispatchEligibility?.reasonCode ||
                 previous.homePageUsecaseStatus != current.homePageUsecaseStatus,
             builder: (context, state) {
               final model = state.homePageUsecase;
@@ -118,6 +120,16 @@ class TodayOverviewCard extends StatelessWidget {
                   model?.blocksNewRequests != true) {
                 return const SizedBox.shrink();
               }
+
+              final isSuspended =
+                  model?.dispatchEligibility?.effectiveReasonCode ==
+                  'worker_suspended';
+              final warningTitle = isSuspended
+                  ? 'تم إيقاف حسابك من قبل الإدارة'
+                  : 'ملاحظة على استقبال الطلبات';
+              final warningMessage = isSuspended
+                  ? 'تم إيقاف العامل من قبل الإدارة، ولن تستقبل أي طلبات جديدة حتى يتم إلغاء الإيقاف.'
+                  : model!.eligibilityMessageAr;
 
               return Container(
                 width: double.infinity,
@@ -133,21 +145,21 @@ class TodayOverviewCard extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.info_outline_rounded, color: context.error),
+                    Icon(Icons.warning_amber_rounded, color: context.error),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           AppText.labelLarge(
-                            'ملاحظة على استقبال الطلبات',
+                            warningTitle,
                             color: context.error,
                             fontWeight: FontWeight.w700,
                             textAlign: TextAlign.start,
                           ),
                           const SizedBox(height: 4),
                           AppText.bodySmall(
-                            model!.eligibilityMessageAr,
+                            warningMessage,
                             color: const Color(0xff374151),
                             textAlign: TextAlign.start,
                           ),
