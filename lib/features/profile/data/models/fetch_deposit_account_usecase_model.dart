@@ -57,90 +57,122 @@ String fetchDepositAccountUsecaseModelToJson(
 
 class FetchDepositAccountUsecaseModel {
   final int? workerId;
-  final num? currentBalance;
+  final num? depositBalance;
+  final num? debtBalance;
   final num? depositedTotal;
   final num? withdrawnTotal;
-  final num? minimumRequired;
+  final num? allowedDebtLimit;
+  final num? remainingDebtCapacity;
+  final num? activeReservedCommission;
+  final num? availableCommissionCapacity;
+  final num? manualDebtAmount;
+  final num? adminCommissionDebtAmount;
   final String? status;
   final num? exceedanceAmount;
-  final num? rawDebtAmount;
   final bool? isEligibleForNewRequests;
   final String? createdAt;
   final String? updatedAt;
 
   const FetchDepositAccountUsecaseModel({
     this.workerId,
-    this.currentBalance,
+    this.depositBalance,
+    this.debtBalance,
     this.depositedTotal,
     this.withdrawnTotal,
-    this.minimumRequired,
+    this.allowedDebtLimit,
+    this.remainingDebtCapacity,
+    this.activeReservedCommission,
+    this.availableCommissionCapacity,
+    this.manualDebtAmount,
+    this.adminCommissionDebtAmount,
     this.status,
     this.exceedanceAmount,
-    this.rawDebtAmount,
     this.isEligibleForNewRequests,
     this.createdAt,
     this.updatedAt,
   });
 
-  /// Outstanding admin debt owed by the worker.
-  ///
-  /// Newer API responses may send this as `debtAmount` / `debt_amount`.
-  /// Older responses already contain the enough balance fields to derive it:
-  /// deposited principal - withdrawals - current balance.
-  num get debtAmount {
-    if (rawDebtAmount != null) return rawDebtAmount! < 0 ? 0 : rawDebtAmount!;
-
-    final calculated = (depositedTotal ?? 0) - (withdrawnTotal ?? 0) - (currentBalance ?? 0);
-    return calculated > 0 ? calculated : 0;
-  }
+  num get currentBalance => depositBalance ?? 0;
+  num get debtAmount => debtBalance ?? 0;
+  num get minimumRequired => 0;
 
   factory FetchDepositAccountUsecaseModel.fromJson(Map<String, dynamic> json) {
+    final parsedDeposit = _toNum(
+      _pick(json, const <String>[
+        'depositBalance',
+        'deposit_balance',
+        'currentBalance',
+        'current_balance',
+      ]),
+    );
+    final parsedDebt = _toNum(
+      _pick(json, const <String>[
+        'debtBalance',
+        'debt_balance',
+        'debtAmount',
+        'debt_amount',
+        'commissionDue',
+        'commission_due',
+      ]),
+    );
+
     return FetchDepositAccountUsecaseModel(
       workerId: _toInt(_pick(json, const <String>['workerId', 'worker_id'])),
-      currentBalance: _toNum(
-        _pick(json, const <String>['currentBalance', 'current_balance']),
-      ),
-      depositedTotal: _toNum(
-        _pick(json, const <String>['depositedTotal', 'deposited_total']),
-      ),
-      withdrawnTotal: _toNum(
-        _pick(json, const <String>['withdrawnTotal', 'withdrawn_total']),
-      ),
-      minimumRequired: _toNum(
-        _pick(json, const <String>['minimumRequired', 'minimum_required']),
-      ),
+      depositBalance: parsedDeposit == null || parsedDeposit < 0 ? 0 : parsedDeposit,
+      debtBalance: parsedDebt == null || parsedDebt < 0 ? 0 : parsedDebt,
+      depositedTotal: _toNum(_pick(json, const <String>['depositedTotal', 'deposited_total'])),
+      withdrawnTotal: _toNum(_pick(json, const <String>['withdrawnTotal', 'withdrawn_total'])),
+      allowedDebtLimit: _toNum(_pick(json, const <String>[
+        'allowedDebtLimit',
+        'allowed_debt_limit',
+        'maxNegativeBalance',
+        'max_negative_balance',
+      ])),
+      remainingDebtCapacity: _toNum(_pick(json, const <String>[
+        'remainingDebtCapacity',
+        'remaining_debt_capacity',
+      ])),
+      activeReservedCommission: _toNum(_pick(json, const <String>[
+        'activeReservedCommission',
+        'active_reserved_commission',
+      ])),
+      availableCommissionCapacity: _toNum(_pick(json, const <String>[
+        'availableCommissionCapacity',
+        'available_commission_capacity',
+      ])),
+      manualDebtAmount: _toNum(_pick(json, const <String>['manualDebtAmount', 'manual_debt_amount'])),
+      adminCommissionDebtAmount: _toNum(_pick(json, const <String>[
+        'adminCommissionDebtAmount',
+        'admin_commission_debt_amount',
+      ])),
       status: _toStringValue(_pick(json, const <String>['status'])),
-      exceedanceAmount: _toNum(
-        _pick(json, const <String>['exceedanceAmount', 'exceedance_amount']),
-      ),
-      rawDebtAmount: _toNum(
-        _pick(json, const <String>['debtAmount', 'debt_amount', 'commissionDue', 'commission_due']),
-      ),
-      isEligibleForNewRequests: _toBool(
-        _pick(json, const <String>[
-          'isEligibleForNewRequests',
-          'is_eligible_for_new_requests',
-        ]),
-      ),
-      createdAt: _toStringValue(
-        _pick(json, const <String>['createdAt', 'created_at']),
-      ),
-      updatedAt: _toStringValue(
-        _pick(json, const <String>['updatedAt', 'updated_at']),
-      ),
+      exceedanceAmount: _toNum(_pick(json, const <String>['exceedanceAmount', 'exceedance_amount'])),
+      isEligibleForNewRequests: _toBool(_pick(json, const <String>[
+        'isEligibleForNewRequests',
+        'is_eligible_for_new_requests',
+      ])),
+      createdAt: _toStringValue(_pick(json, const <String>['createdAt', 'created_at'])),
+      updatedAt: _toStringValue(_pick(json, const <String>['updatedAt', 'updated_at'])),
     );
   }
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'workerId': workerId,
+      'depositBalance': depositBalance,
       'currentBalance': currentBalance,
+      'debtBalance': debtBalance,
+      'debtAmount': debtAmount,
       'depositedTotal': depositedTotal,
       'withdrawnTotal': withdrawnTotal,
-      'minimumRequired': minimumRequired,
+      'allowedDebtLimit': allowedDebtLimit,
+      'remainingDebtCapacity': remainingDebtCapacity,
+      'activeReservedCommission': activeReservedCommission,
+      'availableCommissionCapacity': availableCommissionCapacity,
+      'manualDebtAmount': manualDebtAmount,
+      'adminCommissionDebtAmount': adminCommissionDebtAmount,
       'status': status,
       'exceedanceAmount': exceedanceAmount,
-      'debtAmount': debtAmount,
       'isEligibleForNewRequests': isEligibleForNewRequests,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
