@@ -1,8 +1,6 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:common_package/common_package.dart';
-import 'package:common_package/helpers/shared_preferences_helper.dart';
 import 'package:dllni_cleaninig_owner_app/core/extentions.dart';
 import 'package:dllni_cleaninig_owner_app/core/widgets/cancel_order_dialog.dart';
 import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_relative_time_formatter.dart';
@@ -12,12 +10,12 @@ import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/fetch_
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/reject_order_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/start_travel_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/dedicated_order_helper.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/event_assistance_order_helper.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_lifecycle_policy.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/screens/order_details_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/accept_order_bottom_sheet.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/extension_request_action_sheet.dart';
-import 'package:dllni_cleaninig_owner_app/features/profile/data/models/fetch_worker_profile_usecase_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_arabic_time_formatter.dart';
@@ -75,28 +73,8 @@ class OrderCard extends StatelessWidget {
     return const Color(0xff64748B);
   }
 
-  int? _currentAccountId() {
-    final rawProfile = SharedPreferencesHelper.getData(key: 'user');
-    if (rawProfile == null) return null;
-
-    try {
-      final decodedProfile = rawProfile is String
-          ? json.decode(rawProfile)
-          : rawProfile;
-      final profile = fetchWorkerProfileUsecaseModelFromJson(decodedProfile);
-      return profile.data?.userId ?? profile.data?.user?.id;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  bool get _isDedicatedToMe {
-    final preferredWorkerId = data.preferredWorkerId;
-    final currentAccountId = _currentAccountId();
-    return preferredWorkerId != null &&
-        currentAccountId != null &&
-        preferredWorkerId == currentAccountId;
-  }
+  bool get _isDedicatedToMe =>
+      DedicatedOrderHelper.isDedicatedToCurrentUser(data.preferredWorkerId);
 
   Widget _acceptedWaitingBanner(BuildContext context) {
     // 1. التحقق الأساسي من الحالة
@@ -403,7 +381,12 @@ class OrderCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xffE5E7EB)),
+              border: Border.all(
+                color: isDedicatedToMe
+                    ? const Color(0xffEF4444)
+                    : const Color(0xffE5E7EB),
+                width: isDedicatedToMe ? 2 : 1,
+              ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withAlpha(15),

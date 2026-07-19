@@ -18,6 +18,16 @@ class CleaningArabicTimeFormatter {
     return _arabicWeekdayNames[date.weekday - 1];
   }
 
+  static String formatScheduledWeekday(
+    String? rawDate, {
+    String emptyValue = '-',
+  }) {
+    if (rawDate == null || rawDate.trim().isEmpty) return emptyValue;
+    final parsed = DateTime.tryParse(rawDate.trim());
+    if (parsed == null) return emptyValue;
+    return arabicWeekdayName(parsed);
+  }
+
   static String formatScheduledDate(
     String? rawDate, {
     String emptyValue = '-',
@@ -27,9 +37,16 @@ class CleaningArabicTimeFormatter {
     if (rawDate == null || rawDate.trim().isEmpty) return emptyValue;
     final parsed = DateTime.tryParse(rawDate.trim());
     if (parsed == null) return rawDate;
-    final dateStr = DateFormat(pattern, 'en').format(parsed);
-    if (!includeWeekday) return dateStr;
-    return '${arabicWeekdayName(parsed)} $dateStr';
+    final dateStr =
+        '${parsed.year.toString().padLeft(4, '0')}-'
+        '${parsed.month.toString().padLeft(2, '0')}-'
+        '${parsed.day.toString().padLeft(2, '0')}';
+    // Keep DateFormat for custom patterns when weekday is inlined elsewhere.
+    final formatted = pattern == 'yyyy-MM-dd'
+        ? dateStr
+        : DateFormat(pattern, 'en').format(parsed);
+    if (!includeWeekday) return formatted;
+    return '${arabicWeekdayName(parsed)} $formatted';
   }
 
   static String replaceAmPmWithArabic(String formatted) {

@@ -101,6 +101,13 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
   String _formatDate() {
     return CleaningArabicTimeFormatter.formatScheduledDate(
       _order.scheduledDate,
+      includeWeekday: false,
+    );
+  }
+
+  String _formatWeekday() {
+    return CleaningArabicTimeFormatter.formatScheduledWeekday(
+      _order.scheduledDate,
     );
   }
 
@@ -249,12 +256,6 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
           ),
         ),
         _orderInfoRow(
-          label: 'نوع المكان',
-          value: CleaningEnumTranslations.venueType(
-            _order.propertyDetails?.venueType,
-          ),
-        ),
-        _orderInfoRow(
           label: 'عدد الخدمة المطلوبة',
           value: _serviceName(),
           withDivider: false,
@@ -323,16 +324,42 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       return val != null && val > 0;
     }).toList();
 
-    return List.generate(visibleItems.length, (index) {
-      final item = visibleItems[index];
-      final isLast = index == visibleItems.length - 1;
+    final propertyTypeLabel = CleaningEnumTranslations.propertyType(
+      _order.propertyType,
+    );
+    final showPropertyType =
+        propertyTypeLabel.trim().isNotEmpty && propertyTypeLabel != 'غير محدد';
 
-      return _orderInfoRow(
-        label: item['label'],
-        value: PropertyAttributeLabelsHelper.formatCount(item['value']),
-        withDivider: !isLast,
-      );
-    });
+    final rows = <Widget>[
+      if (showPropertyType)
+        _orderInfoRow(
+          label: 'نوع المكان',
+          value: propertyTypeLabel,
+          withDivider: visibleItems.isNotEmpty,
+        ),
+      ...List.generate(visibleItems.length, (index) {
+        final item = visibleItems[index];
+        final isLast = index == visibleItems.length - 1;
+
+        return _orderInfoRow(
+          label: item['label'],
+          value: PropertyAttributeLabelsHelper.formatCount(item['value']),
+          withDivider: !isLast,
+        );
+      }),
+    ];
+
+    if (rows.isEmpty) {
+      return [
+        _orderInfoRow(
+          label: 'نوع المكان',
+          value: '-',
+          withDivider: false,
+        ),
+      ];
+    }
+
+    return rows;
   }
 
   @override
@@ -430,6 +457,10 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                       ),
                       const SizedBox(height: 10),
                       _detailCard(context, [
+                        _orderInfoRow(
+                          label: 'يوم الخدمة',
+                          value: _formatWeekday(),
+                        ),
                         _orderInfoRow(label: 'التاريخ', value: _formatDate()),
                         _orderInfoRow(
                           label: 'الوقت',

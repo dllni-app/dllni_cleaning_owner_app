@@ -1,9 +1,5 @@
-import 'dart:io';
-
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
-import 'package:dllni_cleaninig_owner_app/core/helpers/phone_number_helper.dart';
-import 'package:dllni_cleaninig_owner_app/core/widgets/app_phone_number_field.dart';
 import 'package:dllni_cleaninig_owner_app/core/widgets/app_pickers.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/data/models/fetch_worker_profile_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/fetch_worker_profile_usecase_use_case.dart';
@@ -12,8 +8,6 @@ import 'package:dllni_cleaninig_owner_app/features/profile/view/manager/bloc/pro
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:intl_phone_number_input/intl_phone_number_input.dart';
 
 import '../../../../core/widgets/phone_number_widget/my_phone_number_field_widget.dart';
 
@@ -38,10 +32,8 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
   late TextEditingController phoneNumberController;
   late final ValueNotifier<String> phoneNumberValue;
 
-  final _phoneFieldKey = GlobalKey<AppPhoneNumberFieldState>();
   bool _isLoadingPhone = true;
 
-  File? selectedImage;
   String _preferredWorkType = 'both';
 
   static const List<({String value, String title, String subtitle, IconData icon, Color color})>
@@ -201,33 +193,6 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                       children: [
                         _buildSectionCard(
                           sectionNumber: '1',
-                          title: 'الصورة الشخصية',
-                          child: Column(
-                            children: [
-                              _buildProfileAvatar(),
-                              16.verticalSpace,
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  _buildPhotoAction(
-                                    icon: Icons.image_outlined,
-                                    title: 'اختيار من المعرض',
-                                    source: ImageSource.gallery,
-                                  ),
-                                  12.horizontalSpace,
-                                  _buildPhotoAction(
-                                    icon: Icons.camera_alt_outlined,
-                                    title: 'التقاط صورة',
-                                    source: ImageSource.camera,
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        16.verticalSpace,
-                        _buildSectionCard(
-                          sectionNumber: '2',
                           title: 'معلومات الحساب',
                           child: Column(
                             children: [
@@ -235,6 +200,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                                 label: 'الاسم الكامل',
                                 controller: _nameController,
                                 isRequired: true,
+                                enabled: false,
                               ),
                               14.verticalSpace,
                               if (_isLoadingPhone)
@@ -245,6 +211,8 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                                   initialPhoneNumber: widget.params.phone,
                                   internationalPhoneValue: phoneNumberValue,
                                   labelText: 'رقم الهاتف الأساسي',
+                                  enabled: false,
+                                  readOnly: true,
                                 ),
                               14.verticalSpace,
                               _buildField(
@@ -264,7 +232,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                         ),
                         16.verticalSpace,
                         _buildSectionCard(
-                          sectionNumber: '3',
+                          sectionNumber: '2',
                           title: 'معلومات إضافية',
                           child: Column(
                             children: [
@@ -282,7 +250,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                         ),
                         16.verticalSpace,
                         _buildSectionCard(
-                          sectionNumber: '4',
+                          sectionNumber: '3',
                           title: 'نوع الطلبات المفضلة',
                           child: Column(
                             children: [
@@ -336,14 +304,13 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                                       context.read<ProfileBloc>().add(
                                         UpdateWorkerProfileEvent(
                                           params: UpdateWorkerProfileParams(
-                                            avatar: selectedImage,
                                             bio: _aboutMeController.text,
                                             birthday: _dateOfBirthController.text,
                                             city: _cityMeController.text,
                                             email: email.isEmpty ? '' : email,
                                             isActive: 1,
-                                            name: _nameController.text,
-                                            phone: phoneNumberValue.value,
+                                            name: widget.params.name,
+                                            phone: widget.params.phone,
                                             preferredWorkType: _preferredWorkType,
                                           ),
                                         ),
@@ -449,76 +416,6 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     );
   }
 
-  static Future<File?> pickSingleImage(ImageSource source) async {
-    final ImagePicker picker = ImagePicker();
-    try {
-      final XFile? pickedFile = await picker.pickImage(source: source);
-      if (pickedFile != null) {
-        return File(pickedFile.path);
-      }
-    } catch (e) {
-      appLog('Error picking image: $e');
-    }
-    return null;
-  }
-
-  Widget _buildProfileAvatar() {
-    final radius = 40.r;
-    final size = radius * 2;
-
-    if (selectedImage != null) {
-      return CircleAvatar(
-        radius: radius,
-        backgroundColor: const Color(0xffE5E7EB),
-        backgroundImage: FileImage(selectedImage!),
-      );
-    }
-
-    final avatarUrl = widget.params.avatarUrl;
-    if (avatarUrl != null && avatarUrl.isNotEmpty) {
-      return AppImage.network(
-        avatarUrl,
-        borderRadius: BorderRadius.circular(radius),
-        width: size,
-        height: size,
-        fit: BoxFit.cover,
-      );
-    }
-
-    return CircleAvatar(
-      radius: radius,
-      backgroundColor: const Color(0xffE5E7EB),
-    );
-  }
-
-  Widget _buildPhotoAction({
-    required IconData icon,
-    required String title,
-    required ImageSource source,
-  }) {
-    return InkWell(
-      onTap: () async {
-        selectedImage = await pickSingleImage(source);
-        setState(() {});
-      },
-      borderRadius: BorderRadius.circular(10.r),
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 6.h),
-        child: Row(
-          children: [
-            Icon(icon, size: 16.sp, color: const Color(0xff1F2A5A)),
-            6.horizontalSpace,
-            AppText.bodySmall(
-              title,
-              color: const Color(0xff1F2A5A),
-              fontWeight: FontWeight.w500,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildWorkTypeOption(
     ({String value, String title, String subtitle, IconData icon, Color color})
         option,
@@ -591,6 +488,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     required TextEditingController controller,
     TextInputType? keyboardType,
     bool isRequired = false,
+    bool enabled = true,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -609,15 +507,20 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
         8.verticalSpace,
         TextFormField(
           controller: controller,
+          enabled: enabled,
           keyboardType: keyboardType,
           style: TextStyle(
-            color: const Color(0xff2F2B3D),
+            color: enabled
+                ? const Color(0xff2F2B3D)
+                : const Color(0xff6B7280),
             fontSize: 14.sp,
             fontWeight: FontWeight.w400,
           ),
           decoration: InputDecoration(
             filled: true,
-            fillColor: const Color(0xffF9FAFB),
+            fillColor: enabled
+                ? const Color(0xffF9FAFB)
+                : const Color(0xffF3F4F6),
             contentPadding: EdgeInsets.symmetric(
               horizontal: 14.w,
               vertical: 12.h,
@@ -627,6 +530,10 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
               borderSide: const BorderSide(color: Color(0xffE5E7EB), width: 1),
             ),
             enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14.r),
+              borderSide: const BorderSide(color: Color(0xffE5E7EB), width: 1),
+            ),
+            disabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14.r),
               borderSide: const BorderSide(color: Color(0xffE5E7EB), width: 1),
             ),

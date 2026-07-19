@@ -57,5 +57,20 @@ void main() {
         '-',
       );
     });
+
+    test('formatScheduledWeekday returns Arabic day name', () {
+      expect(
+        CleaningArabicTimeFormatter.formatScheduledWeekday('2026-07-16'),
+        'الخميس',
+      );
+      expect(
+        CleaningArabicTimeFormatter.formatScheduledWeekday('2026-07-17'),
+        'الجمعة',
+      );
+      expect(
+        CleaningArabicTimeFormatter.formatScheduledWeekday(null),
+        '-',
+      );
+    });
   });
 }

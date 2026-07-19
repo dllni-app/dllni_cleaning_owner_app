@@ -5,6 +5,7 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
 import '../../data/models/fetch_orders_usecase_model.dart';
 import '../helpers/cleaning_enum_translations.dart';
+import '../helpers/dedicated_order_helper.dart';
 import '../helpers/event_assistance_order_helper.dart';
 
 class OrderInfoCard extends StatelessWidget {
@@ -22,6 +23,9 @@ class OrderInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDedicatedToMe =
+        DedicatedOrderHelper.isDedicatedToCurrentUser(order.preferredWorkerId);
+
     return Container(
       padding: EdgeInsets.all(16.r),
       decoration: BoxDecoration(color: Color(0xffF4F5F7), borderRadius: BorderRadius.circular(20.r)),
@@ -38,6 +42,26 @@ class OrderInfoCard extends StatelessWidget {
           12.verticalSpace,
           Divider(color: Colors.black.withAlpha(42)),
           8.verticalSpace,
+          if (isDedicatedToMe) ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.person_pin_circle_outlined, color: const Color(0xffEF4444), size: 18.sp),
+                    6.horizontalSpace,
+                    AppText.labelMedium("طلب مخصص", fontWeight: FontWeight.w400),
+                  ],
+                ),
+                AppText.labelMedium(
+                  "طلب مخصص لك",
+                  color: const Color(0xffEF4444),
+                  fontWeight: FontWeight.w600,
+                ),
+              ],
+            ),
+            14.verticalSpace,
+          ],
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -66,7 +90,13 @@ class OrderInfoCard extends StatelessWidget {
                   AppText.labelMedium("جدولة الحجز", fontWeight: FontWeight.w300),
                 ],
               ),
-              AppText.labelMedium(order.scheduledDate ?? '', fontWeight: FontWeight.w300),
+              AppText.labelMedium(
+                CleaningArabicTimeFormatter.formatScheduledDate(
+                  order.scheduledDate,
+                  emptyValue: '',
+                ),
+                fontWeight: FontWeight.w300,
+              ),
             ],
           ),
           14.verticalSpace,
