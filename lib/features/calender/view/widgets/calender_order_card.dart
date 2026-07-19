@@ -3,6 +3,7 @@ import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orde
 import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_arabic_time_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../generated/assets.dart';
@@ -21,7 +22,7 @@ class CalenderOrderCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 52,
+          width: 52.w,
           child: AppText.labelMedium(
             CleaningArabicTimeFormatter.formatScheduledTime(
               date.scheduledTime,
@@ -30,7 +31,7 @@ class CalenderOrderCard extends StatelessWidget {
             scrollText: true,
           ),
         ),
-        SizedBox(width: 13),
+        SizedBox(width: 13.w),
         Expanded(
           child: InkWell(
             onTap: () {
@@ -41,47 +42,77 @@ class CalenderOrderCard extends StatelessWidget {
                 isNewOrder: false,
               ));
             },
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(16.r),
             child: Container(
-              decoration: BoxDecoration(color: context.onPrimary, borderRadius: BorderRadius.circular(16)),
+              decoration: BoxDecoration(
+                color: context.onPrimary,
+                borderRadius: BorderRadius.circular(16.r),
+              ),
               child: Padding(
-                padding: EdgeInsetsDirectional.symmetric(vertical: 16),
+                padding: EdgeInsetsDirectional.symmetric(vertical: 16.h),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Padding(
-                      padding: EdgeInsetsDirectional.symmetric(horizontal: 10),
-                      child: AppText.labelLarge(date.locationName ?? '', fontWeight: FontWeight.w400),
+                      padding: EdgeInsetsDirectional.symmetric(horizontal: 10.w),
+                      child: AppText.labelLarge(
+                        date.locationName ?? '',
+                        fontWeight: FontWeight.w400,
+                      ),
                     ),
-                    SizedBox(height: 12),
+                    SizedBox(height: 12.h),
                     Divider(height: 1, color: context.surface),
-                    SizedBox(height: 12),
-                    dataRow(Assets.images.orderCardCalender.path, 'جدولة الحجز', date.scheduledDate ?? ''),
-                    SizedBox(height: 12),
-                    dataRow(Assets.images.orderCardBuilding.path, 'نوع العقار', date.propertyType ?? ''),
-                    SizedBox(height: 12),
-                    dataRow(Assets.images.orderCardAlarm.path, 'المساحة التقديرية', date.estimatedSqm == null ? '' : '${date.estimatedSqm} متر مربع'),
-                    SizedBox(height: 12),
+                    SizedBox(height: 12.h),
+                    dataRow(
+                      Assets.images.orderCardCalender.path,
+                      'جدولة الحجز',
+                      CleaningArabicTimeFormatter.formatCalendarIsoDate(
+                        date.scheduledDate,
+                        emptyValue: '',
+                      ),
+                    ),
+                    SizedBox(height: 12.h),
+                    dataRow(
+                      Assets.images.orderCardBuilding.path,
+                      'نوع العقار',
+                      date.propertyType ?? '',
+                    ),
+                    SizedBox(height: 12.h),
+                    dataRow(
+                      Assets.images.orderCardAlarm.path,
+                      'المساحة التقديرية',
+                      date.estimatedSqm == null || date.estimatedSqm!.isEmpty
+                          ? ''
+                          : '${CleaningArabicTimeFormatter.toArabicDigits(date.estimatedSqm!)} متر مربع',
+                    ),
+                    SizedBox(height: 12.h),
                     Divider(height: 1, color: context.surface),
-                    SizedBox(height: 12),
+                    SizedBox(height: 12.h),
                     Padding(
-                      padding: EdgeInsetsDirectional.symmetric(horizontal: 10),
+                      padding: EdgeInsetsDirectional.symmetric(horizontal: 10.w),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           date.customer?.phone == null
-                              ? SizedBox.shrink()
+                              ? const SizedBox.shrink()
                               : InkWell(
                                   onTap: () async {
                                     callPhone(date.customer!.phone!);
                                   },
                                   child: CircleAvatar(
-                                    radius: 15,
+                                    radius: 15.r,
                                     backgroundColor: context.primaryContainer,
-                                    child: Icon(Icons.phone_outlined, color: context.onPrimaryContainer, size: 15),
+                                    child: Icon(
+                                      Icons.phone_outlined,
+                                      color: context.onPrimaryContainer,
+                                      size: 15.sp,
+                                    ),
                                   ),
                                 ),
-                          AppText.titleSmall('${date.totalPrice} ل.س', color: context.primaryContainer),
+                          AppText.titleSmall(
+                            '${CleaningArabicTimeFormatter.toArabicDigits(date.totalPrice?.toString() ?? '')} ل.س',
+                            color: context.primaryContainer,
+                          ),
                         ],
                       ),
                     ),
@@ -107,14 +138,20 @@ class CalenderOrderCard extends StatelessWidget {
 
   Widget dataRow(image, title, data) {
     return Padding(
-      padding: EdgeInsetsDirectional.symmetric(horizontal: 10),
+      padding: EdgeInsetsDirectional.symmetric(horizontal: 10.w),
       child: Row(
         children: [
           AppImage.asset(image, size: 15),
-          SizedBox(width: 8),
+          SizedBox(width: 8.w),
           AppText.labelMedium(title, fontWeight: FontWeight.w300),
-          Spacer(),
-          AppText.labelMedium(data, fontWeight: FontWeight.w300),
+          const Spacer(),
+          Flexible(
+            child: AppText.labelMedium(
+              data,
+              fontWeight: FontWeight.w300,
+              textAlign: TextAlign.end,
+            ),
+          ),
         ],
       ),
     );

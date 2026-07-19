@@ -1,10 +1,13 @@
-import 'package:easy_localization/easy_localization.dart';
+import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_arabic_time_formatter.dart';
 import 'package:flutter/material.dart';
 
 class CalenderNotifier {
-  ValueNotifier<String> selectedDate = ValueNotifier<String>(DateFormat('d MMMM y', 'en').format(DateTime.now()));
+  ValueNotifier<String> selectedDate = ValueNotifier<String>(
+    CleaningArabicTimeFormatter.formatCalendarSelectedDate(DateTime.now()),
+  );
 
   changeSelectedDate(DateTime value) {
-    selectedDate.value = DateFormat('d MMMM y', 'en').format(value);
+    selectedDate.value =
+        CleaningArabicTimeFormatter.formatCalendarSelectedDate(value);
   }
 }

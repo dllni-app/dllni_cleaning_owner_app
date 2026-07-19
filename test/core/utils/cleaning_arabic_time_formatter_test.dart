@@ -72,5 +72,67 @@ void main() {
         '-',
       );
     });
+
+    test('toArabicDigits converts western digits', () {
+      expect(CleaningArabicTimeFormatter.toArabicDigits('19'), '١٩');
+      expect(CleaningArabicTimeFormatter.toArabicDigits('2026-07-20'), '٢٠٢٦-٠٧-٢٠');
+      expect(CleaningArabicTimeFormatter.toArabicDigits('July 19_25'), 'July ١٩_٢٥');
+    });
+
+    test('arabicMonthName returns Arabic month', () {
+      expect(
+        CleaningArabicTimeFormatter.arabicMonthName(DateTime(2026, 7, 19)),
+        'يوليو',
+      );
+      expect(
+        CleaningArabicTimeFormatter.arabicMonthName(DateTime(2026, 1, 1)),
+        'يناير',
+      );
+    });
+
+    test('arabicWeekdayShortName returns short Arabic weekday', () {
+      // 2026-07-19 is Sunday
+      expect(
+        CleaningArabicTimeFormatter.arabicWeekdayShortName(DateTime(2026, 7, 19)),
+        'أحد',
+      );
+      // 2026-07-20 is Monday
+      expect(
+        CleaningArabicTimeFormatter.arabicWeekdayShortName(DateTime(2026, 7, 20)),
+        'إثن',
+      );
+    });
+
+    test('formatCalendarWeekRange uses Arabic month and digits', () {
+      final focused = DateTime(2026, 7, 19);
+      expect(
+        CleaningArabicTimeFormatter.formatCalendarWeekRange(focused),
+        'يوليو ١٩_٢٥',
+      );
+    });
+
+    test('formatCalendarSelectedDate uses Arabic month and digits', () {
+      expect(
+        CleaningArabicTimeFormatter.formatCalendarSelectedDate(
+          DateTime(2026, 7, 19),
+        ),
+        '١٩ يوليو ٢٠٢٦',
+      );
+    });
+
+    test('formatCalendarDayNumber uses Eastern digits', () {
+      expect(
+        CleaningArabicTimeFormatter.formatCalendarDayNumber(DateTime(2026, 7, 19)),
+        '١٩',
+      );
+    });
+
+    test('formatCalendarIsoDate converts iso date digits', () {
+      expect(
+        CleaningArabicTimeFormatter.formatCalendarIsoDate('2026-07-20'),
+        '٢٠٢٦-٠٧-٢٠',
+      );
+      expect(CleaningArabicTimeFormatter.formatCalendarIsoDate(null), '-');
+    });
   });
 }

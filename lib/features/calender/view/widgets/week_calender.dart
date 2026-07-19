@@ -1,10 +1,12 @@
 import 'package:common_package/common_package.dart';
+import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_arabic_time_formatter.dart';
 import 'package:dllni_cleaninig_owner_app/features/calender/view/manager/calender_notifier.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/fetch_orders_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class WeekCalendar extends StatefulWidget {
@@ -25,7 +27,7 @@ class _WeekCalendarState extends State<WeekCalendar> {
     return Column(
       children: [
         _buildHeader(),
-        SizedBox(height: 12),
+        SizedBox(height: 12.h),
         TableCalendar(
           locale: 'en',
           firstDay: DateTime(2020),
@@ -36,6 +38,8 @@ class _WeekCalendarState extends State<WeekCalendar> {
           calendarFormat: CalendarFormat.week,
           headerVisible: false,
           daysOfWeekVisible: true,
+          rowHeight: 44.h,
+          daysOfWeekHeight: 22.h,
           onDaySelected: (selected, focused) {
             setState(() {
               selectedDay = selected;
@@ -57,6 +61,28 @@ class _WeekCalendarState extends State<WeekCalendar> {
               focusedDay = focused;
             });
           },
+          daysOfWeekStyle: DaysOfWeekStyle(
+            dowTextFormatter: (date, _) =>
+                CleaningArabicTimeFormatter.arabicWeekdayShortName(date),
+            weekdayStyle: TextStyle(
+              color: context.onPrimaryContainer,
+              fontSize: 12.sp,
+            ),
+            weekendStyle: TextStyle(
+              color: context.onPrimaryContainer,
+              fontSize: 12.sp,
+            ),
+          ),
+          calendarBuilders: CalendarBuilders(
+            defaultBuilder: (context, day, focused) =>
+                _buildDayCell(context, day, selected: false),
+            selectedBuilder: (context, day, focused) =>
+                _buildDayCell(context, day, selected: true),
+            todayBuilder: (context, day, focused) =>
+                _buildDayCell(context, day, selected: isSameDay(day, selectedDay)),
+            outsideBuilder: (context, day, focused) =>
+                _buildDayCell(context, day, selected: false),
+          ),
           calendarStyle: CalendarStyle(
             isTodayHighlighted: false,
             outsideDaysVisible: false,
@@ -75,12 +101,36 @@ class _WeekCalendarState extends State<WeekCalendar> {
             defaultTextStyle: TextStyle(color: context.onPrimaryContainer),
             weekendTextStyle: TextStyle(color: context.onPrimaryContainer),
           ),
-          daysOfWeekStyle: DaysOfWeekStyle(
-            weekdayStyle: TextStyle(color: context.onPrimaryContainer),
-            weekendStyle: TextStyle(color: context.onPrimaryContainer),
-          ),
         ),
       ],
+    );
+  }
+
+  Widget _buildDayCell(
+    BuildContext context,
+    DateTime day, {
+    required bool selected,
+  }) {
+    return Center(
+      child: Container(
+        width: 36.r,
+        height: 36.r,
+        alignment: Alignment.center,
+        decoration: selected
+            ? BoxDecoration(
+                color: context.primaryContainer,
+                shape: BoxShape.circle,
+              )
+            : null,
+        child: Text(
+          CleaningArabicTimeFormatter.formatCalendarDayNumber(day),
+          style: TextStyle(
+            color: context.onPrimaryContainer,
+            fontWeight: selected ? FontWeight.bold : FontWeight.w400,
+            fontSize: 14.sp,
+          ),
+        ),
+      ),
     );
   }
 
@@ -88,35 +138,43 @@ class _WeekCalendarState extends State<WeekCalendar> {
     final startOfWeek = focusedDay.subtract(
       Duration(days: focusedDay.weekday % DateTime.daysPerWeek),
     );
-    final endOfWeek = startOfWeek.add(Duration(days: 6));
-
-    final monthName = DateFormat.MMMM('en').format(focusedDay);
+    final endOfWeek = startOfWeek.add(const Duration(days: 6));
+    final title = CleaningArabicTimeFormatter.formatCalendarWeekRange(
+      focusedDay,
+      startOfWeek: startOfWeek,
+      endOfWeek: endOfWeek,
+    );
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.symmetric(horizontal: 8.w),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
             onPressed: () {
               setState(() {
-                focusedDay = focusedDay.subtract(Duration(days: 7));
+                focusedDay = focusedDay.subtract(const Duration(days: 7));
               });
             },
             icon: Icon(Icons.chevron_left, color: context.onPrimaryContainer),
           ),
-          Text(
-            "$monthName ${startOfWeek.day}_${endOfWeek.day}",
-            style: TextStyle(
-              color: context.onPrimaryContainer,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+          Expanded(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: context.onPrimaryContainer,
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
           IconButton(
             onPressed: () {
               setState(() {
-                focusedDay = focusedDay.add(Duration(days: 7));
+                focusedDay = focusedDay.add(const Duration(days: 7));
               });
             },
             icon: Icon(Icons.chevron_right, color: context.onPrimaryContainer),

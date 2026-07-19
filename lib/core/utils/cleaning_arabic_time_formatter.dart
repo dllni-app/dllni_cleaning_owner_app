@@ -14,8 +14,100 @@ class CleaningArabicTimeFormatter {
     'الأحد',
   ];
 
+  /// Short labels for week-strip cells (Mon…Sun).
+  static const List<String> _arabicWeekdayShortNames = [
+    'إثن',
+    'ثلا',
+    'أرب',
+    'خمي',
+    'جمع',
+    'سبت',
+    'أحد',
+  ];
+
+  /// Calendar months: January=1 … December=12.
+  static const List<String> _arabicMonthNames = [
+    'يناير',
+    'فبراير',
+    'مارس',
+    'أبريل',
+    'مايو',
+    'يونيو',
+    'يوليو',
+    'أغسطس',
+    'سبتمبر',
+    'أكتوبر',
+    'نوفمبر',
+    'ديسمبر',
+  ];
+
+  static const String _westernDigits = '0123456789';
+  static const String _easternDigits = '٠١٢٣٤٥٦٧٨٩';
+
   static String arabicWeekdayName(DateTime date) {
     return _arabicWeekdayNames[date.weekday - 1];
+  }
+
+  static String arabicWeekdayShortName(DateTime date) {
+    return _arabicWeekdayShortNames[date.weekday - 1];
+  }
+
+  static String arabicMonthName(DateTime date) {
+    return _arabicMonthNames[date.month - 1];
+  }
+
+  /// Converts Western digits in [input] to Eastern Arabic digits (display only).
+  static String toArabicDigits(String input) {
+    final buffer = StringBuffer();
+    for (final codeUnit in input.codeUnits) {
+      final char = String.fromCharCode(codeUnit);
+      final index = _westernDigits.indexOf(char);
+      buffer.write(index >= 0 ? _easternDigits[index] : char);
+    }
+    return buffer.toString();
+  }
+
+  /// Day-of-month for calendar cells, e.g. `١٩`.
+  static String formatCalendarDayNumber(DateTime date) {
+    return toArabicDigits('${date.day}');
+  }
+
+  /// Week range header, e.g. `يوليو ١٩_٢٥`.
+  static String formatCalendarWeekRange(
+    DateTime focusedDay, {
+    DateTime? startOfWeek,
+    DateTime? endOfWeek,
+  }) {
+    final start = startOfWeek ??
+        focusedDay.subtract(
+          Duration(days: focusedDay.weekday % DateTime.daysPerWeek),
+        );
+    final end = endOfWeek ?? start.add(const Duration(days: 6));
+    return toArabicDigits(
+      '${arabicMonthName(focusedDay)} ${start.day}_${end.day}',
+    );
+  }
+
+  /// Selected-date header, e.g. `١٩ يوليو ٢٠٢٦`.
+  static String formatCalendarSelectedDate(DateTime date) {
+    return toArabicDigits(
+      '${date.day} ${arabicMonthName(date)} ${date.year}',
+    );
+  }
+
+  /// Display-only `yyyy-MM-dd` with Eastern digits (API value stays Western).
+  static String formatCalendarIsoDate(
+    String? rawDate, {
+    String emptyValue = '-',
+  }) {
+    if (rawDate == null || rawDate.trim().isEmpty) return emptyValue;
+    final parsed = DateTime.tryParse(rawDate.trim());
+    if (parsed == null) return toArabicDigits(rawDate.trim());
+    final dateStr =
+        '${parsed.year.toString().padLeft(4, '0')}-'
+        '${parsed.month.toString().padLeft(2, '0')}-'
+        '${parsed.day.toString().padLeft(2, '0')}';
+    return toArabicDigits(dateStr);
   }
 
   static String formatScheduledWeekday(

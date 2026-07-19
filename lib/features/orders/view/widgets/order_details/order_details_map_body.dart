@@ -44,6 +44,11 @@ class OrderDetailsMapBody extends StatefulWidget {
 }
 
 class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
+  static const double _mapInitialZoom = 13;
+  /// Matches [DraggableScrollableSheet.initialChildSize] so the worker pin
+  /// sits in the visible map area above the sheet.
+  static const double _bottomSheetInitialFraction = 0.36;
+
   final Dio _dio = Dio();
   final MapController _mapController = MapController();
 
@@ -88,6 +93,32 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
   }
 
   bool get _canArrive => OrderLifecyclePolicy.canArrive(widget.order);
+
+  /// Straight-line distance from worker to order address, in km.
+  double? get _distanceToCustomerKm {
+    final my = _myLocation;
+    final lat = widget.order.addressLatitude;
+    final lng = widget.order.addressLongitude;
+    if (my != null && lat != null && lng != null) {
+      final meters = Geolocator.distanceBetween(
+        my.latitude,
+        my.longitude,
+        lat,
+        lng,
+      );
+      return meters / 1000;
+    }
+    return widget.order.travelDistanceKm;
+  }
+
+  String? get _distanceLabel {
+    final km = _distanceToCustomerKm;
+    if (km == null) return null;
+    final value = km >= 10
+        ? km.toStringAsFixed(0)
+        : km.toStringAsFixed(1);
+    return 'يبعد تقريباً $value كم';
+  }
 
   @override
   void initState() {
@@ -152,6 +183,19 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
     };
   }
 
+  /// Centers the map on [worker], shifted up so the pin is above the bottom sheet.
+  void _centerMapOnWorker(LatLng worker, {double? zoom}) {
+    try {
+      final camera = _mapController.camera;
+      final z = zoom ?? camera.zoom;
+      final offsetY =
+          camera.nonRotatedSize.height * (_bottomSheetInitialFraction / 2);
+      _mapController.move(worker, z, offset: Offset(0, offsetY));
+    } catch (_) {
+      // Map not rendered yet; next update will recenter.
+    }
+  }
+
   void _startLocationStream() {
     _positionSub?.cancel();
     _positionSub =
@@ -161,11 +205,7 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
           if (!mounted) return;
           final next = LatLng(position.latitude, position.longitude);
           setState(() => _myLocation = next);
-          try {
-            _mapController.move(next, _mapController.camera.zoom);
-          } catch (_) {
-            // Map not rendered yet; next update will recenter.
-          }
+          _centerMapOnWorker(next);
         });
   }
 
@@ -176,6 +216,10 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
       _myLocation = LatLng(position.latitude, position.longitude);
       await _drawRoad(_myLocation!);
       if (!mounted) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _myLocation == null) return;
+        _centerMapOnWorker(_myLocation!, zoom: _mapInitialZoom);
+      });
       _startLocationStream();
     } catch (_) {
       if (!mounted) return;
@@ -690,7 +734,7 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
                     mapController: _mapController,
                     options: MapOptions(
                       initialCenter: _myLocation!,
-                      initialZoom: 13,
+                      initialZoom: _mapInitialZoom,
                     ),
                     children: [
                       TileLayer(
@@ -715,9 +759,9 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
                             width: 40,
                             height: 40,
                             child: const Icon(
-                              Icons.navigation,
+                              Icons.location_on,
                               color: Colors.blue,
-                              size: 36,
+                              size: 40,
                             ),
                           ),
                           if (_road.isNotEmpty)
@@ -757,6 +801,33 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
               orderNum: widget.order.bookingNumber ?? '-',
             ),
           ),
+          if (_distanceLabel != null)
+            SafeArea(
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: Padding(
+                  padding: EdgeInsetsDirectional.only(top: 56.h),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: const Color(0xffECFDF5),
+                      borderRadius: BorderRadius.circular(20.r),
+                      border: Border.all(color: const Color(0xffA7F3D0)),
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 14.w,
+                        vertical: 8.h,
+                      ),
+                      child: AppText.labelMedium(
+                        _distanceLabel!,
+                        color: const Color(0xff0F766E),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
           Align(
             alignment: Alignment.bottomCenter,
             child: DraggableScrollableSheet(
