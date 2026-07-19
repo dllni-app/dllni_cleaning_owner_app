@@ -140,6 +140,8 @@ class WorkerDispatchEligibilityModel {
   String get effectiveReasonCode =>
       (reasonCode ?? status ?? 'not_eligible').trim().toLowerCase();
 
+  bool get isAdminSuspended => effectiveReasonCode == 'worker_suspended';
+
   String get userMessageAr {
     switch (effectiveReasonCode) {
       case 'eligible':
@@ -147,7 +149,7 @@ class WorkerDispatchEligibilityModel {
       case 'worker_inactive':
         return 'حسابك غير مفعل حالياً. فعّل الحساب لاستقبال الطلبات الجديدة.';
       case 'worker_suspended':
-        return 'حسابك موقوف مؤقتاً. يرجى التواصل مع الدعم لمعرفة التفاصيل.';
+        return 'تم إيقاف حسابك من قبل الإدارة، لذلك لن تستقبل طلبات جديدة حتى تلغي الإدارة الإيقاف.';
       case 'trust_score_too_low':
         return 'درجة الثقة أقل من الحد المطلوب لاستقبال الطلبات الجديدة.';
       case 'deposit_required_before_start':

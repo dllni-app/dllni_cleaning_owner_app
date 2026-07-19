@@ -63,7 +63,7 @@ class TodayOverviewCard extends StatelessWidget {
                               textBaseline: TextBaseline.alphabetic,
                               children: [
                                 AppText.displaySmall(
-                                  state.homePageUsecase?.totalEarnings.formatMoney(currency: '')??'0 ل.س',
+                                  state.homePageUsecase?.totalEarnings.formatMoney(currency: '') ?? '0 ل.س',
                                   color: context.onPrimary,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -119,6 +119,9 @@ class TodayOverviewCard extends StatelessWidget {
                 return const SizedBox.shrink();
               }
 
+              final isAdminSuspended =
+                  model?.dispatchEligibility?.isAdminSuspended == true;
+
               return Container(
                 width: double.infinity,
                 margin: const EdgeInsetsDirectional.only(top: 12),
@@ -133,14 +136,21 @@ class TodayOverviewCard extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.info_outline_rounded, color: context.error),
+                    Icon(
+                      isAdminSuspended
+                          ? Icons.block_rounded
+                          : Icons.info_outline_rounded,
+                      color: context.error,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           AppText.labelLarge(
-                            'ملاحظة على استقبال الطلبات',
+                            isAdminSuspended
+                                ? 'تم إيقاف حسابك من قبل الإدارة'
+                                : 'ملاحظة على استقبال الطلبات',
                             color: context.error,
                             fontWeight: FontWeight.w700,
                             textAlign: TextAlign.start,
