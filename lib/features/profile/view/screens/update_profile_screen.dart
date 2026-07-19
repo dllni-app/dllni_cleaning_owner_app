@@ -1,5 +1,6 @@
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
+import 'package:dllni_cleaninig_owner_app/core/extentions.dart';
 import 'package:dllni_cleaninig_owner_app/core/widgets/app_pickers.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/data/models/fetch_worker_profile_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/fetch_worker_profile_usecase_use_case.dart';
@@ -67,9 +68,25 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     _aboutMeController = TextEditingController(text: widget.params.bio ?? '');
     _cityMeController = TextEditingController(text: widget.params.city ?? '');
     phoneNumberController = TextEditingController(
-      text: widget.params.phone ?? '',
+      text: _phoneWithCountryCode(widget.params.phone),
     );
     _preferredWorkType = widget.params.preferredWorkType ?? 'both';
+  }
+
+  String _phoneWithCountryCode(String? phone) {
+    final raw = phone?.trim() ?? '';
+    if (raw.isEmpty) return '';
+
+    var digits = raw.replaceAll(RegExp(r'\D'), '');
+    if (digits.startsWith('0')) {
+      digits = digits.substring(1);
+    }
+    if (!digits.startsWith('963')) {
+      digits = '963$digits';
+    }
+
+    final formatted = digits.formatAsPhoneNumber;
+    return formatted == '-' ? '' : formatted;
   }
 
   @override
