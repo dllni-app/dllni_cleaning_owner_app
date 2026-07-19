@@ -230,8 +230,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                           i++) ...[
                                         Dismissible(
                                           key: ValueKey(
-                                            groups[section]![i].id ??
-                                                '${section}_$i',
+                                            '${section}_${i}_${groups[section]![i].id ?? ''}',
                                           ),
                                           direction:
                                               DismissDirection.endToStart,
