@@ -63,7 +63,7 @@ class TodayOverviewCard extends StatelessWidget {
                               textBaseline: TextBaseline.alphabetic,
                               children: [
                                 AppText.displaySmall(
-                                  state.homePageUsecase?.totalEarnings.formatMoney(currency: '')??'0 ل.س',
+                                  state.homePageUsecase?.totalEarnings.formatMoney(currency: '') ?? '0 ل.س',
                                   color: context.onPrimary,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -111,6 +111,10 @@ class TodayOverviewCard extends StatelessWidget {
                     current.homePageUsecase?.blocksNewRequests ||
                 previous.homePageUsecase?.eligibilityMessageAr !=
                     current.homePageUsecase?.eligibilityMessageAr ||
+                previous.homePageUsecase?.dispatchEligibility?.effectiveReasonCode !=
+                    current.homePageUsecase?.dispatchEligibility?.effectiveReasonCode ||
+                previous.homePageUsecase?.commissionCapacityEligibility?.effectiveReasonCode !=
+                    current.homePageUsecase?.commissionCapacityEligibility?.effectiveReasonCode ||
                 previous.homePageUsecaseStatus != current.homePageUsecaseStatus,
             builder: (context, state) {
               final model = state.homePageUsecase;
@@ -118,6 +122,12 @@ class TodayOverviewCard extends StatelessWidget {
                   model?.blocksNewRequests != true) {
                 return const SizedBox.shrink();
               }
+
+              final dispatchEligibility = model!.dispatchEligibility;
+              final title = dispatchEligibility?.blocksNewRequests == true
+                  ? dispatchEligibility!.userTitleAr
+                  : model.commissionCapacityEligibility?.userTitleAr ??
+                        'ملاحظة على استقبال الطلبات';
 
               return Container(
                 width: double.infinity,
@@ -140,14 +150,14 @@ class TodayOverviewCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           AppText.labelLarge(
-                            'ملاحظة على استقبال الطلبات',
+                            title,
                             color: context.error,
                             fontWeight: FontWeight.w700,
                             textAlign: TextAlign.start,
                           ),
                           const SizedBox(height: 4),
                           AppText.bodySmall(
-                            model!.eligibilityMessageAr,
+                            model.eligibilityMessageAr,
                             color: const Color(0xff374151),
                             textAlign: TextAlign.start,
                           ),
