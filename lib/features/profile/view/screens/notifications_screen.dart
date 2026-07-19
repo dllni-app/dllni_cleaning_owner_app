@@ -29,7 +29,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         FetchNotificationsEvent(
           params: FetchNotificationsParams(),
           isReload: true,
-          markAllReadOnSuccess: true,
         ),
       );
   }
@@ -76,12 +75,36 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       FetchNotificationsEvent(
         params: FetchNotificationsParams(),
         isReload: true,
-        markAllReadOnSuccess: true,
       ),
     );
     await profileBloc.stream.firstWhere(
       (state) => state.notificationsStatus != BlocStatus.loading,
     );
+  }
+
+  Future<void> _confirmDeleteAll(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('حذف الكل'),
+          content: const Text('هل أنت متأكد من حذف جميع الإشعارات؟'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('إلغاء'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('حذف'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed == true) {
+      profileBloc.add(DeleteAllNotificationsEvent());
+    }
   }
 
   @override
@@ -121,7 +144,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         body: SafeArea(
           child: Column(
             children: [
-              const _NotificationsAppBar(),
+              BlocBuilder<ProfileBloc, ProfileState>(
+                bloc: profileBloc,
+                buildWhen: (previous, current) =>
+                    previous.notifications.isEmpty !=
+                    current.notifications.isEmpty,
+                builder: (context, state) {
+                  return _NotificationsAppBar(
+                    showDeleteAll: state.notifications.isNotEmpty,
+                    onDeleteAll: () => _confirmDeleteAll(context),
+                  );
+                },
+              ),
               Expanded(
                 child: BlocBuilder<ProfileBloc, ProfileState>(
                   bloc: profileBloc,
@@ -160,7 +194,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                 perPage: pagination.perPage,
                               ),
                               loadMore: true,
-                              markAllReadOnSuccess: true,
                             ),
                           );
                           return false;
@@ -195,38 +228,71 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                       for (var i = 0;
                                           i < groups[section]!.length;
                                           i++) ...[
-                                        Material(
-                                          color: Colors.transparent,
-                                          child: InkWell(
-                                            onTap: () {
-                                              final item =
-                                                  groups[section]![i];
-                                              final id = item.id;
-                                              if (id != null &&
-                                                  id.isNotEmpty &&
-                                                  item.isRead != true) {
-                                                profileBloc.add(
-                                                  MarkNotificationReadEvent(
-                                                    id: id,
-                                                  ),
-                                                );
-                                              }
-                                              tryNavigateFromNotificationPayload(
-                                                context,
-                                                module: item.module,
-                                                canonicalType:
-                                                    item.canonicalType,
-                                                type: item.type,
-                                                data: item.data,
+                                        Dismissible(
+                                          key: ValueKey(
+                                            groups[section]![i].id ??
+                                                '${section}_$i',
+                                          ),
+                                          direction:
+                                              DismissDirection.endToStart,
+                                          background: Container(
+                                            alignment: AlignmentDirectional
+                                                .centerEnd,
+                                            color: const Color(0xffEF4444),
+                                            padding:
+                                                const EdgeInsetsDirectional
+                                                    .only(end: 20),
+                                            child: const Icon(
+                                              Icons.delete_outline,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          onDismissed: (_) {
+                                            final id =
+                                                groups[section]![i].id;
+                                            if (id != null &&
+                                                id.isNotEmpty) {
+                                              profileBloc.add(
+                                                DeleteNotificationEvent(
+                                                  id: id,
+                                                ),
                                               );
-                                            },
-                                            child: NotificationFeedItem(
-                                              notification:
-                                                  groups[section]![i],
+                                            }
+                                          },
+                                          child: Material(
+                                            color: Colors.transparent,
+                                            child: InkWell(
+                                              onTap: () {
+                                                final item =
+                                                    groups[section]![i];
+                                                final id = item.id;
+                                                if (id != null &&
+                                                    id.isNotEmpty &&
+                                                    item.isRead != true) {
+                                                  profileBloc.add(
+                                                    MarkNotificationReadEvent(
+                                                      id: id,
+                                                    ),
+                                                  );
+                                                }
+                                                tryNavigateFromNotificationPayload(
+                                                  context,
+                                                  module: item.module,
+                                                  canonicalType:
+                                                      item.canonicalType,
+                                                  type: item.type,
+                                                  data: item.data,
+                                                );
+                                              },
+                                              child: NotificationFeedItem(
+                                                notification:
+                                                    groups[section]![i],
+                                              ),
                                             ),
                                           ),
                                         ),
-                                        if (i != groups[section]!.length - 1)
+                                        if (i !=
+                                            groups[section]!.length - 1)
                                           const Divider(
                                             height: 1,
                                             thickness: 1,
@@ -267,7 +333,13 @@ class NotificationsScreenParams {
 }
 
 class _NotificationsAppBar extends StatelessWidget {
-  const _NotificationsAppBar();
+  final bool showDeleteAll;
+  final VoidCallback? onDeleteAll;
+
+  const _NotificationsAppBar({
+    this.showDeleteAll = false,
+    this.onDeleteAll,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -317,6 +389,17 @@ class _NotificationsAppBar extends StatelessWidget {
               textAlign: TextAlign.start,
             ),
           ),
+          if (showDeleteAll)
+            TextButton(
+              onPressed: onDeleteAll,
+              child: const Text(
+                'حذف الكل',
+                style: TextStyle(
+                  color: Color(0xffEF4444),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
         ],
       ),
     );

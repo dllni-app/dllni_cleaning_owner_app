@@ -16,6 +16,7 @@ import '../../data/models/update_worker_profile_model.dart';
 import '../usecases/fetch_notifications_use_case.dart';
 import '../usecases/fetch_deposit_transactions_use_case.dart';
 import '../usecases/mark_notification_read_use_case.dart';
+import '../usecases/delete_notification_use_case.dart';
 import '../../data/models/fetch_deposit_account_usecase_model.dart';
 import '../../data/models/fetch_deposit_transactions_usecase_model.dart';
 import '../../data/models/notification_api_models.dart';
@@ -71,6 +72,12 @@ abstract class ProfileRepo {
   DataResponse<ActionResultModel> markNotificationRead(
     MarkNotificationReadParams params,
   );
+
+  DataResponse<ActionResultModel> deleteNotification(
+    DeleteNotificationParams params,
+  );
+
+  DataResponse<ActionResultModel> deleteAllNotifications(NoParams params);
 
   DataResponse<FetchWorkerReviewsModel> fetchWorkerReviews(
     FetchWorkerReviewsParams params,

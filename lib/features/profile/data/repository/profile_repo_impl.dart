@@ -21,6 +21,7 @@ import '../models/update_worker_profile_model.dart';
 import '../../domain/usecases/fetch_notifications_use_case.dart';
 import '../../domain/usecases/fetch_deposit_transactions_use_case.dart';
 import '../../domain/usecases/mark_notification_read_use_case.dart';
+import '../../domain/usecases/delete_notification_use_case.dart';
 import '../models/fetch_deposit_account_usecase_model.dart';
 import '../models/fetch_deposit_transactions_usecase_model.dart';
 import '../models/notification_api_models.dart';
@@ -139,6 +140,22 @@ class ProfileRepoImpl with HandlingException implements ProfileRepo {
   ) {
     return wrapHandlingException(
       tryCall: () => profileRemoteDataSource.markNotificationRead(params),
+    );
+  }
+
+  @override
+  DataResponse<ActionResultModel> deleteNotification(
+    DeleteNotificationParams params,
+  ) {
+    return wrapHandlingException(
+      tryCall: () => profileRemoteDataSource.deleteNotification(params),
+    );
+  }
+
+  @override
+  DataResponse<ActionResultModel> deleteAllNotifications(NoParams params) {
+    return wrapHandlingException(
+      tryCall: () => profileRemoteDataSource.deleteAllNotifications(params),
     );
   }
 

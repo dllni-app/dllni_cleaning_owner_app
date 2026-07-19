@@ -100,6 +100,10 @@ import '../../features/profile/domain/usecases/mark_all_notifications_read_use_c
     as _i10;
 import '../../features/profile/domain/usecases/mark_notification_read_use_case.dart'
     as _i338;
+import '../../features/profile/domain/usecases/delete_notification_use_case.dart'
+    as _i441;
+import '../../features/profile/domain/usecases/delete_all_notifications_use_case.dart'
+    as _i476;
 import '../../features/profile/domain/usecases/update_dispute_use_case.dart'
     as _i973;
 import '../../features/profile/domain/usecases/update_worker_profile_use_case.dart'
@@ -170,6 +174,15 @@ _i174.GetIt $initGetIt(
   gh.lazySingleton<_i338.MarkNotificationReadUseCase>(
     () =>
         _i338.MarkNotificationReadUseCase(profileRepo: gh<_i275.ProfileRepo>()),
+  );
+  gh.lazySingleton<_i441.DeleteNotificationUseCase>(
+    () =>
+        _i441.DeleteNotificationUseCase(profileRepo: gh<_i275.ProfileRepo>()),
+  );
+  gh.lazySingleton<_i476.DeleteAllNotificationsUseCase>(
+    () => _i476.DeleteAllNotificationsUseCase(
+      profileRepo: gh<_i275.ProfileRepo>(),
+    ),
   );
   gh.lazySingleton<_i777.AuthRemoteDataSource>(
     () => _i777.AuthRemoteDataSource(dioNetwork: gh<_i497.DioNetwork>()),
@@ -294,6 +307,8 @@ _i174.GetIt $initGetIt(
       gh<_i438.FetchNotificationsUseCase>(),
       gh<_i10.MarkAllNotificationsReadUseCase>(),
       gh<_i338.MarkNotificationReadUseCase>(),
+      gh<_i441.DeleteNotificationUseCase>(),
+      gh<_i476.DeleteAllNotificationsUseCase>(),
       gh<_i959.FetchWorkerReviewsUseCase>(),
       gh<_i906.FetchCleaningNeighborhoodsUseCase>(),
       gh<_i134.FetchWorkerWorkingHoursUseCase>(),

@@ -25,6 +25,8 @@ import '../../../domain/usecases/fetch_deposit_transactions_use_case.dart';
 import '../../../domain/usecases/fetch_notifications_use_case.dart';
 import '../../../domain/usecases/mark_all_notifications_read_use_case.dart';
 import '../../../domain/usecases/mark_notification_read_use_case.dart';
+import '../../../domain/usecases/delete_notification_use_case.dart';
+import '../../../domain/usecases/delete_all_notifications_use_case.dart';
 import '../../../domain/usecases/fetch_worker_reviews_use_case.dart';
 import '../../../data/models/fetch_worker_reviews_model.dart';
 import '../../../domain/usecases/fetch_cleaning_neighborhoods_use_case.dart';
@@ -50,6 +52,8 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   final FetchNotificationsUseCase fetchNotificationsUseCase;
   final MarkAllNotificationsReadUseCase markAllNotificationsReadUseCase;
   final MarkNotificationReadUseCase markNotificationReadUseCase;
+  final DeleteNotificationUseCase deleteNotificationUseCase;
+  final DeleteAllNotificationsUseCase deleteAllNotificationsUseCase;
   final FetchWorkerReviewsUseCase fetchWorkerReviewsUseCase;
   final FetchCleaningNeighborhoodsUseCase fetchCleaningNeighborhoodsUseCase;
   final FetchWorkerWorkingHoursUseCase fetchWorkerWorkingHoursUseCase;
@@ -68,6 +72,8 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     this.fetchNotificationsUseCase,
     this.markAllNotificationsReadUseCase,
     this.markNotificationReadUseCase,
+    this.deleteNotificationUseCase,
+    this.deleteAllNotificationsUseCase,
     this.fetchWorkerReviewsUseCase,
     this.fetchCleaningNeighborhoodsUseCase,
     this.fetchWorkerWorkingHoursUseCase,
@@ -94,6 +100,8 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     );
     on<MarkAllNotificationsReadEvent>(_markAllNotificationsRead);
     on<MarkNotificationReadEvent>(_markNotificationRead);
+    on<DeleteNotificationEvent>(_deleteNotification);
+    on<DeleteAllNotificationsEvent>(_deleteAllNotifications);
     on<FetchWorkerReviewsEvent>(
       _fetchWorkerReviews,
       transformer: droppableProMax(),
@@ -548,6 +556,10 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     final id = event.id.trim();
     if (id.isEmpty) return;
 
+    final wasUnread = state.notifications.any(
+      (item) => item.id == id && item.isRead != true,
+    );
+
     final response = await markNotificationReadUseCase(
       MarkNotificationReadParams(notificationId: id),
     );
@@ -561,12 +573,90 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
           }
           return item;
         }).toList();
+        final currentUnread = state.unreadNotification ?? 0;
         emit(
           state.copyWith(
             notificationsPagination: state.notificationsPagination.copyWith(
               list: updated,
             ),
+            unreadNotification: wasUnread && currentUnread > 0
+                ? currentUnread - 1
+                : currentUnread,
             notificationActionError: null,
+          ),
+        );
+      },
+    );
+  }
+
+  FutureOr<void> _deleteNotification(
+    DeleteNotificationEvent event,
+    Emitter<ProfileState> emit,
+  ) async {
+    final id = event.id.trim();
+    if (id.isEmpty) return;
+
+    FetchNotificationsModelDataItem? target;
+    for (final item in state.notifications) {
+      if (item.id == id) {
+        target = item;
+        break;
+      }
+    }
+    final wasUnread = target != null && target.isRead != true;
+
+    final response = await deleteNotificationUseCase(
+      DeleteNotificationParams(notificationId: id),
+    );
+    await response.fold(
+      (failure) async {
+        emit(state.copyWith(notificationActionError: failure.message));
+        add(
+          FetchNotificationsEvent(
+            params: FetchNotificationsParams(),
+            isReload: true,
+          ),
+        );
+      },
+      (_) async {
+        final updated = state.notifications
+            .where((item) => item.id != id)
+            .toList();
+        final currentUnread = state.unreadNotification ?? 0;
+        emit(
+          state.copyWith(
+            notificationsPagination: state.notificationsPagination.copyWith(
+              list: updated,
+              total: updated.length,
+            ),
+            unreadNotification: wasUnread && currentUnread > 0
+                ? currentUnread - 1
+                : currentUnread,
+            clearNotificationActionError: true,
+          ),
+        );
+      },
+    );
+  }
+
+  FutureOr<void> _deleteAllNotifications(
+    DeleteAllNotificationsEvent event,
+    Emitter<ProfileState> emit,
+  ) async {
+    final response = await deleteAllNotificationsUseCase(NoParams());
+    await response.fold(
+      (failure) async {
+        emit(state.copyWith(notificationActionError: failure.message));
+      },
+      (_) async {
+        emit(
+          state.copyWith(
+            notificationsPagination: state.notificationsPagination.copyWith(
+              list: const <FetchNotificationsModelDataItem>[],
+              total: 0,
+            ),
+            unreadNotification: 0,
+            clearNotificationActionError: true,
           ),
         );
       },

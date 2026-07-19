@@ -94,6 +94,14 @@ class MarkNotificationReadEvent extends ProfileEvent {
   MarkNotificationReadEvent({required this.id});
 }
 
+class DeleteNotificationEvent extends ProfileEvent {
+  final String id;
+
+  DeleteNotificationEvent({required this.id});
+}
+
+class DeleteAllNotificationsEvent extends ProfileEvent {}
+
 class FetchWorkerReviewsEvent extends ProfileEvent with EventWithReload {
   final FetchWorkerReviewsParams params;
   final bool loadMore;
