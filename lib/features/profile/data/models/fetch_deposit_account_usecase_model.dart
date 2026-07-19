@@ -118,41 +118,67 @@ class FetchDepositAccountUsecaseModel {
 
     return FetchDepositAccountUsecaseModel(
       workerId: _toInt(_pick(json, const <String>['workerId', 'worker_id'])),
-      depositBalance: parsedDeposit == null || parsedDeposit < 0 ? 0 : parsedDeposit,
+      depositBalance: parsedDeposit == null || parsedDeposit < 0
+          ? 0
+          : parsedDeposit,
       debtBalance: parsedDebt == null || parsedDebt < 0 ? 0 : parsedDebt,
-      depositedTotal: _toNum(_pick(json, const <String>['depositedTotal', 'deposited_total'])),
-      withdrawnTotal: _toNum(_pick(json, const <String>['withdrawnTotal', 'withdrawn_total'])),
-      allowedDebtLimit: _toNum(_pick(json, const <String>[
-        'allowedDebtLimit',
-        'allowed_debt_limit',
-        'maxNegativeBalance',
-        'max_negative_balance',
-      ])),
-      remainingDebtCapacity: _toNum(_pick(json, const <String>[
-        'remainingDebtCapacity',
-        'remaining_debt_capacity',
-      ])),
-      activeReservedCommission: _toNum(_pick(json, const <String>[
-        'activeReservedCommission',
-        'active_reserved_commission',
-      ])),
-      availableCommissionCapacity: _toNum(_pick(json, const <String>[
-        'availableCommissionCapacity',
-        'available_commission_capacity',
-      ])),
-      manualDebtAmount: _toNum(_pick(json, const <String>['manualDebtAmount', 'manual_debt_amount'])),
-      adminCommissionDebtAmount: _toNum(_pick(json, const <String>[
-        'adminCommissionDebtAmount',
-        'admin_commission_debt_amount',
-      ])),
+      depositedTotal: _toNum(
+        _pick(json, const <String>['depositedTotal', 'deposited_total']),
+      ),
+      withdrawnTotal: _toNum(
+        _pick(json, const <String>['withdrawnTotal', 'withdrawn_total']),
+      ),
+      allowedDebtLimit: _toNum(
+        _pick(json, const <String>[
+          'allowedDebtLimit',
+          'allowed_debt_limit',
+          'maxNegativeBalance',
+          'max_negative_balance',
+        ]),
+      ),
+      remainingDebtCapacity: _toNum(
+        _pick(json, const <String>[
+          'remainingDebtCapacity',
+          'remaining_debt_capacity',
+        ]),
+      ),
+      activeReservedCommission: _toNum(
+        _pick(json, const <String>[
+          'activeReservedCommission',
+          'active_reserved_commission',
+        ]),
+      ),
+      availableCommissionCapacity: _toNum(
+        _pick(json, const <String>[
+          'availableCommissionCapacity',
+          'available_commission_capacity',
+        ]),
+      ),
+      manualDebtAmount: _toNum(
+        _pick(json, const <String>['manualDebtAmount', 'manual_debt_amount']),
+      ),
+      adminCommissionDebtAmount: _toNum(
+        _pick(json, const <String>[
+          'adminCommissionDebtAmount',
+          'admin_commission_debt_amount',
+        ]),
+      ),
       status: _toStringValue(_pick(json, const <String>['status'])),
-      exceedanceAmount: _toNum(_pick(json, const <String>['exceedanceAmount', 'exceedance_amount'])),
-      isEligibleForNewRequests: _toBool(_pick(json, const <String>[
-        'isEligibleForNewRequests',
-        'is_eligible_for_new_requests',
-      ])),
-      createdAt: _toStringValue(_pick(json, const <String>['createdAt', 'created_at'])),
-      updatedAt: _toStringValue(_pick(json, const <String>['updatedAt', 'updated_at'])),
+      exceedanceAmount: _toNum(
+        _pick(json, const <String>['exceedanceAmount', 'exceedance_amount']),
+      ),
+      isEligibleForNewRequests: _toBool(
+        _pick(json, const <String>[
+          'isEligibleForNewRequests',
+          'is_eligible_for_new_requests',
+        ]),
+      ),
+      createdAt: _toStringValue(
+        _pick(json, const <String>['createdAt', 'created_at']),
+      ),
+      updatedAt: _toStringValue(
+        _pick(json, const <String>['updatedAt', 'updated_at']),
+      ),
     );
   }
 
