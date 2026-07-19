@@ -15,7 +15,7 @@ class DedicatedOrderHelper {
           ? json.decode(rawProfile)
           : rawProfile;
       final profile = fetchWorkerProfileUsecaseModelFromJson(decodedProfile);
-      return profile.data?.userId ?? profile.data?.user?.id;
+      return profile.data?.id ?? profile.data?.user?.id;
     } catch (_) {
       return null;
     }
