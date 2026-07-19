@@ -627,7 +627,6 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
           state.copyWith(
             notificationsPagination: state.notificationsPagination.copyWith(
               list: updated,
-              total: updated.length,
             ),
             unreadNotification: wasUnread && currentUnread > 0
                 ? currentUnread - 1
@@ -653,7 +652,6 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
           state.copyWith(
             notificationsPagination: state.notificationsPagination.copyWith(
               list: const <FetchNotificationsModelDataItem>[],
-              total: 0,
             ),
             unreadNotification: 0,
             clearNotificationActionError: true,
