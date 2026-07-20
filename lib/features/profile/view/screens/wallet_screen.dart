@@ -55,40 +55,42 @@ class _WalletScreenState extends State<WalletScreen> {
             params: FetchHomePageUsecaseParams(),
           ),
         ),
-      child: Scaffold(
-        backgroundColor: const Color(0xffF3F4F6),
-        body: SafeArea(
-          child: Column(
-            children: [
-              _appBar(),
-              Expanded(
-                child: RefreshIndicator(
-                  onRefresh: _refresh,
-                  child: ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: EdgeInsetsDirectional.fromSTEB(
-                      20.w,
-                      18.h,
-                      20.w,
-                      24.h,
+      child: Builder(
+        builder: (providerContext) => Scaffold(
+          backgroundColor: const Color(0xffF3F4F6),
+          body: SafeArea(
+            child: Column(
+              children: [
+                _appBar(),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: () => _refresh(providerContext),
+                    child: ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: EdgeInsetsDirectional.fromSTEB(
+                        20.w,
+                        18.h,
+                        20.w,
+                        24.h,
+                      ),
+                      children: [
+                        _financeSummary(),
+                        16.verticalSpace,
+                        _depositSection(),
+                      ],
                     ),
-                    children: [
-                      _financeSummary(),
-                      16.verticalSpace,
-                      _depositSection(),
-                    ],
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Future<void> _refresh() async {
-    context.read<HomeBloc>().add(
+  Future<void> _refresh(BuildContext providerContext) async {
+    providerContext.read<HomeBloc>().add(
       FetchHomePageUsecaseEvent(params: FetchHomePageUsecaseParams()),
     );
     context.read<ProfileBloc>().add(FetchDepositAccountEvent());
