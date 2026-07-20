@@ -3,70 +3,74 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('FetchDepositAccountUsecaseModel parsing', () {
-    test('parses camelCase payload', () {
+    test('parses the separate deposit and debt balances', () {
       final model = fetchDepositAccountUsecaseModelFromJson(<String, dynamic>{
         'workerId': 42,
-        'currentBalance': 200.5,
+        'depositBalance': 200.5,
+        'debtBalance': 0,
         'depositedTotal': 381.0,
         'withdrawnTotal': 180.5,
-        'minimumRequired': 381.0,
-        'status': 'insufficient_balance',
-        'exceedanceAmount': 100.5,
-        'debtAmount': 148.5,
-        'isEligibleForNewRequests': false,
+        'allowedDebtLimit': 50000,
+        'remainingDebtCapacity': 50000,
+        'activeReservedCommission': 5000,
+        'availableCommissionCapacity': 45200.5,
+        'manualDebtAmount': 0,
+        'adminCommissionDebtAmount': 0,
+        'status': 'active',
+        'exceedanceAmount': null,
+        'isEligibleForNewRequests': true,
         'createdAt': '2026-05-20T10:30:00Z',
         'updatedAt': '2026-05-30T14:22:00Z',
       });
 
       expect(model.workerId, 42);
+      expect(model.depositBalance, 200.5);
       expect(model.currentBalance, 200.5);
+      expect(model.debtBalance, 0);
+      expect(model.debtAmount, 0);
       expect(model.depositedTotal, 381);
       expect(model.withdrawnTotal, 180.5);
-      expect(model.minimumRequired, 381);
-      expect(model.status, 'insufficient_balance');
-      expect(model.exceedanceAmount, 100.5);
-      expect(model.debtAmount, 148.5);
-      expect(model.isEligibleForNewRequests, isFalse);
-      expect(model.createdAt, '2026-05-20T10:30:00Z');
-      expect(model.updatedAt, '2026-05-30T14:22:00Z');
+      expect(model.allowedDebtLimit, 50000);
+      expect(model.remainingDebtCapacity, 50000);
+      expect(model.activeReservedCommission, 5000);
+      expect(model.availableCommissionCapacity, 45200.5);
+      expect(model.minimumRequired, 0);
+      expect(model.isEligibleForNewRequests, isTrue);
     });
 
-    test('parses snake_case and coercible values', () {
+    test('parses snake_case and legacy compatibility aliases', () {
       final model = fetchDepositAccountUsecaseModelFromJson(<String, dynamic>{
         'worker_id': '42',
-        'current_balance': '200.50',
+        'current_balance': '0',
+        'debt_amount': '148.50',
         'deposited_total': 381,
         'withdrawn_total': '180.50',
-        'minimum_required': '381.00',
+        'max_negative_balance': '500.00',
+        'remaining_debt_capacity': '351.50',
+        'active_reserved_commission': '10',
+        'available_commission_capacity': '341.50',
         'status': 'active',
-        'exceedance_amount': null,
-        'debt_amount': '148.50',
         'is_eligible_for_new_requests': '1',
-        'created_at': '2026-05-20T10:30:00Z',
-        'updated_at': '2026-05-30T14:22:00Z',
       });
 
       expect(model.workerId, 42);
-      expect(model.currentBalance, 200.5);
-      expect(model.depositedTotal, 381);
-      expect(model.withdrawnTotal, 180.5);
-      expect(model.minimumRequired, 381);
-      expect(model.status, 'active');
-      expect(model.exceedanceAmount, isNull);
-      expect(model.debtAmount, 148.5);
+      expect(model.depositBalance, 0);
+      expect(model.debtBalance, 148.5);
+      expect(model.allowedDebtLimit, 500);
+      expect(model.remainingDebtCapacity, 351.5);
+      expect(model.activeReservedCommission, 10);
+      expect(model.availableCommissionCapacity, 341.5);
       expect(model.isEligibleForNewRequests, isTrue);
-      expect(model.createdAt, '2026-05-20T10:30:00Z');
-      expect(model.updatedAt, '2026-05-30T14:22:00Z');
     });
 
-    test('derives debt amount from existing balance fields when API does not send it', () {
+    test('clamps negative balances returned by an old server', () {
       final model = fetchDepositAccountUsecaseModelFromJson(<String, dynamic>{
-        'currentBalance': 851500,
-        'depositedTotal': 1000000,
-        'withdrawnTotal': 0,
+        'currentBalance': -100,
+        'debtAmount': -50,
       });
 
-      expect(model.debtAmount, 148500);
+      expect(model.depositBalance, 0);
+      expect(model.debtBalance, 0);
     });
   });
 }

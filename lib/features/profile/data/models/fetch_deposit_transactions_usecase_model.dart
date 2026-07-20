@@ -71,20 +71,21 @@ class FetchDepositTransactionsUsecaseModel {
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'data': data?.map((item) => item.toJson()).toList(growable: false),
-      'meta': meta?.toJson(),
-    };
-  }
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'data': data?.map((item) => item.toJson()).toList(growable: false),
+    'meta': meta?.toJson(),
+  };
 }
 
 class FetchDepositTransactionsUsecaseModelDataItem {
   final int? id;
   final String? type;
   final num? amount;
-  final num? balanceBefore;
-  final num? balanceAfter;
+  final num? debtSettledAmount;
+  final num? depositBalanceBefore;
+  final num? depositBalanceAfter;
+  final num? debtBalanceBefore;
+  final num? debtBalanceAfter;
   final String? reference;
   final String? notes;
   final int? cleaningBookingId;
@@ -95,14 +96,20 @@ class FetchDepositTransactionsUsecaseModelDataItem {
     this.id,
     this.type,
     this.amount,
-    this.balanceBefore,
-    this.balanceAfter,
+    this.debtSettledAmount,
+    this.depositBalanceBefore,
+    this.depositBalanceAfter,
+    this.debtBalanceBefore,
+    this.debtBalanceAfter,
     this.reference,
     this.notes,
     this.cleaningBookingId,
     this.createdAt,
     this.updatedAt,
   });
+
+  num? get balanceBefore => depositBalanceBefore;
+  num? get balanceAfter => depositBalanceAfter;
 
   factory FetchDepositTransactionsUsecaseModelDataItem.fromJson(
     Map<String, dynamic> json,
@@ -111,11 +118,30 @@ class FetchDepositTransactionsUsecaseModelDataItem {
       id: _toInt(_pick(json, const <String>['id'])),
       type: _toStringValue(_pick(json, const <String>['type'])),
       amount: _toNum(_pick(json, const <String>['amount'])),
-      balanceBefore: _toNum(
-        _pick(json, const <String>['balanceBefore', 'balance_before']),
+      debtSettledAmount: _toNum(
+        _pick(json, const <String>['debtSettledAmount', 'debt_settled_amount']),
       ),
-      balanceAfter: _toNum(
-        _pick(json, const <String>['balanceAfter', 'balance_after']),
+      depositBalanceBefore: _toNum(
+        _pick(json, const <String>[
+          'depositBalanceBefore',
+          'deposit_balance_before',
+          'balanceBefore',
+          'balance_before',
+        ]),
+      ),
+      depositBalanceAfter: _toNum(
+        _pick(json, const <String>[
+          'depositBalanceAfter',
+          'deposit_balance_after',
+          'balanceAfter',
+          'balance_after',
+        ]),
+      ),
+      debtBalanceBefore: _toNum(
+        _pick(json, const <String>['debtBalanceBefore', 'debt_balance_before']),
+      ),
+      debtBalanceAfter: _toNum(
+        _pick(json, const <String>['debtBalanceAfter', 'debt_balance_after']),
       ),
       reference: _toStringValue(_pick(json, const <String>['reference'])),
       notes: _toStringValue(_pick(json, const <String>['notes'])),
@@ -131,20 +157,23 @@ class FetchDepositTransactionsUsecaseModelDataItem {
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'id': id,
-      'type': type,
-      'amount': amount,
-      'balanceBefore': balanceBefore,
-      'balanceAfter': balanceAfter,
-      'reference': reference,
-      'notes': notes,
-      'cleaningBookingId': cleaningBookingId,
-      'createdAt': createdAt,
-      'updatedAt': updatedAt,
-    };
-  }
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'id': id,
+    'type': type,
+    'amount': amount,
+    'debtSettledAmount': debtSettledAmount,
+    'depositBalanceBefore': depositBalanceBefore,
+    'depositBalanceAfter': depositBalanceAfter,
+    'debtBalanceBefore': debtBalanceBefore,
+    'debtBalanceAfter': debtBalanceAfter,
+    'balanceBefore': balanceBefore,
+    'balanceAfter': balanceAfter,
+    'reference': reference,
+    'notes': notes,
+    'cleaningBookingId': cleaningBookingId,
+    'createdAt': createdAt,
+    'updatedAt': updatedAt,
+  };
 }
 
 class FetchDepositTransactionsUsecaseModelMeta {
@@ -173,12 +202,10 @@ class FetchDepositTransactionsUsecaseModelMeta {
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'currentPage': currentPage,
-      'lastPage': lastPage,
-      'perPage': perPage,
-      'total': total,
-    };
-  }
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'currentPage': currentPage,
+    'lastPage': lastPage,
+    'perPage': perPage,
+    'total': total,
+  };
 }

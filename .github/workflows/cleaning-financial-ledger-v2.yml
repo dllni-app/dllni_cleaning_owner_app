@@ -1,0 +1,46 @@
+name: Cleaning Financial Ledger V2
+
+on:
+  pull_request:
+    paths:
+      - 'lib/features/profile/data/models/fetch_deposit_account_usecase_model.dart'
+      - 'lib/features/profile/data/models/fetch_deposit_transactions_usecase_model.dart'
+      - 'lib/features/profile/view/screens/wallet_screen.dart'
+      - 'test/features/profile/data/models/fetch_deposit_account_usecase_model_test.dart'
+      - '.github/workflows/cleaning-financial-ledger-v2.yml'
+
+jobs:
+  wallet:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Check financial wallet formatting
+        run: |
+          dart format --output=none --set-exit-if-changed \
+            lib/features/profile/data/models/fetch_deposit_account_usecase_model.dart \
+            lib/features/profile/data/models/fetch_deposit_transactions_usecase_model.dart \
+            lib/features/profile/view/screens/wallet_screen.dart \
+            test/features/profile/data/models/fetch_deposit_account_usecase_model_test.dart
+
+      - name: Analyze financial wallet sources
+        run: |
+          flutter analyze \
+            lib/features/profile/data/models/fetch_deposit_account_usecase_model.dart \
+            lib/features/profile/data/models/fetch_deposit_transactions_usecase_model.dart \
+            lib/features/profile/view/screens/wallet_screen.dart
+
+      - name: Run financial model tests
+        run: flutter test test/features/profile/data/models/fetch_deposit_account_usecase_model_test.dart
