@@ -26,6 +26,7 @@ class CalenderScreen extends StatelessWidget {
               FetchOrdersUsecaseEvent(
                 params: FetchOrdersUsecaseParams(
                   page: 1,
+                  assignedToCurrentWorker: true,
                   scheduledDate: DateFormat(
                     'yyyy-MM-dd',
                     'en',
@@ -124,6 +125,9 @@ class CalenderScreen extends StatelessWidget {
                                               index) {
                                             if (state.ordersUsecase!.length ==
                                                 index) {
+                                              final lastFilter = context
+                                                  .read<OrdersBloc>()
+                                                  .lastAppliedOrdersListFilter;
                                               context.read<OrdersBloc>().add(
                                                 FetchOrdersUsecaseEvent(
                                                   isReload: false,
@@ -132,6 +136,10 @@ class CalenderScreen extends StatelessWidget {
                                                     page: state
                                                         .ordersUsecase!
                                                         .pageNumber,
+                                                    assignedToCurrentWorker:
+                                                        true,
+                                                    scheduledDate: lastFilter
+                                                        .scheduledDate,
                                                   ),
                                                 ),
                                               );
@@ -160,11 +168,16 @@ class CalenderScreen extends StatelessWidget {
                                       );
                                     },
                                     onTapRetry: () {
+                                      final lastFilter = context
+                                          .read<OrdersBloc>()
+                                          .lastAppliedOrdersListFilter;
                                       context.read<OrdersBloc>().add(
                                         FetchOrdersUsecaseEvent(
                                           params: FetchOrdersUsecaseParams(
                                             page: 1,
-                                            status: 'worker_assigned',
+                                            assignedToCurrentWorker: true,
+                                            scheduledDate:
+                                                lastFilter.scheduledDate,
                                           ),
                                           isReload: true,
                                         ),

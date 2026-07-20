@@ -58,24 +58,35 @@ class HomeAppBar extends StatelessWidget {
                     Icon(Icons.notifications_none_outlined, color: context.primaryContainer),
                     if (state.unreadNotification != null && state.unreadNotification! > 0)
                       Positioned(
-                        top: -4,
-                        right: -4,
+                        top: -6,
+                        right: -6,
                         child: Container(
-                          padding: const EdgeInsets.all(4),
+                          constraints: const BoxConstraints(
+                            minWidth: 18,
+                            minHeight: 18,
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: context.primaryContainer,
+                            color: context.error,
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: context.onPrimary,
-                              width: 2,
+                              width: 1.5,
                             ),
                           ),
+                          alignment: Alignment.center,
                           child: Text(
-                            state.unreadNotification.toString(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 8,
-                              fontWeight: FontWeight.w600,
+                            state.unreadNotification! > 99
+                                ? '99+'
+                                : state.unreadNotification.toString(),
+                            style: TextStyle(
+                              color: context.onError,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              height: 1.1,
                             ),
                           ),
                         ),
