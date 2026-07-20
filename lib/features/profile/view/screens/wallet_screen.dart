@@ -1,28 +1,18 @@
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
-import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_arabic_time_formatter.dart';
 import 'package:dllni_cleaninig_owner_app/features/home/domain/usecases/fetch_home_page_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/home/view/manager/bloc/home_bloc.dart';
-import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
-import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
-import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/fetch_orders_usecase_use_case.dart';
-import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
-import 'package:dllni_cleaninig_owner_app/features/orders/view/screens/order_details_screen.dart';
-import 'package:dllni_cleaninig_owner_app/features/profile/data/models/fetch_deposit_transactions_usecase_model.dart';
-import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/fetch_deposit_transactions_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/manager/bloc/profile_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-import 'package:intl/intl.dart';
-import 'package:shimmer/shimmer.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
-  static const int ordersPerPage = 10;
-  static const int transfersPerPage = 20;
+
   @override
   State<WalletScreen> createState() => _WalletScreenState();
+
   static String resolveCurrencyLabel(String? rawCurrency) {
     final currency = rawCurrency?.trim().toUpperCase();
     return currency == null || currency.isEmpty || currency == 'SYP'
@@ -43,106 +33,73 @@ class WalletScreen extends StatefulWidget {
     final fraction = parts[1].replaceAll(RegExp(r'0+$'), '');
     return fraction.isEmpty ? whole : '$whole.$fraction';
   }
-
-  static String formatScheduledDate(String? rawDate) {
-    if (rawDate == null || rawDate.trim().isEmpty) return '-';
-    final parsed = DateTime.tryParse(rawDate);
-    return parsed == null
-        ? rawDate
-        : DateFormat('yyyy-MM-dd', 'en').format(parsed);
-  }
-
-  static String formatScheduledTime(String? rawTime) =>
-      CleaningArabicTimeFormatter.formatScheduledTime(rawTime);
-  static String formatDateTime(String? rawDateTime) =>
-      CleaningArabicTimeFormatter.formatDateTime(rawDateTime);
 }
 
 class _WalletScreenState extends State<WalletScreen> {
-  int _selectedHistoryTab = 0;
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final profileBloc = context.read<ProfileBloc>();
-      profileBloc.add(FetchDepositAccountEvent());
-      profileBloc.add(
-        FetchDepositTransactionsEvent(
-          params: FetchDepositTransactionsParams(
-            page: 1,
-            perPage: WalletScreen.transfersPerPage,
-          ),
-          isReload: true,
-          clearTypeFilter: true,
-        ),
-      );
+      context.read<ProfileBloc>().add(FetchDepositAccountEvent());
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider<HomeBloc>(
-          lazy: false,
-          create: (_) => getIt<HomeBloc>()
-            ..add(
-              FetchHomePageUsecaseEvent(params: FetchHomePageUsecaseParams()),
-            ),
+    return BlocProvider<HomeBloc>(
+      lazy: false,
+      create: (_) => getIt<HomeBloc>()
+        ..add(
+          FetchHomePageUsecaseEvent(
+            params: FetchHomePageUsecaseParams(),
+          ),
         ),
-        BlocProvider<OrdersBloc>(
-          lazy: false,
-          create: (_) => getIt<OrdersBloc>()
-            ..add(
-              FetchOrdersUsecaseEvent(
-                params: FetchOrdersUsecaseParams(
-                  page: 1,
-                  perPage: WalletScreen.ordersPerPage,
-                  status: CleaningBookingStatus.completed,
-                ),
-                isReload: true,
-              ),
-            ),
-        ),
-      ],
-      child: Scaffold(
-        backgroundColor: const Color(0xffF3F4F6),
-        body: SafeArea(
-          child: Column(
-            children: [
-              _appBar(),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsetsDirectional.fromSTEB(
-                    20.w,
-                    18.h,
-                    20.w,
-                    24.h,
-                  ),
-                  child: Column(
-                    children: [
-                      _trustCard(),
-                      16.verticalSpace,
-                      _financeSummary(),
-                      16.verticalSpace,
-                      _depositSection(),
-                      16.verticalSpace,
-                      _historySection(),
-                    ],
+      child: Builder(
+        builder: (providerContext) => Scaffold(
+          backgroundColor: const Color(0xffF3F4F6),
+          body: SafeArea(
+            child: Column(
+              children: [
+                _appBar(),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: () => _refresh(providerContext),
+                    child: ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: EdgeInsetsDirectional.fromSTEB(
+                        20.w,
+                        18.h,
+                        20.w,
+                        24.h,
+                      ),
+                      children: [
+                        _financeSummary(),
+                        16.verticalSpace,
+                        _depositSection(),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
+  Future<void> _refresh(BuildContext providerContext) async {
+    providerContext.read<HomeBloc>().add(
+      FetchHomePageUsecaseEvent(params: FetchHomePageUsecaseParams()),
+    );
+    context.read<ProfileBloc>().add(FetchDepositAccountEvent());
+    await Future<void>.delayed(const Duration(milliseconds: 350));
+  }
+
   Widget _appBar() {
     return Container(
-      width: context.width,
+      width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.only(
@@ -160,7 +117,7 @@ class _WalletScreenState extends State<WalletScreen> {
       child: Row(
         children: [
           InkWell(
-            onTap: () => context.pop(),
+            onTap: () => Navigator.of(context).pop(),
             child: Icon(
               Icons.arrow_back_ios_new,
               color: context.primaryContainer,
@@ -178,46 +135,6 @@ class _WalletScreenState extends State<WalletScreen> {
     );
   }
 
-  Widget _trustCard() {
-    return BlocBuilder<ProfileBloc, ProfileState>(
-      buildWhen: (p, c) =>
-          p.workerProfileUsecaseStatus != c.workerProfileUsecaseStatus ||
-          p.workerProfileUsecase != c.workerProfileUsecase,
-      builder: (context, state) {
-        final isLoading =
-            state.workerProfileUsecaseStatus == null ||
-            state.workerProfileUsecaseStatus == BlocStatus.loading ||
-            state.workerProfileUsecaseStatus == BlocStatus.init;
-        final trustScore = state.workerProfileUsecase?.data?.trustScore;
-        return _card(
-          child: Row(
-            children: [
-              _circleIcon(Icons.stars_rounded, const Color(0xff7E22CE)),
-              12.horizontalSpace,
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _text('نقاط الثقة', weight: FontWeight.w700),
-                    4.verticalSpace,
-                    isLoading
-                        ? _loadingLine(96.w)
-                        : _text(
-                            '%${trustScore ?? 0} نقاط الثقة',
-                            color: const Color(0xff7E22CE),
-                            weight: FontWeight.w600,
-                            size: 14,
-                          ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   Widget _financeSummary() {
     return BlocBuilder<HomeBloc, HomeState>(
       builder: (context, state) {
@@ -230,13 +147,14 @@ class _WalletScreenState extends State<WalletScreen> {
         final currency = WalletScreen.resolveCurrencyLabel(
           amountSummary?.currency,
         );
+
         return Column(
           children: [
             if (state.homePageUsecaseStatus == BlocStatus.failed) ...[
               _errorBanner(
                 ErrorMessageFormatter.format(
                   state.errorMessage,
-                  fallback: 'حدث خطأ ما',
+                  fallback: 'تعذر تحميل ملخص المبالغ',
                 ),
                 () => context.read<HomeBloc>().add(
                   FetchHomePageUsecaseEvent(
@@ -244,20 +162,20 @@ class _WalletScreenState extends State<WalletScreen> {
                   ),
                 ),
               ),
-              16.verticalSpace,
+              12.verticalSpace,
             ],
             _card(
               shadow: true,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _text('ملخص المبالغ', weight: FontWeight.w700),
-                  12.verticalSpace,
+                  _text('ملخص المبالغ', weight: FontWeight.w700, size: 20),
+                  14.verticalSpace,
                   Row(
                     children: [
                       Expanded(
                         child: _metric(
-                          'الايرادات',
+                          'الإيرادات',
                           '${WalletScreen.formatAmount(amountSummary?.grossInvoicesAmount ?? 0)} $currency',
                           const Color(0xff0EA5E9),
                           isLoading,
@@ -266,7 +184,7 @@ class _WalletScreenState extends State<WalletScreen> {
                       10.horizontalSpace,
                       Expanded(
                         child: _metric(
-                          'حصة العامل',
+                          'تم إيداعه للإدارة',
                           '${WalletScreen.formatAmount(amountSummary?.workerAmount ?? 0)} $currency',
                           const Color(0xff10B981),
                           isLoading,
@@ -288,7 +206,7 @@ class _WalletScreenState extends State<WalletScreen> {
                       10.horizontalSpace,
                       Expanded(
                         child: _metric(
-                          'إجمالي الطلبات المكتملة',
+                          'إجمالي عدد الطلبات المكتملة',
                           WalletScreen.formatAmount(model?.completedCount ?? 0),
                           const Color(0xff6366F1),
                           isLoading,
@@ -307,9 +225,9 @@ class _WalletScreenState extends State<WalletScreen> {
 
   Widget _depositSection() {
     return BlocBuilder<ProfileBloc, ProfileState>(
-      buildWhen: (p, c) =>
-          p.depositAccountStatus != c.depositAccountStatus ||
-          p.depositAccount != c.depositAccount,
+      buildWhen: (previous, current) =>
+          previous.depositAccountStatus != current.depositAccountStatus ||
+          previous.depositAccount != current.depositAccount,
       builder: (context, state) {
         final isLoading =
             state.depositAccountStatus == null ||
@@ -317,21 +235,23 @@ class _WalletScreenState extends State<WalletScreen> {
             state.depositAccountStatus == BlocStatus.init;
         final data = state.depositAccount;
         const currency = 'ل.س';
+
         return Column(
           children: [
             if (state.depositAccountStatus == BlocStatus.failed) ...[
               _errorBanner(
                 ErrorMessageFormatter.format(
                   state.errorMessage,
-                  fallback: 'تعذر تحميل بيانات الحساب المالي',
+                  fallback: 'تعذر تحميل بيانات مبلغ التأمين',
                 ),
-                () =>
-                    context.read<ProfileBloc>().add(FetchDepositAccountEvent()),
+                () => context.read<ProfileBloc>().add(
+                  FetchDepositAccountEvent(),
+                ),
               ),
               12.verticalSpace,
             ],
             _debtCard(
-              WalletScreen.formatAmount(data?.debtBalance ?? 0),
+              WalletScreen.formatAmount(data?.manualDebtAmount ?? 0),
               currency,
               isLoading,
             ),
@@ -343,20 +263,24 @@ class _WalletScreenState extends State<WalletScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: _text('الحساب المالي', weight: FontWeight.w700),
+                        child: _text(
+                          'حالة مبلغ التأمين',
+                          weight: FontWeight.w700,
+                          size: 20,
+                        ),
                       ),
                       isLoading
                           ? _loadingLine(74.w)
                           : _statusBadge(data?.status ?? ''),
                     ],
                   ),
-                  12.verticalSpace,
+                  14.verticalSpace,
                   Row(
                     children: [
                       Expanded(
                         child: _metric(
-                          'رصيد الإيداع',
-                          '${WalletScreen.formatAmount(data?.depositBalance ?? 0)} $currency',
+                          'الرصيد الحالي',
+                          '${WalletScreen.formatAmount(data?.currentBalance ?? 0)} $currency',
                           const Color(0xff0EA5E9),
                           isLoading,
                         ),
@@ -364,8 +288,8 @@ class _WalletScreenState extends State<WalletScreen> {
                       10.horizontalSpace,
                       Expanded(
                         child: _metric(
-                          'حد المديونية المسموح',
-                          '${WalletScreen.formatAmount(data?.allowedDebtLimit ?? 0)} $currency',
+                          'الحد الأدنى المطلوب',
+                          '${WalletScreen.formatAmount(data?.minimumRequired ?? 0)} $currency',
                           const Color(0xffF59E0B),
                           isLoading,
                         ),
@@ -377,8 +301,8 @@ class _WalletScreenState extends State<WalletScreen> {
                     children: [
                       Expanded(
                         child: _metric(
-                          'سعة المديونية المتبقية',
-                          '${WalletScreen.formatAmount(data?.remainingDebtCapacity ?? 0)} $currency',
+                          'إجمالي الإيداع',
+                          '${WalletScreen.formatAmount(data?.depositedTotal ?? 0)} $currency',
                           const Color(0xff10B981),
                           isLoading,
                         ),
@@ -386,29 +310,7 @@ class _WalletScreenState extends State<WalletScreen> {
                       10.horizontalSpace,
                       Expanded(
                         child: _metric(
-                          'عمولات الطلبات المحجوزة',
-                          '${WalletScreen.formatAmount(data?.activeReservedCommission ?? 0)} $currency',
-                          const Color(0xff8B5CF6),
-                          isLoading,
-                        ),
-                      ),
-                    ],
-                  ),
-                  10.verticalSpace,
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _metric(
-                          'السعة المتاحة للطلبات',
-                          '${WalletScreen.formatAmount(data?.availableCommissionCapacity ?? 0)} $currency',
-                          const Color(0xff14B8A6),
-                          isLoading,
-                        ),
-                      ),
-                      10.horizontalSpace,
-                      Expanded(
-                        child: _metric(
-                          'إجمالي الاسترداد',
+                          'إجمالي السحب',
                           '${WalletScreen.formatAmount(data?.withdrawnTotal ?? 0)} $currency',
                           const Color(0xffEF4444),
                           isLoading,
@@ -416,37 +318,6 @@ class _WalletScreenState extends State<WalletScreen> {
                       ),
                     ],
                   ),
-                  10.verticalSpace,
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _metric(
-                          'إجمالي المبالغ المودعة',
-                          '${WalletScreen.formatAmount(data?.depositedTotal ?? 0)} $currency',
-                          const Color(0xff10B981),
-                          isLoading,
-                        ),
-                      ),
-                    ],
-                  ),
-                  if ((data?.exceedanceAmount ?? 0) > 0) ...[
-                    12.verticalSpace,
-                    Container(
-                      width: context.width,
-                      padding: EdgeInsetsDirectional.all(10.w),
-                      decoration: BoxDecoration(
-                        color: const Color(0xffFEF2F2),
-                        borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(color: const Color(0xffFECACA)),
-                      ),
-                      child: _text(
-                        'تجاوز حد المديونية: ${WalletScreen.formatAmount(data?.exceedanceAmount ?? 0)} $currency',
-                        color: const Color(0xffB91C1C),
-                        weight: FontWeight.w700,
-                        size: 14,
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),
@@ -470,7 +341,7 @@ class _WalletScreenState extends State<WalletScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _text('المديونية المستحقة للشركة', weight: FontWeight.w700),
+                _text('قيمة الدين', weight: FontWeight.w700, size: 18),
                 4.verticalSpace,
                 isLoading
                     ? _loadingLine(110.w)
@@ -478,7 +349,7 @@ class _WalletScreenState extends State<WalletScreen> {
                         '$amount $currency',
                         color: const Color(0xffB91C1C),
                         weight: FontWeight.w800,
-                        size: 14,
+                        size: 16,
                       ),
               ],
             ),
@@ -488,714 +359,140 @@ class _WalletScreenState extends State<WalletScreen> {
     );
   }
 
-  Widget _historySection() {
-    return Column(
-      children: [
-        _card(
-          padding: EdgeInsetsDirectional.all(10.w),
-          child: Row(
-            children: [
-              Expanded(
-                child: _historyChip(
-                  'سجل الطلبات',
-                  _selectedHistoryTab == 0,
-                  () => setState(() => _selectedHistoryTab = 0),
-                ),
-              ),
-              8.horizontalSpace,
-              Expanded(
-                child: _historyChip(
-                  'سجل الحركة المالية',
-                  _selectedHistoryTab == 1,
-                  () => setState(() => _selectedHistoryTab = 1),
-                ),
-              ),
-            ],
-          ),
-        ),
-        12.verticalSpace,
-        _selectedHistoryTab == 0
-            ? _ordersHistory()
-            : _financialMovementHistory(),
-      ],
-    );
-  }
-
-  Widget _ordersHistory() {
-    return BlocBuilder<OrdersBloc, OrdersState>(
-      buildWhen: (p, c) =>
-          p.ordersUsecase != c.ordersUsecase ||
-          p.errorMessage != c.errorMessage,
-      builder: (context, state) {
-        final pagination = state.ordersUsecase;
-        if (pagination == null || pagination.isLoading) {
-          return _historyCard(
-            'سجل الطلبات',
-            Column(
-              children: const [
-                _HistoryLoadingItem(),
-                SizedBox(height: 10),
-                _HistoryLoadingItem(),
-                SizedBox(height: 10),
-                _HistoryLoadingItem(),
-              ],
-            ),
-          );
-        }
-        if (pagination.isFailed) {
-          return _errorBanner(
-            ErrorMessageFormatter.format(
-              pagination.errorMessage.isNotEmpty
-                  ? pagination.errorMessage
-                  : state.errorMessage,
-              fallback: 'تعذر تحميل سجل الطلبات',
-            ),
-            () => context.read<OrdersBloc>().add(
-              FetchOrdersUsecaseEvent(
-                params: FetchOrdersUsecaseParams(
-                  page: 1,
-                  perPage: WalletScreen.ordersPerPage,
-                  status: CleaningBookingStatus.completed,
-                ),
-                isReload: true,
-              ),
-            ),
-          );
-        }
-        final body = pagination.isEmpty
-            ? const Padding(
-                padding: EdgeInsetsDirectional.symmetric(vertical: 24),
-                child: Center(child: Text('السجل فارغ')),
-              )
-            : ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: pagination.list.length,
-                separatorBuilder: (_, __) => 10.verticalSpace,
-                itemBuilder: (context, index) =>
-                    _orderTile(pagination.list[index], index),
-              );
-        return _historyCard(
-          'سجل الطلبات',
-          body,
-          footer: _loadMoreOrders(pagination),
-        );
-      },
-    );
-  }
-
-  Widget _financialMovementHistory() {
-    return BlocBuilder<ProfileBloc, ProfileState>(
-      buildWhen: (p, c) =>
-          p.depositTransactionsPagination != c.depositTransactionsPagination ||
-          p.depositTransactionsTypeFilter != c.depositTransactionsTypeFilter ||
-          p.errorMessage != c.errorMessage,
-      builder: (context, state) {
-        final pagination = state.depositTransactionsPagination;
-        if (pagination.isLoading) {
-          return _historyCard(
-            'سجل الحركة المالية',
-            Column(
-              children: const [
-                _HistoryLoadingItem(),
-                SizedBox(height: 10),
-                _HistoryLoadingItem(),
-                SizedBox(height: 10),
-                _HistoryLoadingItem(),
-              ],
-            ),
-          );
-        }
-        if (pagination.isFailed) {
-          return _errorBanner(
-            ErrorMessageFormatter.format(
-              pagination.errorMessage.isNotEmpty
-                  ? pagination.errorMessage
-                  : state.errorMessage,
-              fallback: 'تعذر تحميل سجل الحركة المالية',
-            ),
-            () => context.read<ProfileBloc>().add(
-              FetchDepositTransactionsEvent(
-                params: FetchDepositTransactionsParams(
-                  page: 1,
-                  perPage: WalletScreen.transfersPerPage,
-                  type: state.depositTransactionsTypeFilter,
-                ),
-                isReload: true,
-                typeFilter: state.depositTransactionsTypeFilter,
-              ),
-            ),
-          );
-        }
-        final list = pagination.isEmpty
-            ? const Padding(
-                padding: EdgeInsetsDirectional.symmetric(vertical: 24),
-                child: Center(child: Text('السجل فارغ')),
-              )
-            : ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: pagination.list.length,
-                separatorBuilder: (_, __) => 10.verticalSpace,
-                itemBuilder: (_, index) =>
-                    _transactionTile(pagination.list[index]),
-              );
-        return _historyCard(
-          'سجل الحركة المالية',
-          Column(
-            children: [
-              _transferFilters(state.depositTransactionsTypeFilter),
-              12.verticalSpace,
-              list,
-            ],
-          ),
-          footer: _loadMoreTransactions(
-            pagination,
-            state.depositTransactionsTypeFilter,
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _transferFilters(String? selectedType) {
-    const options = [
-      _TransferFilterOption('الكل', null),
-      _TransferFilterOption('إيداع', 'deposit'),
-      _TransferFilterOption('عمولة', 'commission'),
-      _TransferFilterOption('مديونية', 'debt'),
-      _TransferFilterOption('تسوية', 'settlement'),
-      _TransferFilterOption('استرداد', 'refund'),
-    ];
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          for (var i = 0; i < options.length; i++) ...[
-            if (i > 0) 8.horizontalSpace,
-            SizedBox(width: 96.w, child: _filterChip(options[i], selectedType)),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _filterChip(_TransferFilterOption option, String? selectedType) {
-    final selected = selectedType == option.type;
-    return InkWell(
-      borderRadius: BorderRadius.circular(10.r),
-      onTap: () => context.read<ProfileBloc>().add(
-        FetchDepositTransactionsEvent(
-          params: FetchDepositTransactionsParams(
-            page: 1,
-            perPage: WalletScreen.transfersPerPage,
-            type: option.type,
-          ),
-          isReload: true,
-          typeFilter: option.type,
-          clearTypeFilter: option.type == null,
-        ),
-      ),
-      child: Container(
-        height: 38.h,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xff1E3A8A) : const Color(0xffF3F4F6),
-          borderRadius: BorderRadius.circular(10.r),
-          border: Border.all(
-            color: selected ? const Color(0xff1E3A8A) : const Color(0xffE5E7EB),
-          ),
-        ),
-        child: _text(
-          option.label,
-          color: selected ? Colors.white : const Color(0xff374151),
-          weight: FontWeight.w700,
-          size: 14,
-        ),
-      ),
-    );
-  }
-
-  Widget _loadMoreOrders(dynamic pagination) {
-    final isLoading =
-        pagination.status == BlocStatus.loading && pagination.list.isNotEmpty;
-    if (pagination.isEndPage) return const SizedBox.shrink();
-    return _loadMoreButton(
-      isLoading,
-      () => context.read<OrdersBloc>().add(
-        FetchOrdersUsecaseEvent(
-          params: FetchOrdersUsecaseParams(
-            page: pagination.pageNumber,
-            perPage: WalletScreen.ordersPerPage,
-            status: CleaningBookingStatus.completed,
-          ),
-          isReload: false,
-        ),
-      ),
-    );
-  }
-
-  Widget _loadMoreTransactions(dynamic pagination, String? selectedType) {
-    final isLoading =
-        pagination.status == BlocStatus.loading && pagination.list.isNotEmpty;
-    if (pagination.isEndPage) return const SizedBox.shrink();
-    return _loadMoreButton(
-      isLoading,
-      () => context.read<ProfileBloc>().add(
-        FetchDepositTransactionsEvent(
-          params: FetchDepositTransactionsParams(
-            page: pagination.pageNumber,
-            perPage: WalletScreen.transfersPerPage,
-            type: selectedType,
-          ),
-          loadMore: true,
-          isReload: false,
-          typeFilter: selectedType,
-        ),
-      ),
-    );
-  }
-
-  Widget _loadMoreButton(bool isLoading, VoidCallback onPressed) {
-    return Padding(
-      padding: EdgeInsetsDirectional.only(top: 12.h),
-      child: SizedBox(
-        width: context.width,
-        child: OutlinedButton(
-          onPressed: isLoading ? null : onPressed,
-          child: isLoading
-              ? SizedBox(
-                  width: 18.w,
-                  height: 18.w,
-                  child: const FittedBox(
-                    child: CircularProgressIndicator.adaptive(strokeWidth: 2.5),
-                  ),
-                )
-              : _text(
-                  'تحميل المزيد',
-                  color: const Color(0xff1E3A8A),
-                  weight: FontWeight.w700,
-                  size: 13,
-                ),
-        ),
-      ),
-    );
-  }
-
-  Widget _orderTile(FetchOrdersUsecaseModelDataItem order, int index) {
-    final bookingNumber = order.bookingNumber?.trim().isNotEmpty == true
-        ? order.bookingNumber!.trim()
-        : (order.id == null ? '-' : '#${order.id}');
-    return InkWell(
-      onTap: () {
-        if (order.id == null) return;
-        context.pushRoute(
-          '/orderdetails',
-          arguments: OrderDetailsScreenParams(
-            order: order,
-            isNewOrder: false,
-            bloc: context.read<OrdersBloc>(),
-            index: index,
-          ),
-        );
-      },
-      borderRadius: BorderRadius.circular(14.r),
-      child: _listTile(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: _text(
-                  'رقم الطلب: $bookingNumber',
-                  weight: FontWeight.w700,
-                  size: 14,
-                ),
-              ),
-              _text(
-                '${WalletScreen.formatAmount(order.totalPrice ?? 0)} ل.س',
-                color: const Color(0xff1E3A8A),
-                weight: FontWeight.w700,
-                size: 14,
-              ),
-            ],
-          ),
-          10.verticalSpace,
-          _infoBadge(
-            'التاريخ والوقت',
-            '${WalletScreen.formatScheduledDate(order.scheduledDate)} - ${WalletScreen.formatScheduledTime(order.scheduledTime)}',
-            Icons.calendar_today_rounded,
-          ),
-          8.verticalSpace,
-          _infoBadge(
-            'مبلغ الإدارة',
-            '${WalletScreen.formatAmount(order.adminMargin ?? 0)} ل.س',
-            Icons.account_balance_wallet_rounded,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _transactionTile(FetchDepositTransactionsUsecaseModelDataItem item) {
-    final isPositiveEffect = _isPositiveEffect(item);
-    final accent = isPositiveEffect
-        ? const Color(0xff16A34A)
-        : const Color(0xffDC2626);
-    final type = (item.type ?? '').trim().toLowerCase();
-    final sign = type == 'deposit'
-        ? '+'
-        : (type == 'commission' || type == 'debt' || type == 'refund'
-              ? '-'
-              : '');
-    final amount = (item.amount ?? 0) < 0
-        ? -(item.amount ?? 0)
-        : (item.amount ?? 0);
-    final reference = item.reference?.trim();
-    final notes = item.notes?.trim();
-    return _listTile(
-      children: [
-        Row(
-          children: [
-            _circleIcon(
-              _transactionIcon(item.type, isPositiveEffect),
-              accent,
-              size: 32.w,
-              iconSize: 18,
-            ),
-            10.horizontalSpace,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _text(
-                    _transactionTitle(item),
-                    weight: FontWeight.w700,
-                    size: 14,
-                  ),
-                  4.verticalSpace,
-                  _text(
-                    WalletScreen.formatDateTime(item.createdAt),
-                    color: const Color(0xff6B7280),
-                    weight: FontWeight.w500,
-                    size: 12,
-                  ),
-                ],
-              ),
-            ),
-            _text(
-              '$sign${WalletScreen.formatAmount(amount)} ل.س',
-              color: accent,
-              weight: FontWeight.w700,
-              size: 14,
-            ),
-          ],
-        ),
-        10.verticalSpace,
-        _infoBadge(
-          'رصيد الإيداع بعد العملية',
-          '${WalletScreen.formatAmount(item.depositBalanceAfter ?? 0)} ل.س',
-          Icons.savings_outlined,
-        ),
-        8.verticalSpace,
-        _infoBadge(
-          'المديونية بعد العملية',
-          '${WalletScreen.formatAmount(item.debtBalanceAfter ?? 0)} ل.س',
-          Icons.account_balance_wallet_rounded,
-        ),
-        if (reference != null && reference.isNotEmpty) ...[
-          8.verticalSpace,
-          _infoBadge('المرجع', reference, Icons.tag_rounded),
-        ],
-        if (notes != null && notes.isNotEmpty) ...[
-          8.verticalSpace,
-          _infoBadge('ملاحظات', notes, Icons.notes_rounded),
-        ],
-      ],
-    );
-  }
-
-  bool _isPositiveEffect(FetchDepositTransactionsUsecaseModelDataItem item) {
-    final type = (item.type ?? '').trim().toLowerCase();
-    return type == 'deposit' || type == 'settlement';
-  }
-
-  String _transactionTitle(FetchDepositTransactionsUsecaseModelDataItem item) {
-    switch ((item.type ?? '').trim().toLowerCase()) {
-      case 'deposit':
-        return 'إيداع';
-      case 'commission':
-      case 'admin_fee':
-        return 'عمولة المنصة';
-      case 'debt':
-        return 'مديونية يدوية';
-      case 'settlement':
-        return 'تسوية مديونية';
-      case 'refund':
-      case 'withdrawal':
-        return 'استرداد من الإيداع';
-      default:
-        return 'حركة مالية';
-    }
-  }
-
-  IconData _transactionIcon(String? rawType, bool isPositiveEffect) {
-    switch ((rawType ?? '').trim().toLowerCase()) {
-      case 'commission':
-      case 'admin_fee':
-        return Icons.percent_rounded;
-      case 'debt':
-        return Icons.trending_down_rounded;
-      case 'settlement':
-        return Icons.payments_rounded;
-      case 'refund':
-      case 'withdrawal':
-        return Icons.arrow_upward_rounded;
-      default:
-        return isPositiveEffect
-            ? Icons.arrow_downward_rounded
-            : Icons.arrow_upward_rounded;
-    }
-  }
-
-  Widget _historyChip(String label, bool selected, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12.r),
-      child: Container(
-        height: 42.h,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xff1E3A8A) : const Color(0xffF3F4F6),
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(
-            color: selected ? const Color(0xff1E3A8A) : const Color(0xffE5E7EB),
-          ),
-        ),
-        child: _text(
-          label,
-          color: selected ? Colors.white : const Color(0xff374151),
-          weight: FontWeight.w700,
-          size: 14,
-        ),
-      ),
-    );
-  }
-
   Widget _metric(
     String title,
     String value,
-    Color accentColor,
+    Color color,
     bool isLoading,
-  ) => Container(
-    decoration: BoxDecoration(
-      color: accentColor.withAlpha(22),
-      borderRadius: BorderRadius.circular(14.r),
-    ),
-    padding: EdgeInsetsDirectional.all(12.w),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _text(
-          title,
-          color: const Color(0xff374151),
-          weight: FontWeight.w600,
-          size: 13,
-        ),
-        8.verticalSpace,
-        isLoading
-            ? _loadingLine(90.w)
-            : _text(value, weight: FontWeight.w700, size: 13),
-      ],
-    ),
-  );
-  Widget _historyCard(
-    String title,
-    Widget body, {
-    Widget footer = const SizedBox.shrink(),
-  }) => _card(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _text(title, weight: FontWeight.w700),
-        12.verticalSpace,
-        body,
-        footer,
-      ],
-    ),
-  );
-  Widget _listTile({required List<Widget> children}) => Container(
-    decoration: BoxDecoration(
-      color: const Color(0xffF9FAFB),
-      borderRadius: BorderRadius.circular(14.r),
-      border: Border.all(color: const Color(0xffE5E7EB)),
-    ),
-    padding: EdgeInsetsDirectional.all(12.w),
-    child: Column(children: children),
-  );
-  Widget _infoBadge(String title, String value, IconData icon) => Container(
-    padding: EdgeInsetsDirectional.fromSTEB(10.w, 8.h, 10.w, 8.h),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(12.r),
-    ),
-    child: Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _text(
-                title,
-                color: const Color(0xff6B7280),
-                weight: FontWeight.w500,
-                size: 12,
-              ),
-              4.verticalSpace,
-              _text(value, weight: FontWeight.w700, size: 13),
-            ],
-          ),
-        ),
-        Icon(icon, size: 16, color: const Color(0xff4B5563)),
-      ],
-    ),
-  );
-  Widget _card({
-    required Widget child,
-    EdgeInsetsGeometry? padding,
-    Color borderColor = const Color(0xffE5E7EB),
-    bool shadow = false,
-  }) => Container(
-    width: context.width,
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(20.r),
-      border: Border.all(color: borderColor),
-      boxShadow: shadow
-          ? [
-              BoxShadow(
-                color: Colors.black.withAlpha(10),
-                blurRadius: 14,
-                offset: const Offset(0, 4),
-              ),
-            ]
-          : null,
-    ),
-    padding: padding ?? EdgeInsetsDirectional.all(16.w),
-    child: child,
-  );
-  Widget _circleIcon(
-    IconData icon,
-    Color color, {
-    double? size,
-    double iconSize = 22,
-  }) => Container(
-    width: size ?? 42.w,
-    height: size ?? 42.w,
-    decoration: BoxDecoration(
-      color: color.withAlpha(28),
-      shape: BoxShape.circle,
-    ),
-    child: Icon(icon, color: color, size: iconSize),
-  );
-  Widget _statusBadge(String status) {
-    final color = status == 'active'
-        ? const Color(0xff16A34A)
-        : (status == 'suspended'
-              ? const Color(0xff7C3AED)
-              : const Color(0xffDC2626));
-    final label = status == 'active'
-        ? 'نشط'
-        : (status == 'suspended'
-              ? 'معلق'
-              : (status == 'inactive'
-                    ? 'غير فعال'
-                    : 'السعة المالية غير كافية'));
+  ) {
     return Container(
-      padding: EdgeInsetsDirectional.symmetric(horizontal: 10.w, vertical: 5.h),
+      constraints: BoxConstraints(minHeight: 104.h),
+      padding: EdgeInsetsDirectional.all(14.w),
       decoration: BoxDecoration(
-        color: color.withAlpha(25),
-        borderRadius: BorderRadius.circular(999.r),
+        color: color.withAlpha(20),
+        borderRadius: BorderRadius.circular(16.r),
       ),
-      child: _text(label, color: color, weight: FontWeight.w700, size: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _text(title, size: 15, color: const Color(0xff374151)),
+          8.verticalSpace,
+          isLoading
+              ? _loadingLine(84.w)
+              : _text(value, size: 16, weight: FontWeight.w700),
+        ],
+      ),
     );
   }
 
-  Widget _errorBanner(String message, VoidCallback onRetry) => Container(
-    width: context.width,
-    decoration: BoxDecoration(
-      color: const Color(0xffFEF2F2),
-      borderRadius: BorderRadius.circular(16.r),
-      border: Border.all(color: const Color(0xffFECACA)),
-    ),
-    padding: EdgeInsetsDirectional.fromSTEB(12.w, 10.h, 12.w, 10.h),
-    child: Row(
-      children: [
-        const Icon(Icons.error_outline, color: Color(0xffDC2626)),
-        8.horizontalSpace,
-        Expanded(
-          child: _text(
-            message,
-            color: const Color(0xff991B1B),
-            weight: FontWeight.w600,
-            size: 12,
+  Widget _statusBadge(String status) {
+    final normalized = status.trim().toLowerCase();
+    final isActive = normalized == 'active';
+    final label = switch (normalized) {
+      'active' => 'نشط',
+      'restricted' || 'insufficient_balance' => 'غير نشط',
+      'suspended' => 'موقوف',
+      'inactive' => 'غير نشط',
+      _ => 'غير محدد',
+    };
+    final color = isActive ? const Color(0xff059669) : const Color(0xffDC2626);
+
+    return Container(
+      padding: EdgeInsetsDirectional.symmetric(horizontal: 12.w, vertical: 6.h),
+      decoration: BoxDecoration(
+        color: color.withAlpha(20),
+        borderRadius: BorderRadius.circular(999.r),
+      ),
+      child: _text(label, color: color, size: 14, weight: FontWeight.w700),
+    );
+  }
+
+  Widget _card({
+    required Widget child,
+    Color? borderColor,
+    bool shadow = false,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsetsDirectional.all(18.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24.r),
+        border: Border.all(color: borderColor ?? const Color(0xffE5E7EB)),
+        boxShadow: shadow
+            ? const [
+                BoxShadow(
+                  color: Color(0x0F000000),
+                  blurRadius: 16,
+                  offset: Offset(0, 6),
+                ),
+              ]
+            : null,
+      ),
+      child: child,
+    );
+  }
+
+  Widget _circleIcon(IconData icon, Color color) {
+    return Container(
+      width: 48.w,
+      height: 48.w,
+      decoration: BoxDecoration(
+        color: color.withAlpha(20),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(icon, color: color, size: 24.sp),
+    );
+  }
+
+  Widget _errorBanner(String message, VoidCallback retry) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsetsDirectional.all(12.w),
+      decoration: BoxDecoration(
+        color: const Color(0xffFEF2F2),
+        borderRadius: BorderRadius.circular(14.r),
+        border: Border.all(color: const Color(0xffFECACA)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: Color(0xffB91C1C)),
+          10.horizontalSpace,
+          Expanded(
+            child: _text(message, color: const Color(0xffB91C1C), size: 14),
           ),
-        ),
-        TextButton(
-          onPressed: onRetry,
-          child: _text(
-            'إعادة المحاولة',
-            color: const Color(0xffDC2626),
-            weight: FontWeight.w700,
-            size: 13,
-          ),
-        ),
-      ],
-    ),
-  );
-  Widget _loadingLine(double width) => Shimmer.fromColors(
-    baseColor: const Color(0xffE5E7EB),
-    highlightColor: const Color(0xffF3F4F6),
-    child: Container(
+          TextButton(onPressed: retry, child: const Text('إعادة المحاولة')),
+        ],
+      ),
+    );
+  }
+
+  Widget _loadingLine(double width) {
+    return Container(
       width: width,
-      height: 12.h,
+      height: 14.h,
       decoration: BoxDecoration(
         color: const Color(0xffE5E7EB),
-        borderRadius: BorderRadius.circular(9999.r),
+        borderRadius: BorderRadius.circular(999.r),
       ),
-    ),
-  );
+    );
+  }
+
   Widget _text(
-    String text, {
+    String value, {
     double size = 16,
     Color color = const Color(0xff111827),
     FontWeight weight = FontWeight.w400,
-  }) => Text(
-    text,
-    textAlign: TextAlign.start,
-    style: TextStyle(fontSize: size.sp, color: color, fontWeight: weight),
-  );
-}
-
-class _TransferFilterOption {
-  final String label;
-  final String? type;
-  const _TransferFilterOption(this.label, this.type);
-}
-
-class _HistoryLoadingItem extends StatelessWidget {
-  const _HistoryLoadingItem();
-  @override
-  Widget build(BuildContext context) {
-    return Shimmer.fromColors(
-      baseColor: const Color(0xffE5E7EB),
-      highlightColor: const Color(0xffF3F4F6),
-      child: Container(
-        width: context.width,
-        height: 92.h,
-        decoration: BoxDecoration(
-          color: const Color(0xffE5E7EB),
-          borderRadius: BorderRadius.circular(14.r),
-        ),
+  }) {
+    return Text(
+      value,
+      textAlign: TextAlign.start,
+      style: TextStyle(
+        fontSize: size.sp,
+        color: color,
+        fontWeight: weight,
+        height: 1.35,
       ),
     );
   }
