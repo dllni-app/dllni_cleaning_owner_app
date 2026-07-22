@@ -20,6 +20,18 @@ void main() {
       expect(EventAssistanceOrderHelper.formatHours(2.5), '2.5 ساعة');
       expect(EventAssistanceOrderHelper.formatHours(4), '4 ساعة');
     });
+
+    test('prefers worker offer hours over the booking-wide event hours', () {
+      expect(
+        EventAssistanceOrderHelper.resolveBookedHours(
+          propertyHours: 6,
+          assignmentHours: 2,
+          totalHours: 6,
+          estimatedHours: 6,
+        ),
+        2,
+      );
+    });
   });
 
   group('PropertyDetailsData event parsing', () {
