@@ -34,6 +34,7 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
       final venue = widget.order.propertyDetails?.venueType;
       final hours = EventAssistanceOrderHelper.resolveBookedHours(
         propertyHours: widget.order.propertyDetails?.hours,
+        assignmentHours: widget.order.myAssignment?.totalHours,
         totalHours: widget.order.totalHours,
         estimatedHours: widget.order.estimatedHours,
       );
@@ -187,6 +188,7 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
                     ? EventAssistanceOrderHelper.formatHoursDetail(
                         EventAssistanceOrderHelper.resolveBookedHours(
                           propertyHours: widget.order.propertyDetails?.hours,
+                          assignmentHours: widget.order.myAssignment?.totalHours,
                           totalHours: widget.order.totalHours,
                           estimatedHours: widget.order.estimatedHours,
                         ),

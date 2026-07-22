@@ -83,6 +83,11 @@ class FetchWorkerProfileUsecaseModelData {
   String? homeAddress;
   double? homeLatitude;
   double? homeLongitude;
+  String? pendingHomeAddress;
+  double? pendingHomeLatitude;
+  double? pendingHomeLongitude;
+  String? homeLocationStatus;
+  String? homeLocationRejectionReason;
   FetchWorkerProfileUsecaseModelDataDefaultWorkingHours? defaultWorkingHours;
   FetchWorkerProfileUsecaseModelDataUser? user;
   List<Zone>? zones;
@@ -109,6 +114,11 @@ class FetchWorkerProfileUsecaseModelData {
     this.homeAddress,
     this.homeLatitude,
     this.homeLongitude,
+    this.pendingHomeAddress,
+    this.pendingHomeLatitude,
+    this.pendingHomeLongitude,
+    this.homeLocationStatus,
+    this.homeLocationRejectionReason,
     this.defaultWorkingHours,
     this.user,
     this.zones,
@@ -137,6 +147,13 @@ class FetchWorkerProfileUsecaseModelData {
       homeAddress: _asString(json['homeAddress']),
       homeLatitude: _asDouble(json['homeLatitude']),
       homeLongitude: _asDouble(json['homeLongitude']),
+      pendingHomeAddress: _asString(json['pendingHomeAddress'] ?? json['pending_home_address']),
+      pendingHomeLatitude: _asDouble(json['pendingHomeLatitude'] ?? json['pending_home_latitude']),
+      pendingHomeLongitude: _asDouble(json['pendingHomeLongitude'] ?? json['pending_home_longitude']),
+      homeLocationStatus: _asString(json['homeLocationStatus'] ?? json['home_location_status']),
+      homeLocationRejectionReason: _asString(
+        json['homeLocationRejectionReason'] ?? json['home_location_rejection_reason'],
+      ),
       defaultWorkingHours: json['defaultWorkingHours'] is Map
           ? FetchWorkerProfileUsecaseModelDataDefaultWorkingHours.fromJson(Map<String, dynamic>.from(json['defaultWorkingHours']))
           : null,
@@ -171,6 +188,11 @@ class FetchWorkerProfileUsecaseModelData {
     'homeAddress': homeAddress,
     'homeLatitude': homeLatitude,
     'homeLongitude': homeLongitude,
+    'pendingHomeAddress': pendingHomeAddress,
+    'pendingHomeLatitude': pendingHomeLatitude,
+    'pendingHomeLongitude': pendingHomeLongitude,
+    'homeLocationStatus': homeLocationStatus,
+    'homeLocationRejectionReason': homeLocationRejectionReason,
     'defaultWorkingHours': defaultWorkingHours?.toJson(),
     'user': user?.toJson(),
     'zones': zones?.map((e) => e.toJson()).toList(),

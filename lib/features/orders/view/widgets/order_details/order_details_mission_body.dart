@@ -85,6 +85,8 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     if (oldWidget.order.id != widget.order.id ||
         oldWidget.order.status != widget.order.status ||
         oldWidget.order.totalHours != widget.order.totalHours ||
+        oldWidget.order.myAssignment?.totalHours !=
+            widget.order.myAssignment?.totalHours ||
         oldWidget.order.estimatedHours != widget.order.estimatedHours ||
         oldWidget.order.timeWarnings != widget.order.timeWarnings) {
       _syncTimerSession();
@@ -246,6 +248,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     }
 
     final maxDuration = OrderWorkTimerHelper.originalBookingDuration(
+      assignmentHours: widget.order.myAssignment?.totalHours,
       totalHours: widget.order.totalHours,
       estimatedHours: widget.order.estimatedHours,
     );
@@ -370,6 +373,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     if (start == null) return null;
 
     final estimate = OrderWorkTimerHelper.originalBookingDuration(
+      assignmentHours: widget.order.myAssignment?.totalHours,
       totalHours: widget.order.totalHours,
       estimatedHours: widget.order.estimatedHours,
     );

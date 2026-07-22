@@ -170,6 +170,22 @@ class _MissionStartLocationScreenState
       value: center.longitude,
     );
     if (!mounted) return;
+
+    final locationStatus =
+        profileBloc.state.updateWorkerProfile?.data?.homeLocationStatus
+            ?.trim()
+            .toLowerCase();
+    final isPendingApproval = locationStatus == 'pending';
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          isPendingApproval
+              ? 'تم إرسال موقع بدء المهمة وبانتظار موافقة الإدارة.'
+              : 'تم حفظ موقع بدء المهمة.',
+        ),
+      ),
+    );
     Navigator.of(context).pop(true);
   }
 

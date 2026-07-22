@@ -81,10 +81,12 @@ class EventAssistanceOrderHelper {
 
   static double? resolveBookedHours({
     double? propertyHours,
+    double? assignmentHours,
     double? totalHours,
     double? estimatedHours,
   }) {
     if (propertyHours != null && propertyHours > 0) return propertyHours;
+    if (assignmentHours != null && assignmentHours > 0) return assignmentHours;
     if (totalHours != null && totalHours > 0) return totalHours;
     if (estimatedHours != null && estimatedHours > 0) return estimatedHours;
     return null;

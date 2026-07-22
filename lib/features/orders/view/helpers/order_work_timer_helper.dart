@@ -37,10 +37,26 @@ class OrderWorkTimerHelper {
   static Duration? originalBookingDuration({
     required double? totalHours,
     required double? estimatedHours,
+    double? assignmentHours,
   }) {
     return durationFromHours(
-      totalHours != null && totalHours > 0 ? totalHours : estimatedHours,
+      resolveWorkerHours(
+        assignmentHours: assignmentHours,
+        totalHours: totalHours,
+        estimatedHours: estimatedHours,
+      ),
     );
+  }
+
+  static double? resolveWorkerHours({
+    double? assignmentHours,
+    double? totalHours,
+    double? estimatedHours,
+  }) {
+    if (assignmentHours != null && assignmentHours > 0) return assignmentHours;
+    if (totalHours != null && totalHours > 0) return totalHours;
+    if (estimatedHours != null && estimatedHours > 0) return estimatedHours;
+    return null;
   }
 
   static OrderWorkTimerSession startOriginalSession({

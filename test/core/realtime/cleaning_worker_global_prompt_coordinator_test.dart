@@ -323,6 +323,33 @@ void main() {
       },
     );
 
+    test('pollPendingOrderPrompts opens first pending dedicated order', () async {
+      final shown = <WorkerPendingOrderPromptData>[];
+      final coordinator =
+          CleaningWorkerGlobalPromptCoordinator(
+              navigatorKey: GlobalKey<NavigatorState>(),
+              pusherManager: _buildNoopPusherManager(),
+              pendingOrdersLoader: () async =>
+                  <FetchOrdersUsecaseModelDataItem>[
+                    FetchOrdersUsecaseModelDataItem(
+                      id: 321,
+                      status: CleaningBookingStatus.pending,
+                    ),
+                  ],
+              pendingOrderPromptPresenter: (prompt) async {
+                shown.add(prompt);
+                return true;
+              },
+            )
+            ..markStartedForTest()
+            ..markAuthBypassForTest();
+
+      await coordinator.pollPendingOrderPrompts();
+
+      expect(shown.length, 1);
+      expect(shown.first.order.id, 321);
+    });
+
     test('findTimeExtensionRequestedBookingIds filters by status', () {
       final ids =
           CleaningWorkerGlobalPromptCoordinator.findTimeExtensionRequestedBookingIds(

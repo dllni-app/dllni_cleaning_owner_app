@@ -155,6 +155,7 @@ class FetchOrderDetailsUsecaseModelData {
   final int? numberOfKitchens;
   final double? estimatedHours;
   final double? totalHours;
+  final double? bookingTotalHours;
 
   final double? basePrice;
   final double? addonsTotal;
@@ -214,6 +215,7 @@ class FetchOrderDetailsUsecaseModelData {
     this.numberOfKitchens,
     this.estimatedHours,
     this.totalHours,
+    this.bookingTotalHours,
     this.basePrice,
     this.addonsTotal,
     this.travelFee,
@@ -304,6 +306,9 @@ class FetchOrderDetailsUsecaseModelData {
       ),
       totalHours: _toDouble(
         _pick(m, const <String>['totalHours', 'total_hours']),
+      ),
+      bookingTotalHours: _toDouble(
+        _pick(m, const <String>['bookingTotalHours', 'booking_total_hours']),
       ),
       basePrice: _toDouble(_pick(m, const <String>['basePrice', 'base_price'])),
       addonsTotal: _toDouble(
@@ -445,6 +450,7 @@ class FetchOrderDetailsUsecaseModelData {
       'numberOfKitchens': numberOfKitchens,
       'estimatedHours': estimatedHours,
       'totalHours': totalHours,
+      'bookingTotalHours': bookingTotalHours,
       'basePrice': basePrice,
       'addonsTotal': addonsTotal,
       'travelFee': travelFee,

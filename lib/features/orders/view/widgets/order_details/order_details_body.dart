@@ -54,6 +54,7 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
   List<MapEntry<String, String>> get _summaryRows {
     final bookedHours = EventAssistanceOrderHelper.resolveBookedHours(
       propertyHours: widget.order.propertyDetails?.hours,
+      assignmentHours: widget.order.myAssignment?.totalHours,
       totalHours: widget.order.totalHours,
       estimatedHours: widget.order.estimatedHours,
     );

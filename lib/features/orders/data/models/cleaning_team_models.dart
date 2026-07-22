@@ -74,6 +74,7 @@ class CleaningMyAssignmentModel {
   final String? workFinishedAt;
   final int? roomCount;
   final double? roomsWeight;
+  final double? totalHours;
   final double? serviceShareAmount;
   final double? travelFee;
   final double? adminMarginAmount;
@@ -93,6 +94,7 @@ class CleaningMyAssignmentModel {
     this.workFinishedAt,
     this.roomCount,
     this.roomsWeight,
+    this.totalHours,
     this.serviceShareAmount,
     this.travelFee,
     this.adminMarginAmount,
@@ -132,6 +134,9 @@ class CleaningMyAssignmentModel {
       roomCount: _teamToInt(_teamPick(json, const <String>['roomCount', 'room_count'])),
       roomsWeight: _teamToDouble(
         _teamPick(json, const <String>['roomsWeight', 'rooms_weight']),
+      ),
+      totalHours: _teamToDouble(
+        _teamPick(json, const <String>['totalHours', 'total_hours']),
       ),
       serviceShareAmount: _teamToDouble(
         _teamPick(
@@ -227,6 +232,7 @@ class CleaningWorkerAssignmentModel {
   final String? workStartedAt;
   final String? workFinishedAt;
   final int? roomCount;
+  final double? totalHours;
   final double? workerAmount;
   final List<int>? roomIds;
 
@@ -240,6 +246,7 @@ class CleaningWorkerAssignmentModel {
     this.workStartedAt,
     this.workFinishedAt,
     this.roomCount,
+    this.totalHours,
     this.workerAmount,
     this.roomIds,
   });
@@ -270,6 +277,9 @@ class CleaningWorkerAssignmentModel {
         _teamPick(json, const <String>['workFinishedAt', 'work_finished_at']),
       ),
       roomCount: _teamToInt(_teamPick(json, const <String>['roomCount', 'room_count'])),
+      totalHours: _teamToDouble(
+        _teamPick(json, const <String>['totalHours', 'total_hours']),
+      ),
       workerAmount: _teamToDouble(
         _teamPick(json, const <String>['workerAmount', 'worker_amount']),
       ),
