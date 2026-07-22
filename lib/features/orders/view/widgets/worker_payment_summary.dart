@@ -46,13 +46,13 @@ class WorkerPaymentSummary extends StatelessWidget {
         ),
         12.verticalSpace,
         _PaymentRow(
-          label: 'الإجمالي',
-          amount: totalPrice.formatMoney(),
+          label: 'هامش الإدارة',
+          amount: adminMargin.formatMoney(),
         ),
         12.verticalSpace,
         _PaymentRow(
-          label: 'هامش الإدارة',
-          amount: adminMargin.formatMoney(),
+          label: 'الإجمالي',
+          amount: totalPrice.formatMoney(),
         ),
         18.verticalSpace,
         LayoutBuilder(
