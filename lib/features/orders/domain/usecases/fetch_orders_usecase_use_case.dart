@@ -2,8 +2,9 @@ import 'package:common_package/helpers/app_log.dart';
 import 'package:common_package/helpers/typedef.dart';
 import 'package:injectable/injectable.dart';
 
-import '../repository/orders_repo.dart';
+import '../../data/models/cleaning_booking_status.dart';
 import '../../data/models/fetch_orders_usecase_model.dart';
+import '../repository/orders_repo.dart';
 
 @lazySingleton
 class FetchOrdersUsecaseUseCase
@@ -41,16 +42,21 @@ class FetchOrdersUsecaseParams with Params {
 
   @override
   QueryParams getParams() {
+    final normalizedStatus = status?.trim().toLowerCase();
+    final shouldFilterAssignedOrders =
+        assignedToCurrentWorker &&
+        normalizedStatus != CleaningBookingStatus.pending;
+
     final params = {
-      "filter[forCurrentWorker]": 1,
-      "filter[assignedToCurrentWorker]": assignedToCurrentWorker ? 1 : null,
-      "filter[status]": status,
-      "filter[scheduledDate]": scheduledDate,
-      "filter[scheduledDateFrom]": scheduledDateFrom,
-      "filter[scheduledDateTo]": scheduledDateTo,
-      "perPage": "$perPage",
-      "page": "$page",
-      "sort": sort,
+      'filter[forCurrentWorker]': 1,
+      'filter[assignedToCurrentWorker]': shouldFilterAssignedOrders ? 1 : null,
+      'filter[status]': status,
+      'filter[scheduledDate]': scheduledDate,
+      'filter[scheduledDateFrom]': scheduledDateFrom,
+      'filter[scheduledDateTo]': scheduledDateTo,
+      'perPage': '$perPage',
+      'page': '$page',
+      'sort': sort,
     }..removeWhere((key, value) => value == null);
     appLog(params.toString());
     return params;
