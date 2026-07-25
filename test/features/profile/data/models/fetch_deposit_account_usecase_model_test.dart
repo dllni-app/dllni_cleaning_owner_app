@@ -18,6 +18,7 @@ void main() {
         'adminCommissionDebtAmount': 0,
         'status': 'active',
         'exceedanceAmount': null,
+        'isFinancialAccountActive': true,
         'isEligibleForNewRequests': true,
         'createdAt': '2026-05-20T10:30:00Z',
         'updatedAt': '2026-05-30T14:22:00Z',
@@ -35,6 +36,7 @@ void main() {
       expect(model.activeReservedCommission, 5000);
       expect(model.availableCommissionCapacity, 45200.5);
       expect(model.minimumRequired, 0);
+      expect(model.isFinancialAccountActive, isTrue);
       expect(model.isEligibleForNewRequests, isTrue);
     });
 
@@ -49,8 +51,9 @@ void main() {
         'remaining_debt_capacity': '351.50',
         'active_reserved_commission': '10',
         'available_commission_capacity': '341.50',
-        'status': 'active',
-        'is_eligible_for_new_requests': '1',
+        'status': 'inactive',
+        'is_active': '0',
+        'is_eligible_for_new_requests': '0',
       });
 
       expect(model.workerId, 42);
@@ -60,7 +63,8 @@ void main() {
       expect(model.remainingDebtCapacity, 351.5);
       expect(model.activeReservedCommission, 10);
       expect(model.availableCommissionCapacity, 341.5);
-      expect(model.isEligibleForNewRequests, isTrue);
+      expect(model.isFinancialAccountActive, isFalse);
+      expect(model.isEligibleForNewRequests, isFalse);
     });
 
     test('clamps negative balances returned by an old server', () {
