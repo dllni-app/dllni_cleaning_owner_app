@@ -21,11 +21,19 @@ class BackgroundKeepAlive {
     FlutterForegroundTask.initCommunicationPort();
     FlutterForegroundTask.init(
       androidNotificationOptions: AndroidNotificationOptions(
-        channelId: 'owner_background_updates',
-        channelName: 'Background Updates',
-        channelDescription:
-            'Keeps order data syncing while app is in background.',
+        // New channel id so quieter settings apply on existing installs
+        // (Android locks channel importance/sound after first creation).
+        channelId: 'owner_background_updates_quiet',
+        channelName: 'تحديث الموقع',
+        channelDescription: 'إشعار هادئ أثناء مشاركة الموقع مع العميل.',
+        channelImportance: NotificationChannelImportance.LOW,
+        priority: NotificationPriority.LOW,
+        enableVibration: false,
+        playSound: false,
+        showWhen: false,
+        showBadge: false,
         onlyAlertOnce: true,
+        visibility: NotificationVisibility.VISIBILITY_PRIVATE,
       ),
       iosNotificationOptions: const IOSNotificationOptions(
         showNotification: false,
@@ -63,8 +71,8 @@ class BackgroundKeepAlive {
 
     if (await FlutterForegroundTask.isRunningService) {
       final updateResult = await FlutterForegroundTask.updateService(
-        notificationTitle: 'التحديث بالخلفية مفعّل',
-        notificationText: 'جاري تحديث موقعك أثناء التوجه للعميل',
+        notificationTitle: 'تتبع الرحلة نشط',
+        notificationText: 'مشاركة الموقع أثناء التوجه للعميل',
       );
       if (updateResult case ServiceRequestFailure(:final error)) {
         appLog(
@@ -78,8 +86,8 @@ class BackgroundKeepAlive {
 
     final result = await FlutterForegroundTask.startService(
       serviceId: _serviceId,
-      notificationTitle: 'التحديث بالخلفية مفعّل',
-      notificationText: 'جاري تحديث موقعك أثناء التوجه للعميل',
+      notificationTitle: 'تتبع الرحلة نشط',
+      notificationText: 'مشاركة الموقع أثناء التوجه للعميل',
       serviceTypes: const <ForegroundServiceTypes>[
         ForegroundServiceTypes.location,
         ForegroundServiceTypes.dataSync,
