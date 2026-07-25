@@ -34,7 +34,9 @@ bool? _toBool(dynamic value) {
 int? _toInt(dynamic value) {
   if (value is int) return value;
   if (value is num) return value.toInt();
-  if (value is String) return int.tryParse(value) ?? double.tryParse(value)?.toInt();
+  if (value is String) {
+    return int.tryParse(value) ?? double.tryParse(value)?.toInt();
+  }
   return null;
 }
 
@@ -142,6 +144,9 @@ class WorkerDispatchEligibilityModel {
 
   bool get isAdminSuspended => effectiveReasonCode == 'worker_suspended';
 
+  bool get isFinancialAccountInactive =>
+      effectiveReasonCode == 'financial_account_inactive';
+
   String get userMessageAr {
     switch (effectiveReasonCode) {
       case 'eligible':
@@ -150,6 +155,8 @@ class WorkerDispatchEligibilityModel {
         return 'حسابك غير مفعل حالياً. فعّل الحساب لاستقبال الطلبات الجديدة.';
       case 'worker_suspended':
         return 'تم إيقاف حسابك من قبل الإدارة، لذلك لن تستقبل طلبات جديدة حتى تلغي الإدارة الإيقاف.';
+      case 'financial_account_inactive':
+        return 'تم إيقاف حساب مبلغ التأمين بعد سحب كامل الرصيد. أضف إيداعاً جديداً لتتمكن من استقبال الطلبات.';
       case 'trust_score_too_low':
         return 'درجة الثقة أقل من الحد المطلوب لاستقبال الطلبات الجديدة.';
       case 'deposit_required_before_start':
@@ -158,7 +165,9 @@ class WorkerDispatchEligibilityModel {
         return 'رصيد التأمين أقل من الحد المسموح. يرجى شحن حساب التأمين لاستقبال الطلبات الجديدة.';
       case 'insufficient_commission_capacity':
         final blockedCount = blockedNewOrdersCount ?? 0;
-        final countText = blockedCount > 0 ? ' يوجد $blockedCount طلب غير ظاهر حالياً.' : '';
+        final countText = blockedCount > 0
+            ? ' يوجد $blockedCount طلب غير ظاهر حالياً.'
+            : '';
         return 'رصيد التأمين المتاح لا يغطي عمولة بعض الطلبات الجديدة.$countText يرجى شحن حساب التأمين أو انتظار تحرير العمولة المحجوزة.';
       default:
         return 'لا يمكن لحسابك استقبال الطلبات الجديدة حالياً.';
