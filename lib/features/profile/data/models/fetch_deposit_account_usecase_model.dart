@@ -69,6 +69,7 @@ class FetchDepositAccountUsecaseModel {
   final num? adminCommissionDebtAmount;
   final String? status;
   final num? exceedanceAmount;
+  final bool? isFinancialAccountActive;
   final bool? isEligibleForNewRequests;
   final String? createdAt;
   final String? updatedAt;
@@ -87,6 +88,7 @@ class FetchDepositAccountUsecaseModel {
     this.adminCommissionDebtAmount,
     this.status,
     this.exceedanceAmount,
+    this.isFinancialAccountActive,
     this.isEligibleForNewRequests,
     this.createdAt,
     this.updatedAt,
@@ -167,6 +169,14 @@ class FetchDepositAccountUsecaseModel {
       exceedanceAmount: _toNum(
         _pick(json, const <String>['exceedanceAmount', 'exceedance_amount']),
       ),
+      isFinancialAccountActive: _toBool(
+        _pick(json, const <String>[
+          'isFinancialAccountActive',
+          'is_financial_account_active',
+          'isActive',
+          'is_active',
+        ]),
+      ),
       isEligibleForNewRequests: _toBool(
         _pick(json, const <String>[
           'isEligibleForNewRequests',
@@ -199,6 +209,7 @@ class FetchDepositAccountUsecaseModel {
       'adminCommissionDebtAmount': adminCommissionDebtAmount,
       'status': status,
       'exceedanceAmount': exceedanceAmount,
+      'isFinancialAccountActive': isFinancialAccountActive,
       'isEligibleForNewRequests': isEligibleForNewRequests,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
