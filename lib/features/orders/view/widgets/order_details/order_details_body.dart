@@ -51,6 +51,12 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
   }
 
 
+  num get _netProfit {
+    final workerAmount = widget.order.myAssignment?.workerAmount;
+    if (workerAmount != null) return workerAmount;
+    return (widget.order.totalPrice ?? 0) - (widget.order.adminMargin ?? 0);
+  }
+
   List<MapEntry<String, String>> get _summaryRows {
     final bookedHours = EventAssistanceOrderHelper.resolveBookedHours(
       propertyHours: widget.order.propertyDetails?.hours,
@@ -69,7 +75,7 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
       ),
       // MapEntry('سعر الخدمة : ', _formatPrice(widget.order.basePrice)),
       // MapEntry('سعر التوصيل : ', _formatPrice(widget.order.travelFee)),
-      MapEntry('السعر الإجمالي', widget.order.totalPrice.formatMoney()),
+      MapEntry('صافي الربح', _netProfit.formatMoney()),
     ];
   }
 

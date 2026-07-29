@@ -21,6 +21,15 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
   bool get _isEventAssistance =>
       EventAssistanceOrderHelper.isEventAssistance(widget.order.propertyType);
 
+  String get _cleaningModeDisplayLabel {
+    final label = (widget.order.propertyDetails?.cleaningModeLabel ?? '')
+        .trim();
+    if (label.isNotEmpty) return label;
+    return CleaningEnumTranslations.cleaningMode(
+      widget.order.propertyDetails?.cleaningMode,
+    );
+  }
+
   String get address => visibleOrderAddress(
         address:
             widget.order.propertyDetails?.address ?? widget.order.locationName,
@@ -102,6 +111,34 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
               ),
             ],
           ),
+          if (!_isEventAssistance &&
+              (_cleaningModeDisplayLabel.trim().isNotEmpty &&
+                  _cleaningModeDisplayLabel != 'غير محدد')) ...[
+            14.verticalSpace,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.cleaning_services_outlined,
+                      color: context.secondary,
+                      size: 18.sp,
+                    ),
+                    6.horizontalSpace,
+                    AppText.labelMedium(
+                      'نوع التنظيف',
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ],
+                ),
+                AppText.labelMedium(
+                  _cleaningModeDisplayLabel,
+                  fontWeight: FontWeight.w300,
+                ),
+              ],
+            ),
+          ],
           if (widget.order.displayNeighborhoodName != null) ...[
             14.verticalSpace,
             Row(

@@ -34,6 +34,10 @@ void main() {
     expect(find.text('صافي الربح'), findsOneWidget);
     // Fallback net = totalPrice - adminMargin = 1200
     expect(find.textContaining('1,200'), findsOneWidget);
+
+    final totalY = tester.getTopLeft(find.text('الإجمالي')).dy;
+    final marginY = tester.getTopLeft(find.text('هامش الإدارة')).dy;
+    expect(totalY, lessThan(marginY));
   });
 
   testWidgets('uses workerAmount for net profit when provided', (tester) async {

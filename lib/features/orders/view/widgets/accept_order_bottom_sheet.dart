@@ -330,11 +330,27 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
     final showPropertyType =
         propertyTypeLabel.trim().isNotEmpty && propertyTypeLabel != 'غير محدد';
 
+    final cleaningModeLabel = (_order.propertyDetails?.cleaningModeLabel ?? '')
+            .trim()
+            .isNotEmpty
+        ? _order.propertyDetails!.cleaningModeLabel!.trim()
+        : CleaningEnumTranslations.cleaningMode(
+            _order.propertyDetails?.cleaningMode,
+          );
+    final showCleaningMode =
+        cleaningModeLabel.trim().isNotEmpty && cleaningModeLabel != 'غير محدد';
+
     final rows = <Widget>[
       if (showPropertyType)
         _orderInfoRow(
           label: 'نوع المكان',
           value: propertyTypeLabel,
+          withDivider: showCleaningMode || visibleItems.isNotEmpty,
+        ),
+      if (showCleaningMode)
+        _orderInfoRow(
+          label: 'نوع التنظيف',
+          value: cleaningModeLabel,
           withDivider: visibleItems.isNotEmpty,
         ),
       ...List.generate(visibleItems.length, (index) {

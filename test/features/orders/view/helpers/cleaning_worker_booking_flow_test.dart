@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:common_package/common_package.dart';
+import 'package:common_package/helpers/shared_preferences_helper.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_worker_global_prompt_coordinator.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_team_models.dart';
@@ -8,6 +11,7 @@ import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/cleaning_
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_lifecycle_policy.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/orders_accept_flow_policy.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   group('Cleaning worker booking model parsing', () {
@@ -131,22 +135,42 @@ void main() {
   });
 
   group('CleaningWorkerGlobalPromptCoordinator pending prompt filtering', () {
-    test('filters already accepted pending orders from promptable pending IDs', () {
+    const currentWorkerId = 99;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({
+        'user': jsonEncode({
+          'data': {'id': currentWorkerId},
+        }),
+      });
+      await SharedPreferencesHelper.init();
+    });
+
+    test('filters already accepted and non-dedicated pending orders', () {
       final ids = CleaningWorkerGlobalPromptCoordinator.findPendingBookingIds([
         FetchOrdersUsecaseModelDataItem(
           id: 10,
           status: CleaningBookingStatus.pending,
           workerOrderStatus: CleaningBookingStatus.pending,
+          preferredWorkerId: currentWorkerId,
         ),
         FetchOrdersUsecaseModelDataItem(
           id: 11,
           status: CleaningBookingStatus.pending,
           workerOrderStatus: 'accepted_waiting_for_order_start',
+          preferredWorkerId: currentWorkerId,
         ),
         FetchOrdersUsecaseModelDataItem(
           id: 12,
           status: CleaningBookingStatus.pending,
           myAssignment: CleaningMyAssignmentModel(status: 'start_approved'),
+          preferredWorkerId: currentWorkerId,
+        ),
+        FetchOrdersUsecaseModelDataItem(
+          id: 13,
+          status: CleaningBookingStatus.pending,
+          workerOrderStatus: CleaningBookingStatus.pending,
+          preferredWorkerId: 55,
         ),
       ]);
 

@@ -341,7 +341,7 @@ class _WalletScreenState extends State<WalletScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _text('قيمة الدين', weight: FontWeight.w700, size: 18),
+                _text('حد السماح', weight: FontWeight.w700, size: 18),
                 4.verticalSpace,
                 isLoading
                     ? _loadingLine(110.w)

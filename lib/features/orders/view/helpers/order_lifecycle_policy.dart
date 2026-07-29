@@ -5,6 +5,7 @@ import '../../data/models/cleaning_booking_status.dart';
 import '../../data/models/fetch_orders_usecase_model.dart';
 import '../manager/bloc/orders_bloc.dart';
 import 'cleaning_worker_order_status.dart';
+import 'dedicated_order_helper.dart';
 
 enum OrderDetailsUiState {
   newOrder,
@@ -104,6 +105,14 @@ class OrderLifecyclePolicy {
     return isPending(order) &&
         !hasCurrentWorkerAccepted(order) &&
         !hasCurrentWorkerRejectedOrClosed(order);
+  }
+
+  /// Auto-prompt (bottom sheet) only for orders dedicated to this worker.
+  static bool isDedicatedAvailableNewOrderForCurrentWorker(
+    FetchOrdersUsecaseModelDataItem order,
+  ) {
+    return isAvailableNewOrderForCurrentWorker(order) &&
+        DedicatedOrderHelper.isDedicatedToCurrentUser(order.preferredWorkerId);
   }
 
   static bool isAcceptedWaiting(FetchOrdersUsecaseModelDataItem order) {

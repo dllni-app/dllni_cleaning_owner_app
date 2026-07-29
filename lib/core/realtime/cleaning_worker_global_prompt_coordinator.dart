@@ -317,7 +317,7 @@ class CleaningWorkerGlobalPromptCoordinator {
     List<FetchOrdersUsecaseModelDataItem> orders,
   ) {
     return orders
-        .where(OrderLifecyclePolicy.isAvailableNewOrderForCurrentWorker)
+        .where(OrderLifecyclePolicy.isDedicatedAvailableNewOrderForCurrentWorker)
         .map((order) => order.id)
         .whereType<int>()
         .toList(growable: false);
@@ -353,7 +353,9 @@ class CleaningWorkerGlobalPromptCoordinator {
   }) async {
     final bookingId = order.id;
     if (bookingId == null) return false;
-    if (!OrderLifecyclePolicy.isAvailableNewOrderForCurrentWorker(order)) {
+    if (!OrderLifecyclePolicy.isDedicatedAvailableNewOrderForCurrentWorker(
+      order,
+    )) {
       return false;
     }
     if (_handledPendingPromptBookingIds.contains(bookingId) ||
@@ -376,7 +378,9 @@ class CleaningWorkerGlobalPromptCoordinator {
   Future<FetchOrdersUsecaseModelDataItem?> _freshPromptablePendingOrder(
     FetchOrdersUsecaseModelDataItem order,
   ) async {
-    if (!OrderLifecyclePolicy.isAvailableNewOrderForCurrentWorker(order)) {
+    if (!OrderLifecyclePolicy.isDedicatedAvailableNewOrderForCurrentWorker(
+      order,
+    )) {
       return null;
     }
 
@@ -394,7 +398,9 @@ class CleaningWorkerGlobalPromptCoordinator {
       resolved = OrderDetailsToListItemMapper.fromDetails(details);
     });
 
-    return OrderLifecyclePolicy.isAvailableNewOrderForCurrentWorker(resolved)
+    return OrderLifecyclePolicy.isDedicatedAvailableNewOrderForCurrentWorker(
+          resolved,
+        )
         ? resolved
         : null;
   }
@@ -402,7 +408,9 @@ class CleaningWorkerGlobalPromptCoordinator {
   Future<bool> _showPendingOrderSheet({
     required FetchOrdersUsecaseModelDataItem order,
   }) async {
-    if (!OrderLifecyclePolicy.isAvailableNewOrderForCurrentWorker(order)) {
+    if (!OrderLifecyclePolicy.isDedicatedAvailableNewOrderForCurrentWorker(
+      order,
+    )) {
       return false;
     }
 
@@ -857,7 +865,9 @@ class CleaningWorkerGlobalPromptCoordinator {
     if (loader != null) {
       return loader().then(
         (orders) => orders
-            .where(OrderLifecyclePolicy.isAvailableNewOrderForCurrentWorker)
+            .where(
+              OrderLifecyclePolicy.isDedicatedAvailableNewOrderForCurrentWorker,
+            )
             .toList(growable: false),
       );
     }
@@ -879,7 +889,9 @@ class CleaningWorkerGlobalPromptCoordinator {
       );
       if (orders.isEmpty) break;
       collected.addAll(
-        orders.where(OrderLifecyclePolicy.isAvailableNewOrderForCurrentWorker),
+        orders.where(
+          OrderLifecyclePolicy.isDedicatedAvailableNewOrderForCurrentWorker,
+        ),
       );
       if (orders.length < _pollPageSize) break;
     }

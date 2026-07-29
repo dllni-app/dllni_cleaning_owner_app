@@ -591,6 +591,8 @@ class FetchOrderDetailsUsecaseModelDataPropertyDetails {
   final int? kitchens;
   final String? livingRoomSize;
   final Map<String, dynamic>? roomSizeBreakdown;
+  final String? cleaningMode;
+  final String? cleaningModeLabel;
   final String? eventType;
   final int? guestCount;
   final String? venueType;
@@ -609,6 +611,8 @@ class FetchOrderDetailsUsecaseModelDataPropertyDetails {
     this.kitchens,
     this.livingRoomSize,
     this.roomSizeBreakdown,
+    this.cleaningMode,
+    this.cleaningModeLabel,
     this.eventType,
     this.guestCount,
     this.venueType,
@@ -642,6 +646,12 @@ class FetchOrderDetailsUsecaseModelDataPropertyDetails {
         _pick(json, const <String>['livingRoomSize', 'living_room_size']),
       ),
       roomSizeBreakdown: breakdownRaw == null ? null : _toMap(breakdownRaw),
+      cleaningMode: _toStringValue(
+        _pick(json, const <String>['cleaningMode', 'cleaning_mode']),
+      ),
+      cleaningModeLabel: _toStringValue(
+        _pick(json, const <String>['cleaningModeLabel', 'cleaning_mode_label']),
+      ),
       eventType: _toStringValue(
         _pick(json, const <String>['event_type', 'eventType']),
       ),
@@ -673,6 +683,8 @@ class FetchOrderDetailsUsecaseModelDataPropertyDetails {
       'kitchens': kitchens,
       'living_room_size': livingRoomSize,
       'room_size_breakdown': roomSizeBreakdown,
+      'cleaning_mode': cleaningMode,
+      'cleaning_mode_label': cleaningModeLabel,
       'event_type': eventType,
       'guest_count': guestCount,
       'venue_type': venueType,

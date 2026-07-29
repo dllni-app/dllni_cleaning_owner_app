@@ -34,12 +34,12 @@ enum HomeOrdersTab { newOrders, todayOrders }
 extension HomeOrdersTabX on HomeOrdersTab {
   String get label => switch (this) {
     HomeOrdersTab.newOrders => 'طلبات جديدة',
-    HomeOrdersTab.todayOrders => 'طلبات اليوم',
+    HomeOrdersTab.todayOrders => 'مهام اليوم',
   };
 
   String get emptyMessage => switch (this) {
     HomeOrdersTab.newOrders => 'لا توجد طلبات جديدة',
-    HomeOrdersTab.todayOrders => 'لا توجد طلبات اليوم',
+    HomeOrdersTab.todayOrders => 'لا توجد مهام اليوم',
   };
 }
 
