@@ -15,6 +15,9 @@ class ExtensionRequestActionSheet {
     int? bookingId,
     int? requestedMinutes,
     String? customerName,
+    double? baseAmount,
+    double? adminMargin,
+    double? totalAmount,
     double? additionalAmount,
     String? currency,
     String? paymentMethod,
@@ -41,6 +44,9 @@ class ExtensionRequestActionSheet {
               bookingId: bookingId,
               requestedMinutes: requestedMinutes,
               customerName: customerName,
+              baseAmount: baseAmount,
+              adminMargin: adminMargin,
+              totalAmount: totalAmount,
               additionalAmount: additionalAmount,
               currency: currency,
               paymentMethod: paymentMethod,
@@ -54,7 +60,8 @@ class ExtensionRequestActionSheet {
 
   static String paymentMethodLabel(String? paymentMethod) {
     final value = (paymentMethod ?? '').trim().toLowerCase();
-    if (value == 'cash' || value == 'cash_on_delivery') return 'نقداً عند الاستلام';
+    if (value == 'cash' || value == 'cash_on_delivery')
+      return 'نقداً عند الاستلام';
     if (value == 'card') return 'دفع إلكتروني';
     if (value.isEmpty) return 'طريقة الدفع غير محددة';
     return paymentMethod!;
@@ -68,6 +75,9 @@ class _ExtensionRequestActionSheetBody extends StatefulWidget {
     this.bookingId,
     this.requestedMinutes,
     this.customerName,
+    this.baseAmount,
+    this.adminMargin,
+    this.totalAmount,
     this.additionalAmount,
     this.currency,
     this.paymentMethod,
@@ -78,6 +88,9 @@ class _ExtensionRequestActionSheetBody extends StatefulWidget {
   final int? bookingId;
   final int? requestedMinutes;
   final String? customerName;
+  final double? baseAmount;
+  final double? adminMargin;
+  final double? totalAmount;
   final double? additionalAmount;
   final String? currency;
   final String? paymentMethod;
@@ -87,7 +100,8 @@ class _ExtensionRequestActionSheetBody extends StatefulWidget {
       _ExtensionRequestActionSheetBodyState();
 }
 
-class _ExtensionRequestActionSheetBodyState extends State<_ExtensionRequestActionSheetBody> {
+class _ExtensionRequestActionSheetBodyState
+    extends State<_ExtensionRequestActionSheetBody> {
   final _messageController = TextEditingController();
   String? _rejectError;
   bool _isSubmitting = false;
@@ -143,13 +157,13 @@ class _ExtensionRequestActionSheetBodyState extends State<_ExtensionRequestActio
         ? widget.customerName!.trim()
         : 'العميل';
     final durationText = formatExtensionDurationAr(widget.requestedMinutes);
-    final amountText = widget.additionalAmount == null
-        ? '-'
-        : widget.additionalAmount!.toStringAsFixed(2);
+    final totalAmount = widget.totalAmount ?? widget.additionalAmount;
     final currencyText = (widget.currency?.trim().isNotEmpty ?? false)
         ? widget.currency!.trim()
         : 'ل.س';
-    final paymentText = ExtensionRequestActionSheet.paymentMethodLabel(widget.paymentMethod);
+    final paymentText = ExtensionRequestActionSheet.paymentMethodLabel(
+      widget.paymentMethod,
+    );
 
     return Padding(
       padding: EdgeInsets.only(
@@ -161,19 +175,28 @@ class _ExtensionRequestActionSheetBodyState extends State<_ExtensionRequestActio
       child: BlocConsumer<OrdersBloc, OrdersState>(
         bloc: widget.bloc,
         listenWhen: (previous, current) {
-          final acceptedNow = previous.acceptExtensionUsecaseStatus != BlocStatus.success &&
+          final acceptedNow =
+              previous.acceptExtensionUsecaseStatus != BlocStatus.success &&
               current.acceptExtensionUsecaseStatus == BlocStatus.success;
-          final rejectedNow = previous.rejectExtensionUsecaseStatus != BlocStatus.success &&
+          final rejectedNow =
+              previous.rejectExtensionUsecaseStatus != BlocStatus.success &&
               current.rejectExtensionUsecaseStatus == BlocStatus.success;
-          final acceptFailedNow = previous.acceptExtensionUsecaseStatus != BlocStatus.failed &&
+          final acceptFailedNow =
+              previous.acceptExtensionUsecaseStatus != BlocStatus.failed &&
               current.acceptExtensionUsecaseStatus == BlocStatus.failed;
-          final rejectFailedNow = previous.rejectExtensionUsecaseStatus != BlocStatus.failed &&
+          final rejectFailedNow =
+              previous.rejectExtensionUsecaseStatus != BlocStatus.failed &&
               current.rejectExtensionUsecaseStatus == BlocStatus.failed;
-          return acceptedNow || rejectedNow || acceptFailedNow || rejectFailedNow;
+          return acceptedNow ||
+              rejectedNow ||
+              acceptFailedNow ||
+              rejectFailedNow;
         },
         buildWhen: (previous, current) =>
-            previous.acceptExtensionUsecaseStatus != current.acceptExtensionUsecaseStatus ||
-            previous.rejectExtensionUsecaseStatus != current.rejectExtensionUsecaseStatus,
+            previous.acceptExtensionUsecaseStatus !=
+                current.acceptExtensionUsecaseStatus ||
+            previous.rejectExtensionUsecaseStatus !=
+                current.rejectExtensionUsecaseStatus,
         listener: (context, state) {
           if (state.acceptExtensionUsecaseStatus == BlocStatus.success ||
               state.rejectExtensionUsecaseStatus == BlocStatus.success) {
@@ -190,7 +213,8 @@ class _ExtensionRequestActionSheetBodyState extends State<_ExtensionRequestActio
           }
         },
         builder: (context, state) {
-          final isLoading = _isSubmitting ||
+          final isLoading =
+              _isSubmitting ||
               state.acceptExtensionUsecaseStatus == BlocStatus.loading ||
               state.rejectExtensionUsecaseStatus == BlocStatus.loading;
           return SingleChildScrollView(
@@ -239,7 +263,11 @@ class _ExtensionRequestActionSheetBodyState extends State<_ExtensionRequestActio
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Icon(Icons.info_outline, color: Color(0xffEA580C), size: 20),
+                      const Icon(
+                        Icons.info_outline,
+                        color: Color(0xffEA580C),
+                        size: 20,
+                      ),
                     ],
                   ),
                 ),
@@ -255,23 +283,25 @@ class _ExtensionRequestActionSheetBodyState extends State<_ExtensionRequestActio
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       AppText.bodyMedium(
-                        'مرابحك الإضافية',
+                        'تفاصيل مبلغ التمديد',
                         fontWeight: FontWeight.w700,
                         textAlign: TextAlign.right,
                       ),
                       const SizedBox(height: 10),
                       const Divider(height: 1, color: Color(0xffE5E7EB)),
                       const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          AppText.bodyLarge('$amountText $currencyText', fontWeight: FontWeight.w700),
-                          AppText.bodyLarge('الإجمالي', fontWeight: FontWeight.w700),
-                        ],
+                      ExtensionRequestAmountBreakdown(
+                        baseAmount: widget.baseAmount,
+                        adminMargin: widget.adminMargin,
+                        totalAmount: totalAmount,
+                        currency: currencyText,
                       ),
                       const SizedBox(height: 10),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xffF3F4F6),
                           borderRadius: BorderRadius.circular(10),
@@ -285,7 +315,11 @@ class _ExtensionRequestActionSheetBodyState extends State<_ExtensionRequestActio
                               ),
                             ),
                             const SizedBox(width: 8),
-                            const Icon(Icons.payments_outlined, color: Color(0xff22C55E), size: 20),
+                            const Icon(
+                              Icons.payments_outlined,
+                              color: Color(0xff22C55E),
+                              size: 20,
+                            ),
                           ],
                         ),
                       ),
@@ -294,7 +328,11 @@ class _ExtensionRequestActionSheetBodyState extends State<_ExtensionRequestActio
                 ),
                 const SizedBox(height: 12),
                 if (_rejectError != null) ...[
-                  AppText.bodySmall(_rejectError!, color: context.error, textAlign: TextAlign.center),
+                  AppText.bodySmall(
+                    _rejectError!,
+                    color: context.error,
+                    textAlign: TextAlign.center,
+                  ),
                   const SizedBox(height: 8),
                 ],
                 Directionality(
@@ -308,9 +346,14 @@ class _ExtensionRequestActionSheetBodyState extends State<_ExtensionRequestActio
                             side: const BorderSide(color: Color(0xffEF4444)),
                             foregroundColor: const Color(0xffEF4444),
                             padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                          child: AppText.labelLarge('رفض الطلب', color: const Color(0xffEF4444)),
+                          child: AppText.labelLarge(
+                            'رفض الطلب',
+                            color: const Color(0xffEF4444),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -321,9 +364,14 @@ class _ExtensionRequestActionSheetBodyState extends State<_ExtensionRequestActio
                             backgroundColor: const Color(0xff1DBCC8),
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                          child: isLoading && state.acceptExtensionUsecaseStatus == BlocStatus.loading
+                          child:
+                              isLoading &&
+                                  state.acceptExtensionUsecaseStatus ==
+                                      BlocStatus.loading
                               ? const SizedBox(
                                   width: 18,
                                   height: 18,
@@ -332,7 +380,10 @@ class _ExtensionRequestActionSheetBodyState extends State<_ExtensionRequestActio
                                     color: Colors.white,
                                   ),
                                 )
-                              : AppText.labelLarge('قبول الطلب', color: Colors.white),
+                              : AppText.labelLarge(
+                                  'قبول الطلب',
+                                  color: Colors.white,
+                                ),
                         ),
                       ),
                     ],
@@ -343,6 +394,98 @@ class _ExtensionRequestActionSheetBodyState extends State<_ExtensionRequestActio
           );
         },
       ),
+    );
+  }
+}
+
+class ExtensionRequestAmountBreakdown extends StatelessWidget {
+  const ExtensionRequestAmountBreakdown({
+    required this.baseAmount,
+    required this.adminMargin,
+    required this.totalAmount,
+    required this.currency,
+    super.key,
+  });
+
+  final double? baseAmount;
+  final double? adminMargin;
+  final double? totalAmount;
+  final String currency;
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = <Widget>[
+      if (baseAmount != null)
+        _ExtensionAmountRow(
+          key: const Key('extension_base_amount'),
+          label: 'سعر التمديد',
+          amount: baseAmount!,
+          currency: currency,
+        ),
+      if (adminMargin != null)
+        _ExtensionAmountRow(
+          key: const Key('extension_admin_margin'),
+          label: 'هامش الادارة',
+          amount: adminMargin!,
+          currency: currency,
+        ),
+      if (totalAmount != null)
+        _ExtensionAmountRow(
+          key: const Key('extension_total_amount'),
+          label: 'الإجمالي',
+          amount: totalAmount!,
+          currency: currency,
+          emphasize: true,
+        ),
+    ];
+
+    if (rows.isEmpty) {
+      return AppText.bodySmall(
+        'المبلغ غير متاح',
+        color: const Color(0xff6B7280),
+        textAlign: TextAlign.center,
+      );
+    }
+
+    return Column(
+      children: [
+        for (var index = 0; index < rows.length; index++) ...[
+          if (index > 0) const SizedBox(height: 8),
+          rows[index],
+        ],
+      ],
+    );
+  }
+}
+
+class _ExtensionAmountRow extends StatelessWidget {
+  const _ExtensionAmountRow({
+    required this.label,
+    required this.amount,
+    required this.currency,
+    this.emphasize = false,
+    super.key,
+  });
+
+  final String label;
+  final double amount;
+  final String currency;
+  final bool emphasize;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        AppText.bodyLarge(
+          '${amount.toStringAsFixed(2)} $currency',
+          fontWeight: emphasize ? FontWeight.w700 : FontWeight.w500,
+        ),
+        AppText.bodyLarge(
+          label,
+          fontWeight: emphasize ? FontWeight.w700 : FontWeight.w500,
+        ),
+      ],
     );
   }
 }
