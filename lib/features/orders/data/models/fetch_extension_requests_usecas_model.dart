@@ -70,42 +70,69 @@ dynamic _asDynamic(dynamic value) {
   return value.toString();
 }
 
-FetchExtensionRequestsUsecasModel fetchExtensionRequestsUsecasModelFromJson(str) => FetchExtensionRequestsUsecasModel.fromJson(str);
+FetchExtensionRequestsUsecasModel fetchExtensionRequestsUsecasModelFromJson(
+  str,
+) => FetchExtensionRequestsUsecasModel.fromJson(str);
 
-String fetchExtensionRequestsUsecasModelToJson(FetchExtensionRequestsUsecasModel data) => json.encode(data.toJson());
+String fetchExtensionRequestsUsecasModelToJson(
+  FetchExtensionRequestsUsecasModel data,
+) => json.encode(data.toJson());
 
+FetchExtensionRequestsUsecasModelMeta
+fetchExtensionRequestsUsecasModelMetaFromJson(str) =>
+    FetchExtensionRequestsUsecasModelMeta.fromJson(str);
 
-FetchExtensionRequestsUsecasModelMeta fetchExtensionRequestsUsecasModelMetaFromJson(str) => FetchExtensionRequestsUsecasModelMeta.fromJson(str);
+String fetchExtensionRequestsUsecasModelMetaToJson(
+  FetchExtensionRequestsUsecasModelMeta data,
+) => json.encode(data.toJson());
 
-String fetchExtensionRequestsUsecasModelMetaToJson(FetchExtensionRequestsUsecasModelMeta data) => json.encode(data.toJson());
+FetchExtensionRequestsUsecasModelLinks
+fetchExtensionRequestsUsecasModelLinksFromJson(str) =>
+    FetchExtensionRequestsUsecasModelLinks.fromJson(str);
 
+String fetchExtensionRequestsUsecasModelLinksToJson(
+  FetchExtensionRequestsUsecasModelLinks data,
+) => json.encode(data.toJson());
 
-FetchExtensionRequestsUsecasModelLinks fetchExtensionRequestsUsecasModelLinksFromJson(str) => FetchExtensionRequestsUsecasModelLinks.fromJson(str);
+FetchExtensionRequestsUsecasModelDataItem
+fetchExtensionRequestsUsecasModelDataItemFromJson(str) =>
+    FetchExtensionRequestsUsecasModelDataItem.fromJson(str);
 
-String fetchExtensionRequestsUsecasModelLinksToJson(FetchExtensionRequestsUsecasModelLinks data) => json.encode(data.toJson());
-
-
-FetchExtensionRequestsUsecasModelDataItem fetchExtensionRequestsUsecasModelDataItemFromJson(str) => FetchExtensionRequestsUsecasModelDataItem.fromJson(str);
-
-String fetchExtensionRequestsUsecasModelDataItemToJson(FetchExtensionRequestsUsecasModelDataItem data) => json.encode(data.toJson());
-
+String fetchExtensionRequestsUsecasModelDataItemToJson(
+  FetchExtensionRequestsUsecasModelDataItem data,
+) => json.encode(data.toJson());
 
 class FetchExtensionRequestsUsecasModel {
   List<FetchExtensionRequestsUsecasModelDataItem>? data;
   FetchExtensionRequestsUsecasModelLinks? links;
   FetchExtensionRequestsUsecasModelMeta? meta;
 
-  FetchExtensionRequestsUsecasModel({
-    this.data,
-    this.links,
-    this.meta,
-  });
+  FetchExtensionRequestsUsecasModel({this.data, this.links, this.meta});
 
-  factory FetchExtensionRequestsUsecasModel.fromJson(Map<String, dynamic> json) {
+  factory FetchExtensionRequestsUsecasModel.fromJson(
+    Map<String, dynamic> json,
+  ) {
     return FetchExtensionRequestsUsecasModel(
-      data: json['data'] is List ? (json['data'] as List).whereType<Map>().map((item) => FetchExtensionRequestsUsecasModelDataItem.fromJson(Map<String, dynamic>.from(item))).toList() : null,
-      links: json['links'] is Map ? FetchExtensionRequestsUsecasModelLinks.fromJson(Map<String, dynamic>.from(json['links'] as Map)) : null,
-      meta: json['meta'] is Map ? FetchExtensionRequestsUsecasModelMeta.fromJson(Map<String, dynamic>.from(json['meta'] as Map)) : null,
+      data: json['data'] is List
+          ? (json['data'] as List)
+                .whereType<Map>()
+                .map(
+                  (item) => FetchExtensionRequestsUsecasModelDataItem.fromJson(
+                    Map<String, dynamic>.from(item),
+                  ),
+                )
+                .toList()
+          : null,
+      links: json['links'] is Map
+          ? FetchExtensionRequestsUsecasModelLinks.fromJson(
+              Map<String, dynamic>.from(json['links'] as Map),
+            )
+          : null,
+      meta: json['meta'] is Map
+          ? FetchExtensionRequestsUsecasModelMeta.fromJson(
+              Map<String, dynamic>.from(json['meta'] as Map),
+            )
+          : null,
     );
   }
 
@@ -129,7 +156,9 @@ class FetchExtensionRequestsUsecasModelMeta {
     this.total,
   });
 
-  factory FetchExtensionRequestsUsecasModelMeta.fromJson(Map<String, dynamic> json) {
+  factory FetchExtensionRequestsUsecasModelMeta.fromJson(
+    Map<String, dynamic> json,
+  ) {
     return FetchExtensionRequestsUsecasModelMeta(
       currentPage: _asInt(json['current_page']),
       perPage: _asInt(json['per_page']),
@@ -138,11 +167,7 @@ class FetchExtensionRequestsUsecasModelMeta {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'current_page': currentPage,
-      'per_page': perPage,
-      'total': total,
-    };
+    return {'current_page': currentPage, 'per_page': perPage, 'total': total};
   }
 }
 
@@ -159,7 +184,9 @@ class FetchExtensionRequestsUsecasModelLinks {
     this.next,
   });
 
-  factory FetchExtensionRequestsUsecasModelLinks.fromJson(Map<String, dynamic> json) {
+  factory FetchExtensionRequestsUsecasModelLinks.fromJson(
+    Map<String, dynamic> json,
+  ) {
     return FetchExtensionRequestsUsecasModelLinks(
       first: _asString(json['first']),
       last: _asString(json['last']),
@@ -169,12 +196,7 @@ class FetchExtensionRequestsUsecasModelLinks {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'first': first,
-      'last': last,
-      'prev': prev,
-      'next': next,
-    };
+    return {'first': first, 'last': last, 'prev': prev, 'next': next};
   }
 }
 
@@ -202,6 +224,11 @@ class FetchExtensionRequestsUsecasModelDataItem {
   String? bookingType;
   int? requestedMinutes;
   int? additionalMinutes;
+  double? baseAmount;
+  double? adminMargin;
+  double? totalAmount;
+  double? additionalAmount;
+  String? currency;
   String? customerResponse;
   String? workerResponse;
   String? workerRejectMessage;
@@ -215,6 +242,11 @@ class FetchExtensionRequestsUsecasModelDataItem {
     this.bookingType,
     this.requestedMinutes,
     this.additionalMinutes,
+    this.baseAmount,
+    this.adminMargin,
+    this.totalAmount,
+    this.additionalAmount,
+    this.currency,
     this.customerResponse,
     this.workerResponse,
     this.workerRejectMessage,
@@ -224,8 +256,7 @@ class FetchExtensionRequestsUsecasModelDataItem {
   });
 
   /// Contract field `additionalMinutes` with legacy `requestedMinutes` fallback.
-  int? get resolvedAdditionalMinutes =>
-      additionalMinutes ?? requestedMinutes;
+  int? get resolvedAdditionalMinutes => additionalMinutes ?? requestedMinutes;
 
   bool get isPendingWorkerResponse {
     final status = responseStatus?.toString().trim().toLowerCase();
@@ -273,6 +304,13 @@ class FetchExtensionRequestsUsecasModelDataItem {
       additionalMinutes: _asInt(
         json['additionalMinutes'] ?? json['additional_minutes'],
       ),
+      baseAmount: _asDouble(json['baseAmount'] ?? json['base_amount']),
+      adminMargin: _asDouble(json['adminMargin'] ?? json['admin_margin']),
+      totalAmount: _asDouble(json['totalAmount'] ?? json['total_amount']),
+      additionalAmount: _asDouble(
+        json['additionalAmount'] ?? json['additional_amount'],
+      ),
+      currency: _asString(json['currency']),
       customerResponse: _asString(
         json['customerResponse'] ?? json['customer_response'],
       ),
@@ -301,6 +339,11 @@ class FetchExtensionRequestsUsecasModelDataItem {
       'bookingType': bookingType,
       'requestedMinutes': requestedMinutes,
       'additionalMinutes': additionalMinutes,
+      'baseAmount': baseAmount,
+      'adminMargin': adminMargin,
+      'totalAmount': totalAmount,
+      'additionalAmount': additionalAmount,
+      'currency': currency,
       'customerResponse': customerResponse,
       'workerResponse': workerResponse,
       'workerRejectMessage': workerRejectMessage,

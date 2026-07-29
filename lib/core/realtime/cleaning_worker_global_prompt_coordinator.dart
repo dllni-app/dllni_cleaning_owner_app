@@ -578,6 +578,13 @@ class CleaningWorkerGlobalPromptCoordinator {
             requestedMinutesOverride ?? _resolveRequestedMinutes(payload),
         customerName: (payload['customerName'] ?? payload['customer_name'])
             ?.toString(),
+        baseAmount: _asDouble(payload['baseAmount'] ?? payload['base_amount']),
+        adminMargin: _asDouble(
+          payload['adminMargin'] ?? payload['admin_margin'],
+        ),
+        totalAmount: _asDouble(
+          payload['totalAmount'] ?? payload['total_amount'],
+        ),
         additionalAmount: _asDouble(
           payload['additionalAmount'] ??
               payload['additional_amount'] ??
@@ -622,7 +629,14 @@ class CleaningWorkerGlobalPromptCoordinator {
       return _openExtensionPromptForWarning(
         warningId: match.warningId!,
         bookingId: match.bookingId ?? bookingId,
-        payload: payload,
+        payload: {
+          ...payload,
+          'baseAmount': match.baseAmount,
+          'adminMargin': match.adminMargin,
+          'totalAmount': match.totalAmount,
+          'additionalAmount': match.additionalAmount,
+          'currency': match.currency,
+        },
         requestedMinutesOverride: match.requestedMinutes,
       );
     } finally {
@@ -635,6 +649,9 @@ class CleaningWorkerGlobalPromptCoordinator {
     required int? bookingId,
     required int? requestedMinutes,
     required String? customerName,
+    required double? baseAmount,
+    required double? adminMargin,
+    required double? totalAmount,
     required double? additionalAmount,
     required String? currency,
     required String? paymentMethod,
@@ -643,6 +660,9 @@ class CleaningWorkerGlobalPromptCoordinator {
       bookingId: bookingId,
       requestedMinutes: requestedMinutes,
       customerName: customerName,
+      baseAmount: baseAmount,
+      adminMargin: adminMargin,
+      totalAmount: totalAmount,
       additionalAmount: additionalAmount,
       currency: currency,
       paymentMethod: paymentMethod,
@@ -656,6 +676,9 @@ class CleaningWorkerGlobalPromptCoordinator {
           bookingId: bookingId,
           requestedMinutes: enriched.requestedMinutes,
           customerName: enriched.customerName,
+          baseAmount: enriched.baseAmount,
+          adminMargin: enriched.adminMargin,
+          totalAmount: enriched.totalAmount,
           additionalAmount: enriched.additionalAmount,
           currency: enriched.currency,
           paymentMethod: enriched.paymentMethod,
@@ -679,6 +702,9 @@ class CleaningWorkerGlobalPromptCoordinator {
             bookingId: bookingId,
             requestedMinutes: enriched.requestedMinutes,
             customerName: enriched.customerName,
+            baseAmount: enriched.baseAmount,
+            adminMargin: enriched.adminMargin,
+            totalAmount: enriched.totalAmount,
             additionalAmount: enriched.additionalAmount,
             currency: enriched.currency,
             paymentMethod: enriched.paymentMethod,
@@ -696,12 +722,18 @@ class CleaningWorkerGlobalPromptCoordinator {
     required int? bookingId,
     required int? requestedMinutes,
     required String? customerName,
+    required double? baseAmount,
+    required double? adminMargin,
+    required double? totalAmount,
     required double? additionalAmount,
     required String? currency,
     required String? paymentMethod,
   }) async {
     var resolvedCustomerName = customerName;
-    var resolvedAmount = additionalAmount;
+    final resolvedBaseAmount = baseAmount;
+    final resolvedAdminMargin = adminMargin;
+    final resolvedTotalAmount = totalAmount ?? additionalAmount;
+    var resolvedAmount = additionalAmount ?? totalAmount;
     var resolvedCurrency = currency;
     var resolvedPaymentMethod = paymentMethod;
     final needsDetails =
@@ -715,6 +747,9 @@ class CleaningWorkerGlobalPromptCoordinator {
       return _ExtensionPromptEnrichment(
         requestedMinutes: requestedMinutes,
         customerName: resolvedCustomerName,
+        baseAmount: resolvedBaseAmount,
+        adminMargin: resolvedAdminMargin,
+        totalAmount: resolvedTotalAmount,
         additionalAmount: resolvedAmount,
         currency: resolvedCurrency,
         paymentMethod: resolvedPaymentMethod,
@@ -726,6 +761,9 @@ class CleaningWorkerGlobalPromptCoordinator {
       return _ExtensionPromptEnrichment(
         requestedMinutes: requestedMinutes,
         customerName: resolvedCustomerName,
+        baseAmount: resolvedBaseAmount,
+        adminMargin: resolvedAdminMargin,
+        totalAmount: resolvedTotalAmount,
         additionalAmount: resolvedAmount,
         currency: resolvedCurrency,
         paymentMethod: resolvedPaymentMethod,
@@ -740,15 +778,6 @@ class CleaningWorkerGlobalPromptCoordinator {
       if (details == null) return;
       if (resolvedCustomerName?.trim().isEmpty ?? true)
         resolvedCustomerName = details.customer?.name;
-      if (resolvedAmount == null &&
-          requestedMinutes != null &&
-          requestedMinutes > 0) {
-        final totalHours = details.totalHours;
-        final totalPrice = details.totalPrice;
-        if (totalHours != null && totalHours > 0 && totalPrice != null) {
-          resolvedAmount = totalPrice / totalHours * (requestedMinutes / 60.0);
-        }
-      }
       if (resolvedPaymentMethod?.trim().isEmpty ?? true)
         resolvedPaymentMethod = 'cash_on_delivery';
     });
@@ -756,6 +785,9 @@ class CleaningWorkerGlobalPromptCoordinator {
     return _ExtensionPromptEnrichment(
       requestedMinutes: requestedMinutes,
       customerName: resolvedCustomerName,
+      baseAmount: resolvedBaseAmount,
+      adminMargin: resolvedAdminMargin,
+      totalAmount: resolvedTotalAmount,
       additionalAmount: resolvedAmount,
       currency: resolvedCurrency,
       paymentMethod: resolvedPaymentMethod,
@@ -846,6 +878,11 @@ class CleaningWorkerGlobalPromptCoordinator {
               warningId: _asInt(item.id),
               bookingId: _asInt(item.bookingId),
               requestedMinutes: _asInt(item.resolvedAdditionalMinutes),
+              baseAmount: item.baseAmount,
+              adminMargin: item.adminMargin,
+              totalAmount: item.totalAmount,
+              additionalAmount: item.additionalAmount,
+              currency: item.currency,
             ),
           )
           .toList(growable: false);
@@ -975,6 +1012,9 @@ class WorkerExtensionPromptData {
     required this.bookingId,
     required this.requestedMinutes,
     required this.customerName,
+    required this.baseAmount,
+    required this.adminMargin,
+    required this.totalAmount,
     required this.additionalAmount,
     required this.currency,
     required this.paymentMethod,
@@ -983,6 +1023,9 @@ class WorkerExtensionPromptData {
   final int? bookingId;
   final int? requestedMinutes;
   final String? customerName;
+  final double? baseAmount;
+  final double? adminMargin;
+  final double? totalAmount;
   final double? additionalAmount;
   final String? currency;
   final String? paymentMethod;
@@ -1011,22 +1054,38 @@ class WorkerPendingExtensionRequest {
     required this.warningId,
     required this.bookingId,
     required this.requestedMinutes,
+    this.baseAmount,
+    this.adminMargin,
+    this.totalAmount,
+    this.additionalAmount,
+    this.currency,
   });
   final int? warningId;
   final int? bookingId;
   final int? requestedMinutes;
+  final double? baseAmount;
+  final double? adminMargin;
+  final double? totalAmount;
+  final double? additionalAmount;
+  final String? currency;
 }
 
 class _ExtensionPromptEnrichment {
   const _ExtensionPromptEnrichment({
     required this.requestedMinutes,
     required this.customerName,
+    required this.baseAmount,
+    required this.adminMargin,
+    required this.totalAmount,
     required this.additionalAmount,
     required this.currency,
     required this.paymentMethod,
   });
   final int? requestedMinutes;
   final String? customerName;
+  final double? baseAmount;
+  final double? adminMargin;
+  final double? totalAmount;
   final double? additionalAmount;
   final String? currency;
   final String? paymentMethod;

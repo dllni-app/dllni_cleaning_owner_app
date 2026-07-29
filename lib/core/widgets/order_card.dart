@@ -197,6 +197,9 @@ class OrderCard extends StatelessWidget {
       bookingId: request.bookingId ?? data.id,
       requestedMinutes: request.requestedMinutes,
       customerName: request.customerName ?? data.customer?.name,
+      baseAmount: request.baseAmount,
+      adminMargin: request.adminMargin,
+      totalAmount: request.totalAmount,
       additionalAmount: request.additionalAmount,
       currency: request.currency,
       paymentMethod: request.paymentMethod,
@@ -241,6 +244,11 @@ class OrderCard extends StatelessWidget {
         bookingId: request.bookingId,
         requestedMinutes: request.resolvedAdditionalMinutes,
         customerName: data.customer?.name,
+        baseAmount: request.baseAmount,
+        adminMargin: request.adminMargin,
+        totalAmount: request.totalAmount,
+        additionalAmount: request.additionalAmount,
+        currency: request.currency,
       );
     }
     return null;
@@ -277,6 +285,15 @@ class OrderCard extends StatelessWidget {
         customerName: _toStringValue(
           _pick(map, const <String>['customerName', 'customer_name']) ??
               _pick(_asStringMap(map['customer']), const <String>['name']),
+        ),
+        baseAmount: _toDouble(
+          _pick(map, const <String>['baseAmount', 'base_amount']),
+        ),
+        adminMargin: _toDouble(
+          _pick(map, const <String>['adminMargin', 'admin_margin']),
+        ),
+        totalAmount: _toDouble(
+          _pick(map, const <String>['totalAmount', 'total_amount']),
         ),
         additionalAmount: _toDouble(
           _pick(map, const <String>[
@@ -821,6 +838,9 @@ class _CardExtensionRequest {
     this.bookingId,
     this.requestedMinutes,
     this.customerName,
+    this.baseAmount,
+    this.adminMargin,
+    this.totalAmount,
     this.additionalAmount,
     this.currency,
     this.paymentMethod,
@@ -830,6 +850,9 @@ class _CardExtensionRequest {
   final int? bookingId;
   final int? requestedMinutes;
   final String? customerName;
+  final double? baseAmount;
+  final double? adminMargin;
+  final double? totalAmount;
   final double? additionalAmount;
   final String? currency;
   final String? paymentMethod;

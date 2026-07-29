@@ -98,6 +98,41 @@ void main() {
       },
     );
 
+    test(
+      'ServiceExtensionRequested forwards the authoritative breakdown',
+      () async {
+        final shown = <WorkerExtensionPromptData>[];
+        final coordinator = CleaningWorkerGlobalPromptCoordinator(
+          navigatorKey: GlobalKey<NavigatorState>(),
+          pusherManager: _buildNoopPusherManager(),
+          extensionPromptPresenter: (prompt) async {
+            shown.add(prompt);
+            return true;
+          },
+        )..markStartedForTest();
+
+        await coordinator.handleRealtimeEventForTest(
+          CleaningRealtimeContract.serviceExtensionRequested,
+          const <String, dynamic>{
+            'warningId': 303,
+            'cleaningBookingId': 88,
+            'requestedMinutes': 30,
+            'baseAmount': '4500',
+            'adminMargin': 500,
+            'totalAmount': '5000.00',
+            'additionalAmount': 5000,
+            'currency': 'SYP',
+          },
+        );
+
+        expect(shown.single.baseAmount, 4500);
+        expect(shown.single.adminMargin, 500);
+        expect(shown.single.totalAmount, 5000);
+        expect(shown.single.additionalAmount, 5000);
+        expect(shown.single.currency, 'SYP');
+      },
+    );
+
     test('CompletionDecisionMade approved shows success alert once', () async {
       final alerts = <WorkerDecisionAlertData>[];
       final coordinator = CleaningWorkerGlobalPromptCoordinator(
@@ -323,32 +358,35 @@ void main() {
       },
     );
 
-    test('pollPendingOrderPrompts opens first pending dedicated order', () async {
-      final shown = <WorkerPendingOrderPromptData>[];
-      final coordinator =
-          CleaningWorkerGlobalPromptCoordinator(
-              navigatorKey: GlobalKey<NavigatorState>(),
-              pusherManager: _buildNoopPusherManager(),
-              pendingOrdersLoader: () async =>
-                  <FetchOrdersUsecaseModelDataItem>[
-                    FetchOrdersUsecaseModelDataItem(
-                      id: 321,
-                      status: CleaningBookingStatus.pending,
-                    ),
-                  ],
-              pendingOrderPromptPresenter: (prompt) async {
-                shown.add(prompt);
-                return true;
-              },
-            )
-            ..markStartedForTest()
-            ..markAuthBypassForTest();
+    test(
+      'pollPendingOrderPrompts opens first pending dedicated order',
+      () async {
+        final shown = <WorkerPendingOrderPromptData>[];
+        final coordinator =
+            CleaningWorkerGlobalPromptCoordinator(
+                navigatorKey: GlobalKey<NavigatorState>(),
+                pusherManager: _buildNoopPusherManager(),
+                pendingOrdersLoader: () async =>
+                    <FetchOrdersUsecaseModelDataItem>[
+                      FetchOrdersUsecaseModelDataItem(
+                        id: 321,
+                        status: CleaningBookingStatus.pending,
+                      ),
+                    ],
+                pendingOrderPromptPresenter: (prompt) async {
+                  shown.add(prompt);
+                  return true;
+                },
+              )
+              ..markStartedForTest()
+              ..markAuthBypassForTest();
 
-      await coordinator.pollPendingOrderPrompts();
+        await coordinator.pollPendingOrderPrompts();
 
-      expect(shown.length, 1);
-      expect(shown.first.order.id, 321);
-    });
+        expect(shown.length, 1);
+        expect(shown.first.order.id, 321);
+      },
+    );
 
     test('findTimeExtensionRequestedBookingIds filters by status', () {
       final ids =
