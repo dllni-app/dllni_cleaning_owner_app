@@ -9,7 +9,6 @@ import '../../../../../core/widgets/cancel_order_dialog.dart';
 import '../../../data/models/fetch_orders_usecase_model.dart';
 import '../../../domain/usecases/reject_order_usecase_use_case.dart';
 import '../../../domain/usecases/start_travel_usecase_use_case.dart';
-import '../../helpers/cleaning_enum_translations.dart';
 import '../../helpers/event_assistance_order_helper.dart';
 import '../../helpers/order_address_visibility_helper.dart';
 import '../../helpers/order_lifecycle_policy.dart';
@@ -49,7 +48,6 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
     if (hours == null) return '-';
     return hours % 1 == 0 ? hours.toInt().toString() : hours.toString();
   }
-
 
   num get _netProfit {
     final workerAmount = widget.order.myAssignment?.workerAmount;
@@ -104,35 +102,35 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
             ),
             6.horizontalSpace,
 
-            isSameDate(widget.order.createdAt,widget.order.scheduledDate)
+            isSameDate(widget.order.createdAt, widget.order.scheduledDate)
                 ? Container(
-              padding: const EdgeInsetsDirectional.symmetric(
-                horizontal: 10,
-                vertical: 5,
-              ),
-              decoration: BoxDecoration(
-                color: context.error.withAlpha(30),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 3.5,
-                    backgroundColor: context.error,
-                  ),
-                  const SizedBox(width: 6),
-                  AppText.labelSmall(
-                    'طلب ساخن',
-                    color: context.error,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ],
-              ),
-            )
+                    padding: const EdgeInsetsDirectional.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: context.error.withAlpha(30),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 3.5,
+                          backgroundColor: context.error,
+                        ),
+                        const SizedBox(width: 6),
+                        AppText.labelSmall(
+                          'طلب ساخن',
+                          color: context.error,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ],
+                    ),
+                  )
                 : SizedBox(),
           ],
         ),
-        Divider(color: Colors.grey,),
+        Divider(color: Colors.grey),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -164,14 +162,12 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                                 child: Padding(
                                   padding: const EdgeInsets.only(bottom: 8),
                                   child: Column(
-
                                     children: [
                                       AppText.labelSmall(
                                         row.key,
                                         color: context.primary,
                                         fontWeight: FontWeight.w700,
                                         textAlign: TextAlign.center,
-
                                       ),
                                       SizedBox(height: 8),
                                       AppText.labelSmall(
@@ -196,7 +192,7 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                   SizedBox(height: 14),
                   _buildServicesCard(context),
                   // SizedBox(height: 14),
-                  // _buildOrderAddressCard(context),
+                  _buildOrderAddressCard(context),
                   SizedBox(height: 14),
                   WorkerTeamStatusCard(order: widget.order),
                   if (OrderLifecyclePolicy.isAcceptedWaiting(widget.order))
@@ -245,8 +241,12 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
               textAlign: TextAlign.start,
             )
           else ...[
-            ...services.map((service) => _buildServiceRow(service.name, service.quantity)),
-            ...addons.map((addon) => _buildServiceRow(addon.name, addon.quantity)),
+            ...services.map(
+              (service) => _buildServiceRow(service.name, service.quantity),
+            ),
+            ...addons.map(
+              (addon) => _buildServiceRow(addon.name, addon.quantity),
+            ),
           ],
         ],
       ),
@@ -274,11 +274,23 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
   }
 
   Widget _buildOrderAddressCard(BuildContext context) {
-    final address = visibleOrderAddress(
-      address:
-          widget.order.propertyDetails?.address ?? widget.order.locationName,
-      status: widget.order.status,
-    );
+    final neighborhood = widget.order.displayNeighborhoodName?.trim();
+    final useNeighborhoodOnly =
+        OrderLifecyclePolicy.isCustomerDataHidden(widget.order) &&
+        neighborhood != null &&
+        neighborhood.isNotEmpty;
+    final visibleAddress = useNeighborhoodOnly
+        ? neighborhood
+        : visibleOrderAddress(
+            address:
+                widget.order.propertyDetails?.address ??
+                widget.order.locationName,
+            status: widget.order.status,
+          );
+    final address =
+        visibleAddress.trim().isEmpty || visibleAddress.trim() == '-'
+        ? 'الحي غير محدد'
+        : visibleAddress;
 
     return Container(
       width: context.width,
@@ -304,7 +316,7 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
               SizedBox(width: 6),
               Expanded(
                 child: AppText.labelMedium(
-                  address.trim().isEmpty ? 'العنوان غير متوفر' : address,
+                  address,
                   fontWeight: FontWeight.w300,
                   textAlign: TextAlign.start,
                 ),

@@ -418,7 +418,7 @@ class ExtensionRequestAmountBreakdown extends StatelessWidget {
       if (baseAmount != null)
         _ExtensionAmountRow(
           key: const Key('extension_base_amount'),
-          label: 'سعر التمديد',
+          label: 'صافي الربح',
           amount: baseAmount!,
           currency: currency,
         ),

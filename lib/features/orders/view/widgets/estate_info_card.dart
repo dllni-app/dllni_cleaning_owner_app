@@ -22,19 +22,28 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
       EventAssistanceOrderHelper.isEventAssistance(widget.order.propertyType);
 
   String get _cleaningModeDisplayLabel {
-    final label = (widget.order.propertyDetails?.cleaningModeLabel ?? '')
-        .trim();
-    if (label.isNotEmpty) return label;
-    return CleaningEnumTranslations.cleaningMode(
+    return CleaningEnumTranslations.preferArabicLabel(
+      widget.order.propertyDetails?.cleaningModeLabel,
       widget.order.propertyDetails?.cleaningMode,
+      CleaningEnumTranslations.cleaningMode,
     );
   }
 
-  String get address => visibleOrderAddress(
-        address:
-            widget.order.propertyDetails?.address ?? widget.order.locationName,
-        status: widget.order.status,
-      );
+  String get address {
+    final neighborhood = widget.order.displayNeighborhoodName?.trim();
+    if (neighborhood != null &&
+        neighborhood.isNotEmpty &&
+        widget.order.status == 'pending') {
+      return neighborhood;
+    }
+
+    final visible = visibleOrderAddress(
+      address:
+          widget.order.propertyDetails?.address ?? widget.order.locationName,
+      status: widget.order.status,
+    ).trim();
+    return visible.isEmpty || visible == '-' ? 'الحي غير محدد' : visible;
+  }
 
   List<String> get attributes {
     if (_isEventAssistance) {
@@ -60,9 +69,7 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
       return labels;
     }
 
-    return PropertyAttributeLabelsHelper.build(
-      widget.order.propertyDetails,
-    );
+    return PropertyAttributeLabelsHelper.build(widget.order.propertyDetails);
   }
 
   @override
@@ -106,7 +113,9 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
                     ? CleaningEnumTranslations.eventType(
                         widget.order.propertyDetails?.eventType,
                       )
-                    : CleaningEnumTranslations.propertyType(widget.order.propertyType),
+                    : CleaningEnumTranslations.propertyType(
+                        widget.order.propertyType,
+                      ),
                 fontWeight: FontWeight.w300,
               ),
             ],
@@ -152,10 +161,7 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
                       size: 18.sp,
                     ),
                     6.horizontalSpace,
-                    AppText.labelMedium(
-                      'الحي',
-                      fontWeight: FontWeight.w400,
-                    ),
+                    AppText.labelMedium('الحي', fontWeight: FontWeight.w400),
                   ],
                 ),
                 Expanded(
@@ -195,7 +201,6 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
                   textAlign: TextAlign.end,
                 ),
               ),
-
             ],
           ),
 
@@ -207,9 +212,7 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
               Row(
                 children: [
                   Icon(
-                    _isEventAssistance
-                        ? Icons.schedule
-                        : Icons.square_foot,
+                    _isEventAssistance ? Icons.schedule : Icons.square_foot,
                     color: context.secondary,
                     size: 18.sp,
                   ),
@@ -225,7 +228,8 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
                     ? EventAssistanceOrderHelper.formatHoursDetail(
                         EventAssistanceOrderHelper.resolveBookedHours(
                           propertyHours: widget.order.propertyDetails?.hours,
-                          assignmentHours: widget.order.myAssignment?.totalHours,
+                          assignmentHours:
+                              widget.order.myAssignment?.totalHours,
                           totalHours: widget.order.totalHours,
                           estimatedHours: widget.order.estimatedHours,
                         ),
@@ -257,7 +261,7 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
       decoration: BoxDecoration(
         color: Color(0xFFE2E5EE),
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: Colors.black)
+        border: Border.all(color: Colors.black),
       ),
       child: AppText.labelMedium(
         text,
@@ -267,4 +271,3 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
     );
   }
 }
-

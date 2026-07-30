@@ -45,6 +45,7 @@ class OrderDetailsMapBody extends StatefulWidget {
 
 class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
   static const double _mapInitialZoom = 13;
+
   /// Matches [DraggableScrollableSheet.initialChildSize] so the worker pin
   /// sits in the visible map area above the sheet.
   static const double _bottomSheetInitialFraction = 0.36;
@@ -114,9 +115,7 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
   String? get _distanceLabel {
     final km = _distanceToCustomerKm;
     if (km == null) return null;
-    final value = km >= 10
-        ? km.toStringAsFixed(0)
-        : km.toStringAsFixed(1);
+    final value = km >= 10 ? km.toStringAsFixed(0) : km.toStringAsFixed(1);
     return 'يبعد تقريباً $value كم';
   }
 
@@ -269,9 +268,7 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
     if (permission == LocationPermission.deniedForever) {
       await Geolocator.openAppSettings();
     }
-    return Geolocator.getCurrentPosition(
-      locationSettings: _locationSettings(),
-    );
+    return Geolocator.getCurrentPosition(locationSettings: _locationSettings());
   }
 
   Future<void> _drawRoad(LatLng start) async {
@@ -539,14 +536,30 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
     final hideCustomerData = OrderLifecyclePolicy.isCustomerDataHidden(
       widget.order,
     );
-    final visibleLocationName = visibleOrderAddress(
-      address: widget.order.locationName,
-      status: widget.order.status,
-    );
-    final visibleAddress = visibleOrderAddress(
-      address: widget.order.propertyDetails?.address,
-      status: widget.order.status,
-    );
+    final neighborhood = widget.order.displayNeighborhoodName?.trim();
+    final useNeighborhoodOnly =
+        hideCustomerData && neighborhood != null && neighborhood.isNotEmpty;
+    final visibleLocationName = useNeighborhoodOnly
+        ? neighborhood
+        : visibleOrderAddress(
+            address: widget.order.locationName,
+            status: widget.order.status,
+          );
+    final visibleAddress = useNeighborhoodOnly
+        ? null
+        : visibleOrderAddress(
+            address: widget.order.propertyDetails?.address,
+            status: widget.order.status,
+          );
+    final primaryLocationName =
+        visibleLocationName.trim().isEmpty || visibleLocationName.trim() == '-'
+        ? 'الحي غير محدد'
+        : visibleLocationName;
+    final shouldShowAddressLine =
+        visibleAddress != null &&
+        visibleAddress.trim().isNotEmpty &&
+        visibleAddress.trim() != '-' &&
+        visibleAddress.trim() != primaryLocationName.trim();
 
     return Container(
       decoration: BoxDecoration(
@@ -605,15 +618,16 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           AppText.bodyMedium(
-                            visibleLocationName,
+                            primaryLocationName,
                             color: context.primary,
                             fontWeight: FontWeight.w400,
                           ),
-                          AppText.labelLarge(
-                            visibleAddress,
-                            color: const Color(0xff727791),
-                            fontWeight: FontWeight.w400,
-                          ),
+                          if (shouldShowAddressLine)
+                            AppText.labelLarge(
+                              visibleAddress,
+                              color: const Color(0xff727791),
+                              fontWeight: FontWeight.w400,
+                            ),
                         ],
                       ),
                     ),

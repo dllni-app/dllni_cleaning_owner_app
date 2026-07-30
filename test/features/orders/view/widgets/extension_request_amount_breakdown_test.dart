@@ -19,7 +19,7 @@ void main() {
       ),
     );
 
-    expect(find.text('سعر التمديد'), findsOneWidget);
+    expect(find.text('صافي الربح'), findsOneWidget);
     expect(find.text('هامش الادارة'), findsOneWidget);
     expect(find.text('الإجمالي'), findsOneWidget);
     expect(find.text('4500.00 SYP'), findsOneWidget);
@@ -43,7 +43,7 @@ void main() {
       ),
     );
 
-    expect(find.text('سعر التمديد'), findsNothing);
+    expect(find.text('صافي الربح'), findsNothing);
     expect(find.text('هامش الادارة'), findsNothing);
     expect(find.text('الإجمالي'), findsOneWidget);
   });

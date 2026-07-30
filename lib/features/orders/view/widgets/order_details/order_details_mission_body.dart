@@ -56,6 +56,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
   bool _isWorkTimerAvailable = false;
   bool _isSessionFinished = false;
   bool _waitingSheetOpen = false;
+  bool _extensionDecisionResolved = false;
   String? _lastCompletionMessage;
   final Map<String, bool> _taskState = <String, bool>{};
 
@@ -73,6 +74,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.order.id != widget.order.id) {
       _lastCompletionMessage = null;
+      _extensionDecisionResolved = false;
       _syncTimerSession(resetCurrentSession: true);
     }
 
@@ -89,6 +91,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
             widget.order.myAssignment?.totalHours ||
         oldWidget.order.estimatedHours != widget.order.estimatedHours ||
         oldWidget.order.timeWarnings != widget.order.timeWarnings) {
+      _extensionDecisionResolved = false;
       _syncTimerSession();
       _calculateWorkTimer();
     }
@@ -135,10 +138,9 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
   bool get _allTasksChecked {
     final tasks = _tasks;
     if (tasks.isEmpty) return true;
-    return tasks.asMap().entries.every((entry) => _isTaskChecked(
-          entry.value,
-          entry.key,
-        ));
+    return tasks.asMap().entries.every(
+      (entry) => _isTaskChecked(entry.value, entry.key),
+    );
   }
 
   List<Map<String, Object?>> _checkedTaskSnapshots() {
@@ -172,12 +174,15 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
   }
 
   bool _isWaitingFromState(OrdersState state) =>
-      OrderLifecyclePolicy.isAwaitingCustomerCompletion(_effectiveStatus(state));
+      OrderLifecyclePolicy.isAwaitingCustomerCompletion(
+        _effectiveStatus(state),
+      );
 
   bool get _canFinish => widget.order.id != null && _uiState.isActiveWork;
 
   String? _currentCompletionMessage(OrdersState state) {
-    final value = state.completeOrderUsecase?.data?.note ?? _lastCompletionMessage;
+    final value =
+        state.completeOrderUsecase?.data?.note ?? _lastCompletionMessage;
     final trimmed = value?.trim();
     return trimmed == null || trimmed.isEmpty ? null : trimmed;
   }
@@ -199,9 +204,9 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
           completionMessage: trimmed,
           cleaningServices:
               OrderMissionTaskMapper.buildCompletionServiceSnapshots(
-            services: widget.services,
-            addons: widget.addons,
-          ),
+                services: widget.services,
+                addons: widget.addons,
+              ),
           propertiesRooms: _checkedTaskSnapshots(),
         ),
       ),
@@ -226,6 +231,16 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     _waitingSheetOpen = false;
   }
 
+  void _refreshCurrentOrderDetails() {
+    final orderId = widget.order.id;
+    if (orderId == null) return;
+    widget.bloc.add(
+      FetchOrderDetailsUsecaseEvent(
+        params: FetchOrderDetailsUsecaseParams(id: orderId),
+      ),
+    );
+  }
+
   void _syncTimerSession({bool resetCurrentSession = false}) {
     if (!_uiState.isActiveWork) {
       _timerSession = null;
@@ -233,8 +248,9 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
       return;
     }
 
-    final extensionSeed =
-        OrderWorkTimerHelper.latestAcceptedExtensionSeed(widget.order.timeWarnings);
+    final extensionSeed = OrderWorkTimerHelper.latestAcceptedExtensionSeed(
+      widget.order.timeWarnings,
+    );
     if (extensionSeed != null) {
       if (resetCurrentSession ||
           _timerSession?.sessionKey != extensionSeed.sessionKey) {
@@ -498,9 +514,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     return const <String, dynamic>{};
   }
 
-  Future<void> _showRejectExtensionDialog(
-    _PendingExtension extension,
-  ) async {
+  Future<void> _showRejectExtensionDialog(_PendingExtension extension) async {
     final controller = TextEditingController();
     final message = await showDialog<String>(
       context: context,
@@ -538,9 +552,12 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
   }
 
   Widget _buildExtensionDecisionCard(OrdersState state) {
-    if (!_uiState.isExtensionPending) return const SizedBox.shrink();
+    if (!_uiState.isExtensionPending || _extensionDecisionResolved) {
+      return const SizedBox.shrink();
+    }
     final extension = _pendingExtension;
-    final loading = state.acceptExtensionUsecaseStatus == BlocStatus.loading ||
+    final loading =
+        state.acceptExtensionUsecaseStatus == BlocStatus.loading ||
         state.rejectExtensionUsecaseStatus == BlocStatus.loading;
 
     return Container(
@@ -598,8 +615,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                 child: OutlinedButton(
                   onPressed: loading || extension == null
                       ? null
-                      : () =>
-                          unawaited(_showRejectExtensionDialog(extension)),
+                      : () => unawaited(_showRejectExtensionDialog(extension)),
                   child: const Text('رفض'),
                 ),
               ),
@@ -655,10 +671,20 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
           (previous.acceptExtensionUsecaseStatus !=
                   current.acceptExtensionUsecaseStatus &&
               current.acceptExtensionUsecaseStatus == BlocStatus.success) ||
+          (previous.rejectExtensionUsecaseStatus !=
+                  current.rejectExtensionUsecaseStatus &&
+              current.rejectExtensionUsecaseStatus == BlocStatus.success) ||
           (!_isWaitingFromState(previous) && _isWaitingFromState(current)),
       listener: (context, state) {
         if (state.acceptExtensionUsecaseStatus == BlocStatus.success) {
+          if (mounted) setState(() => _extensionDecisionResolved = true);
           _resetExtensionSessionFromState(state);
+          _refreshCurrentOrderDetails();
+          return;
+        }
+        if (state.rejectExtensionUsecaseStatus == BlocStatus.success) {
+          if (mounted) setState(() => _extensionDecisionResolved = true);
+          _refreshCurrentOrderDetails();
           return;
         }
         unawaited(_showWaitingConfirmationSheet());
@@ -694,13 +720,13 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                       valueText: _timerValueText,
                       helperText: _timerHelperText,
                       gradientColors: _timerGradientColors,
-                      startTimeLabel:
-                          _canShowTwoTimes ? 'وقت بدء العمل' : null,
+                      startTimeLabel: _canShowTwoTimes ? 'وقت بدء العمل' : null,
                       startTimeValue: _canShowTwoTimes
                           ? _formatClock(_orderStartTime!)
                           : null,
-                      endTimeLabel:
-                          _canShowTwoTimes ? 'وقت الانتهاء المتوقع' : null,
+                      endTimeLabel: _canShowTwoTimes
+                          ? 'وقت الانتهاء المتوقع'
+                          : null,
                       endTimeValue: _canShowTwoTimes
                           ? _formatClock(_orderEndTime!)
                           : null,
@@ -780,7 +806,9 @@ class _PendingExtension {
   bool get isPending => minutes > 0;
 
   static _PendingExtension? fromMap(Map<String, dynamic> map) {
-    final id = _asInt(_pick(map, const <String>['id', 'warningId', 'warning_id']));
+    final id = _asInt(
+      _pick(map, const <String>['id', 'warningId', 'warning_id']),
+    );
     final minutes = _asInt(
       _pick(map, const <String>[
         'additionalMinutes',

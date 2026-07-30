@@ -330,13 +330,11 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
     final showPropertyType =
         propertyTypeLabel.trim().isNotEmpty && propertyTypeLabel != 'غير محدد';
 
-    final cleaningModeLabel = (_order.propertyDetails?.cleaningModeLabel ?? '')
-            .trim()
-            .isNotEmpty
-        ? _order.propertyDetails!.cleaningModeLabel!.trim()
-        : CleaningEnumTranslations.cleaningMode(
-            _order.propertyDetails?.cleaningMode,
-          );
+    final cleaningModeLabel = CleaningEnumTranslations.preferArabicLabel(
+      _order.propertyDetails?.cleaningModeLabel,
+      _order.propertyDetails?.cleaningMode,
+      CleaningEnumTranslations.cleaningMode,
+    );
     final showCleaningMode =
         cleaningModeLabel.trim().isNotEmpty && cleaningModeLabel != 'غير محدد';
 
@@ -367,15 +365,28 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
 
     if (rows.isEmpty) {
       return [
-        _orderInfoRow(
-          label: 'نوع المكان',
-          value: '-',
-          withDivider: false,
-        ),
+        _orderInfoRow(label: 'نوع المكان', value: '-', withDivider: false),
       ];
     }
 
     return rows;
+  }
+
+  String _preAcceptanceAddressText() {
+    final neighborhood = _order.displayNeighborhoodName?.trim();
+    if (neighborhood != null && neighborhood.isNotEmpty) {
+      return neighborhood;
+    }
+
+    final visible = visibleOrderAddress(
+      address: _order.propertyDetails?.address ?? _order.locationName,
+      status: _order.status,
+    ).trim();
+
+    if (visible.isEmpty || visible == '-') {
+      return 'الحي غير محدد';
+    }
+    return visible;
   }
 
   @override
@@ -521,18 +532,8 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                       ),
                       const SizedBox(height: 10),
                       _detailCard(context, [
-                        if (_order.displayNeighborhoodName != null)
-                          _orderInfoRow(
-                            label: 'الحي',
-                            value: _order.displayNeighborhoodName!,
-                          ),
                         AppText.bodyMedium(
-                          visibleOrderAddress(
-                            address:
-                                _order.propertyDetails?.address ??
-                                _order.locationName,
-                            status: _order.status,
-                          ),
+                          _preAcceptanceAddressText(),
                           textAlign: TextAlign.start,
                         ),
                       ]),

@@ -506,7 +506,12 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     AcceptExtensionUsecaseEvent event,
     Emitter<OrdersState> emit,
   ) async {
-    emit(state.copyWith(acceptExtensionUsecaseStatus: BlocStatus.loading));
+    emit(
+      state.copyWith(
+        acceptExtensionUsecaseStatus: BlocStatus.loading,
+        rejectExtensionUsecaseStatus: BlocStatus.init,
+      ),
+    );
     final res = await acceptExtensionUsecaseUseCase(event.params);
     res.fold(
       (l) {
@@ -536,7 +541,12 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     RejectExtensionUsecaseEvent event,
     Emitter<OrdersState> emit,
   ) async {
-    emit(state.copyWith(rejectExtensionUsecaseStatus: BlocStatus.loading));
+    emit(
+      state.copyWith(
+        rejectExtensionUsecaseStatus: BlocStatus.loading,
+        acceptExtensionUsecaseStatus: BlocStatus.init,
+      ),
+    );
     final res = await rejectExtensionUsecaseUseCase(event.params);
     res.fold(
       (l) {
