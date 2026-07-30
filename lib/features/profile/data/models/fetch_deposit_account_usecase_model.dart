@@ -67,9 +67,15 @@ class FetchDepositAccountUsecaseModel {
   final num? availableCommissionCapacity;
   final num? manualDebtAmount;
   final num? adminCommissionDebtAmount;
+  final num? totalRevenue;
+  final int? completedJobs;
+  final num? totalCommission;
+  final num? adminCommissionBalance;
+  final num? grossInvoicesAmount;
   final String? status;
   final num? exceedanceAmount;
   final bool? isEligibleForNewRequests;
+  final bool? isFinancialAccountActive;
   final String? createdAt;
   final String? updatedAt;
 
@@ -85,9 +91,15 @@ class FetchDepositAccountUsecaseModel {
     this.availableCommissionCapacity,
     this.manualDebtAmount,
     this.adminCommissionDebtAmount,
+    this.totalRevenue,
+    this.completedJobs,
+    this.totalCommission,
+    this.adminCommissionBalance,
+    this.grossInvoicesAmount,
     this.status,
     this.exceedanceAmount,
     this.isEligibleForNewRequests,
+    this.isFinancialAccountActive,
     this.createdAt,
     this.updatedAt,
   });
@@ -163,6 +175,27 @@ class FetchDepositAccountUsecaseModel {
           'admin_commission_debt_amount',
         ]),
       ),
+      totalRevenue: _toNum(
+        _pick(json, const <String>['totalRevenue', 'total_revenue']),
+      ),
+      completedJobs: _toInt(
+        _pick(json, const <String>['completedJobs', 'completed_jobs']),
+      ),
+      totalCommission: _toNum(
+        _pick(json, const <String>['totalCommission', 'total_commission']),
+      ),
+      adminCommissionBalance: _toNum(
+        _pick(json, const <String>[
+          'adminCommissionBalance',
+          'admin_commission_balance',
+        ]),
+      ),
+      grossInvoicesAmount: _toNum(
+        _pick(json, const <String>[
+          'grossInvoicesAmount',
+          'gross_invoices_amount',
+        ]),
+      ),
       status: _toStringValue(_pick(json, const <String>['status'])),
       exceedanceAmount: _toNum(
         _pick(json, const <String>['exceedanceAmount', 'exceedance_amount']),
@@ -171,6 +204,14 @@ class FetchDepositAccountUsecaseModel {
         _pick(json, const <String>[
           'isEligibleForNewRequests',
           'is_eligible_for_new_requests',
+        ]),
+      ),
+      isFinancialAccountActive: _toBool(
+        _pick(json, const <String>[
+          'isFinancialAccountActive',
+          'is_financial_account_active',
+          'isActive',
+          'is_active',
         ]),
       ),
       createdAt: _toStringValue(
@@ -197,9 +238,15 @@ class FetchDepositAccountUsecaseModel {
       'availableCommissionCapacity': availableCommissionCapacity,
       'manualDebtAmount': manualDebtAmount,
       'adminCommissionDebtAmount': adminCommissionDebtAmount,
+      'totalRevenue': totalRevenue,
+      'completedJobs': completedJobs,
+      'totalCommission': totalCommission,
+      'adminCommissionBalance': adminCommissionBalance,
+      'grossInvoicesAmount': grossInvoicesAmount,
       'status': status,
       'exceedanceAmount': exceedanceAmount,
       'isEligibleForNewRequests': isEligibleForNewRequests,
+      'isFinancialAccountActive': isFinancialAccountActive,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
     };
