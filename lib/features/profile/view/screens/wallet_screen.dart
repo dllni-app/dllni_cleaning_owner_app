@@ -1,7 +1,4 @@
 import 'package:common_package/common_package.dart';
-import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
-import 'package:dllni_cleaninig_owner_app/features/home/domain/usecases/fetch_home_page_usecase_use_case.dart';
-import 'package:dllni_cleaninig_owner_app/features/home/view/manager/bloc/home_bloc.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/manager/bloc/profile_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -47,48 +44,38 @@ class _WalletScreenState extends State<WalletScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<HomeBloc>(
-      lazy: false,
-      create: (_) => getIt<HomeBloc>()
-        ..add(FetchHomePageUsecaseEvent(params: FetchHomePageUsecaseParams())),
-      child: Builder(
-        builder: (providerContext) => Scaffold(
-          backgroundColor: const Color(0xffF3F4F6),
-          body: SafeArea(
-            child: Column(
-              children: [
-                _appBar(),
-                Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: () => _refresh(providerContext),
-                    child: ListView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: EdgeInsetsDirectional.fromSTEB(
-                        20.w,
-                        18.h,
-                        20.w,
-                        24.h,
-                      ),
-                      children: [
-                        _financeSummary(),
-                        16.verticalSpace,
-                        _depositSection(),
-                      ],
-                    ),
+    return Scaffold(
+      backgroundColor: const Color(0xffF3F4F6),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _appBar(),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _refresh,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: EdgeInsetsDirectional.fromSTEB(
+                    20.w,
+                    18.h,
+                    20.w,
+                    24.h,
                   ),
+                  children: [
+                    _financeSummary(),
+                    16.verticalSpace,
+                    _depositSection(),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 
-  Future<void> _refresh(BuildContext providerContext) async {
-    providerContext.read<HomeBloc>().add(
-      FetchHomePageUsecaseEvent(params: FetchHomePageUsecaseParams()),
-    );
+  Future<void> _refresh() async {
     context.read<ProfileBloc>().add(FetchDepositAccountEvent());
     await Future<void>.delayed(const Duration(milliseconds: 350));
   }
@@ -132,88 +119,75 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   Widget _financeSummary() {
-    return BlocBuilder<HomeBloc, HomeState>(
+    return BlocBuilder<ProfileBloc, ProfileState>(
+      buildWhen: (previous, current) =>
+          previous.depositAccountStatus != current.depositAccountStatus ||
+          previous.depositAccount != current.depositAccount,
       builder: (context, state) {
         final isLoading =
-            state.homePageUsecaseStatus == null ||
-            state.homePageUsecaseStatus == BlocStatus.loading ||
-            state.homePageUsecaseStatus == BlocStatus.init;
-        final model = state.homePageUsecase;
-        final amountSummary = model?.amountSummary;
-        final currency = WalletScreen.resolveCurrencyLabel(
-          amountSummary?.currency,
-        );
+            state.depositAccountStatus == null ||
+            state.depositAccountStatus == BlocStatus.loading ||
+            state.depositAccountStatus == BlocStatus.init;
+        final data = state.depositAccount;
+        const currency = 'ل.س';
+        final workerAmount = data?.totalRevenue ?? 0;
+        final adminAmount =
+            data?.adminCommissionBalance ?? data?.totalCommission ?? 0;
+        final grossAmount =
+            data?.grossInvoicesAmount ?? workerAmount + adminAmount;
 
-        return Column(
-          children: [
-            if (state.homePageUsecaseStatus == BlocStatus.failed) ...[
-              _errorBanner(
-                ErrorMessageFormatter.format(
-                  state.errorMessage,
-                  fallback: 'تعذر تحميل ملخص المبالغ',
-                ),
-                () => context.read<HomeBloc>().add(
-                  FetchHomePageUsecaseEvent(
-                    params: FetchHomePageUsecaseParams(),
-                  ),
-                ),
-              ),
-              12.verticalSpace,
-            ],
-            _card(
-              shadow: true,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        return _card(
+          shadow: true,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _text('ملخص المبالغ', weight: FontWeight.w700, size: 20),
+              14.verticalSpace,
+              Row(
                 children: [
-                  _text('ملخص المبالغ', weight: FontWeight.w700, size: 20),
-                  14.verticalSpace,
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _metric(
-                          'الإجمالي',
-                          '${WalletScreen.formatAmount(amountSummary?.grossInvoicesAmount ?? 0)} $currency',
-                          const Color(0xff0EA5E9),
-                          isLoading,
-                        ),
-                      ),
-                      10.horizontalSpace,
-                      Expanded(
-                        child: _metric(
-                          'صافي الربح',
-                          '${WalletScreen.formatAmount(amountSummary?.workerAmount ?? 0)} $currency',
-                          const Color(0xff10B981),
-                          isLoading,
-                        ),
-                      ),
-                    ],
+                  Expanded(
+                    child: _metric(
+                      'الإجمالي',
+                      '${WalletScreen.formatAmount(grossAmount)} $currency',
+                      const Color(0xff0EA5E9),
+                      isLoading,
+                    ),
                   ),
-                  10.verticalSpace,
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _metric(
-                          'هامش الإدارة',
-                          '${WalletScreen.formatAmount(amountSummary?.adminAmount ?? 0)} $currency',
-                          const Color(0xffF59E0B),
-                          isLoading,
-                        ),
-                      ),
-                      10.horizontalSpace,
-                      Expanded(
-                        child: _metric(
-                          'إجمالي عدد الطلبات المكتملة',
-                          WalletScreen.formatAmount(model?.completedCount ?? 0),
-                          const Color(0xff6366F1),
-                          isLoading,
-                        ),
-                      ),
-                    ],
+                  10.horizontalSpace,
+                  Expanded(
+                    child: _metric(
+                      'صافي الربح',
+                      '${WalletScreen.formatAmount(workerAmount)} $currency',
+                      const Color(0xff10B981),
+                      isLoading,
+                    ),
                   ),
                 ],
               ),
-            ),
-          ],
+              10.verticalSpace,
+              Row(
+                children: [
+                  Expanded(
+                    child: _metric(
+                      'هامش الإدارة',
+                      '${WalletScreen.formatAmount(adminAmount)} $currency',
+                      const Color(0xffF59E0B),
+                      isLoading,
+                    ),
+                  ),
+                  10.horizontalSpace,
+                  Expanded(
+                    child: _metric(
+                      'إجمالي عدد الطلبات المكتملة',
+                      WalletScreen.formatAmount(data?.completedJobs ?? 0),
+                      const Color(0xff6366F1),
+                      isLoading,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         );
       },
     );
@@ -231,6 +205,9 @@ class _WalletScreenState extends State<WalletScreen> {
             state.depositAccountStatus == BlocStatus.init;
         final data = state.depositAccount;
         const currency = 'ل.س';
+        final accountStatus = data?.isFinancialAccountActive == false
+            ? 'inactive'
+            : data?.status ?? '';
 
         return Column(
           children: [
@@ -246,7 +223,7 @@ class _WalletScreenState extends State<WalletScreen> {
               12.verticalSpace,
             ],
             _debtCard(
-              WalletScreen.formatAmount(data?.manualDebtAmount ?? 0),
+              WalletScreen.formatAmount(data?.allowedDebtLimit ?? 0),
               currency,
               isLoading,
             ),
@@ -266,7 +243,7 @@ class _WalletScreenState extends State<WalletScreen> {
                       ),
                       isLoading
                           ? _loadingLine(74.w)
-                          : _statusBadge(data?.status ?? ''),
+                          : _statusBadge(accountStatus),
                     ],
                   ),
                   14.verticalSpace,
@@ -336,7 +313,7 @@ class _WalletScreenState extends State<WalletScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _text('حد السماح', weight: FontWeight.w700, size: 18),
+                _text('حد الدين', weight: FontWeight.w700, size: 18),
                 4.verticalSpace,
                 isLoading
                     ? _loadingLine(110.w)
