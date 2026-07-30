@@ -86,8 +86,7 @@ PropertyDetailsData? _parsePropertyDetails(Map<String, dynamic> json) {
 
   if ((map['address'] == null || map['address'].toString().trim().isEmpty) &&
       addressMap != null) {
-    final fullAddress =
-        addressMap['fullAddress'] ?? addressMap['full_address'];
+    final fullAddress = addressMap['fullAddress'] ?? addressMap['full_address'];
     if (fullAddress != null) {
       map['address'] = fullAddress;
     }
@@ -121,10 +120,7 @@ List<Service> _parseOrderServices(Map<String, dynamic> json) {
       .toList(growable: false);
 }
 
-double? _parseAddressCoordinate(
-  Map<String, dynamic> json,
-  List<String> keys,
-) {
+double? _parseAddressCoordinate(Map<String, dynamic> json, List<String> keys) {
   final direct = _toDouble(_pick(json, keys));
   if (direct != null) return direct;
   if (json['address'] is! Map) return null;
@@ -321,6 +317,7 @@ class FetchOrdersUsecaseModelDataItem {
   final double? adminMargin;
   final double? cancellationFee;
   final double? totalPrice;
+  final double? bookingTotalPrice;
   final bool? isPricingFinal;
   final String? currency;
 
@@ -358,9 +355,7 @@ class FetchOrdersUsecaseModelDataItem {
   final List<CleaningRoomAssignmentModel>? roomAssignments;
   final CleaningMyAssignmentModel? myAssignment;
 
-
-  String get statusNameValue =>
-      CleaningBookingStatus.toArabic(status ?? '');
+  String get statusNameValue => CleaningBookingStatus.toArabic(status ?? '');
 
   String? get displayNeighborhoodName {
     final name = neighborhoodName?.trim();
@@ -402,6 +397,7 @@ class FetchOrdersUsecaseModelDataItem {
     this.adminMargin,
     this.cancellationFee,
     this.totalPrice,
+    this.bookingTotalPrice,
     this.isPricingFinal,
     this.currency,
     this.addressLatitude,
@@ -516,7 +512,12 @@ class FetchOrdersUsecaseModelDataItem {
         _pick(m, const <String>['addonsTotal', 'addons_total']),
       ),
       travelFee: _toDouble(
-        _pick(m, const <String>['travelFee', 'travel_fee', 'deliveryFee', 'delivery_fee']),
+        _pick(m, const <String>[
+          'travelFee',
+          'travel_fee',
+          'deliveryFee',
+          'delivery_fee',
+        ]),
       ),
       travelDistanceKm: _toDouble(
         _pick(m, const <String>['travelDistanceKm', 'travel_distance_km']),
@@ -530,18 +531,23 @@ class FetchOrdersUsecaseModelDataItem {
       totalPrice: _toDouble(
         _pick(m, const <String>['totalPrice', 'total_price']),
       ),
+      bookingTotalPrice: _toDouble(
+        _pick(m, const <String>['bookingTotalPrice', 'booking_total_price']),
+      ),
       isPricingFinal: _toBool(
         _pick(m, const <String>['isPricingFinal', 'is_pricing_final']),
       ),
       currency: _toStringValue(_pick(m, const <String>['currency'])),
-      addressLatitude: _parseAddressCoordinate(
-        m,
-        const <String>['addressLatitude', 'address_latitude', 'latitude'],
-      ),
-      addressLongitude: _parseAddressCoordinate(
-        m,
-        const <String>['addressLongitude', 'address_longitude', 'longitude'],
-      ),
+      addressLatitude: _parseAddressCoordinate(m, const <String>[
+        'addressLatitude',
+        'address_latitude',
+        'latitude',
+      ]),
+      addressLongitude: _parseAddressCoordinate(m, const <String>[
+        'addressLongitude',
+        'address_longitude',
+        'longitude',
+      ]),
       termsAccepted: _toBool(
         _pick(m, const <String>['termsAccepted', 'terms_accepted']),
       ),
@@ -597,45 +603,41 @@ class FetchOrdersUsecaseModelDataItem {
         _pick(m, const <String>['worker_order_status', 'workerOrderStatus']),
       ),
       workerOrderStatusLabel: _toStringValue(
-        _pick(
-          m,
-          const <String>['worker_order_status_label', 'workerOrderStatusLabel'],
-        ),
+        _pick(m, const <String>[
+          'worker_order_status_label',
+          'workerOrderStatusLabel',
+        ]),
       ),
       requiredWorkersCount: _toInt(
-        _pick(
-          m,
-          const <String>['required_workers_count', 'requiredWorkersCount'],
-        ),
+        _pick(m, const <String>[
+          'required_workers_count',
+          'requiredWorkersCount',
+        ]),
       ),
       acceptedWorkersCount: _toInt(
-        _pick(
-          m,
-          const <String>['accepted_workers_count', 'acceptedWorkersCount'],
-        ),
+        _pick(m, const <String>[
+          'accepted_workers_count',
+          'acceptedWorkersCount',
+        ]),
       ),
       pendingWorkersCount: _toInt(
-        _pick(
-          m,
-          const <String>['pending_workers_count', 'pendingWorkersCount'],
-        ),
+        _pick(m, const <String>[
+          'pending_workers_count',
+          'pendingWorkersCount',
+        ]),
       ),
-      workerAcceptance: m['workerAcceptance'] == null &&
-              m['worker_acceptance'] == null
+      workerAcceptance:
+          m['workerAcceptance'] == null && m['worker_acceptance'] == null
           ? null
           : CleaningWorkerAcceptanceModel.fromJson(
               _toMap(m['workerAcceptance'] ?? m['worker_acceptance']),
             ),
       workerAssignments: _toMapList(
         m['workerAssignments'] ?? m['worker_assignments'],
-      )
-          .map(CleaningWorkerAssignmentModel.fromJson)
-          .toList(growable: false),
+      ).map(CleaningWorkerAssignmentModel.fromJson).toList(growable: false),
       roomAssignments: _toMapList(
         m['roomAssignments'] ?? m['room_assignments'],
-      )
-          .map(CleaningRoomAssignmentModel.fromJson)
-          .toList(growable: false),
+      ).map(CleaningRoomAssignmentModel.fromJson).toList(growable: false),
       myAssignment: m['myAssignment'] == null && m['my_assignment'] == null
           ? null
           : CleaningMyAssignmentModel.fromJson(
@@ -647,6 +649,40 @@ class FetchOrdersUsecaseModelDataItem {
   bool get isMultiWorkerTeam =>
       (assignmentMode ?? '').toLowerCase() == 'open_count' ||
       (numberOfWorkers ?? 1) > 1;
+
+  num get workerGrossTotal {
+    final assignment = myAssignment;
+    if (assignment != null) {
+      final assignmentGross =
+          (assignment.serviceShareAmount ?? 0) + (assignment.travelFee ?? 0);
+      if (assignmentGross > 0) return assignmentGross;
+    }
+
+    final calculated = (basePrice ?? 0) + (addonsTotal ?? 0) + (travelFee ?? 0);
+    if (calculated > 0) return calculated;
+
+    return totalPrice ?? 0;
+  }
+
+  num get workerNetProfit {
+    final assignment = myAssignment;
+    if (assignment != null) {
+      final assignmentGross =
+          (assignment.serviceShareAmount ?? 0) + (assignment.travelFee ?? 0);
+      if (assignmentGross > 0 || assignment.adminMarginAmount != null) {
+        final netProfit = assignmentGross - (assignment.adminMarginAmount ?? 0);
+        return netProfit > 0 ? netProfit : 0;
+      }
+
+      final assignmentWorkerAmount = assignment.workerAmount;
+      if (assignmentWorkerAmount != null) return assignmentWorkerAmount;
+    }
+
+    final assignmentAdminMargin = myAssignment?.adminMarginAmount;
+    final netProfit =
+        workerGrossTotal - (assignmentAdminMargin ?? adminMargin ?? 0);
+    return netProfit > 0 ? netProfit : 0;
+  }
 
   bool get isSearchingForWorkers {
     final workerStatus = (workerOrderStatus ?? '').trim().toLowerCase();
@@ -718,6 +754,7 @@ class FetchOrdersUsecaseModelDataItem {
       'adminMargin': adminMargin,
       'cancellationFee': cancellationFee,
       'totalPrice': totalPrice,
+      'bookingTotalPrice': bookingTotalPrice,
       'isPricingFinal': isPricingFinal,
       'currency': currency,
       'addressLatitude': addressLatitude,
@@ -794,6 +831,7 @@ class FetchOrdersUsecaseModelDataItem {
       adminMargin: adminMargin,
       cancellationFee: cancellationFee,
       totalPrice: totalPrice,
+      bookingTotalPrice: bookingTotalPrice,
       isPricingFinal: isPricingFinal,
       currency: currency,
       addressLatitude: addressLatitude,
@@ -870,6 +908,7 @@ class FetchOrdersUsecaseModelDataItem {
       adminMargin: adminMargin,
       cancellationFee: cancellationFee,
       totalPrice: totalPrice,
+      bookingTotalPrice: bookingTotalPrice,
       isPricingFinal: isPricingFinal,
       currency: currency,
       addressLatitude: addressLatitude,
@@ -948,11 +987,7 @@ class WorkerData {
 }
 
 class RoomSizeCounts {
-  const RoomSizeCounts({
-    this.large = 0,
-    this.medium = 0,
-    this.small = 0,
-  });
+  const RoomSizeCounts({this.large = 0, this.medium = 0, this.small = 0});
 
   final int large;
   final int medium;
@@ -982,11 +1017,7 @@ class RoomSizeCounts {
   }
 
   Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'large': large,
-      'medium': medium,
-      'small': small,
-    };
+    return <String, dynamic>{'large': large, 'medium': medium, 'small': small};
   }
 }
 
@@ -1117,10 +1148,10 @@ class PropertyDetailsData {
   });
 
   factory PropertyDetailsData.fromJson(Map<String, dynamic> json) {
-    final breakdownRaw = _pick(
-      json,
-      const <String>['roomSizeBreakdown', 'room_size_breakdown'],
-    );
+    final breakdownRaw = _pick(json, const <String>[
+      'roomSizeBreakdown',
+      'room_size_breakdown',
+    ]);
 
     return PropertyDetailsData(
       locationName: _toStringValue(
@@ -1141,10 +1172,10 @@ class PropertyDetailsData {
         _pick(json, const <String>['livingRoomSize', 'living_room_size']),
       ),
       livingRoomSizeLabel: _toStringValue(
-        _pick(
-          json,
-          const <String>['livingRoomSizeLabel', 'living_room_size_label'],
-        ),
+        _pick(json, const <String>[
+          'livingRoomSizeLabel',
+          'living_room_size_label',
+        ]),
       ),
       cleaningMode: _toStringValue(
         _pick(json, const <String>['cleaningMode', 'cleaning_mode']),
@@ -1169,7 +1200,10 @@ class PropertyDetailsData {
       ),
       hours: _toDouble(_pick(json, const <String>['hours'])),
       specialRequirement: _toStringValue(
-        _pick(json, const <String>['special_requirement', 'specialRequirement']),
+        _pick(json, const <String>[
+          'special_requirement',
+          'specialRequirement',
+        ]),
       ),
       notes: _toStringValue(_pick(json, const <String>['notes'])),
     );

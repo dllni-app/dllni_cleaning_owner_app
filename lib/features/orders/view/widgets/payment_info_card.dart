@@ -18,8 +18,6 @@ class PaymentInfoCard extends StatelessWidget {
 
   bool get _usesWorkerShare => order.myAssignment != null;
 
-
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -42,13 +40,14 @@ class PaymentInfoCard extends StatelessWidget {
             basePrice: order.basePrice,
             travelFee: order.myAssignment?.travelFee ?? order.travelFee,
             addonsTotal: order.addonsTotal,
-            totalPrice: order.totalPrice,
+            totalPrice: order.workerGrossTotal,
 
             showAddonsTotal: showAddonsTotal,
             useWorkerShare: _usesWorkerShare,
             serviceShareAmount: order.myAssignment?.serviceShareAmount,
-            workerAmount: order.myAssignment?.workerAmount,
-            adminMargin: order.adminMargin,
+            workerAmount: order.workerNetProfit,
+            adminMargin:
+                order.myAssignment?.adminMarginAmount ?? order.adminMargin,
           ),
           if (order.isPricingFinal == false) ...[
             12.verticalSpace,

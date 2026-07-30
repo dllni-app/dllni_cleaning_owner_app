@@ -132,6 +132,10 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
     return id == null ? '-' : id.toString();
   }
 
+  num _grossWorkerTotal() {
+    return _order.workerGrossTotal;
+  }
+
   void _dismissSheet() {
     Navigator.of(context).pop(_AcceptOrderSheetCloseAction.dismissed);
   }
@@ -464,7 +468,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                       _detailCard(context, [
                         _orderInfoRow(
                           label: 'السعر الإجمالي',
-                          value: _order.totalPrice.formatMoney(),
+                          value: _grossWorkerTotal().formatMoney(),
                           withDivider: false,
                         ),
                       ]),
@@ -519,7 +523,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                           basePrice: _order.basePrice,
                           travelFee: _order.travelFee,
                           addonsTotal: _order.addonsTotal,
-                          totalPrice: _order.totalPrice,
+                          totalPrice: _order.workerGrossTotal,
                           showAddonsTotal: true,
                           adminMargin: _order.adminMargin,
                         ),

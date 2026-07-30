@@ -28,12 +28,13 @@ class MissionPaymentSummaryCard extends StatelessWidget {
             basePrice: order.basePrice,
             travelFee: order.myAssignment?.travelFee ?? order.travelFee,
             addonsTotal: order.addonsTotal,
-            totalPrice: order.totalPrice,
+            totalPrice: order.workerGrossTotal,
             showAddonsTotal: false,
             useWorkerShare: order.myAssignment != null,
             serviceShareAmount: order.myAssignment?.serviceShareAmount,
-            workerAmount: order.myAssignment?.workerAmount,
-            adminMargin: order.adminMargin,
+            workerAmount: order.workerNetProfit,
+            adminMargin:
+                order.myAssignment?.adminMarginAmount ?? order.adminMargin,
           ),
           if (order.isPricingFinal == false) ...[
             const SizedBox(height: 10),

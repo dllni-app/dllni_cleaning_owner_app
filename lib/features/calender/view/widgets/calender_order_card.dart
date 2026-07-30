@@ -35,12 +35,15 @@ class CalenderOrderCard extends StatelessWidget {
         Expanded(
           child: InkWell(
             onTap: () {
-              context.pushRoute('/orderdetails', arguments: OrderDetailsScreenParams(
-                bloc: context.read<OrdersBloc>(),
-                index: index,
-                order: date,
-                isNewOrder: false,
-              ));
+              context.pushRoute(
+                '/orderdetails',
+                arguments: OrderDetailsScreenParams(
+                  bloc: context.read<OrdersBloc>(),
+                  index: index,
+                  order: date,
+                  isNewOrder: false,
+                ),
+              );
             },
             borderRadius: BorderRadius.circular(16.r),
             child: Container(
@@ -54,7 +57,9 @@ class CalenderOrderCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Padding(
-                      padding: EdgeInsetsDirectional.symmetric(horizontal: 10.w),
+                      padding: EdgeInsetsDirectional.symmetric(
+                        horizontal: 10.w,
+                      ),
                       child: AppText.labelLarge(
                         date.locationName ?? '',
                         fontWeight: FontWeight.w400,
@@ -89,7 +94,9 @@ class CalenderOrderCard extends StatelessWidget {
                     Divider(height: 1, color: context.surface),
                     SizedBox(height: 12.h),
                     Padding(
-                      padding: EdgeInsetsDirectional.symmetric(horizontal: 10.w),
+                      padding: EdgeInsetsDirectional.symmetric(
+                        horizontal: 10.w,
+                      ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -110,7 +117,7 @@ class CalenderOrderCard extends StatelessWidget {
                                   ),
                                 ),
                           AppText.titleSmall(
-                            '${CleaningArabicTimeFormatter.toArabicDigits(date.totalPrice?.toString() ?? '')} ل.س',
+                            '${CleaningArabicTimeFormatter.toArabicDigits(date.workerNetProfit.toString())} ل.س',
                             color: context.primaryContainer,
                           ),
                         ],

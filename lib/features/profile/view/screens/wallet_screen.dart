@@ -50,11 +50,7 @@ class _WalletScreenState extends State<WalletScreen> {
     return BlocProvider<HomeBloc>(
       lazy: false,
       create: (_) => getIt<HomeBloc>()
-        ..add(
-          FetchHomePageUsecaseEvent(
-            params: FetchHomePageUsecaseParams(),
-          ),
-        ),
+        ..add(FetchHomePageUsecaseEvent(params: FetchHomePageUsecaseParams())),
       child: Builder(
         builder: (providerContext) => Scaffold(
           backgroundColor: const Color(0xffF3F4F6),
@@ -175,7 +171,7 @@ class _WalletScreenState extends State<WalletScreen> {
                     children: [
                       Expanded(
                         child: _metric(
-                          'الإيرادات',
+                          'الإجمالي',
                           '${WalletScreen.formatAmount(amountSummary?.grossInvoicesAmount ?? 0)} $currency',
                           const Color(0xff0EA5E9),
                           isLoading,
@@ -184,7 +180,7 @@ class _WalletScreenState extends State<WalletScreen> {
                       10.horizontalSpace,
                       Expanded(
                         child: _metric(
-                          'تم إيداعه للإدارة',
+                          'صافي الربح',
                           '${WalletScreen.formatAmount(amountSummary?.workerAmount ?? 0)} $currency',
                           const Color(0xff10B981),
                           isLoading,
@@ -197,7 +193,7 @@ class _WalletScreenState extends State<WalletScreen> {
                     children: [
                       Expanded(
                         child: _metric(
-                          'نسبة الإدارة من الأرباح',
+                          'هامش الإدارة',
                           '${WalletScreen.formatAmount(amountSummary?.adminAmount ?? 0)} $currency',
                           const Color(0xffF59E0B),
                           isLoading,
@@ -244,9 +240,8 @@ class _WalletScreenState extends State<WalletScreen> {
                   state.errorMessage,
                   fallback: 'تعذر تحميل بيانات مبلغ التأمين',
                 ),
-                () => context.read<ProfileBloc>().add(
-                  FetchDepositAccountEvent(),
-                ),
+                () =>
+                    context.read<ProfileBloc>().add(FetchDepositAccountEvent()),
               ),
               12.verticalSpace,
             ],
@@ -359,12 +354,7 @@ class _WalletScreenState extends State<WalletScreen> {
     );
   }
 
-  Widget _metric(
-    String title,
-    String value,
-    Color color,
-    bool isLoading,
-  ) {
+  Widget _metric(String title, String value, Color color, bool isLoading) {
     return Container(
       constraints: BoxConstraints(minHeight: 104.h),
       padding: EdgeInsetsDirectional.all(14.w),

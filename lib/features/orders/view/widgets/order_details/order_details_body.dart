@@ -50,9 +50,7 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
   }
 
   num get _netProfit {
-    final workerAmount = widget.order.myAssignment?.workerAmount;
-    if (workerAmount != null) return workerAmount;
-    return (widget.order.totalPrice ?? 0) - (widget.order.adminMargin ?? 0);
+    return widget.order.workerNetProfit;
   }
 
   List<MapEntry<String, String>> get _summaryRows {

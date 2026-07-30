@@ -60,8 +60,9 @@ class ExtensionRequestActionSheet {
 
   static String paymentMethodLabel(String? paymentMethod) {
     final value = (paymentMethod ?? '').trim().toLowerCase();
-    if (value == 'cash' || value == 'cash_on_delivery')
+    if (value == 'cash' || value == 'cash_on_delivery') {
       return 'نقداً عند الاستلام';
+    }
     if (value == 'card') return 'دفع إلكتروني';
     if (value.isEmpty) return 'طريقة الدفع غير محددة';
     return paymentMethod!;
@@ -414,12 +415,16 @@ class ExtensionRequestAmountBreakdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final serviceAmount = totalAmount ?? baseAmount;
+    final netProfit = totalAmount != null && adminMargin != null
+        ? (totalAmount! - adminMargin!).clamp(0, double.infinity).toDouble()
+        : baseAmount;
     final rows = <Widget>[
-      if (baseAmount != null)
+      if (serviceAmount != null)
         _ExtensionAmountRow(
-          key: const Key('extension_base_amount'),
-          label: 'صافي الربح',
-          amount: baseAmount!,
+          key: const Key('extension_service_amount'),
+          label: 'سعر الخدمة',
+          amount: serviceAmount,
           currency: currency,
         ),
       if (adminMargin != null)
@@ -429,11 +434,11 @@ class ExtensionRequestAmountBreakdown extends StatelessWidget {
           amount: adminMargin!,
           currency: currency,
         ),
-      if (totalAmount != null)
+      if (netProfit != null)
         _ExtensionAmountRow(
-          key: const Key('extension_total_amount'),
-          label: 'الإجمالي',
-          amount: totalAmount!,
+          key: const Key('extension_net_profit'),
+          label: 'صافي الربح',
+          amount: netProfit,
           currency: currency,
           emphasize: true,
         ),

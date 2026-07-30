@@ -178,5 +178,35 @@ void main() {
 
       expect(order.displayNeighborhoodName, 'الفرقان');
     });
+
+    test('calculates worker gross total and net profit from payment parts', () {
+      final order = fetchOrdersUsecaseModelDataItemFromJson(<String, dynamic>{
+        'basePrice': 120000,
+        'addonsTotal': 0,
+        'travelFee': 14000,
+        'adminMargin': 12000,
+        'totalPrice': 146000,
+      });
+
+      expect(order.workerGrossTotal, 134000);
+      expect(order.workerNetProfit, 122000);
+    });
+
+    test('prefers current assignment worker net profit when available', () {
+      final order = fetchOrdersUsecaseModelDataItemFromJson(<String, dynamic>{
+        'basePrice': 120000,
+        'travelFee': 14000,
+        'adminMargin': 12000,
+        'myAssignment': <String, dynamic>{
+          'serviceShareAmount': 80000,
+          'travelFee': 10000,
+          'adminMarginAmount': 9000,
+          'workerAmount': 81000,
+        },
+      });
+
+      expect(order.workerGrossTotal, 90000);
+      expect(order.workerNetProfit, 81000);
+    });
   });
 }

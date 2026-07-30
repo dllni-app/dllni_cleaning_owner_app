@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('shows base price, administration margin, and total', (
+  testWidgets('shows service price, administration margin, and net profit', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
@@ -19,15 +19,16 @@ void main() {
       ),
     );
 
-    expect(find.text('صافي الربح'), findsOneWidget);
+    expect(find.text('سعر الخدمة'), findsOneWidget);
     expect(find.text('هامش الادارة'), findsOneWidget);
-    expect(find.text('الإجمالي'), findsOneWidget);
+    expect(find.text('صافي الربح'), findsOneWidget);
     expect(find.text('4500.00 SYP'), findsOneWidget);
     expect(find.text('500.00 SYP'), findsOneWidget);
     expect(find.text('5000.00 SYP'), findsOneWidget);
+    expect(find.text('الإجمالي'), findsNothing);
   });
 
-  testWidgets('legacy response shows only the total', (
+  testWidgets('legacy response shows only the service price', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
@@ -43,8 +44,9 @@ void main() {
       ),
     );
 
-    expect(find.text('صافي الربح'), findsNothing);
+    expect(find.text('سعر الخدمة'), findsOneWidget);
     expect(find.text('هامش الادارة'), findsNothing);
-    expect(find.text('الإجمالي'), findsOneWidget);
+    expect(find.text('صافي الربح'), findsNothing);
+    expect(find.text('الإجمالي'), findsNothing);
   });
 }

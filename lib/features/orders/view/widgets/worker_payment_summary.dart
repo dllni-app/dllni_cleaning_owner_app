@@ -29,38 +29,37 @@ class WorkerPaymentSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final serviceAmount = useWorkerShare ? serviceShareAmount : basePrice;
-    final netProfit = workerAmount ??
-        ((totalPrice ?? 0) - (adminMargin ?? 0));
+    final serviceAmount = useWorkerShare
+        ? (serviceShareAmount ?? basePrice ?? 0)
+        : ((basePrice ?? 0) + (addonsTotal ?? 0));
+    final calculatedGrossTotal = serviceAmount + (travelFee ?? 0);
+    final grossTotal = calculatedGrossTotal > 0
+        ? calculatedGrossTotal
+        : (totalPrice ?? 0);
+    final calculatedNetProfit = grossTotal - (adminMargin ?? 0);
+    final hasCalculableNet =
+        calculatedGrossTotal > 0 || totalPrice != null || adminMargin != null;
+    final netProfit = hasCalculableNet
+        ? (calculatedNetProfit > 0 ? calculatedNetProfit : 0)
+        : (workerAmount ?? 0);
 
     return Column(
       children: [
-        _PaymentRow(
-          label: 'قيمة الخدمة',
-          amount: serviceAmount.formatMoney(),
-        ),
+        _PaymentRow(label: 'قيمة الخدمة', amount: serviceAmount.formatMoney()),
         12.verticalSpace,
-        _PaymentRow(
-          label: 'رسوم التنقل',
-          amount: travelFee.formatMoney(),
-        ),
+        _PaymentRow(label: 'رسوم التنقل', amount: travelFee.formatMoney()),
         12.verticalSpace,
-        _PaymentRow(
-          label: 'الإجمالي',
-          amount: totalPrice.formatMoney(),
-        ),
+        _PaymentRow(label: 'الإجمالي', amount: grossTotal.formatMoney()),
         12.verticalSpace,
-        _PaymentRow(
-          label: 'هامش الإدارة',
-          amount: adminMargin.formatMoney(),
-        ),
+        _PaymentRow(label: 'هامش الإدارة', amount: adminMargin.formatMoney()),
         18.verticalSpace,
         LayoutBuilder(
           builder: (context, constraints) {
             final dashWidth = 6.0.w;
             final dashSpace = 6.0.w;
             final dashCount =
-                (constraints.constrainWidth() / (dashWidth + dashSpace)).floor();
+                (constraints.constrainWidth() / (dashWidth + dashSpace))
+                    .floor();
             return Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: List.generate(dashCount, (_) {
