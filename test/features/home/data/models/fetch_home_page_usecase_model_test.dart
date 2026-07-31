@@ -101,6 +101,29 @@ void main() {
       );
     });
 
+    test('parses inactive financial account warning payload', () {
+      final model = fetchHomePageUsecaseModelFromJson(<String, dynamic>{
+        'isEligibleForNewRequests': false,
+        'newOrdersCount': 0,
+        'depositSummary': <String, dynamic>{
+          'currentBalance': 0,
+          'status': 'inactive',
+          'isEligibleForNewRequests': false,
+        },
+        'dispatchEligibility': <String, dynamic>{
+          'canReceiveNewRequests': false,
+          'canAcceptNewBookings': false,
+          'canStartAssignedWork': false,
+          'reasonCode': 'financial_account_inactive',
+        },
+      });
+
+      expect(model.blocksNewRequests, isTrue);
+      expect(model.dispatchEligibility?.isFinancialAccountInactive, isTrue);
+      expect(model.eligibilityMessageAr, contains('سحب كامل الرصيد'));
+      expect(model.eligibilityMessageAr, contains('إيداعاً جديداً'));
+    });
+
     test('remains backward compatible when new fields are absent', () {
       final model = fetchHomePageUsecaseModelFromJson(<String, dynamic>{
         'totalBookings': 12,

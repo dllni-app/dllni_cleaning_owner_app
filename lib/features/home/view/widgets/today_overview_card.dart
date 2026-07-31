@@ -63,7 +63,10 @@ class TodayOverviewCard extends StatelessWidget {
                               textBaseline: TextBaseline.alphabetic,
                               children: [
                                 AppText.displaySmall(
-                                  state.homePageUsecase?.totalEarnings.formatMoney(currency: '') ?? '0 ل.س',
+                                  state.homePageUsecase?.totalEarnings.formatMoney(
+                                        currency: '',
+                                      ) ??
+                                      '0 ل.س',
                                   color: context.onPrimary,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -111,7 +114,8 @@ class TodayOverviewCard extends StatelessWidget {
                     current.homePageUsecase?.blocksNewRequests ||
                 previous.homePageUsecase?.eligibilityMessageAr !=
                     current.homePageUsecase?.eligibilityMessageAr ||
-                previous.homePageUsecaseStatus != current.homePageUsecaseStatus,
+                previous.homePageUsecaseStatus !=
+                    current.homePageUsecaseStatus,
             builder: (context, state) {
               final model = state.homePageUsecase;
               if (state.homePageUsecaseStatus != BlocStatus.success ||
@@ -119,8 +123,11 @@ class TodayOverviewCard extends StatelessWidget {
                 return const SizedBox.shrink();
               }
 
+              final dispatchEligibility = model?.dispatchEligibility;
               final isAdminSuspended =
-                  model?.dispatchEligibility?.isAdminSuspended == true;
+                  dispatchEligibility?.isAdminSuspended == true;
+              final isFinancialAccountInactive =
+                  dispatchEligibility?.isFinancialAccountInactive == true;
 
               return Container(
                 width: double.infinity,
@@ -139,6 +146,8 @@ class TodayOverviewCard extends StatelessWidget {
                     Icon(
                       isAdminSuspended
                           ? Icons.block_rounded
+                          : isFinancialAccountInactive
+                          ? Icons.account_balance_wallet_outlined
                           : Icons.info_outline_rounded,
                       color: context.error,
                     ),
@@ -150,6 +159,8 @@ class TodayOverviewCard extends StatelessWidget {
                           AppText.labelLarge(
                             isAdminSuspended
                                 ? 'تم إيقاف حسابك من قبل الإدارة'
+                                : isFinancialAccountInactive
+                                ? 'حساب مبلغ التأمين متوقف'
                                 : 'ملاحظة على استقبال الطلبات',
                             color: context.error,
                             fontWeight: FontWeight.w700,
