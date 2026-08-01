@@ -1,4 +1,5 @@
 import 'package:common_package/common_package.dart';
+import 'package:dllni_cleaninig_owner_app/features/profile/data/models/fetch_deposit_account_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/manager/bloc/profile_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -130,11 +131,13 @@ class _WalletScreenState extends State<WalletScreen> {
             state.depositAccountStatus == BlocStatus.init;
         final data = state.depositAccount;
         const currency = 'ل.س';
-        final workerAmount = data?.totalRevenue ?? 0;
+        final parsedWorkerAmount = data?.totalRevenue;
         final adminAmount =
-            data?.adminCommissionBalance ?? data?.totalCommission ?? 0;
+            data?.totalCommission ?? data?.adminCommissionBalance ?? 0;
         final grossAmount =
-            data?.grossInvoicesAmount ?? workerAmount + adminAmount;
+            data?.grossInvoicesAmount ??
+            (parsedWorkerAmount ?? 0) + adminAmount;
+        final workerAmount = parsedWorkerAmount ?? grossAmount - adminAmount;
 
         return _card(
           shadow: true,
@@ -208,6 +211,14 @@ class _WalletScreenState extends State<WalletScreen> {
         final accountStatus = data?.isFinancialAccountActive == false
             ? 'inactive'
             : data?.status ?? '';
+        final hasDepositBalance = (data?.currentBalance ?? 0) > 0;
+        final warningText = isLoading || data == null
+            ? null
+            : _financialWarningText(data);
+        final warningIsDanger =
+            data?.isEligibleForNewRequests == false ||
+            data?.financialWarningCode == 'allowance_limit_exhausted' ||
+            data?.financialWarningCode == 'deposit_below_minimum';
 
         return Column(
           children: [
@@ -222,10 +233,21 @@ class _WalletScreenState extends State<WalletScreen> {
               ),
               12.verticalSpace,
             ],
+            if (warningText != null) ...[
+              _financialWarningBanner(warningText, warningIsDanger),
+              12.verticalSpace,
+            ],
             _debtCard(
-              WalletScreen.formatAmount(data?.allowedDebtLimit ?? 0),
+              WalletScreen.formatAmount(data?.displayAllowedDebtLimit ?? 0),
               currency,
               isLoading,
+              subtitle: hasDepositBalance
+                  ? 'غير مستخدم حالياً لأن رصيد الإيداع متاح.'
+                  : null,
+              isWarning:
+                  !hasDepositBalance &&
+                  ((data?.isAllowanceNearLimit ?? false) ||
+                      (data?.isAllowanceLimitExhausted ?? false)),
             ),
             12.verticalSpace,
             _card(
@@ -299,30 +321,43 @@ class _WalletScreenState extends State<WalletScreen> {
     );
   }
 
-  Widget _debtCard(String amount, String currency, bool isLoading) {
+  Widget _debtCard(
+    String amount,
+    String currency,
+    bool isLoading, {
+    String? subtitle,
+    bool isWarning = false,
+  }) {
+    final color = isWarning ? const Color(0xffDC2626) : const Color(0xff0F766E);
+
     return _card(
-      borderColor: const Color(0xffFECACA),
+      borderColor: isWarning
+          ? const Color(0xffFECACA)
+          : const Color(0xffCCFBF1),
       child: Row(
         children: [
-          _circleIcon(
-            Icons.account_balance_wallet_outlined,
-            const Color(0xffDC2626),
-          ),
+          _circleIcon(Icons.account_balance_wallet_outlined, color),
           12.horizontalSpace,
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _text('حد الدين', weight: FontWeight.w700, size: 18),
+                _text('حد السماح', weight: FontWeight.w700, size: 18),
                 4.verticalSpace,
                 isLoading
                     ? _loadingLine(110.w)
                     : _text(
                         '$amount $currency',
-                        color: const Color(0xffB91C1C),
+                        color: isWarning
+                            ? const Color(0xffB91C1C)
+                            : const Color(0xff0F766E),
                         weight: FontWeight.w800,
                         size: 16,
                       ),
+                if (!isLoading && subtitle != null) ...[
+                  6.verticalSpace,
+                  _text(subtitle, color: const Color(0xff6B7280), size: 13),
+                ],
               ],
             ),
           ),
@@ -433,6 +468,56 @@ class _WalletScreenState extends State<WalletScreen> {
         ],
       ),
     );
+  }
+
+  Widget _financialWarningBanner(String message, bool isDanger) {
+    final color = isDanger ? const Color(0xffB91C1C) : const Color(0xffB45309);
+    final background = isDanger
+        ? const Color(0xffFEF2F2)
+        : const Color(0xffFFFBEB);
+    final border = isDanger ? const Color(0xffFECACA) : const Color(0xffFDE68A);
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsetsDirectional.all(12.w),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(14.r),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isDanger ? Icons.error_outline : Icons.warning_amber_rounded,
+            color: color,
+          ),
+          10.horizontalSpace,
+          Expanded(child: _text(message, color: color, size: 14)),
+        ],
+      ),
+    );
+  }
+
+  String? _financialWarningText(FetchDepositAccountUsecaseModel data) {
+    final code = data.financialWarningCode?.trim().toLowerCase();
+    switch (code) {
+      case 'deposit_below_minimum':
+        return 'رصيد الإيداع أقل من الحد الأدنى المطلوب. يرجى إيداع ${WalletScreen.formatAmount(data.minimumRequired ?? 0)} ل.س لتفعيل استقبال الطلبات.';
+      case 'allowance_limit_exhausted':
+        return 'وصل حد السماح إلى الصفر. يجب دفع المبلغ المستحق للإدارة لاستقبال طلبات جديدة.';
+      case 'allowance_near_limit':
+        return 'أوشك حد السماح على النفاد. يرجى دفع المبلغ المستحق للإدارة لتجنب إيقاف استقبال الطلبات.';
+    }
+
+    if (data.isAllowanceNearLimit == true) {
+      return 'أوشك حد السماح على النفاد. يرجى دفع المبلغ المستحق للإدارة لتجنب إيقاف استقبال الطلبات.';
+    }
+
+    if (data.isAllowanceLimitExhausted == true) {
+      return 'وصل حد السماح إلى الصفر. يجب دفع المبلغ المستحق للإدارة لاستقبال طلبات جديدة.';
+    }
+
+    return null;
   }
 
   Widget _loadingLine(double width) {

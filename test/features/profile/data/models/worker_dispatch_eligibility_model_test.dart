@@ -4,15 +4,13 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('WorkerDispatchEligibilityModel', () {
     test('shows an explicit admin suspension warning', () {
-      final model = WorkerDispatchEligibilityModel.fromJson(
-        <String, dynamic>{
-          'canReceiveNewRequests': false,
-          'canAcceptNewBookings': false,
-          'reasonCode': 'worker_suspended',
-          'message':
-              'Your worker account was stopped by the admin. You will not receive new orders.',
-        },
-      );
+      final model = WorkerDispatchEligibilityModel.fromJson(<String, dynamic>{
+        'canReceiveNewRequests': false,
+        'canAcceptNewBookings': false,
+        'reasonCode': 'worker_suspended',
+        'message':
+            'Your worker account was stopped by the admin. You will not receive new orders.',
+      });
 
       expect(model.blocksNewRequests, isTrue);
       expect(model.isAdminSuspended, isTrue);
@@ -21,16 +19,37 @@ void main() {
     });
 
     test('does not mark other eligibility failures as admin suspension', () {
-      final model = WorkerDispatchEligibilityModel.fromJson(
-        <String, dynamic>{
-          'canReceiveNewRequests': false,
-          'canAcceptNewBookings': false,
-          'reasonCode': 'deposit_below_allowed_balance',
-        },
-      );
+      final model = WorkerDispatchEligibilityModel.fromJson(<String, dynamic>{
+        'canReceiveNewRequests': false,
+        'canAcceptNewBookings': false,
+        'reasonCode': 'deposit_below_allowed_balance',
+      });
 
       expect(model.blocksNewRequests, isTrue);
       expect(model.isAdminSuspended, isFalse);
+    });
+
+    test('shows the allowance exhausted warning', () {
+      final model = WorkerDispatchEligibilityModel.fromJson(<String, dynamic>{
+        'canReceiveNewRequests': false,
+        'canAcceptNewBookings': false,
+        'reasonCode': 'allowance_limit_exhausted',
+      });
+
+      expect(model.blocksNewRequests, isTrue);
+      expect(model.isAdminSuspended, isFalse);
+      expect(model.userMessageAr, contains('وصل حد السماح إلى الصفر'));
+    });
+
+    test('shows the allowance near limit warning', () {
+      final model = WorkerDispatchEligibilityModel.fromJson(<String, dynamic>{
+        'canReceiveNewRequests': true,
+        'canAcceptNewBookings': true,
+        'reasonCode': 'allowance_near_limit',
+      });
+
+      expect(model.isAdminSuspended, isFalse);
+      expect(model.userMessageAr, contains('أوشك حد السماح على النفاد'));
     });
   });
 }

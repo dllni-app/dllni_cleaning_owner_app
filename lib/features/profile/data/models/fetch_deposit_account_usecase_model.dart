@@ -61,8 +61,12 @@ class FetchDepositAccountUsecaseModel {
   final num? debtBalance;
   final num? depositedTotal;
   final num? withdrawnTotal;
+  final num? minimumRequired;
   final num? allowedDebtLimit;
+  final num? configuredAllowedDebtLimit;
   final num? remainingDebtCapacity;
+  final num? remainingAllowanceLimit;
+  final num? allowanceUsedAmount;
   final num? activeReservedCommission;
   final num? availableCommissionCapacity;
   final num? manualDebtAmount;
@@ -71,10 +75,17 @@ class FetchDepositAccountUsecaseModel {
   final int? completedJobs;
   final num? totalCommission;
   final num? adminCommissionBalance;
+  final num? withdrawnAdminRevenueTotal;
   final num? grossInvoicesAmount;
   final String? status;
   final num? exceedanceAmount;
   final bool? isEligibleForNewRequests;
+  final bool? isAllowanceLimitExhausted;
+  final bool? isUsingDepositBalance;
+  final bool? isAllowanceNearLimit;
+  final num? allowanceWarningThresholdPercent;
+  final String? financialWarningCode;
+  final String? financialWarningMessage;
   final bool? isFinancialAccountActive;
   final String? createdAt;
   final String? updatedAt;
@@ -85,8 +96,12 @@ class FetchDepositAccountUsecaseModel {
     this.debtBalance,
     this.depositedTotal,
     this.withdrawnTotal,
+    this.minimumRequired,
     this.allowedDebtLimit,
+    this.configuredAllowedDebtLimit,
     this.remainingDebtCapacity,
+    this.remainingAllowanceLimit,
+    this.allowanceUsedAmount,
     this.activeReservedCommission,
     this.availableCommissionCapacity,
     this.manualDebtAmount,
@@ -95,10 +110,17 @@ class FetchDepositAccountUsecaseModel {
     this.completedJobs,
     this.totalCommission,
     this.adminCommissionBalance,
+    this.withdrawnAdminRevenueTotal,
     this.grossInvoicesAmount,
     this.status,
     this.exceedanceAmount,
     this.isEligibleForNewRequests,
+    this.isAllowanceLimitExhausted,
+    this.isUsingDepositBalance,
+    this.isAllowanceNearLimit,
+    this.allowanceWarningThresholdPercent,
+    this.financialWarningCode,
+    this.financialWarningMessage,
     this.isFinancialAccountActive,
     this.createdAt,
     this.updatedAt,
@@ -106,7 +128,8 @@ class FetchDepositAccountUsecaseModel {
 
   num get currentBalance => depositBalance ?? 0;
   num get debtAmount => debtBalance ?? 0;
-  num get minimumRequired => 0;
+  num get displayAllowedDebtLimit =>
+      remainingAllowanceLimit ?? allowedDebtLimit ?? 0;
 
   factory FetchDepositAccountUsecaseModel.fromJson(Map<String, dynamic> json) {
     final parsedDeposit = _toNum(
@@ -140,6 +163,11 @@ class FetchDepositAccountUsecaseModel {
       withdrawnTotal: _toNum(
         _pick(json, const <String>['withdrawnTotal', 'withdrawn_total']),
       ),
+      minimumRequired:
+          _toNum(
+            _pick(json, const <String>['minimumRequired', 'minimum_required']),
+          ) ??
+          0,
       allowedDebtLimit: _toNum(
         _pick(json, const <String>[
           'allowedDebtLimit',
@@ -148,10 +176,28 @@ class FetchDepositAccountUsecaseModel {
           'max_negative_balance',
         ]),
       ),
+      configuredAllowedDebtLimit: _toNum(
+        _pick(json, const <String>[
+          'configuredAllowedDebtLimit',
+          'configured_allowed_debt_limit',
+        ]),
+      ),
       remainingDebtCapacity: _toNum(
         _pick(json, const <String>[
           'remainingDebtCapacity',
           'remaining_debt_capacity',
+        ]),
+      ),
+      remainingAllowanceLimit: _toNum(
+        _pick(json, const <String>[
+          'remainingAllowanceLimit',
+          'remaining_allowance_limit',
+        ]),
+      ),
+      allowanceUsedAmount: _toNum(
+        _pick(json, const <String>[
+          'allowanceUsedAmount',
+          'allowance_used_amount',
         ]),
       ),
       activeReservedCommission: _toNum(
@@ -190,6 +236,12 @@ class FetchDepositAccountUsecaseModel {
           'admin_commission_balance',
         ]),
       ),
+      withdrawnAdminRevenueTotal: _toNum(
+        _pick(json, const <String>[
+          'withdrawnAdminRevenueTotal',
+          'withdrawn_admin_revenue_total',
+        ]),
+      ),
       grossInvoicesAmount: _toNum(
         _pick(json, const <String>[
           'grossInvoicesAmount',
@@ -204,6 +256,44 @@ class FetchDepositAccountUsecaseModel {
         _pick(json, const <String>[
           'isEligibleForNewRequests',
           'is_eligible_for_new_requests',
+        ]),
+      ),
+      isAllowanceLimitExhausted: _toBool(
+        _pick(json, const <String>[
+          'isAllowanceLimitExhausted',
+          'is_allowance_limit_exhausted',
+        ]),
+      ),
+      isUsingDepositBalance: _toBool(
+        _pick(json, const <String>[
+          'isUsingDepositBalance',
+          'is_using_deposit_balance',
+        ]),
+      ),
+      isAllowanceNearLimit: _toBool(
+        _pick(json, const <String>[
+          'isAllowanceNearLimit',
+          'is_allowance_near_limit',
+        ]),
+      ),
+      allowanceWarningThresholdPercent:
+          _toNum(
+            _pick(json, const <String>[
+              'allowanceWarningThresholdPercent',
+              'allowance_warning_threshold_percent',
+            ]),
+          ) ??
+          10,
+      financialWarningCode: _toStringValue(
+        _pick(json, const <String>[
+          'financialWarningCode',
+          'financial_warning_code',
+        ]),
+      ),
+      financialWarningMessage: _toStringValue(
+        _pick(json, const <String>[
+          'financialWarningMessage',
+          'financial_warning_message',
         ]),
       ),
       isFinancialAccountActive: _toBool(
@@ -232,8 +322,12 @@ class FetchDepositAccountUsecaseModel {
       'debtAmount': debtAmount,
       'depositedTotal': depositedTotal,
       'withdrawnTotal': withdrawnTotal,
+      'minimumRequired': minimumRequired,
       'allowedDebtLimit': allowedDebtLimit,
+      'configuredAllowedDebtLimit': configuredAllowedDebtLimit,
       'remainingDebtCapacity': remainingDebtCapacity,
+      'remainingAllowanceLimit': remainingAllowanceLimit,
+      'allowanceUsedAmount': allowanceUsedAmount,
       'activeReservedCommission': activeReservedCommission,
       'availableCommissionCapacity': availableCommissionCapacity,
       'manualDebtAmount': manualDebtAmount,
@@ -242,10 +336,17 @@ class FetchDepositAccountUsecaseModel {
       'completedJobs': completedJobs,
       'totalCommission': totalCommission,
       'adminCommissionBalance': adminCommissionBalance,
+      'withdrawnAdminRevenueTotal': withdrawnAdminRevenueTotal,
       'grossInvoicesAmount': grossInvoicesAmount,
       'status': status,
       'exceedanceAmount': exceedanceAmount,
       'isEligibleForNewRequests': isEligibleForNewRequests,
+      'isAllowanceLimitExhausted': isAllowanceLimitExhausted,
+      'isUsingDepositBalance': isUsingDepositBalance,
+      'isAllowanceNearLimit': isAllowanceNearLimit,
+      'allowanceWarningThresholdPercent': allowanceWarningThresholdPercent,
+      'financialWarningCode': financialWarningCode,
+      'financialWarningMessage': financialWarningMessage,
       'isFinancialAccountActive': isFinancialAccountActive,
       'createdAt': createdAt,
       'updatedAt': updatedAt,

@@ -34,7 +34,9 @@ bool? _toBool(dynamic value) {
 int? _toInt(dynamic value) {
   if (value is int) return value;
   if (value is num) return value.toInt();
-  if (value is String) return int.tryParse(value) ?? double.tryParse(value)?.toInt();
+  if (value is String) {
+    return int.tryParse(value) ?? double.tryParse(value)?.toInt();
+  }
   return null;
 }
 
@@ -154,11 +156,17 @@ class WorkerDispatchEligibilityModel {
         return 'درجة الثقة أقل من الحد المطلوب لاستقبال الطلبات الجديدة.';
       case 'deposit_required_before_start':
         return 'رصيد التأمين أقل من الحد المطلوب لبدء العمل.';
+      case 'allowance_limit_exhausted':
+        return 'وصل حد السماح إلى الصفر. يرجى تسوية هامش الإدارة لتتمكن من استقبال طلبات جديدة.';
+      case 'allowance_near_limit':
+        return 'أوشك حد السماح على النفاد. يرجى تسوية هامش الإدارة لتجنب إيقاف استقبال الطلبات الجديدة.';
       case 'deposit_below_allowed_balance':
-        return 'رصيد التأمين أقل من الحد المسموح. يرجى شحن حساب التأمين لاستقبال الطلبات الجديدة.';
+        return 'تجاوز المبلغ المستحق حد السماح. يرجى تسوية المبلغ مع الإدارة لاستقبال الطلبات الجديدة.';
       case 'insufficient_commission_capacity':
         final blockedCount = blockedNewOrdersCount ?? 0;
-        final countText = blockedCount > 0 ? ' يوجد $blockedCount طلب غير ظاهر حالياً.' : '';
+        final countText = blockedCount > 0
+            ? ' يوجد $blockedCount طلب غير ظاهر حالياً.'
+            : '';
         return 'رصيد التأمين المتاح لا يغطي عمولة بعض الطلبات الجديدة.$countText يرجى شحن حساب التأمين أو انتظار تحرير العمولة المحجوزة.';
       default:
         return 'لا يمكن لحسابك استقبال الطلبات الجديدة حالياً.';
