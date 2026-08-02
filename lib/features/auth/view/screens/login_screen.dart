@@ -9,8 +9,9 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:intl_phone_number_input/intl_phone_number_input.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/widgets/app_phone_number_field.dart';
-import '../../../../core/widgets/worker_technical_support_call_button.dart';
+import '../../../../core/widgets/legal_links_launcher.dart';
 import '../../../../core/widgets/phone_number_widget/my_phone_number_field_widget.dart';
+import '../../../../core/widgets/worker_technical_support_call_button.dart';
 import '../../../../generated/assets.dart';
 import '../manager/bloc/auth_bloc.dart';
 
@@ -76,7 +77,9 @@ class _LoginScreenState extends State<LoginScreen> {
               break;
             case BlocStatus.success:
               Loading.close();
-              unawaited(CleaningWorkerExtensionPrompts.coordinator?.onAuthenticated());
+              unawaited(
+                CleaningWorkerExtensionPrompts.coordinator?.onAuthenticated(),
+              );
               context.pushRouteAndRemoveUntil('/main');
               break;
             case BlocStatus.loading:
@@ -102,21 +105,43 @@ class _LoginScreenState extends State<LoginScreen> {
                       width: 80,
                       height: 80,
                       padding: EdgeInsetsDirectional.all(15.r),
-                      decoration: BoxDecoration(color: Color(0xff1E2A78), borderRadius: BorderRadius.circular(16)),
+                      decoration: BoxDecoration(
+                        color: Color(0xff1E2A78),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       child: AppImage.asset(Assets.images.loginIcon.path),
                     ),
                     SizedBox(height: 24),
-                    AppText.headlineLarge('مرحباً بعودتك', color: Color(0xff1E2A78), fontWeight: FontWeight.bold, textAlign: TextAlign.center),
+                    AppText.headlineLarge(
+                      'مرحباً بعودتك',
+                      color: Color(0xff1E2A78),
+                      fontWeight: FontWeight.bold,
+                      textAlign: TextAlign.center,
+                    ),
                     SizedBox(height: 8),
-                    AppText.bodyMedium('قم بتسجيل الدخول لإدارة متجرك', color: Colors.grey.shade600, textAlign: TextAlign.center),
+                    AppText.bodyMedium(
+                      'قم بتسجيل الدخول لإدارة متجرك',
+                      color: Colors.grey.shade600,
+                      textAlign: TextAlign.center,
+                    ),
                     SizedBox(height: 32),
                     Container(
                       decoration: BoxDecoration(
                         color: context.onPrimary,
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withAlpha(25), blurRadius: 6, spreadRadius: -4, offset: Offset(0, 5)),
-                          BoxShadow(color: Colors.black.withAlpha(25), blurRadius: 15, spreadRadius: -3, offset: Offset(0, 10)),
+                          BoxShadow(
+                            color: Colors.black.withAlpha(25),
+                            blurRadius: 6,
+                            spreadRadius: -4,
+                            offset: Offset(0, 5),
+                          ),
+                          BoxShadow(
+                            color: Colors.black.withAlpha(25),
+                            blurRadius: 15,
+                            spreadRadius: -3,
+                            offset: Offset(0, 10),
+                          ),
                         ],
                       ),
                       padding: EdgeInsetsDirectional.all(25),
@@ -125,8 +150,15 @@ class _LoginScreenState extends State<LoginScreen> {
                         children: [
                           Row(
                             children: [
-                              AppText.bodyMedium('رقم الجوال', fontWeight: FontWeight.w500),
-                              AppText.bodyMedium('*', color: context.error, fontWeight: FontWeight.w500),
+                              AppText.bodyMedium(
+                                'رقم الجوال',
+                                fontWeight: FontWeight.w500,
+                              ),
+                              AppText.bodyMedium(
+                                '*',
+                                color: context.error,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ],
                           ),
                           SizedBox(height: 8),
@@ -136,39 +168,90 @@ class _LoginScreenState extends State<LoginScreen> {
                             isMargin: false,
                             textInputAction: TextInputAction.next,
                             focusNode: phoneFocusNode,
-                            onSubmitted: (_) => FocusScope.of(context).requestFocus(passwordFocus),
+                            onSubmitted: (_) => FocusScope.of(
+                              context,
+                            ).requestFocus(passwordFocus),
                           ),
                           SizedBox(height: 20),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              AppText.bodyMedium('كلمة المرور', fontWeight: FontWeight.bold, color: Color(0xff111827), textAlign: TextAlign.start),
+                              AppText.bodyMedium(
+                                'كلمة المرور',
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xff111827),
+                                textAlign: TextAlign.start,
+                              ),
                               SizedBox(height: 8),
                               TextFormField(
                                 focusNode: passwordFocus,
                                 textInputAction: TextInputAction.done,
-                                onFieldSubmitted: (_) => passwordFocus.unfocus(),
+                                onFieldSubmitted: (_) =>
+                                    passwordFocus.unfocus(),
                                 controller: _passwordController,
                                 obscureText: _obscurePassword,
                                 textDirection: TextDirection.ltr,
                                 style: TextStyle(color: Colors.black),
                                 decoration: InputDecoration(
                                   hintText: 'أدخل كلمة المرور',
-                                  hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                                  hintStyle: TextStyle(
+                                    color: Colors.grey.shade400,
+                                    fontSize: 14,
+                                  ),
                                   filled: true,
                                   fillColor: context.onPrimary,
-                                  contentPadding: EdgeInsetsDirectional.symmetric(horizontal: 16, vertical: 16),
-                                  prefixIcon: Icon(Icons.lock_outline, color: Colors.grey.shade400, size: 20),
-                                  suffixIcon: IconButton(
-                                    icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: Colors.grey.shade400, size: 20),
-                                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                  contentPadding:
+                                      EdgeInsetsDirectional.symmetric(
+                                        horizontal: 16,
+                                        vertical: 16,
+                                      ),
+                                  prefixIcon: Icon(
+                                    Icons.lock_outline,
+                                    color: Colors.grey.shade400,
+                                    size: 20,
                                   ),
-                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey.shade300)),
-                                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: context.secondary)),
-                                  errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: context.error)),
-                                  focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: context.error)),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _obscurePassword
+                                          ? Icons.visibility_outlined
+                                          : Icons.visibility_off_outlined,
+                                      color: Colors.grey.shade400,
+                                      size: 20,
+                                    ),
+                                    onPressed: () => setState(
+                                      () =>
+                                          _obscurePassword = !_obscurePassword,
+                                    ),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey.shade300,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: BorderSide(
+                                      color: context.secondary,
+                                    ),
+                                  ),
+                                  errorBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: BorderSide(
+                                      color: context.error,
+                                    ),
+                                  ),
+                                  focusedErrorBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: BorderSide(
+                                      color: context.error,
+                                    ),
+                                  ),
                                 ),
-                                validator: (value) => value == null || value.isEmpty ? 'الرجاء إدخال كلمة المرور' : null,
+                                validator: (value) =>
+                                    value == null || value.isEmpty
+                                    ? 'الرجاء إدخال كلمة المرور'
+                                    : null,
                               ),
                             ],
                           ),
@@ -177,16 +260,30 @@ class _LoginScreenState extends State<LoginScreen> {
                             builder: (context, state) {
                               return InkWell(
                                 borderRadius: BorderRadius.circular(16),
-                                onTap: () async => _submit(context.read<AuthBloc>()),
+                                onTap: () async =>
+                                    _submit(context.read<AuthBloc>()),
                                 child: Container(
-                                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), color: Color(0xff1E2A78)),
-                                  padding: EdgeInsetsDirectional.symmetric(vertical: 16),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(16),
+                                    color: Color(0xff1E2A78),
+                                  ),
+                                  padding: EdgeInsetsDirectional.symmetric(
+                                    vertical: 16,
+                                  ),
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      AppText.bodyLarge('تسجيل الدخول', color: context.onPrimary, fontWeight: FontWeight.bold),
+                                      AppText.bodyLarge(
+                                        'تسجيل الدخول',
+                                        color: context.onPrimary,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                       8.horizontalSpace,
-                                      Icon(Icons.arrow_forward, color: context.onPrimary, size: 20),
+                                      Icon(
+                                        Icons.arrow_forward,
+                                        color: context.onPrimary,
+                                        size: 20,
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -197,35 +294,91 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     SizedBox(height: 24),
-                    AppText.labelMedium('هل تواجه مشكلة في تسجيل الدخول؟', color: Colors.grey.shade600, textAlign: TextAlign.center),
+                    AppText.labelMedium(
+                      'هل تواجه مشكلة في تسجيل الدخول؟',
+                      color: Colors.grey.shade600,
+                      textAlign: TextAlign.center,
+                    ),
                     SizedBox(height: 8),
                     InkWell(
                       borderRadius: BorderRadius.circular(12),
                       onTap: () async => launchSupportWhatsApp(context),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.headset_mic_outlined, color: context.secondary, size: 18),
+                            Icon(
+                              Icons.headset_mic_outlined,
+                              color: context.secondary,
+                              size: 18,
+                            ),
                             SizedBox(width: 6),
-                            AppText.bodyMedium('تواصل مع الدعم الفني', color: context.secondary, fontWeight: FontWeight.bold),
+                            AppText.bodyMedium(
+                              'تواصل مع الدعم الفني',
+                              color: context.secondary,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ],
                         ),
                       ),
                     ),
                     SizedBox(height: 24),
-                    AppText.labelSmall('© 2026 تطبيق تاجر. جميع الحقوق محفوظة', color: Colors.grey.shade500, textAlign: TextAlign.center),
+                    AppText.labelSmall(
+                      '© 2026 تطبيق تاجر. جميع الحقوق محفوظة',
+                      color: Colors.grey.shade500,
+                      textAlign: TextAlign.center,
+                    ),
                     SizedBox(height: 16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        AppText.labelSmall('الشروط والأحكام', color: context.secondary, fontWeight: FontWeight.w500),
-                        Padding(
-                          padding: EdgeInsetsDirectional.symmetric(horizontal: 8),
-                          child: Container(width: 4, height: 4, decoration: BoxDecoration(color: Colors.grey.shade400, shape: BoxShape.circle)),
+                        TextButton(
+                          onPressed: () => launchTermsAndConditions(context),
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsetsDirectional.symmetric(
+                              horizontal: 4,
+                            ),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: AppText.labelSmall(
+                            'الشروط والأحكام',
+                            color: context.secondary,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                        AppText.labelSmall('سياسة الخصوصية', color: context.secondary, fontWeight: FontWeight.w500),
+                        Padding(
+                          padding: EdgeInsetsDirectional.symmetric(
+                            horizontal: 8,
+                          ),
+                          child: Container(
+                            width: 4,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade400,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () => launchPrivacyPolicy(context),
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsetsDirectional.symmetric(
+                              horizontal: 4,
+                            ),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: AppText.labelSmall(
+                            'سياسة الخصوصية',
+                            color: context.secondary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ],
                     ),
                   ],
