@@ -4,11 +4,11 @@ class AppConfig {
   const AppConfig._();
 
   /// When true, start travel is only allowed within one hour of the scheduled time.
-  /// Disabled in debug builds; enabled in release. Override with
+  /// Enabled by default. Override with
   /// `--dart-define=ENFORCE_START_TRAVEL_WINDOW=true|false`.
   static const bool enforceStartTravelWindow = bool.fromEnvironment(
     'ENFORCE_START_TRAVEL_WINDOW',
-    defaultValue: false,
+    defaultValue: true,
   );
 
   static const String appName = 'cleaning owner';
