@@ -385,16 +385,28 @@ class _HomeScreenState extends State<HomeScreen> {
             unawaited(_bindWorkerRealtimeListener());
           }
         },
-        child: BlocListener<OrdersBloc, OrdersState>(
-          listenWhen: (previous, current) =>
-              previous.ordersUsecase != current.ordersUsecase,
-          listener: (context, state) {
-            if (state.ordersUsecase?.status != BlocStatus.success) return;
-            _homeOrdersCurrentPage = context
-                .read<OrdersBloc>()
-                .lastAppliedOrdersListFilter
-                .page;
-          },
+        child: MultiBlocListener(
+          listeners: [
+            BlocListener<OrdersBloc, OrdersState>(
+              listenWhen: (previous, current) =>
+                  previous.acceptOrderUsecaseStatus != BlocStatus.success &&
+                  current.acceptOrderUsecaseStatus == BlocStatus.success,
+              listener: (context, state) {
+                _refreshHomeData(source: 'order_accepted');
+              },
+            ),
+            BlocListener<OrdersBloc, OrdersState>(
+              listenWhen: (previous, current) =>
+                  previous.ordersUsecase != current.ordersUsecase,
+              listener: (context, state) {
+                if (state.ordersUsecase?.status != BlocStatus.success) return;
+                _homeOrdersCurrentPage = context
+                    .read<OrdersBloc>()
+                    .lastAppliedOrdersListFilter
+                    .page;
+              },
+            ),
+          ],
           child: SafeArea(
             child: Column(
               children: [
