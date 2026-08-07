@@ -27,6 +27,7 @@ class CalenderScreen extends StatelessWidget {
                 params: FetchOrdersUsecaseParams(
                   page: 1,
                   assignedToCurrentWorker: true,
+                  acceptedByCurrentWorkerOnly: true,
                   scheduledDate: DateFormat(
                     'yyyy-MM-dd',
                     'en',
@@ -138,6 +139,8 @@ class CalenderScreen extends StatelessWidget {
                                                         .pageNumber,
                                                     assignedToCurrentWorker:
                                                         true,
+                                                    acceptedByCurrentWorkerOnly:
+                                                        true,
                                                     scheduledDate: lastFilter
                                                         .scheduledDate,
                                                   ),
@@ -176,6 +179,7 @@ class CalenderScreen extends StatelessWidget {
                                           params: FetchOrdersUsecaseParams(
                                             page: 1,
                                             assignedToCurrentWorker: true,
+                                            acceptedByCurrentWorkerOnly: true,
                                             scheduledDate:
                                                 lastFilter.scheduledDate,
                                           ),
