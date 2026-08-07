@@ -20,12 +20,23 @@ class FetchOrdersUsecaseUseCase
 }
 
 class FetchOrdersUsecaseParams with Params {
+  static const String _acceptedWorkerStatuses =
+      '${CleaningBookingStatus.workerAssigned},'
+      '${CleaningBookingStatus.awaitingStartVerification},'
+      '${CleaningBookingStatus.awaitingWorkerStartConfirmation},'
+      '${CleaningBookingStatus.inProgress},'
+      '${CleaningBookingStatus.awaitingCustomerCompletion},'
+      '${CleaningBookingStatus.timeExtensionRequested},'
+      '${CleaningBookingStatus.underDispute},'
+      '${CleaningBookingStatus.completed}';
+
   final String? status;
   final String? scheduledDate;
   final String? scheduledDateFrom;
   final String? scheduledDateTo;
   final String? sort;
   final bool assignedToCurrentWorker;
+  final bool acceptedByCurrentWorkerOnly;
   final int page;
   final int perPage;
 
@@ -36,13 +47,17 @@ class FetchOrdersUsecaseParams with Params {
     this.scheduledDateTo,
     this.sort,
     this.assignedToCurrentWorker = false,
+    this.acceptedByCurrentWorkerOnly = false,
     required this.page,
     this.perPage = 10,
   });
 
   @override
   QueryParams getParams() {
-    final normalizedStatus = status?.trim().toLowerCase();
+    final effectiveStatus = acceptedByCurrentWorkerOnly
+        ? _acceptedWorkerStatuses
+        : status;
+    final normalizedStatus = effectiveStatus?.trim().toLowerCase();
     final shouldFilterAssignedOrders =
         assignedToCurrentWorker &&
         normalizedStatus != CleaningBookingStatus.pending;
@@ -50,7 +65,7 @@ class FetchOrdersUsecaseParams with Params {
     final params = {
       'filter[forCurrentWorker]': 1,
       'filter[assignedToCurrentWorker]': shouldFilterAssignedOrders ? 1 : null,
-      'filter[status]': status,
+      'filter[status]': effectiveStatus,
       'filter[scheduledDate]': scheduledDate,
       'filter[scheduledDateFrom]': scheduledDateFrom,
       'filter[scheduledDateTo]': scheduledDateTo,
