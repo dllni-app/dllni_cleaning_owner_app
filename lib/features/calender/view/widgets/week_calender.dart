@@ -29,7 +29,7 @@ class _WeekCalendarState extends State<WeekCalendar> {
         _buildHeader(),
         SizedBox(height: 12.h),
         TableCalendar(
-          locale: 'en',
+          locale: 'ar',
           firstDay: DateTime(2020),
           lastDay: DateTime(2100),
           focusedDay: focusedDay,
@@ -51,6 +51,7 @@ class _WeekCalendarState extends State<WeekCalendar> {
                 params: FetchOrdersUsecaseParams(
                   page: 1,
                   assignedToCurrentWorker: true,
+                  acceptedByCurrentWorkerOnly: true,
                   scheduledDate: DateFormat('yyyy-MM-dd', 'en').format(selected),
                 ),
                 isReload: true,
