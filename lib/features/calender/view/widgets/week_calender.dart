@@ -29,7 +29,7 @@ class _WeekCalendarState extends State<WeekCalendar> {
         _buildHeader(),
         SizedBox(height: 12.h),
         TableCalendar(
-          locale: 'ar',
+          locale: 'en',
           firstDay: DateTime(2020),
           lastDay: DateTime(2100),
           focusedDay: focusedDay,
