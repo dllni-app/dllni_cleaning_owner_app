@@ -41,7 +41,7 @@ class FetchOrdersUsecaseParams with Params {
   final int perPage;
 
   FetchOrdersUsecaseParams({
-    this.status,
+    String? status,
     this.scheduledDate,
     this.scheduledDateFrom,
     this.scheduledDateTo,
@@ -50,14 +50,13 @@ class FetchOrdersUsecaseParams with Params {
     this.acceptedByCurrentWorkerOnly = false,
     required this.page,
     this.perPage = 10,
-  });
+  }) : status = acceptedByCurrentWorkerOnly
+           ? _acceptedWorkerStatuses
+           : status;
 
   @override
   QueryParams getParams() {
-    final effectiveStatus = acceptedByCurrentWorkerOnly
-        ? _acceptedWorkerStatuses
-        : status;
-    final normalizedStatus = effectiveStatus?.trim().toLowerCase();
+    final normalizedStatus = status?.trim().toLowerCase();
     final shouldFilterAssignedOrders =
         assignedToCurrentWorker &&
         normalizedStatus != CleaningBookingStatus.pending;
@@ -65,7 +64,7 @@ class FetchOrdersUsecaseParams with Params {
     final params = {
       'filter[forCurrentWorker]': 1,
       'filter[assignedToCurrentWorker]': shouldFilterAssignedOrders ? 1 : null,
-      'filter[status]': effectiveStatus,
+      'filter[status]': status,
       'filter[scheduledDate]': scheduledDate,
       'filter[scheduledDateFrom]': scheduledDateFrom,
       'filter[scheduledDateTo]': scheduledDateTo,
