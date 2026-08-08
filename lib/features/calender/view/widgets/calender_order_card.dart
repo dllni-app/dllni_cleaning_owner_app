@@ -80,7 +80,7 @@ class CalenderOrderCard extends StatelessWidget {
                     dataRow(
                       Assets.images.orderCardBuilding.path,
                       'نوع العقار',
-                      date.propertyType ?? '',
+                      _propertyTypeInArabic(date.propertyType),
                     ),
                     SizedBox(height: 12.h),
                     dataRow(
@@ -131,6 +131,28 @@ class CalenderOrderCard extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  String _propertyTypeInArabic(String? propertyType) {
+    switch (propertyType?.trim().toLowerCase()) {
+      case 'apartment':
+        return 'شقة';
+      case 'villa':
+        return 'فيلا';
+      case 'house':
+        return 'منزل';
+      case 'office':
+        return 'مكتب';
+      case 'studio':
+        return 'استوديو';
+      case 'event_assistance':
+        return 'مساعدة مناسبات';
+      case null:
+      case '':
+        return '';
+      default:
+        return propertyType ?? '';
+    }
   }
 
   Future<void> callPhone(String phoneNumber) async {
