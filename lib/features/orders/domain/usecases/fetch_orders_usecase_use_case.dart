@@ -20,25 +20,39 @@ class FetchOrdersUsecaseUseCase
 }
 
 class FetchOrdersUsecaseParams with Params {
+  static const String _acceptedWorkerStatuses =
+      '${CleaningBookingStatus.workerAssigned},'
+      '${CleaningBookingStatus.awaitingStartVerification},'
+      '${CleaningBookingStatus.awaitingWorkerStartConfirmation},'
+      '${CleaningBookingStatus.inProgress},'
+      '${CleaningBookingStatus.awaitingCustomerCompletion},'
+      '${CleaningBookingStatus.timeExtensionRequested},'
+      '${CleaningBookingStatus.underDispute},'
+      '${CleaningBookingStatus.completed}';
+
   final String? status;
   final String? scheduledDate;
   final String? scheduledDateFrom;
   final String? scheduledDateTo;
   final String? sort;
   final bool assignedToCurrentWorker;
+  final bool acceptedByCurrentWorkerOnly;
   final int page;
   final int perPage;
 
   FetchOrdersUsecaseParams({
-    this.status,
+    String? status,
     this.scheduledDate,
     this.scheduledDateFrom,
     this.scheduledDateTo,
     this.sort,
     this.assignedToCurrentWorker = false,
+    this.acceptedByCurrentWorkerOnly = false,
     required this.page,
     this.perPage = 10,
-  });
+  }) : status = acceptedByCurrentWorkerOnly
+           ? _acceptedWorkerStatuses
+           : status;
 
   @override
   QueryParams getParams() {
