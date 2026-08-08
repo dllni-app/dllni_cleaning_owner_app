@@ -51,6 +51,7 @@ class _WeekCalendarState extends State<WeekCalendar> {
                 params: FetchOrdersUsecaseParams(
                   page: 1,
                   assignedToCurrentWorker: true,
+                  acceptedByCurrentWorkerOnly: true,
                   scheduledDate: DateFormat('yyyy-MM-dd', 'en').format(selected),
                 ),
                 isReload: true,
