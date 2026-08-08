@@ -8,7 +8,7 @@ class AppConfig {
   /// `--dart-define=ENFORCE_START_TRAVEL_WINDOW=true|false`.
   static const bool enforceStartTravelWindow = bool.fromEnvironment(
     'ENFORCE_START_TRAVEL_WINDOW',
-    defaultValue: false,
+    defaultValue: true,
   );
 
   static const String appName = 'cleaning owner';
