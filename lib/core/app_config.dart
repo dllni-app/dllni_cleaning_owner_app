@@ -13,7 +13,7 @@ class AppConfig {
 
   static const String appName = 'cleaning owner';
   static const String orgIdentifier = 'com.dllni.clOwner';
-  static const String baseUrl = 'https://alnadha.net';
+  static const String baseUrl = 'https://dllni.mustafafares.com';
   static const String privacyPolicyUrl = '$baseUrl/legal/user-app';
   static const String termsAndConditionsUrl = '$baseUrl/legal/user-app/terms';
 
