@@ -67,8 +67,14 @@ void main() {
           'data': <String, dynamic>{
             'cleaning_booking': <String, dynamic>{'id': 94},
           },
-        }),
+        ),
         94,
+      );
+      expect(
+        CleaningRealtimeContract.extractBookingId(const <String, dynamic>{
+          'team': <String, dynamic>{'cleaningBookingId': 77},
+        }),
+        77,
       );
     });
 
@@ -88,7 +94,7 @@ void main() {
               'status': CleaningBookingStatus.awaitingStartVerification,
             },
           },
-        }),
+        ),
         CleaningBookingStatus.awaitingStartVerification,
       );
     });
