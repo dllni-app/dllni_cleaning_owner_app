@@ -273,17 +273,17 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
 
   Widget _buildOrderAddressCard(BuildContext context) {
     final neighborhood = widget.order.displayNeighborhoodName?.trim();
+    final hideExactAddress =
+        OrderLifecyclePolicy.isCustomerDataHidden(widget.order);
     final useNeighborhoodOnly =
-        OrderLifecyclePolicy.isCustomerDataHidden(widget.order) &&
-        neighborhood != null &&
-        neighborhood.isNotEmpty;
+        hideExactAddress && neighborhood != null && neighborhood.isNotEmpty;
     final visibleAddress = useNeighborhoodOnly
         ? neighborhood
         : visibleOrderAddress(
             address:
                 widget.order.propertyDetails?.address ??
                 widget.order.locationName,
-            status: widget.order.status,
+            status: hideExactAddress ? widget.order.status : null,
           );
     final address =
         visibleAddress.trim().isEmpty || visibleAddress.trim() == '-'
