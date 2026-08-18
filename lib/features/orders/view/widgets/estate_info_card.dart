@@ -6,6 +6,7 @@ import '../../data/models/fetch_orders_usecase_model.dart';
 import '../helpers/cleaning_enum_translations.dart';
 import '../helpers/event_assistance_order_helper.dart';
 import '../helpers/order_address_visibility_helper.dart';
+import '../helpers/order_lifecycle_policy.dart';
 import '../helpers/property_attribute_labels_helper.dart';
 
 class EstateInfoCard extends StatefulWidget {
@@ -33,14 +34,16 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
     final neighborhood = widget.order.displayNeighborhoodName?.trim();
     if (neighborhood != null &&
         neighborhood.isNotEmpty &&
-        widget.order.status == 'pending') {
+        OrderLifecyclePolicy.isCustomerDataHidden(widget.order)) {
       return neighborhood;
     }
 
     final visible = visibleOrderAddress(
       address:
           widget.order.propertyDetails?.address ?? widget.order.locationName,
-      status: widget.order.status,
+      status: OrderLifecyclePolicy.isCustomerDataHidden(widget.order)
+          ? widget.order.status
+          : null,
     ).trim();
     return visible.isEmpty || visible == '-' ? 'الحي غير محدد' : visible;
   }
