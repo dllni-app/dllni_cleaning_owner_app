@@ -273,11 +273,13 @@ class CleaningRealtimeContract {
   static int? extractBookingId(Map<String, dynamic> payload) {
     final unwrapped = unwrapPayload(payload);
     final trackingMap = _asStringMap(unwrapped['tracking']);
+    final teamMap = _asStringMap(unwrapped['team']);
     final cleaningOrderMap = _nestedBookingMap(unwrapped);
     final orderMap = _asStringMap(unwrapped['order']);
     final bookingMap = _asStringMap(unwrapped['booking']);
 
     return _extractIdFromMap(trackingMap) ??
+        _extractIdFromMap(teamMap) ??
         _extractIdFromMap(cleaningOrderMap) ??
         _extractIdFromMap(orderMap) ??
         _extractIdFromMap(bookingMap) ??
