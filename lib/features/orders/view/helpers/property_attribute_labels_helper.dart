@@ -33,12 +33,48 @@ class PropertyAttributeLabelsHelper {
     FetchOrdersUsecaseModelDataItem order, {
     required String roomType,
   }) {
+    if (order.isMultiWorkerTeam) {
+      final normalizedType = roomType.trim().toLowerCase();
+      return _workerRoomsForOrder(order)
+          .where(
+            (room) =>
+                (room.roomType ?? '').trim().toLowerCase() == normalizedType,
+          )
+          .length;
+    }
+
     return roomTypeCount(
       order.propertyDetails,
       roomType: roomType,
       fallback: _legacyCountForOrder(order, roomType),
       roomAssignments: order.roomAssignments,
     );
+  }
+
+  static List<CleaningRoomAssignmentModel> _workerRoomsForOrder(
+    FetchOrdersUsecaseModelDataItem order,
+  ) {
+    final rooms = order.roomAssignments ?? const <CleaningRoomAssignmentModel>[];
+    if (rooms.isEmpty) return const <CleaningRoomAssignmentModel>[];
+
+    final explicitlyAssigned = rooms
+        .where((room) => room.isAssignedToMe)
+        .toList(growable: false);
+    if (explicitlyAssigned.isNotEmpty) return explicitlyAssigned;
+
+    final roomIds = order.myAssignment?.roomIds ?? const <int>[];
+    if (roomIds.isNotEmpty) {
+      return rooms
+          .where((room) => room.id != null && roomIds.contains(room.id))
+          .toList(growable: false);
+    }
+
+    final workerId = order.myAssignment?.workerId;
+    if (workerId == null) return const <CleaningRoomAssignmentModel>[];
+
+    return rooms
+        .where((room) => room.assignedWorkerId == workerId)
+        .toList(growable: false);
   }
 
   static int? _legacyCountForOrder(
