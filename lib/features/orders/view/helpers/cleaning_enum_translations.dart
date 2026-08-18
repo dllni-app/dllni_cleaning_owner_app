@@ -137,10 +137,12 @@ class CleaningEnumTranslations {
       case 'family_dinner':
         return 'عشاء عائلي';
       case 'birthday':
-        return 'عيد ميلاد';
+      case 'birthday_party':
+        return 'حفلة عيد ميلاد';
       case 'large_gathering':
-        return 'تجمع كبير';
+        return 'عزيمة كبيرة';
       case 'funeral':
+      case 'condolences':
         return 'عزاء';
       case 'other':
         return 'أخرى';
