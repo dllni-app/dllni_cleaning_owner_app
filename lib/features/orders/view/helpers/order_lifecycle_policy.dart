@@ -82,7 +82,7 @@ class OrderLifecyclePolicy {
       order.status == CleaningBookingStatus.timeExtensionRequested;
 
   static bool isCustomerDataHidden(FetchOrdersUsecaseModelDataItem order) =>
-      isPending(order);
+      isPending(order) && !hasCurrentWorkerAccepted(order);
 
   static bool hasCurrentWorkerAccepted(FetchOrdersUsecaseModelDataItem order) {
     final assignment = order.myAssignment;
