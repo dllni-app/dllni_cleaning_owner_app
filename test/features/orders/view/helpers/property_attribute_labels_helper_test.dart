@@ -138,5 +138,81 @@ void main() {
         3,
       );
     });
+
+    test('multi-worker order counts only rooms explicitly assigned to me', () {
+      final order = fetchOrdersUsecaseModelDataItemFromJson(<String, dynamic>{
+        'assignmentMode': 'open_count',
+        'numberOfWorkers': 2,
+        'propertyDetails': <String, dynamic>{
+          'room_size_breakdown': <String, dynamic>{
+            'bedroom': <String, dynamic>{'large': 2},
+            'bathroom': <String, dynamic>{'small': 1},
+          },
+        },
+        'roomAssignments': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 1,
+            'roomType': 'bedroom',
+            'isAssignedToMe': true,
+          },
+          <String, dynamic>{
+            'id': 2,
+            'roomType': 'bedroom',
+            'isAssignedToMe': false,
+          },
+          <String, dynamic>{
+            'id': 3,
+            'roomType': 'bathroom',
+            'isAssignedToMe': false,
+          },
+        ],
+      });
+
+      expect(
+        PropertyAttributeLabelsHelper.roomTypeCountForOrder(
+          order,
+          roomType: 'bedroom',
+        ),
+        1,
+      );
+      expect(
+        PropertyAttributeLabelsHelper.roomTypeCountForOrder(
+          order,
+          roomType: 'bathroom',
+        ),
+        0,
+      );
+    });
+
+    test('multi-worker order can resolve my rooms from myAssignment roomIds', () {
+      final order = fetchOrdersUsecaseModelDataItemFromJson(<String, dynamic>{
+        'assignmentMode': 'open_count',
+        'numberOfWorkers': 2,
+        'myAssignment': <String, dynamic>{
+          'workerId': 9,
+          'roomIds': <int>[2, 3],
+        },
+        'roomAssignments': <Map<String, dynamic>>[
+          <String, dynamic>{'id': 1, 'roomType': 'bedroom'},
+          <String, dynamic>{'id': 2, 'roomType': 'bedroom'},
+          <String, dynamic>{'id': 3, 'roomType': 'bathroom'},
+        ],
+      });
+
+      expect(
+        PropertyAttributeLabelsHelper.roomTypeCountForOrder(
+          order,
+          roomType: 'bedroom',
+        ),
+        1,
+      );
+      expect(
+        PropertyAttributeLabelsHelper.roomTypeCountForOrder(
+          order,
+          roomType: 'bathroom',
+        ),
+        1,
+      );
+    });
   });
 }
