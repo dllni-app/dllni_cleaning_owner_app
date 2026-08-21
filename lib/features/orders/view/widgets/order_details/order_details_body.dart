@@ -75,11 +75,21 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
     ];
   }
 
+  int get _requiredWorkersCount =>
+      widget.order.requiredWorkersCount ??
+      widget.order.workerAcceptance?.required ??
+      widget.order.numberOfWorkers ??
+      1;
+
+  bool get _isMultiWorkerOrder => _requiredWorkersCount > 1;
+
   @override
   Widget build(BuildContext context) {
     final canAcceptReject = OrderLifecyclePolicy.canAcceptReject(widget.order);
     final canStartTravel = OrderLifecyclePolicy.canStartTravel(widget.order);
     final canCancel = OrderLifecyclePolicy.canCancel(widget.order);
+
+    final requiredWorkers = _requiredWorkersCount;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -136,6 +146,45 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
               child: Column(
                 children: [
                   SizedBox(height: 28),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsetsDirectional.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xffFFF7ED),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xffFDBA74)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.groups_2_outlined,
+                          color: Color(0xffC2410C),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              AppText.labelLarge(
+                                'طلب متعدد العمال',
+                                color: const Color(0xff9A3412),
+                                fontWeight: FontWeight.w800,
+                                textAlign: TextAlign.start,
+                              ),
+                              const SizedBox(height: 4),
+                              AppText.bodySmall(
+                                'هذا الطلب يتطلب $requiredWorkers عمال. أنت أحد أفراد الفريق المشاركين في تنفيذ الطلب.',
+                                color: const Color(0xff9A3412),
+                                textAlign: TextAlign.start,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 15),
                   DottedBorder(
                     options: RoundedRectDottedBorderOptions(
                       radius: Radius.circular(10),
@@ -273,8 +322,9 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
 
   Widget _buildOrderAddressCard(BuildContext context) {
     final neighborhood = widget.order.displayNeighborhoodName?.trim();
-    final hideExactAddress =
-        OrderLifecyclePolicy.isCustomerDataHidden(widget.order);
+    final hideExactAddress = OrderLifecyclePolicy.isCustomerDataHidden(
+      widget.order,
+    );
     final useNeighborhoodOnly =
         hideExactAddress && neighborhood != null && neighborhood.isNotEmpty;
     final visibleAddress = useNeighborhoodOnly

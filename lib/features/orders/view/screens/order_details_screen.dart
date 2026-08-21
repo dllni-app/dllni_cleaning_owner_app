@@ -152,7 +152,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }) {
     if (!mounted) return;
 
-    final normalizedEvent = CleaningRealtimeContract.normalizeEventName(eventName);
+    final normalizedEvent = CleaningRealtimeContract.normalizeEventName(
+      eventName,
+    );
     final payloadBookingId = CleaningRealtimeContract.extractBookingId(payload);
 
     if (fromWorkerChannel) {
@@ -161,14 +163,17 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       return;
     }
 
-    final isExtensionRequest = normalizedEvent ==
-            CleaningRealtimeContract.serviceExtensionRequested ||
+    final isExtensionRequest =
+        normalizedEvent == CleaningRealtimeContract.serviceExtensionRequested ||
         (normalizedEvent == CleaningRealtimeContract.completionDecisionMade &&
             (payload['decision'] ?? '').toString().trim().toLowerCase() ==
                 'extension_requested');
     if (isExtensionRequest) {
       unawaited(
-        CleaningWorkerExtensionPrompts.dispatchRealtimeEvent(eventName, payload),
+        CleaningWorkerExtensionPrompts.dispatchRealtimeEvent(
+          eventName,
+          payload,
+        ),
       );
     }
 
@@ -204,14 +209,16 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         .toLowerCase();
     if (decision != 'rejected') return;
 
-    final rawMessage = payload['message'] ??
+    final rawMessage =
+        payload['message'] ??
         payload['reason'] ??
         payload['customerMessage'] ??
         payload['customer_message'];
     final message = rawMessage?.toString().trim();
     if (message == null || message.isEmpty) return;
 
-    final decidedAt = payload['decidedAt'] ??
+    final decidedAt =
+        payload['decidedAt'] ??
         payload['decided_at'] ??
         payload['updatedAt'] ??
         payload['updated_at'] ??
@@ -290,7 +297,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }) {
     if (!mounted) return;
 
-    final resolvedStatus = status != null &&
+    final resolvedStatus =
+        status != null &&
             OrderLifecyclePolicy.shouldApplyRealtimeStatus(
               currentStatus: _order.status,
               incomingStatus: status,
@@ -340,7 +348,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         setState(() {
           _order = _mergeDetailsIntoOrder(details);
         });
-        widget.params.bloc.add(ChangeDetailsCurrentStep(step: _stepFor(_order)));
+        widget.params.bloc.add(
+          ChangeDetailsCurrentStep(step: _stepFor(_order)),
+        );
         _syncAwaitingVerificationPoll();
       }
     }
@@ -359,13 +369,15 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       }
     }
 
-    if (previous == null || state.startTravelUsecase != previous.startTravelUsecase) {
+    if (previous == null ||
+        state.startTravelUsecase != previous.startTravelUsecase) {
       final st = state.startTravelUsecase?.data;
       if (st != null && st.id == oid && st.status != null) {
         _applyLifecyclePatch(
           status: st.status,
           startedTravelAt:
-              _order.startedTravelAt ?? DateTime.now().toUtc().toIso8601String(),
+              _order.startedTravelAt ??
+              DateTime.now().toUtc().toIso8601String(),
         );
       }
     }
@@ -391,7 +403,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       }
     }
 
-    if (previous == null || state.acceptOrderUsecase != previous.acceptOrderUsecase) {
+    if (previous == null ||
+        state.acceptOrderUsecase != previous.acceptOrderUsecase) {
       final acc = state.acceptOrderUsecase?.data;
       if (acc != null && acc.id == oid && acc.status != null) {
         _applyLifecyclePatch(status: acc.status);
@@ -399,73 +412,15 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     }
   }
 
-  List<T> _preferNonEmpty<T>(
-    List<T>? first,
-    List<T>? second,
-    List<T>? third,
-  ) {
+  List<T> _preferNonEmpty<T>(List<T>? first, List<T>? second, List<T>? third) {
     if (first != null && first.isNotEmpty) return first;
     if (second != null && second.isNotEmpty) return second;
     if (third != null && third.isNotEmpty) return third;
     return <T>[];
   }
 
-  int get _requiredWorkersCount =>
-      _order.requiredWorkersCount ??
-      _order.workerAcceptance?.required ??
-      _order.numberOfWorkers ??
-      1;
-
-  bool get _isMultiWorkerOrder => _requiredWorkersCount > 1;
-
   Widget _withMultiWorkerNotice(BuildContext context, Widget child) {
-    if (!_isMultiWorkerOrder) return child;
-
-    final requiredWorkers = _requiredWorkersCount;
-    return Column(
-      children: [
-        Container(
-          width: double.infinity,
-          margin: const EdgeInsetsDirectional.fromSTEB(16, 8, 16, 6),
-          padding: const EdgeInsetsDirectional.all(12),
-          decoration: BoxDecoration(
-            color: const Color(0xffFFF7ED),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xffFDBA74)),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(
-                Icons.groups_2_outlined,
-                color: Color(0xffC2410C),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AppText.labelLarge(
-                      'طلب متعدد العمال',
-                      color: const Color(0xff9A3412),
-                      fontWeight: FontWeight.w800,
-                      textAlign: TextAlign.start,
-                    ),
-                    const SizedBox(height: 4),
-                    AppText.bodySmall(
-                      'هذا الطلب يتطلب $requiredWorkers عمال. أنت أحد أفراد الفريق المشاركين في تنفيذ الطلب.',
-                      color: const Color(0xff9A3412),
-                      textAlign: TextAlign.start,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        Expanded(child: child),
-      ],
-    );
+    return child;
   }
 
   @override
