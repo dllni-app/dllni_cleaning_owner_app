@@ -419,10 +419,6 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     return <T>[];
   }
 
-  Widget _withMultiWorkerNotice(BuildContext context, Widget child) {
-    return child;
-  }
-
   @override
   void dispose() {
     _syncFallbackDebounce?.cancel();
@@ -455,53 +451,41 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             builder: (context, state) {
               final step = _stepFor(_order);
               if (!_canShowMissionBody && (step == 0 || step == 1)) {
-                return _withMultiWorkerNotice(
-                  context,
-                  OrderDetailsBody(
-                    bloc: widget.params.bloc,
-                    index: widget.params.index,
-                    order: _order,
-                  ),
+                return OrderDetailsBody(
+                  bloc: widget.params.bloc,
+                  index: widget.params.index,
+                  order: _order,
                 );
               }
               if (!_canShowMissionBody && step == 2) {
-                return _withMultiWorkerNotice(
-                  context,
-                  SafeArea(
-                    child: OrderDetailsMapBody(
-                      order: _order,
-                      bloc: widget.params.bloc,
-                      index: widget.params.index,
-                    ),
+                return SafeArea(
+                  child: OrderDetailsMapBody(
+                    order: _order,
+                    bloc: widget.params.bloc,
+                    index: widget.params.index,
                   ),
                 );
               }
               if (!_canShowMissionBody) {
-                return _withMultiWorkerNotice(
-                  context,
-                  OrderDetailsBody(
-                    bloc: widget.params.bloc,
-                    index: widget.params.index,
-                    order: _order,
-                  ),
-                );
-              }
-              return _withMultiWorkerNotice(
-                context,
-                OrderDetailsMissionBody(
-                  order: _order,
+                return OrderDetailsBody(
                   bloc: widget.params.bloc,
                   index: widget.params.index,
-                  addons: _preferNonEmpty<Addon>(
-                    state.arrive?.data?.addons,
-                    state.orderDetailsUsecase?.data?.addons,
-                    _order.addons,
-                  ),
-                  services: _preferNonEmpty<Service>(
-                    state.arrive?.data?.services,
-                    state.orderDetailsUsecase?.data?.services,
-                    _order.services,
-                  ),
+                  order: _order,
+                );
+              }
+              return OrderDetailsMissionBody(
+                order: _order,
+                bloc: widget.params.bloc,
+                index: widget.params.index,
+                addons: _preferNonEmpty<Addon>(
+                  state.arrive?.data?.addons,
+                  state.orderDetailsUsecase?.data?.addons,
+                  _order.addons,
+                ),
+                services: _preferNonEmpty<Service>(
+                  state.arrive?.data?.services,
+                  state.orderDetailsUsecase?.data?.services,
+                  _order.services,
                 ),
               );
             },
