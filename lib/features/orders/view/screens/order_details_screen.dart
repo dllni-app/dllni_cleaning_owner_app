@@ -410,64 +410,6 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     return <T>[];
   }
 
-  int get _requiredWorkersCount =>
-      _order.requiredWorkersCount ??
-      _order.workerAcceptance?.required ??
-      _order.numberOfWorkers ??
-      1;
-
-  bool get _isMultiWorkerOrder => _requiredWorkersCount > 1;
-
-  Widget _withMultiWorkerNotice(BuildContext context, Widget child) {
-    if (!_isMultiWorkerOrder) return child;
-
-    final requiredWorkers = _requiredWorkersCount;
-    return Column(
-      children: [
-        Container(
-          width: double.infinity,
-          margin: const EdgeInsetsDirectional.fromSTEB(16, 8, 16, 6),
-          padding: const EdgeInsetsDirectional.all(12),
-          decoration: BoxDecoration(
-            color: const Color(0xffFFF7ED),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xffFDBA74)),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(
-                Icons.groups_2_outlined,
-                color: Color(0xffC2410C),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AppText.labelLarge(
-                      'طلب متعدد العمال',
-                      color: const Color(0xff9A3412),
-                      fontWeight: FontWeight.w800,
-                      textAlign: TextAlign.start,
-                    ),
-                    const SizedBox(height: 4),
-                    AppText.bodySmall(
-                      'هذا الطلب يتطلب $requiredWorkers عمال. أنت أحد أفراد الفريق المشاركين في تنفيذ الطلب.',
-                      color: const Color(0xff9A3412),
-                      textAlign: TextAlign.start,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        Expanded(child: child),
-      ],
-    );
-  }
-
   @override
   void dispose() {
     _syncFallbackDebounce?.cancel();
@@ -500,53 +442,41 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             builder: (context, state) {
               final step = _stepFor(_order);
               if (!_canShowMissionBody && (step == 0 || step == 1)) {
-                return _withMultiWorkerNotice(
-                  context,
-                  OrderDetailsBody(
-                    bloc: widget.params.bloc,
-                    index: widget.params.index,
-                    order: _order,
-                  ),
+                return OrderDetailsBody(
+                  bloc: widget.params.bloc,
+                  index: widget.params.index,
+                  order: _order,
                 );
               }
               if (!_canShowMissionBody && step == 2) {
-                return _withMultiWorkerNotice(
-                  context,
-                  SafeArea(
-                    child: OrderDetailsMapBody(
-                      order: _order,
-                      bloc: widget.params.bloc,
-                      index: widget.params.index,
-                    ),
+                return SafeArea(
+                  child: OrderDetailsMapBody(
+                    order: _order,
+                    bloc: widget.params.bloc,
+                    index: widget.params.index,
                   ),
                 );
               }
               if (!_canShowMissionBody) {
-                return _withMultiWorkerNotice(
-                  context,
-                  OrderDetailsBody(
-                    bloc: widget.params.bloc,
-                    index: widget.params.index,
-                    order: _order,
-                  ),
-                );
-              }
-              return _withMultiWorkerNotice(
-                context,
-                OrderDetailsMissionBody(
-                  order: _order,
+                return OrderDetailsBody(
                   bloc: widget.params.bloc,
                   index: widget.params.index,
-                  addons: _preferNonEmpty<Addon>(
-                    state.arrive?.data?.addons,
-                    state.orderDetailsUsecase?.data?.addons,
-                    _order.addons,
-                  ),
-                  services: _preferNonEmpty<Service>(
-                    state.arrive?.data?.services,
-                    state.orderDetailsUsecase?.data?.services,
-                    _order.services,
-                  ),
+                  order: _order,
+                );
+              }
+              return OrderDetailsMissionBody(
+                order: _order,
+                bloc: widget.params.bloc,
+                index: widget.params.index,
+                addons: _preferNonEmpty<Addon>(
+                  state.arrive?.data?.addons,
+                  state.orderDetailsUsecase?.data?.addons,
+                  _order.addons,
+                ),
+                services: _preferNonEmpty<Service>(
+                  state.arrive?.data?.services,
+                  state.orderDetailsUsecase?.data?.services,
+                  _order.services,
                 ),
               );
             },
