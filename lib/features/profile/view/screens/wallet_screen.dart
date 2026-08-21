@@ -1,5 +1,6 @@
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/data/models/fetch_deposit_account_usecase_model.dart';
+import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/fetch_worker_profile_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/manager/bloc/profile_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -39,7 +40,13 @@ class _WalletScreenState extends State<WalletScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      context.read<ProfileBloc>().add(FetchDepositAccountEvent());
+      final profileBloc = context.read<ProfileBloc>();
+      profileBloc.add(FetchDepositAccountEvent());
+      profileBloc.add(
+        FetchWorkerProfileUsecaseEvent(
+          params: FetchWorkerProfileUsecaseParams(),
+        ),
+      );
     });
   }
 
@@ -63,6 +70,8 @@ class _WalletScreenState extends State<WalletScreen> {
                     24.h,
                   ),
                   children: [
+                    _trustScoreSection(),
+                    16.verticalSpace,
                     _financeSummary(),
                     16.verticalSpace,
                     _depositSection(),
@@ -77,7 +86,13 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   Future<void> _refresh() async {
-    context.read<ProfileBloc>().add(FetchDepositAccountEvent());
+    final profileBloc = context.read<ProfileBloc>();
+    profileBloc.add(FetchDepositAccountEvent());
+    profileBloc.add(
+      FetchWorkerProfileUsecaseEvent(
+        params: FetchWorkerProfileUsecaseParams(),
+      ),
+    );
     await Future<void>.delayed(const Duration(milliseconds: 350));
   }
 
@@ -116,6 +131,109 @@ class _WalletScreenState extends State<WalletScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _trustScoreSection() {
+    return BlocBuilder<ProfileBloc, ProfileState>(
+      buildWhen: (previous, current) =>
+          previous.workerProfileUsecaseStatus !=
+              current.workerProfileUsecaseStatus ||
+          previous.workerProfileUsecase != current.workerProfileUsecase,
+      builder: (context, state) {
+        final status = state.workerProfileUsecaseStatus;
+        final isLoading =
+            status == null ||
+            status == BlocStatus.loading ||
+            status == BlocStatus.init;
+        final trustScore = state.workerProfileUsecase?.data?.trustScore;
+        final normalizedScore = (trustScore ?? 0).clamp(0, 100).toInt();
+
+        return Column(
+          children: [
+            if (status == BlocStatus.failed) ...[
+              _errorBanner(
+                ErrorMessageFormatter.format(
+                  state.errorMessage,
+                  fallback: 'تعذر تحميل نسبة الثقة',
+                ),
+                () => context.read<ProfileBloc>().add(
+                  FetchWorkerProfileUsecaseEvent(
+                    params: FetchWorkerProfileUsecaseParams(),
+                  ),
+                ),
+              ),
+              12.verticalSpace,
+            ],
+            _card(
+              shadow: true,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      _circleIcon(
+                        Icons.verified_user_outlined,
+                        const Color(0xff7C3AED),
+                      ),
+                      12.horizontalSpace,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _text(
+                              'نسبة الثقة',
+                              weight: FontWeight.w700,
+                              size: 20,
+                            ),
+                            4.verticalSpace,
+                            _text(
+                              'تعكس مستوى موثوقيتك في تنفيذ الطلبات',
+                              color: const Color(0xff6B7280),
+                              size: 13,
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (isLoading)
+                        _loadingLine(64.w)
+                      else
+                        _text(
+                          trustScore == null ? '—' : '$trustScore%',
+                          color: const Color(0xff7C3AED),
+                          weight: FontWeight.w800,
+                          size: 24,
+                        ),
+                    ],
+                  ),
+                  16.verticalSpace,
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(999.r),
+                    child: LinearProgressIndicator(
+                      minHeight: 10.h,
+                      value: isLoading || trustScore == null
+                          ? null
+                          : normalizedScore / 100,
+                      backgroundColor: const Color(0xffEDE9FE),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Color(0xff7C3AED),
+                      ),
+                    ),
+                  ),
+                  if (!isLoading && trustScore == null) ...[
+                    10.verticalSpace,
+                    _text(
+                      'نسبة الثقة غير متاحة حالياً.',
+                      color: const Color(0xff6B7280),
+                      size: 13,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
