@@ -19,13 +19,24 @@ Future<void> tryNavigateFromNotificationPayload(
   final canonical = (canonicalType ?? '').trim();
   final legacyType = (type ?? '').trim().toLowerCase();
   final routeKey = canonical.isNotEmpty ? canonical : legacyType;
+  final isNewOrder =
+      routeKey.contains('new_order') || legacyType == 'new_order';
+
+  if (isNewOrder && _isUnavailable(data)) {
+    AppToast.showErrorGlobal('لم يعد هذا الطلب متاحًا');
+    return;
+  }
 
   if (routeKey.contains('dispute')) {
     final disputeId = _intFromData(data, const ['disputeId', 'dispute_id']);
     if (disputeId != null && context.mounted) {
       context.pushRoute(
         '/transactiondetails',
-        arguments: TransactionDetailsScreenParam(id: disputeId, title: '#$disputeId', isOpen: true),
+        arguments: TransactionDetailsScreenParam(
+          id: disputeId,
+          title: '#$disputeId',
+          isOpen: true,
+        ),
       );
     }
     return;
@@ -34,10 +45,17 @@ Future<void> tryNavigateFromNotificationPayload(
   final m = (module ?? 'cleaning').toLowerCase();
   if (m != 'cleaning') return;
 
-  final bookingId = _intFromData(data, const ['bookingId', 'booking_id', 'orderId', 'order_id']);
+  final bookingId = _intFromData(data, const [
+    'bookingId',
+    'booking_id',
+    'orderId',
+    'order_id',
+  ]);
   if (bookingId == null) return;
 
-  final response = await getIt<FetchOrderDetailsUsecaseUseCase>()(FetchOrderDetailsUsecaseParams(id: bookingId));
+  final response = await getIt<FetchOrderDetailsUsecaseUseCase>()(
+    FetchOrderDetailsUsecaseParams(id: bookingId),
+  );
   if (!context.mounted) return;
 
   response.fold(
@@ -49,7 +67,6 @@ Future<void> tryNavigateFromNotificationPayload(
       if (details == null || !context.mounted) return;
 
       final order = FetchOrdersUsecaseModelDataItem.fromJson(details.toJson());
-      final isNewOrder = routeKey.contains('new_order') || legacyType == 'new_order';
 
       context.pushRoute(
         '/orderdetails',
@@ -62,6 +79,21 @@ Future<void> tryNavigateFromNotificationPayload(
       );
     },
   );
+}
+
+bool _isUnavailable(Map<String, dynamic> data) {
+  final state = (data['state'] ?? '').toString().trim().toLowerCase();
+  if (state == 'unavailable') return true;
+
+  final actionable = data['actionable'];
+  if (actionable is bool) return !actionable;
+  if (actionable is num) return actionable == 0;
+  if (actionable is String) {
+    final normalized = actionable.trim().toLowerCase();
+    return normalized == 'false' || normalized == '0' || normalized == 'no';
+  }
+
+  return false;
 }
 
 int? _intFromData(Map<String, dynamic> data, List<String> keys) {
