@@ -27,6 +27,16 @@ Map<String, dynamic>? _asStringKeyMap(dynamic value) {
   return out;
 }
 
+bool _isFalseLike(dynamic value) {
+  if (value is bool) return !value;
+  if (value is num) return value == 0;
+  if (value is String) {
+    final normalized = value.trim().toLowerCase();
+    return normalized == 'false' || normalized == '0' || normalized == 'no';
+  }
+  return false;
+}
+
 FetchNotificationsPageModel fetchNotificationsPageModelFromJson(dynamic json) =>
     FetchNotificationsPageModel.fromJson(Map<String, dynamic>.from(json as Map));
 
@@ -65,6 +75,23 @@ class NotificationResourceModel {
     this.priority,
     this.data,
   });
+
+  bool get isUnavailableNewOrder {
+    final normalizedType = (type ?? '').trim().toLowerCase();
+    final normalizedCanonical = (canonicalType ?? '').trim().toLowerCase();
+    final isNewOrder = normalizedType == 'new_order' ||
+        normalizedCanonical == 'cleaning.booking.new_order_request';
+
+    if (!isNewOrder) return false;
+
+    final payload = data;
+    if (payload == null) return false;
+
+    final state = (payload['state'] ?? '').toString().trim().toLowerCase();
+    if (state == 'unavailable') return true;
+
+    return _isFalseLike(payload['actionable']);
+  }
 
   factory NotificationResourceModel.fromJson(Map<String, dynamic> json) {
     return NotificationResourceModel(
@@ -132,6 +159,7 @@ class FetchNotificationsPageModel {
                     Map<String, dynamic>.from(e),
                   ),
                 )
+                .where((notification) => !notification.isUnavailableNewOrder)
                 .toList()
           : null,
       meta: meta,
