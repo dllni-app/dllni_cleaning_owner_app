@@ -29,7 +29,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  Future<void> _openMissionStartLocationScreen(ProfileBloc profileBloc) async {
+  Future<bool> _openMissionStartLocationScreen(ProfileBloc profileBloc) async {
     final saved = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
         builder: (_) => BlocProvider.value(
@@ -38,7 +38,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
     );
-    if (!mounted || saved != true) return;
+    return mounted && saved == true;
   }
 
   Widget? _buildSectionTrailingForIndex(
@@ -84,12 +84,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return result ?? false;
   }
 
+  Future<bool> _confirmSetMissionStartLocationForActivation() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('تحديد موقع بدء المهمة'),
+        content: const Text(
+          'لتفعيل الحساب واستقبال الطلبات يجب تحديد موقع بدء المهمة أولاً. هل تريد تحديد الموقع الآن؟',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('لاحقًا'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('تحديد الموقع'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
   Future<void> _onAccountActiveChanged(BuildContext context, bool value) async {
+    final profileBloc = context.read<ProfileBloc>();
+
     if (value) {
-      context.read<ProfileBloc>().add(
+      final completeness = evaluateWorkerProfileCompleteness(
+        profileBloc.state.workerProfileUsecase?.data,
+      );
+
+      if (!completeness.hasMissionStartLocation) {
+        final shouldSetLocation =
+            await _confirmSetMissionStartLocationForActivation();
+        if (!shouldSetLocation || !context.mounted) return;
+
+        final saved = await _openMissionStartLocationScreen(profileBloc);
+        if (!saved || !context.mounted) return;
+      }
+
+      profileBloc.add(
         UpdateWorkerProfileEvent(
           params: UpdateWorkerProfileParams(isActive: 1),
-          showFeedback: false,
+          showFeedback: true,
         ),
       );
       return;
@@ -98,10 +136,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final confirmed = await _confirmDeactivateAccount();
     if (!confirmed || !context.mounted) return;
 
-    context.read<ProfileBloc>().add(
+    profileBloc.add(
       UpdateWorkerProfileEvent(
         params: UpdateWorkerProfileParams(isActive: 0),
-        showFeedback: false,
+        showFeedback: true,
       ),
     );
   }
