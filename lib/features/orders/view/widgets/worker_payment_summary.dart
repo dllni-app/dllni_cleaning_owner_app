@@ -29,16 +29,21 @@ class WorkerPaymentSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // In worker-share mode the booking base price belongs to the whole order,
+    // not to the current worker. Never fall back to it while assignment pricing
+    // is still being refreshed, otherwise a multi-worker order briefly shows
+    // the entire service amount as this worker's earnings.
     final serviceAmount = useWorkerShare
-        ? (serviceShareAmount ?? basePrice ?? 0)
+        ? (serviceShareAmount ?? 0)
         : ((basePrice ?? 0) + (addonsTotal ?? 0));
     final calculatedGrossTotal = serviceAmount + (travelFee ?? 0);
-    final grossTotal = calculatedGrossTotal > 0
+    final grossTotal = useWorkerShare
         ? calculatedGrossTotal
-        : (totalPrice ?? 0);
+        : (calculatedGrossTotal > 0 ? calculatedGrossTotal : (totalPrice ?? 0));
     final calculatedNetProfit = grossTotal - (adminMargin ?? 0);
-    final hasCalculableNet =
-        calculatedGrossTotal > 0 || totalPrice != null || adminMargin != null;
+    final hasCalculableNet = useWorkerShare
+        ? serviceShareAmount != null || travelFee != null || adminMargin != null
+        : calculatedGrossTotal > 0 || totalPrice != null || adminMargin != null;
     final netProfit = hasCalculableNet
         ? (calculatedNetProfit > 0 ? calculatedNetProfit : 0)
         : (workerAmount ?? 0);
