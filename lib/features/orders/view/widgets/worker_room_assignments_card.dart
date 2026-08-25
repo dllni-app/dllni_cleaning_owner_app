@@ -14,7 +14,7 @@ class WorkerRoomAssignmentsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final rooms = order.myAssignedRooms;
+    final rooms = assignedRoomsForCurrentWorker(order);
 
     return Container(
       width: context.width,
