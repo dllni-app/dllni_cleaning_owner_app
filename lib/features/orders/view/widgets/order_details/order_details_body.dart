@@ -83,15 +83,6 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
     ];
   }
 
-<<<<<<< HEAD
-  int get _requiredWorkersCount =>
-      widget.order.requiredWorkersCount ??
-      widget.order.workerAcceptance?.required ??
-      widget.order.numberOfWorkers ??
-      1;
-
-  bool get _isMultiWorkerOrder => _requiredWorkersCount > 1;
-=======
   Widget _buildMultiWorkerNotice() {
     final requiredWorkers = _requiredWorkersCount;
     return Container(
@@ -133,15 +124,12 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
       ),
     );
   }
->>>>>>> 63cc8469b1a4b011e96adcbc349f56da27cc0dc8
 
   @override
   Widget build(BuildContext context) {
     final canAcceptReject = OrderLifecyclePolicy.canAcceptReject(widget.order);
     final canStartTravel = OrderLifecyclePolicy.canStartTravel(widget.order);
     final canCancel = OrderLifecyclePolicy.canCancel(widget.order);
-
-    final requiredWorkers = _requiredWorkersCount;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -197,54 +185,11 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-<<<<<<< HEAD
-                  SizedBox(height: 28),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsetsDirectional.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xffFFF7ED),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xffFDBA74)),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(
-                          Icons.groups_2_outlined,
-                          color: Color(0xffC2410C),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              AppText.labelLarge(
-                                'طلب متعدد العمال',
-                                color: const Color(0xff9A3412),
-                                fontWeight: FontWeight.w800,
-                                textAlign: TextAlign.start,
-                              ),
-                              const SizedBox(height: 4),
-                              AppText.bodySmall(
-                                'هذا الطلب يتطلب $requiredWorkers عمال. أنت أحد أفراد الفريق المشاركين في تنفيذ الطلب.',
-                                color: const Color(0xff9A3412),
-                                textAlign: TextAlign.start,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 15),
-=======
                   SizedBox(height: 14),
                   if (_isMultiWorkerOrder) ...[
                     _buildMultiWorkerNotice(),
                     SizedBox(height: 14),
                   ],
->>>>>>> 63cc8469b1a4b011e96adcbc349f56da27cc0dc8
                   DottedBorder(
                     options: RoundedRectDottedBorderOptions(
                       radius: Radius.circular(10),
