@@ -395,6 +395,11 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       final acc = state.acceptOrderUsecase?.data;
       if (acc != null && acc.id == oid && acc.status != null) {
         _applyLifecyclePatch(status: acc.status);
+        widget.params.bloc.add(
+          FetchOrderDetailsUsecaseEvent(
+            params: FetchOrderDetailsUsecaseParams(id: oid),
+          ),
+        );
       }
     }
   }
