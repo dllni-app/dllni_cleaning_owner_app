@@ -31,9 +31,21 @@ class WorkerSessionSecurityCodeModel {
     return WorkerSessionSecurityCodeModel(
       bookingId: _toInt(data['bookingId'] ?? data['booking_id']),
       sessionId: _toInt(data['sessionId'] ?? data['session_id']),
-      securityCode: data['securityCode']?.toString() ??
-          data['security_code']?.toString(),
+      securityCode:
+          data['securityCode']?.toString() ?? data['security_code']?.toString(),
       expiresAt: data['expiresAt']?.toString() ?? data['expires_at']?.toString(),
+    );
+  }
+
+  WorkerSessionSecurityCodeModel withRequestContext({
+    required int bookingId,
+    required int sessionId,
+  }) {
+    return WorkerSessionSecurityCodeModel(
+      bookingId: this.bookingId ?? bookingId,
+      sessionId: this.sessionId ?? sessionId,
+      securityCode: securityCode,
+      expiresAt: expiresAt,
     );
   }
 }
@@ -101,7 +113,8 @@ class WorkerSessionRemoteDataSource with HandlingApiManager {
         endPoint:
             '/api/v1/cleaning-bookings/$bookingId/sessions/$sessionId/security-code',
       ),
-      jsonConvert: WorkerSessionSecurityCodeModel.fromJson,
+      jsonConvert: (json) => WorkerSessionSecurityCodeModel.fromJson(json)
+          .withRequestContext(bookingId: bookingId, sessionId: sessionId),
     );
   }
 
