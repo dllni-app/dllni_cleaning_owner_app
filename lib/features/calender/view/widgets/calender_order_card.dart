@@ -61,24 +61,35 @@ class _CalenderOrderCardState extends State<CalenderOrderCard> {
       if (!mounted) return;
       setState(() => _schedule = result.schedule);
     } catch (_) {
-      // Legacy display remains available if schedule fetch fails.
+      // Keep the legacy occurrence available if schedule loading fails.
     }
   }
 
-  WorkerBookingSessionModel? _selectedSession(BuildContext context) {
+  List<WorkerBookingSessionModel> _selectedSessions(BuildContext context) {
     final schedule = _schedule;
-    if (schedule == null || !schedule.isMultiDay) return null;
+    if (schedule == null || !schedule.isMultiDay) {
+      return const <WorkerBookingSessionModel>[];
+    }
+
     final selectedDate = context
         .read<OrdersBloc>()
         .lastAppliedOrdersListFilter
         .scheduledDate;
     if (selectedDate != null && selectedDate.isNotEmpty) {
-      for (final session in schedule.sessions) {
-        if (_dateApi(session.date) == selectedDate) return session;
-      }
+      final matches = schedule.sessions
+          .where((session) => _dateApi(session.date) == selectedDate)
+          .toList(growable: false);
+      if (matches.isNotEmpty) return matches;
     }
-    return schedule.nextSession ??
-        (schedule.sessions.isEmpty ? null : schedule.sessions.first);
+
+    final next = schedule.nextSession;
+    if (next != null) {
+      return <WorkerBookingSessionModel>[
+        schedule.sessionById(next.id) ?? next,
+      ];
+    }
+    if (schedule.sessions.isEmpty) return const <WorkerBookingSessionModel>[];
+    return <WorkerBookingSessionModel>[schedule.sessions.first];
   }
 
   String _dateApi(DateTime? date) {
@@ -89,13 +100,52 @@ class _CalenderOrderCardState extends State<CalenderOrderCard> {
   String _sessionHours(double value) =>
       value % 1 == 0 ? value.toStringAsFixed(0) : value.toStringAsFixed(1);
 
+  String _money(num value) =>
+      value % 1 == 0 ? value.toStringAsFixed(0) : value.toStringAsFixed(2);
+
   @override
   Widget build(BuildContext context) {
     final order = widget.date;
-    final session = _selectedSession(context);
     final schedule = _schedule;
+    final sessions = _selectedSessions(context);
+
+    if (sessions.isEmpty) {
+      return _buildOccurrence(
+        context,
+        order: order,
+        session: null,
+        schedule: schedule,
+      );
+    }
+
+    return Column(
+      children: [
+        for (var index = 0; index < sessions.length; index++) ...[
+          if (index > 0) SizedBox(height: 12.h),
+          _buildOccurrence(
+            context,
+            order: order,
+            session: sessions[index],
+            schedule: schedule,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildOccurrence(
+    BuildContext context, {
+    required FetchOrdersUsecaseModelDataItem order,
+    required WorkerBookingSessionModel? session,
+    required WorkerBookingScheduleModel? schedule,
+  }) {
     final displayTime = session?.time ?? order.scheduledTime;
-    final displayDate = session == null ? order.scheduledDate : _dateApi(session.date);
+    final displayDate = session == null
+        ? order.scheduledDate
+        : _dateApi(session.date);
+    final workerAmount = session?.workerAssignmentState?.workerAmount ??
+        session?.workerAssignmentState?.netAmount;
+    final displayedProfit = workerAmount ?? order.workerNetProfit;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -159,7 +209,7 @@ class _CalenderOrderCardState extends State<CalenderOrderCard> {
                                 borderRadius: BorderRadius.circular(999),
                               ),
                               child: AppText.labelSmall(
-                                'اليوم ${session.sequence}/${schedule!.daysCount}',
+                                'الجلسة ${session.sequence}/${schedule!.daysCount}',
                                 color: context.primary,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -182,7 +232,7 @@ class _CalenderOrderCardState extends State<CalenderOrderCard> {
                       SizedBox(height: 12.h),
                       dataRow(
                         Assets.images.orderCardAlarm.path,
-                        'مدة جلسة اليوم',
+                        'مدة الجلسة',
                         '${CleaningArabicTimeFormatter.toArabicDigits(_sessionHours(session.hours))} ساعة',
                       ),
                     ],
@@ -229,7 +279,7 @@ class _CalenderOrderCardState extends State<CalenderOrderCard> {
                                   ),
                                 ),
                           AppText.titleSmall(
-                            '${CleaningArabicTimeFormatter.toArabicDigits(order.workerNetProfit.toString())} ل.س',
+                            '${CleaningArabicTimeFormatter.toArabicDigits(_money(displayedProfit))} ل.س',
                             color: context.primaryContainer,
                           ),
                         ],
@@ -269,7 +319,6 @@ class _CalenderOrderCardState extends State<CalenderOrderCard> {
 
   Future<void> callPhone(String phoneNumber) async {
     final Uri url = Uri(scheme: 'tel', path: phoneNumber);
-
     if (await canLaunchUrl(url)) {
       await launchUrl(url);
     } else {

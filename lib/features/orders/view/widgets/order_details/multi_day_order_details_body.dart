@@ -81,7 +81,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     final nextId = _schedule.nextSession?.id;
     if (_schedule.sessionById(nextId) != null) return nextId;
     for (final session in _schedule.sessions) {
-      if (!session.isTerminal) return session.id;
+      if (!session.isTerminal && session.id != null) return session.id;
     }
     return _schedule.sessions.isEmpty ? null : _schedule.sessions.last.id;
   }
@@ -104,12 +104,12 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
       widget.onScheduleChanged?.call(schedule);
     } catch (_) {
       if (!mounted) return;
-      setState(() => _error = 'تعذر تحديث حالة أيام المناسبة.');
+      setState(() => _error = 'تعذر تحديث حالة جلسات المناسبة.');
     }
   }
 
   Future<void> _runAction(Future<void> Function() action) async {
-    if (_busy) return;
+    if (_busy || !mounted) return;
     setState(() {
       _busy = true;
       _error = null;
@@ -126,25 +126,31 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
   }
 
   String _friendlyError(Object error) {
-    final text = error.toString();
+    final text = error.toString().toLowerCase();
     if (text.contains('overlap') || text.contains('conflict')) {
       return 'تعذر تنفيذ العملية بسبب تعارض في الجدول.';
     }
-    return 'تعذر تنفيذ العملية. تحقق من الحالة وحاول مرة أخرى.';
+    return 'تعذر تنفيذ العملية. حدّث الجلسة وتحقق من الصلاحيات ثم حاول مرة أخرى.';
   }
 
   Future<void> _startTravel() async {
     final bookingId = _bookingId;
     final session = _activeSession;
-    if (bookingId == null || session?.id == null) return;
+    final sessionId = session?.id;
+    if (bookingId == null ||
+        session == null ||
+        sessionId == null ||
+        !session.canStartTravel) {
+      return;
+    }
     await _runAction(() async {
       await getIt<WorkerSessionRemoteDataSource>().startTravel(
         bookingId: bookingId,
-        sessionId: session!.id!,
+        sessionId: sessionId,
       );
       await WorkerLocationTracker.instance.start(
         bookingId,
-        sessionId: session.id,
+        sessionId: sessionId,
       );
     });
   }
@@ -152,11 +158,17 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
   Future<void> _arrive() async {
     final bookingId = _bookingId;
     final session = _activeSession;
-    if (bookingId == null || session?.id == null) return;
+    final sessionId = session?.id;
+    if (bookingId == null ||
+        session == null ||
+        sessionId == null ||
+        !session.canArrive) {
+      return;
+    }
     await _runAction(() async {
       await getIt<WorkerSessionRemoteDataSource>().arrive(
         bookingId: bookingId,
-        sessionId: session!.id!,
+        sessionId: sessionId,
       );
       await WorkerLocationTracker.instance.stop();
     });
@@ -165,7 +177,15 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
   Future<void> _fetchSecurityCode() async {
     final bookingId = _bookingId;
     final session = _activeSession;
-    if (bookingId == null || session?.id == null || _busy) return;
+    final sessionId = session?.id;
+    if (bookingId == null ||
+        session == null ||
+        sessionId == null ||
+        !session.isAwaitingStartVerification ||
+        _busy) {
+      return;
+    }
+
     setState(() {
       _busy = true;
       _error = null;
@@ -174,7 +194,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
       final result = await getIt<WorkerSessionRemoteDataSource>()
           .fetchSecurityCode(
             bookingId: bookingId,
-            sessionId: session!.id!,
+            sessionId: sessionId,
           );
       if (!mounted) return;
       setState(() => _securityCode = result);
@@ -189,11 +209,17 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
   Future<void> _startWork() async {
     final bookingId = _bookingId;
     final session = _activeSession;
-    if (bookingId == null || session?.id == null) return;
+    final sessionId = session?.id;
+    if (bookingId == null ||
+        session == null ||
+        sessionId == null ||
+        !session.canStartWork) {
+      return;
+    }
     await _runAction(() async {
       await getIt<WorkerSessionRemoteDataSource>().startWork(
         bookingId: bookingId,
-        sessionId: session!.id!,
+        sessionId: sessionId,
       );
       await WorkerLocationTracker.instance.stop();
     });
@@ -202,17 +228,26 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
   Future<void> _complete() async {
     final bookingId = _bookingId;
     final session = _activeSession;
-    if (bookingId == null || session?.id == null) return;
+    final sessionId = session?.id;
+    if (bookingId == null ||
+        session == null ||
+        sessionId == null ||
+        !session.canComplete) {
+      return;
+    }
+
     final message = await _askText(
-      title: 'إنهاء عمل هذا اليوم',
+      title: 'إنهاء عمل هذه الجلسة',
       hint: 'رسالة الإكمال للعميل (اختياري)',
-      required: false,
+      isRequired: false,
+      maxLength: 1000,
     );
     if (message == null) return;
+
     await _runAction(() async {
       await getIt<WorkerSessionRemoteDataSource>().complete(
         bookingId: bookingId,
-        sessionId: session!.id!,
+        sessionId: sessionId,
         completionMessage: message,
       );
     });
@@ -221,17 +256,26 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
   Future<void> _cancelSession() async {
     final bookingId = _bookingId;
     final session = _activeSession;
-    if (bookingId == null || session?.id == null) return;
+    final sessionId = session?.id;
+    if (bookingId == null ||
+        session == null ||
+        sessionId == null ||
+        !session.canCancel) {
+      return;
+    }
+
     final reason = await _askText(
-      title: 'إلغاء هذا اليوم',
+      title: 'إلغاء هذه الجلسة',
       hint: 'سبب الإلغاء',
-      required: true,
+      isRequired: true,
+      maxLength: 1000,
     );
     if (reason == null || reason.trim().isEmpty) return;
+
     await _runAction(() async {
       await getIt<WorkerSessionRemoteDataSource>().cancel(
         bookingId: bookingId,
-        sessionId: session!.id!,
+        sessionId: sessionId,
         reason: reason,
       );
       await WorkerLocationTracker.instance.stop();
@@ -241,23 +285,29 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
   Future<void> _sendSos() async {
     final bookingId = _bookingId;
     final session = _activeSession;
-    if (bookingId == null || session?.id == null) return;
+    final sessionId = session?.id;
+    if (bookingId == null ||
+        session == null ||
+        sessionId == null ||
+        session.isTerminal) {
+      return;
+    }
+
     final message = await _askText(
-      title: 'إرسال SOS لليوم ${session!.sequence}',
+      title: 'إرسال SOS للجلسة ${session.sequence}',
       hint: 'اشرح الحالة الطارئة',
-      required: true,
+      isRequired: true,
+      maxLength: 1000,
     );
     if (message == null || message.trim().isEmpty) return;
+
     await _runAction(() async {
       await getIt<WorkerSessionRemoteDataSource>().sendSos(
         bookingId: bookingId,
-        sessionId: session.id!,
+        sessionId: sessionId,
         data: <String, dynamic>{
-          'kind': 'emergency',
-          'bookingId': bookingId,
-          'bookingType': 'cleaning_booking',
-          'emergencyType': 'other',
-          'description': message.trim(),
+          'emergency_type': 'other',
+          'message': message.trim(),
         },
       );
     });
@@ -266,37 +316,41 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
   Future<String?> _askText({
     required String title,
     required String hint,
-    required bool required,
+    required bool isRequired,
+    int? maxLength,
   }) async {
     final controller = TextEditingController();
-    final result = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: controller,
-          minLines: 2,
-          maxLines: 5,
-          decoration: InputDecoration(hintText: hint),
+    try {
+      return await showDialog<String>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(title),
+          content: TextField(
+            controller: controller,
+            minLines: 2,
+            maxLines: 5,
+            maxLength: maxLength,
+            decoration: InputDecoration(hintText: hint),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final value = controller.text.trim();
+                if (isRequired && value.isEmpty) return;
+                Navigator.of(dialogContext).pop(value);
+              },
+              child: const Text('تأكيد'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('إلغاء'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final value = controller.text.trim();
-              if (required && value.isEmpty) return;
-              Navigator.of(dialogContext).pop(value);
-            },
-            child: const Text('تأكيد'),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-    return result;
+      );
+    } finally {
+      controller.dispose();
+    }
   }
 
   String _dateApi(DateTime? date) {
@@ -316,6 +370,9 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
 
   String _hours(double value) =>
       value % 1 == 0 ? value.toStringAsFixed(0) : value.toStringAsFixed(1);
+
+  String _money(double value) =>
+      value % 1 == 0 ? value.toStringAsFixed(0) : value.toStringAsFixed(2);
 
   String _statusLabel(WorkerBookingSessionModel session) {
     final fromApi = session.statusLabel?.trim();
@@ -360,12 +417,11 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _schedule.sessions.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final session = _schedule.sessions[index];
-          final selected = session.id == _selectedSessionId;
           return ChoiceChip(
-            selected: selected,
+            selected: session.id == _selectedSessionId,
             onSelected: (_) {
               setState(() {
                 _selectedSessionId = session.id;
@@ -373,7 +429,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
                 _error = null;
               });
             },
-            label: Text('اليوم ${session.sequence}'),
+            label: Text('الجلسة ${session.sequence}'),
             avatar: session.isCompleted
                 ? const Icon(Icons.check_circle, size: 18)
                 : session.isCancelled
@@ -386,6 +442,11 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
   }
 
   Widget _summaryCard() {
+    final rawProgress = _schedule.daysCount <= 0
+        ? 0.0
+        : _schedule.completedDaysCount / _schedule.daysCount;
+    final progress = rawProgress.clamp(0.0, 1.0).toDouble();
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
@@ -401,7 +462,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
             children: [
               Expanded(
                 child: AppText.titleMedium(
-                  'طلب متعدد الأيام',
+                  'طلب متعدد الجلسات',
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -412,14 +473,10 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
             ],
           ),
           const SizedBox(height: 8),
-          LinearProgressIndicator(
-            value: _schedule.daysCount <= 0
-                ? 0
-                : _schedule.completedDaysCount / _schedule.daysCount,
-          ),
+          LinearProgressIndicator(value: progress),
           const SizedBox(height: 10),
           AppText.bodySmall(
-            'إجمالي الساعات: ${_hours(_schedule.totalHours)} ساعة · الأيام الملغاة: ${_schedule.cancelledDaysCount}',
+            'إجمالي الساعات: ${_hours(_schedule.totalHours)} ساعة · الملغاة: ${_schedule.cancelledDaysCount}',
           ),
         ],
       ),
@@ -428,6 +485,9 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
 
   Widget _sessionCard(WorkerBookingSessionModel session) {
     final remaining = _remaining(session);
+    final assignment = session.workerAssignmentState;
+    final workerAmount = assignment?.workerAmount ?? assignment?.netAmount;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
@@ -443,7 +503,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
             children: [
               Expanded(
                 child: AppText.titleMedium(
-                  'اليوم ${session.sequence} من ${_schedule.daysCount}',
+                  'الجلسة ${session.sequence} من ${_schedule.daysCount}',
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -466,6 +526,13 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
           AppText.bodySmall(
             '${_timeLabel(session.time)} · ${_hours(session.hours)} ساعة',
           ),
+          if (workerAmount != null) ...[
+            const SizedBox(height: 5),
+            AppText.bodySmall(
+              'مستحقاتك لهذه الجلسة: ${_money(workerAmount)} ${assignment?.currency ?? 'SYP'}',
+              fontWeight: FontWeight.w700,
+            ),
+          ],
           if (remaining != null && session.isInProgress) ...[
             const SizedBox(height: 14),
             Container(
@@ -502,7 +569,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
               ),
               child: Column(
                 children: [
-                  const Text('رمز بدء هذا اليوم'),
+                  const Text('رمز بدء هذه الجلسة'),
                   const SizedBox(height: 4),
                   SelectableText(
                     _securityCode!.securityCode!,
@@ -512,6 +579,10 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
                       letterSpacing: 6,
                     ),
                   ),
+                  if (_securityCode?.expiresAt != null) ...[
+                    const SizedBox(height: 4),
+                    AppText.bodySmall('ينتهي: ${_securityCode!.expiresAt}'),
+                  ],
                 ],
               ),
             ),
@@ -524,6 +595,12 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
   }
 
   Widget _actionArea(WorkerBookingSessionModel session) {
+    if (session.id == null) {
+      return const _InfoBanner(
+        icon: Icons.info_outline,
+        text: 'هذه جلسة توافق قديمة ولا يمكن تنفيذ إجراء خاص بالجلسة عليها.',
+      );
+    }
     if (session.isCompleted) {
       final next = _schedule.nextSession;
       return Column(
@@ -531,14 +608,13 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
         children: [
           const _InfoBanner(
             icon: Icons.check_circle_outline,
-            text: 'تم إكمال عمل هذا اليوم.',
+            text: 'تم إكمال عمل هذه الجلسة.',
           ),
           if (next != null) ...[
             const SizedBox(height: 8),
             _InfoBanner(
               icon: Icons.event_available_outlined,
-              text:
-                  'موعدك القادم: ${_dateLabel(next)}، ${_timeLabel(next.time)}.',
+              text: 'موعدك القادم: ${_dateLabel(next)}، ${_timeLabel(next.time)}.',
             ),
           ],
         ],
@@ -559,7 +635,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     if (session.status == 'awaiting_customer_completion') {
       return const _InfoBanner(
         icon: Icons.hourglass_top,
-        text: 'تم إنهاء العمل. بانتظار تأكيد العميل لهذا اليوم.',
+        text: 'تم إنهاء العمل. بانتظار تأكيد العميل لهذه الجلسة.',
       );
     }
     if (session.status == 'time_extension_requested') {
@@ -569,47 +645,46 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
       );
     }
 
-    final canOperateToday = session.isToday || session.canStart;
     Widget primary;
-    if ((session.status == 'scheduled' || session.status == 'worker_assigned') &&
-        session.startedTravelAt == null) {
+    if (session.canStartTravel) {
       primary = FilledButton.icon(
-        onPressed: _busy || !canOperateToday ? null : _startTravel,
+        onPressed: _busy ? null : _startTravel,
         icon: const Icon(Icons.directions_car_outlined),
-        label: Text(
-          canOperateToday ? 'بدء التوجه لهذا اليوم' : 'بانتظار موعد هذا اليوم',
-        ),
+        label: const Text('بدء التوجه لهذه الجلسة'),
       );
-    } else if ((session.status == 'scheduled' ||
-            session.status == 'worker_assigned') &&
-        session.arrivedAt == null) {
+    } else if (session.canArrive) {
       primary = FilledButton.icon(
         onPressed: _busy ? null : _arrive,
         icon: const Icon(Icons.location_on_outlined),
         label: const Text('وصلت إلى موقع المناسبة'),
       );
-    } else if (session.status == 'awaiting_start_verification') {
+    } else if (session.isAwaitingStartVerification) {
       primary = FilledButton.icon(
         onPressed: _busy ? null : _fetchSecurityCode,
         icon: const Icon(Icons.password),
-        label: const Text('إظهار رمز التحقق لهذا اليوم'),
+        label: const Text('إظهار رمز التحقق لهذه الجلسة'),
       );
-    } else if (session.status == 'awaiting_worker_start_confirmation') {
+    } else if (session.canStartWork) {
       primary = FilledButton.icon(
         onPressed: _busy ? null : _startWork,
         icon: const Icon(Icons.play_arrow),
         label: const Text('تأكيد بدء العمل'),
       );
-    } else if (session.status == 'in_progress') {
+    } else if (session.canComplete) {
       primary = FilledButton.icon(
         onPressed: _busy ? null : _complete,
         icon: const Icon(Icons.task_alt),
-        label: const Text('إنهاء عمل هذا اليوم'),
+        label: const Text('إنهاء عمل هذه الجلسة'),
+      );
+    } else if (session.isInProgress) {
+      primary = const _InfoBanner(
+        icon: Icons.timelapse,
+        text: 'العمل قيد التنفيذ. سيُفعّل الإكمال عندما يسمح النظام بذلك.',
       );
     } else {
       primary = const _InfoBanner(
         icon: Icons.schedule,
-        text: 'بانتظار تحديث حالة هذه الجلسة.',
+        text: 'بانتظار موعد الجلسة أو تحديث صلاحيات التنفيذ من النظام.',
       );
     }
 
@@ -633,7 +708,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
                 child: OutlinedButton.icon(
                   onPressed: _busy ? null : _cancelSession,
                   icon: const Icon(Icons.cancel_outlined),
-                  label: const Text('إلغاء اليوم'),
+                  label: const Text('إلغاء الجلسة'),
                 ),
               ),
             ],
