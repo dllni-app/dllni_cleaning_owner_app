@@ -52,6 +52,10 @@ Future<void> tryNavigateFromNotificationPayload(
     'order_id',
   ]);
   if (bookingId == null) return;
+  final sessionId = _intFromData(data, const [
+    'sessionId',
+    'session_id',
+  ]);
 
   final response = await getIt<FetchOrderDetailsUsecaseUseCase>()(
     FetchOrderDetailsUsecaseParams(id: bookingId),
@@ -75,6 +79,7 @@ Future<void> tryNavigateFromNotificationPayload(
           isNewOrder: isNewOrder,
           bloc: getIt<OrdersBloc>(),
           index: 0,
+          selectedSessionId: sessionId,
         ),
       );
     },

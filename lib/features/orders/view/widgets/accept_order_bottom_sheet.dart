@@ -1,6 +1,10 @@
 import 'package:common_package/common_package.dart';
+import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/core/extentions.dart';
+import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_arabic_time_formatter.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/data/models/worker_booking_schedule_model.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/data/source/worker_session_remote_data_source.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/accept_order_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/reject_order_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/cleaning_enum_translations.dart';
@@ -9,7 +13,6 @@ import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_add
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_lifecycle_policy.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/property_attribute_labels_helper.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
-import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_arabic_time_formatter.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/worker_payment_summary.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -88,8 +91,56 @@ class AcceptOrderBottomSheet extends StatefulWidget {
 class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
   FetchOrdersUsecaseModelDataItem get _order => widget.order;
 
+  WorkerBookingScheduleModel? _schedule;
+  bool _scheduleChecked = false;
+  bool _scheduleLoading = false;
+  String? _scheduleError;
+
   bool get _isEventAssistance =>
       EventAssistanceOrderHelper.isEventAssistance(_order.propertyType);
+
+  bool get _isMultiDay => _schedule?.isMultiDay == true;
+
+  bool get _canConfirmAcceptance {
+    if (!_isEventAssistance) return true;
+    return _scheduleChecked && !_scheduleLoading && _scheduleError == null;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isEventAssistance && _order.id != null) {
+      _loadSchedule();
+    } else {
+      _scheduleChecked = true;
+    }
+  }
+
+  Future<void> _loadSchedule() async {
+    final orderId = _order.id;
+    if (orderId == null) return;
+    setState(() {
+      _scheduleLoading = true;
+      _scheduleError = null;
+    });
+    try {
+      final result = await getIt<WorkerSessionRemoteDataSource>()
+          .fetchBookingSchedule(orderId);
+      if (!mounted) return;
+      setState(() {
+        _schedule = result.schedule;
+        _scheduleChecked = true;
+        _scheduleLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _scheduleChecked = true;
+        _scheduleLoading = false;
+        _scheduleError = 'تعذر تحميل جميع أيام المناسبة. أعد المحاولة قبل القبول.';
+      });
+    }
+  }
 
   String _serviceName() {
     return EventAssistanceOrderHelper.serviceTitle(
@@ -116,6 +167,25 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       _order.scheduledTime,
     );
   }
+
+  String _sessionDate(WorkerBookingSessionModel session) {
+    final date = session.date;
+    if (date == null) return '-';
+    final raw = '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    return CleaningArabicTimeFormatter.formatScheduledDate(
+      raw,
+      includeWeekday: true,
+    );
+  }
+
+  String _sessionTime(WorkerBookingSessionModel session) {
+    return CleaningArabicTimeFormatter.formatFromScheduledTimeField(
+      session.time,
+    );
+  }
+
+  String _hours(double value) =>
+      value % 1 == 0 ? value.toStringAsFixed(0) : value.toStringAsFixed(1);
 
   String _valueOrDash(String? value) {
     final normalized = value?.trim();
@@ -393,6 +463,105 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
     return visible;
   }
 
+  Widget _multiDayScheduleSection(BuildContext context) {
+    if (!_isEventAssistance) return const SizedBox.shrink();
+    if (_scheduleLoading && !_scheduleChecked) {
+      return _detailCard(context, const [
+        Center(child: CircularProgressIndicator.adaptive()),
+      ]);
+    }
+    if (_scheduleError != null) {
+      return _detailCard(context, [
+        AppText.bodySmall(
+          _scheduleError!,
+          color: context.error,
+          textAlign: TextAlign.start,
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: _scheduleLoading ? null : _loadSchedule,
+          icon: const Icon(Icons.refresh),
+          label: const Text('إعادة تحميل الأيام'),
+        ),
+      ]);
+    }
+    final schedule = _schedule;
+    if (schedule == null || !schedule.isMultiDay) {
+      return _detailCard(context, [
+        _orderInfoRow(label: 'يوم الخدمة', value: _formatWeekday()),
+        _orderInfoRow(label: 'التاريخ', value: _formatDate()),
+        _orderInfoRow(
+          label: 'الوقت',
+          value: _formatTime(),
+          withDivider: false,
+        ),
+      ]);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _detailCard(context, [
+          _orderInfoRow(label: 'عدد الأيام', value: '${schedule.daysCount}'),
+          _orderInfoRow(
+            label: 'إجمالي الساعات',
+            value: '${_hours(schedule.totalHours)} ساعة',
+            withDivider: false,
+          ),
+        ]),
+        const SizedBox(height: 10),
+        ...schedule.sessions.map(
+          (session) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xffF9FAFB),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _borderColor),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppText.bodyMedium(
+                    'اليوم ${session.sequence} من ${schedule.daysCount}',
+                    fontWeight: FontWeight.w800,
+                    color: _titleTextColor,
+                  ),
+                  const SizedBox(height: 5),
+                  AppText.bodySmall(
+                    _sessionDate(session),
+                    color: _mutedTextColor,
+                  ),
+                  const SizedBox(height: 3),
+                  AppText.bodySmall(
+                    '${_sessionTime(session)} — ${_hours(session.hours)} ساعة',
+                    fontWeight: FontWeight.w700,
+                    color: _titleTextColor,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xffEFF6FF),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xffBFDBFE)),
+          ),
+          child: AppText.bodySmall(
+            'بقبول الطلب أنت توافق على تنفيذ جميع أيام المناسبة الموضحة أعلاه بنفس فريق العمل.',
+            fontWeight: FontWeight.w800,
+            color: const Color(0xff1E3A8A),
+            textAlign: TextAlign.start,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<OrdersBloc, OrdersState>(
@@ -433,7 +602,9 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                             textAlign: TextAlign.start,
                           ),
                           AppText.bodySmall(
-                            'يرجى تأكيد تفاصيل الطلب قبل القبول',
+                            _isMultiDay
+                                ? 'راجع جميع أيام المناسبة قبل قبول الالتزام'
+                                : 'يرجى تأكيد تفاصيل الطلب قبل القبول',
                             color: _mutedTextColor,
                             textAlign: TextAlign.start,
                           ),
@@ -459,6 +630,24 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (_isMultiDay) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xffECFDF5),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: AppText.bodySmall(
+                            'طلب متعدد الأيام',
+                            color: const Color(0xff047857),
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                      ],
                       _sectionTitle(
                         context,
                         Icons.receipt_long_outlined,
@@ -484,21 +673,10 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                       _sectionTitle(
                         context,
                         Icons.schedule,
-                        'موعد ووقت الخدمة',
+                        _isMultiDay ? 'جميع أيام المناسبة' : 'موعد ووقت الخدمة',
                       ),
                       const SizedBox(height: 10),
-                      _detailCard(context, [
-                        _orderInfoRow(
-                          label: 'يوم الخدمة',
-                          value: _formatWeekday(),
-                        ),
-                        _orderInfoRow(label: 'التاريخ', value: _formatDate()),
-                        _orderInfoRow(
-                          label: 'الوقت',
-                          value: _formatTime(),
-                          withDivider: false,
-                        ),
-                      ]),
+                      _multiDayScheduleSection(context),
                       const SizedBox(height: 16),
                       _sectionTitle(
                         context,
@@ -577,7 +755,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                     Expanded(
                       flex: 2,
                       child: InkWell(
-                        onTap: accepting
+                        onTap: accepting || !_canConfirmAcceptance
                             ? null
                             : () {
                                 if (_order.id == null) return;
@@ -608,10 +786,12 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                           height: 44,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(10),
-                            color: context.primary,
+                            color: _canConfirmAcceptance
+                                ? context.primary
+                                : const Color(0xff9CA3AF),
                           ),
                           child: Center(
-                            child: accepting
+                            child: accepting || _scheduleLoading
                                 ? SizedBox(
                                     width: 18,
                                     height: 18,
@@ -621,7 +801,9 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                                     ),
                                   )
                                 : AppText.labelLarge(
-                                    'تأكيد القبول',
+                                    _isMultiDay
+                                        ? 'قبول جميع الأيام'
+                                        : 'تأكيد القبول',
                                     color: context.onPrimary,
                                     fontWeight: FontWeight.w700,
                                   ),

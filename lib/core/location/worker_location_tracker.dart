@@ -16,30 +16,39 @@ class WorkerLocationTracker {
   StreamSubscription<Position>? _iosPositionSub;
   DateTime? _lastSentAt;
   int? _activeBookingId;
+  int? _activeSessionId;
 
   bool get isTracking => _activeBookingId != null;
   int? get activeBookingId => _activeBookingId;
+  int? get activeSessionId => _activeSessionId;
 
-  Future<void> start(int bookingId) async {
+  Future<void> start(int bookingId, {int? sessionId}) async {
     if (bookingId <= 0) return;
 
     if (Platform.isAndroid) {
       _activeBookingId = bookingId;
-      await BackgroundKeepAlive.instance.startForBooking(bookingId);
+      _activeSessionId = sessionId;
+      await BackgroundKeepAlive.instance.startForBooking(
+        bookingId,
+        sessionId: sessionId,
+      );
       return;
     }
 
     final allowed = await _ensurePermission();
     if (!allowed) {
       _activeBookingId = null;
+      _activeSessionId = null;
       return;
     }
     _activeBookingId = bookingId;
-    await _startIosStream(bookingId);
+    _activeSessionId = sessionId;
+    await _startIosStream(bookingId, sessionId: sessionId);
   }
 
   Future<void> stop() async {
     _activeBookingId = null;
+    _activeSessionId = null;
     _lastSentAt = null;
     await _iosPositionSub?.cancel();
     _iosPositionSub = null;
@@ -63,7 +72,6 @@ class WorkerLocationTracker {
       return false;
     }
 
-    // Request "Always" for background updates when possible.
     if (permission == LocationPermission.whileInUse) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.deniedForever) {
@@ -74,10 +82,14 @@ class WorkerLocationTracker {
     return true;
   }
 
-  Future<void> _startIosStream(int bookingId) async {
+  Future<void> _startIosStream(int bookingId, {int? sessionId}) async {
     if (!Platform.isIOS) return;
 
-    if (_iosPositionSub != null && _activeBookingId == bookingId) return;
+    if (_iosPositionSub != null &&
+        _activeBookingId == bookingId &&
+        _activeSessionId == sessionId) {
+      return;
+    }
     await _iosPositionSub?.cancel();
     _lastSentAt = null;
 
@@ -92,14 +104,22 @@ class WorkerLocationTracker {
 
     _iosPositionSub = Geolocator.getPositionStream(locationSettings: settings)
         .listen(
-          (position) => _handlePosition(position, bookingId),
+          (position) => _handlePosition(
+            position,
+            bookingId,
+            sessionId: sessionId,
+          ),
           onError: (_) {},
           cancelOnError: false,
         );
   }
 
-  void _handlePosition(Position position, int bookingId) {
-    if (_activeBookingId != bookingId) return;
+  void _handlePosition(
+    Position position,
+    int bookingId, {
+    int? sessionId,
+  }) {
+    if (_activeBookingId != bookingId || _activeSessionId != sessionId) return;
     final now = DateTime.now();
     if (_lastSentAt != null &&
         now.difference(_lastSentAt!) < _minSendInterval) {
@@ -109,6 +129,7 @@ class WorkerLocationTracker {
     unawaited(
       LocationReporter.postLocation(
         bookingId: bookingId,
+        sessionId: sessionId,
         latitude: position.latitude,
         longitude: position.longitude,
       ),
