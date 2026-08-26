@@ -1,5 +1,6 @@
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/pusher_manager.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/data/source/worker_session_remote_data_source.dart';
 import 'package:get_it/get_it.dart';
 import 'package:injectable/injectable.dart';
 
@@ -19,6 +20,11 @@ Future<GetIt> configureInjection() async {
   final configured = $initGetIt(getIt);
   if (!getIt.isRegistered<PusherManager>()) {
     getIt.registerLazySingleton<PusherManager>(() => PusherManager());
+  }
+  if (!getIt.isRegistered<WorkerSessionRemoteDataSource>()) {
+    getIt.registerLazySingleton<WorkerSessionRemoteDataSource>(
+      () => WorkerSessionRemoteDataSource(dioNetwork: getIt<DioNetwork>()),
+    );
   }
   return configured;
 }
