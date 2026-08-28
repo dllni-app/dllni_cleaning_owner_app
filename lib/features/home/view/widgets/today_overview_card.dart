@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shimmer/shimmer.dart';
 
-import '../../../../generated/assets.dart';
+import '../../../../core/theme/app_layout.dart';
 import '../manager/bloc/home_bloc.dart';
 
 class TodayOverviewCard extends StatelessWidget {
@@ -12,165 +12,172 @@ class TodayOverviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: LinearGradient(
-          colors: [context.primary, context.primary.withAlpha(127)],
-          stops: [.8, 1],
-          begin: AlignmentGeometry.bottomLeft,
-          end: AlignmentGeometry.topRight,
-        ),
-      ),
-      width: context.width,
-      padding: EdgeInsetsDirectional.symmetric(horizontal: 16, vertical: 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AppText.labelLarge(
-                      'إجمالي الايرادات',
-                      color: context.onPrimary,
-                      fontWeight: FontWeight.w400,
-                    ),
-                    SizedBox(height: 14),
-                    BlocBuilder<HomeBloc, HomeState>(
-                      builder: (context, state) {
-                        switch (state.homePageUsecaseStatus) {
-                          case null:
-                            return Shimmer.fromColors(
-                              baseColor: context.onPrimary,
-                              highlightColor: context.primary,
-                              child: Container(
-                                color: context.surface,
-                                height: 10,
-                                width: 100,
-                              ),
-                            );
-                          case BlocStatus.failed:
-                            return AppText.labelMedium(
-                              ErrorMessageFormatter.format(state.errorMessage),
-                              color: context.error,
-                            );
-                          case BlocStatus.success:
-                            return Row(
-                              crossAxisAlignment: CrossAxisAlignment.baseline,
-                              textBaseline: TextBaseline.alphabetic,
-                              children: [
-                                AppText.displaySmall(
-                                  state.homePageUsecase?.totalEarnings.formatMoney(currency: '') ?? '0 ل.س',
-                                  color: context.onPrimary,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                SizedBox(width: 14),
-                                AppText.labelLarge(
-                                  'ل.س',
-                                  color: context.primaryContainer,
-                                  fontWeight: FontWeight.w400,
-                                ),
-                              ],
-                            );
-                          case BlocStatus.loading:
-                            return Shimmer.fromColors(
-                              baseColor: context.onPrimary,
-                              highlightColor: context.primary,
-                              child: Container(
-                                color: context.surface,
-                                height: 10,
-                                width: 100,
-                              ),
-                            );
-                          case BlocStatus.init:
-                            return Shimmer.fromColors(
-                              baseColor: context.onPrimary,
-                              highlightColor: context.primary,
-                              child: Container(
-                                color: context.surface,
-                                height: 10,
-                                width: 100,
-                              ),
-                            );
-                        }
-                      },
-                    ),
-                    AppImage.asset(Assets.images.homeChart.path),
-                  ],
-                ),
-              ),
-              AppImage.asset(Assets.images.homeEarningIcon.path, size: 60),
-            ],
-          ),
-          BlocBuilder<HomeBloc, HomeState>(
-            buildWhen: (previous, current) =>
-                previous.homePageUsecase?.blocksNewRequests !=
-                    current.homePageUsecase?.blocksNewRequests ||
-                previous.homePageUsecase?.eligibilityMessageAr !=
-                    current.homePageUsecase?.eligibilityMessageAr ||
-                previous.homePageUsecaseStatus != current.homePageUsecaseStatus,
-            builder: (context, state) {
-              final model = state.homePageUsecase;
-              if (state.homePageUsecaseStatus != BlocStatus.success ||
-                  model?.blocksNewRequests != true) {
-                return const SizedBox.shrink();
-              }
+    return BlocBuilder<HomeBloc, HomeState>(
+      builder: (context, state) {
+        final model = state.homePageUsecase;
+        final isLoading =
+            state.homePageUsecaseStatus == null ||
+            state.homePageUsecaseStatus == BlocStatus.init ||
+            state.homePageUsecaseStatus == BlocStatus.loading;
+        final blocked = model?.blocksNewRequests == true;
+        final isAdminSuspended =
+            model?.dispatchEligibility?.isAdminSuspended == true;
 
-              final isAdminSuspended =
-                  model?.dispatchEligibility?.isAdminSuspended == true;
-
-              return Container(
-                width: double.infinity,
-                margin: const EdgeInsetsDirectional.only(top: 12),
-                padding: const EdgeInsetsDirectional.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(235),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        return Semantics(
+          container: true,
+          label: 'ملخص أرباح اليوم وحالة استقبال الطلبات',
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsetsDirectional.all(AppSpace.lg),
+            decoration: const BoxDecoration(
+              gradient: AppGradients.hero,
+              borderRadius: BorderRadius.all(Radius.circular(AppRadius.xl)),
+              boxShadow: AppShadows.floating,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Icon(
-                      isAdminSuspended
-                          ? Icons.block_rounded
-                          : Icons.info_outline_rounded,
-                      color: context.error,
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                      ),
+                      child: const Icon(
+                        Icons.account_balance_wallet_outlined,
+                        color: Colors.white,
+                      ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpace.sm),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          AppText.labelLarge(
-                            isAdminSuspended
-                                ? 'تم إيقاف حسابك من قبل الإدارة'
-                                : 'ملاحظة على استقبال الطلبات',
-                            color: context.error,
-                            fontWeight: FontWeight.w700,
-                            textAlign: TextAlign.start,
+                          Text(
+                            'إجمالي الأرباح',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: Colors.white.withValues(alpha: 0.82),
+                                ),
                           ),
-                          const SizedBox(height: 4),
-                          AppText.bodySmall(
-                            model!.eligibilityMessageAr,
-                            color: const Color(0xff374151),
-                            textAlign: TextAlign.start,
-                          ),
+                          const SizedBox(height: AppSpace.xxs),
+                          if (isLoading)
+                            Shimmer.fromColors(
+                              baseColor: Colors.white.withValues(alpha: 0.3),
+                              highlightColor: Colors.white,
+                              child: Container(
+                                width: 148,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.sm,
+                                  ),
+                                ),
+                              ),
+                            )
+                          else if (state.homePageUsecaseStatus ==
+                              BlocStatus.failed)
+                            Text(
+                              'تعذّر تحميل الأرباح',
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(color: Colors.white),
+                            )
+                          else
+                            Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.end,
+                              spacing: AppSpace.xs,
+                              children: [
+                                Text(
+                                  model?.totalEarnings.formatMoney(
+                                        currency: '',
+                                      ) ??
+                                      '0',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineLarge
+                                      ?.copyWith(color: Colors.white),
+                                ),
+                                Text(
+                                  'ل.س',
+                                  style: Theme.of(context).textTheme.labelLarge
+                                      ?.copyWith(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.82,
+                                        ),
+                                      ),
+                                ),
+                              ],
+                            ),
                         ],
                       ),
                     ),
                   ],
                 ),
-              );
-            },
+                const SizedBox(height: AppSpace.lg),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsetsDirectional.all(AppSpace.sm),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.18),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        blocked
+                            ? isAdminSuspended
+                                  ? Icons.block_rounded
+                                  : Icons.info_outline_rounded
+                            : Icons.check_circle_outline_rounded,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: AppSpace.xs),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              blocked
+                                  ? isAdminSuspended
+                                        ? 'استقبال الطلبات متوقف إداريًا'
+                                        : 'استقبال الطلبات متوقف مؤقتًا'
+                                  : 'حسابك جاهز لاستقبال الطلبات',
+                              style: Theme.of(context).textTheme.labelLarge
+                                  ?.copyWith(color: Colors.white),
+                            ),
+                            if (blocked &&
+                                (model?.eligibilityMessageAr.isNotEmpty ??
+                                    false)) ...[
+                              const SizedBox(height: AppSpace.xxs),
+                              Text(
+                                model!.eligibilityMessageAr,
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.82,
+                                      ),
+                                    ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

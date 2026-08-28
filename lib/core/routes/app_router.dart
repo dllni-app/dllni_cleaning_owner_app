@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../notifications/cleaning_notification_order_loader_screen.dart';
 import '../../generated/app_routes.g.dart';
+import '../widgets/app_page_header.dart';
+import '../widgets/app_state_view.dart';
 
 class AppRouter {
   const AppRouter._();
@@ -14,9 +16,8 @@ class AppRouter {
       }
 
       return MaterialPageRoute(
-        builder: (_) => CleaningNotificationOrderLoaderScreen(
-          bookingId: bookingId,
-        ),
+        builder: (_) =>
+            CleaningNotificationOrderLoaderScreen(bookingId: bookingId),
         settings: settings,
       );
     }
@@ -29,7 +30,12 @@ class AppRouter {
       return null;
     }
 
-    for (final key in const ['bookingId', 'booking_id', 'orderId', 'order_id']) {
+    for (final key in const [
+      'bookingId',
+      'booking_id',
+      'orderId',
+      'order_id',
+    ]) {
       final value = arguments[key];
       if (value is int) return value;
       if (value is num) return value.toInt();
@@ -45,7 +51,10 @@ class AppRouter {
   static Route<dynamic> _errorRoute(RouteSettings settings) {
     return MaterialPageRoute(
       builder: (_) => const Scaffold(
-        body: Center(child: Text('Unable to open cleaning booking')),
+        appBar: AppPageHeader(title: 'تفاصيل الطلب'),
+        body: AppStateView.error(
+          message: 'تعذر فتح الطلب. تأكد من صحة الإشعار وحاول مجدداً.',
+        ),
       ),
       settings: settings,
     );

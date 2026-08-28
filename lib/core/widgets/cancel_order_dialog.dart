@@ -1,8 +1,11 @@
 import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
 
+import '../theme/app_layout.dart';
+import '../theme/app_semantic_colors.dart';
 import '../../features/orders/domain/usecases/cancel_order_use_case.dart';
 import '../../features/orders/view/manager/bloc/orders_bloc.dart';
+import 'app_button.dart';
 
 class CancelOrderDialog extends StatelessWidget {
   const CancelOrderDialog({
@@ -50,20 +53,22 @@ class CancelOrderDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+      ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Row(
+            Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
                   Icons.warning_amber_rounded,
-                  color: Color(0xffE11D48),
+                  color: context.semanticColors.danger,
                   size: 26,
                 ),
               ],
@@ -72,7 +77,7 @@ class CancelOrderDialog extends StatelessWidget {
             AppText.titleLarge(
               'تحذير',
               textAlign: TextAlign.center,
-              color: const Color(0xffE11D48),
+              color: context.semanticColors.danger,
               fontWeight: FontWeight.bold,
             ),
             const SizedBox(height: 10),
@@ -90,27 +95,18 @@ class CancelOrderDialog extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: FilledButton(
+                  child: AppButton(
+                    label: 'تراجع',
                     onPressed: () => Navigator.of(context).pop(),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xff7C879D),
-                      foregroundColor: Colors.white,
-                    ),
-                    child: AppText.labelLarge('تراجع', color: Colors.white),
+                    variant: AppButtonVariant.outlined,
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: FilledButton(
+                  child: AppButton(
+                    label: 'إلغاء الطلب',
                     onPressed: () => _submitCancel(context),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xffE11D48),
-                      foregroundColor: Colors.white,
-                    ),
-                    child: AppText.labelLarge(
-                      'إلغاء الطلب',
-                      color: Colors.white,
-                    ),
+                    variant: AppButtonVariant.destructive,
                   ),
                 ),
               ],

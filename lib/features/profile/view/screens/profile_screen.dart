@@ -3,6 +3,10 @@ import 'package:dllni_cleaninig_owner_app/core/widgets/worker_technical_support_
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/core/location/worker_location_tracker.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_booking_pusher_service.dart';
+import 'package:dllni_cleaninig_owner_app/core/theme/app_semantic_colors.dart';
+import 'package:dllni_cleaninig_owner_app/core/theme/app_layout.dart';
+import 'package:dllni_cleaninig_owner_app/core/widgets/app_button.dart';
+import 'package:dllni_cleaninig_owner_app/core/widgets/app_section_header.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/data/models/fetch_worker_profile_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/fetch_worker_profile_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/update_worker_profile_use_case.dart';
@@ -146,11 +150,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildAccountActiveToggle(BuildContext context, ProfileState state) {
     final isActive = state.workerProfileUsecase?.data?.isActive ?? false;
+    final isUpdating = state.updateWorkerProfileStatus == BlocStatus.loading;
 
+    final toneColor = isActive
+        ? context.semanticColors.success
+        : context.semanticColors.warning;
+    final toneContainer = isActive
+        ? context.semanticColors.successContainer
+        : context.semanticColors.warningContainer;
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16.r),
-        color: const Color(0xff10B981).withAlpha(27),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        color: toneContainer,
+        border: Border.all(color: toneColor.withValues(alpha: 0.35)),
       ),
       padding: EdgeInsetsDirectional.symmetric(
         horizontal: 12.w,
@@ -161,13 +173,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
-              color: const Color(0xff10B981).withAlpha(27),
+              color: Theme.of(context).colorScheme.surface,
             ),
             padding: EdgeInsetsDirectional.all(8),
             child: Icon(
               Icons.power_settings_new,
               size: 25.sp,
-              color: const Color(0xff10B981),
+              color: toneColor,
             ),
           ),
           SizedBox(width: 12.w),
@@ -186,17 +198,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ? 'حسابك مفعل ويمكنك استقبال الطلبات'
                       : 'حسابك معطل ولن تستقبل طلبات',
                   fontWeight: FontWeight.w400,
-                  color: const Color(0xff6B7280),
+                  color: context.semanticColors.textSecondary,
                   textAlign: TextAlign.start,
                 ),
               ],
             ),
           ),
           SizedBox(width: 12.w),
-          CustomMiniSwitch(
-            value: isActive,
-            onChanged: (value) => _onAccountActiveChanged(context, value),
-          ),
+          isUpdating
+              ? const SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+                    ),
+                  ),
+                )
+              : CustomMiniSwitch(
+                  value: isActive,
+                  onChanged: (value) => _onAccountActiveChanged(context, value),
+                ),
         ],
       ),
     );
@@ -232,14 +256,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       Icons.star_outline_rounded,
     ];
 
-    const colors = <Color>[
-      Color(0xff3B82F6),
-      Color(0xffEAB308),
-      Color(0xffF97316),
-      Color(0xffA855F7),
-      // Color(0xff22C55E),
-      Color(0xff6366F1),
-      Color(0xffF59E0B),
+    final colors = <Color>[
+      Theme.of(context).colorScheme.primary,
+      Theme.of(context).colorScheme.secondary,
+      context.semanticColors.info,
+      context.semanticColors.warning,
+      Theme.of(context).colorScheme.secondary,
+      context.semanticColors.warning,
     ];
 
     return BlocProvider<ProfileBloc>(
@@ -256,9 +279,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const ProfileAppBar(),
             Expanded(
               child: SingleChildScrollView(
-                padding: EdgeInsetsDirectional.symmetric(
-                  horizontal: 24.w,
-                  vertical: 14.h,
+                padding: AppSpace.pagePadding(context).add(
+                  const EdgeInsetsDirectional.symmetric(vertical: AppSpace.md),
                 ),
                 child: Column(
                   children: [
@@ -266,11 +288,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       builder: (context) {
                         final profileBloc = context.read<ProfileBloc>();
                         return SectionCard(
-                          containerColor: const Color(0xff0EA5E9).withAlpha(27),
-                          title: 'احصائاتي',
+                          containerColor: context.semanticColors.infoContainer,
+                          title: 'المحفظة والإحصائيات',
                           image: Icons.account_balance_wallet_outlined,
-                          imageColor: const Color(0xff0EA5E9),
-                          subtitle: 'مخططات الحجوزات والفواتير والملخص المالي',
+                          imageColor: context.semanticColors.info,
+                          subtitle: 'الأرباح والحجوزات والملخص المالي',
                           onTap: () {
                             Navigator.of(context).push<void>(
                               MaterialPageRoute<void>(
@@ -284,25 +306,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         );
                       },
                     ),
-                    24.verticalSpace,
-                    Row(
-                      children: [
-                        SizedBox(
-                          height: 20,
-                          child: VerticalDivider(
-                            color: Colors.black,
-                            thickness: 4,
-                            radius: BorderRadius.circular(9999),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        AppText.titleMedium(
-                          'إدارة الحساب',
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ],
-                    ),
-                    12.verticalSpace,
+                    const SizedBox(height: AppSpace.lg),
+                    const AppSectionHeader(title: 'إدارة الحساب'),
+                    const SizedBox(height: AppSpace.sm),
                     Column(
                       spacing: 15.h,
                       children: List.generate(
@@ -395,46 +401,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                     ),
-                    12.verticalSpace,
+                    const SizedBox(height: AppSpace.sm),
                     BlocBuilder<ProfileBloc, ProfileState>(
                       builder: (context, state) {
                         return _buildAccountActiveToggle(context, state);
                       },
                     ),
-                    12.verticalSpace,
-                    InkWell(
-                      onTap: () async {
-                        await _logout(context);
-                      },
-                      borderRadius: BorderRadius.circular(24),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: const Color(0xff727791).withAlpha(6),
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(
-                            color: const Color(0xff727791).withAlpha(52),
-                          ),
-                        ),
-                        padding: const EdgeInsetsDirectional.symmetric(
-                          vertical: 20,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.logout_rounded,
-                              color: context.primaryContainer,
-                            ),
-                            const SizedBox(width: 12),
-                            AppText.bodyMedium(
-                              'تسجيل الخروج',
-                              color: context.primaryContainer,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ],
-                        ),
-                      ),
+                    const SizedBox(height: AppSpace.md),
+                    AppButton(
+                      label: 'تسجيل الخروج',
+                      icon: Icons.logout_rounded,
+                      variant: AppButtonVariant.outlined,
+                      onPressed: () => _logout(context),
                     ),
+                    const SizedBox(height: AppSpace.md),
                   ],
                 ),
               ),
@@ -454,7 +434,7 @@ class CustomMiniSwitch extends StatefulWidget {
   });
 
   final bool value;
-  final ValueChanged<bool> onChanged;
+  final ValueChanged<bool>? onChanged;
 
   @override
   State<CustomMiniSwitch> createState() => _CustomMiniSwitchState();
@@ -463,31 +443,16 @@ class CustomMiniSwitch extends StatefulWidget {
 class _CustomMiniSwitchState extends State<CustomMiniSwitch> {
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => widget.onChanged(!widget.value),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: 46.w,
-        height: 22.h,
-        padding: EdgeInsets.symmetric(horizontal: 3.w),
-        decoration: BoxDecoration(
-          color: widget.value
-              ? Colors.green.withAlpha(63)
-              : Colors.grey.shade300,
-          borderRadius: BorderRadius.circular(20.r),
-        ),
-        child: AnimatedAlign(
-          duration: const Duration(milliseconds: 200),
-          alignment: widget.value
-              ? Alignment.centerRight
-              : Alignment.centerLeft,
-          child: Container(
-            width: 16.w,
-            height: 16.h,
-            decoration: BoxDecoration(
-              color: widget.value ? Colors.green : Colors.grey,
-              shape: BoxShape.circle,
-            ),
+    return Semantics(
+      label: 'تفعيل الحساب',
+      toggled: widget.value,
+      enabled: widget.onChanged != null,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+        child: Center(
+          child: Switch.adaptive(
+            value: widget.value,
+            onChanged: widget.onChanged,
           ),
         ),
       ),

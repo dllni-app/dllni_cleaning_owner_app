@@ -21,6 +21,7 @@ import '../../helpers/order_lifecycle_policy.dart';
 import '../../manager/bloc/orders_bloc.dart';
 import '../order_details_map_app_bar.dart';
 import '../../helpers/cleaning_security_code_display.dart';
+import 'order_lifecycle_progress.dart';
 
 bool _securityCodeInFlightForBooking(OrdersBloc bloc, int bookingId) {
   return bloc.state.securityCodeStatus == BlocStatus.loading &&
@@ -811,37 +812,38 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
           ),
           SafeArea(
             bottom: false,
-            child: OrderDetailsMapAppBar(
-              orderNum: widget.order.bookingNumber ?? '-',
-            ),
-          ),
-          if (_distanceLabel != null)
-            SafeArea(
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: Padding(
-                  padding: EdgeInsetsDirectional.only(top: 56.h),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: const Color(0xffECFDF5),
-                      borderRadius: BorderRadius.circular(20.r),
-                      border: Border.all(color: const Color(0xffA7F3D0)),
-                    ),
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 14.w,
-                        vertical: 8.h,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                OrderDetailsMapAppBar(
+                  orderNum: widget.order.bookingNumber ?? '-',
+                ),
+                const OrderLifecycleProgress(currentStep: 2),
+                if (_distanceLabel != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: const Color(0xffECFDF5),
+                        borderRadius: BorderRadius.circular(20.r),
+                        border: Border.all(color: const Color(0xffA7F3D0)),
                       ),
-                      child: AppText.labelMedium(
-                        _distanceLabel!,
-                        color: const Color(0xff0F766E),
-                        fontWeight: FontWeight.w600,
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 14.w,
+                          vertical: 8.h,
+                        ),
+                        child: AppText.labelMedium(
+                          _distanceLabel!,
+                          color: const Color(0xff0F766E),
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ),
+              ],
             ),
+          ),
           Align(
             alignment: Alignment.bottomCenter,
             child: DraggableScrollableSheet(

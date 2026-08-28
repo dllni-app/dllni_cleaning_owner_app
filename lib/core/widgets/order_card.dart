@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/extentions.dart';
+import 'package:dllni_cleaninig_owner_app/core/theme/app_layout.dart';
+import 'package:dllni_cleaninig_owner_app/core/theme/app_semantic_colors.dart';
 import 'package:dllni_cleaninig_owner_app/core/widgets/cancel_order_dialog.dart';
 import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_relative_time_formatter.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
@@ -19,7 +21,8 @@ import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/extension
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_arabic_time_formatter.dart';
-import 'package:injectable/injectable.dart';
+
+import 'app_status_chip.dart';
 
 class OrderCard extends StatelessWidget {
   const OrderCard({
@@ -33,9 +36,6 @@ class OrderCard extends StatelessWidget {
   final OrdersBloc bloc;
   final int index;
 
-  bool get _isEventAssistance =>
-      EventAssistanceOrderHelper.isEventAssistance(data.propertyType);
-
   String _serviceName() {
     return EventAssistanceOrderHelper.serviceTitle(
       propertyType: data.propertyType,
@@ -45,32 +45,25 @@ class OrderCard extends StatelessWidget {
 
   String _statusLabel() => OrderLifecyclePolicy.statusLabel(data);
 
-  Color _statusColor(BuildContext context) {
-    if (OrderLifecyclePolicy.isAcceptedWaiting(data)) {
-      return const Color(0xff0EA5E9);
+  AppStatusTone _statusTone() {
+    if (data.status == CleaningBookingStatus.completed ||
+        data.status == CleaningBookingStatus.inProgress ||
+        data.status == CleaningBookingStatus.awaitingWorkerStartConfirmation) {
+      return AppStatusTone.success;
     }
-    final status = data.status;
-    if (status == CleaningBookingStatus.pending) return const Color(0xff1E2A78);
-    if (status == CleaningBookingStatus.workerAssigned) {
-      return const Color(0xff0EA5E9);
+    if (data.status == CleaningBookingStatus.awaitingStartVerification ||
+        data.status == CleaningBookingStatus.timeExtensionRequested) {
+      return AppStatusTone.warning;
     }
-    if (status == CleaningBookingStatus.awaitingStartVerification) {
-      return const Color(0xffF59E0B);
+    if (data.status == CleaningBookingStatus.cancelled) {
+      return AppStatusTone.danger;
     }
-    if (status == CleaningBookingStatus.awaitingWorkerStartConfirmation) {
-      return const Color(0xff059669);
+    if (data.status == CleaningBookingStatus.workerAssigned ||
+        data.status == CleaningBookingStatus.awaitingCustomerCompletion ||
+        OrderLifecyclePolicy.isAcceptedWaiting(data)) {
+      return AppStatusTone.info;
     }
-    if (status == CleaningBookingStatus.inProgress ||
-        status == CleaningBookingStatus.timeExtensionRequested) {
-      return context.primaryContainer;
-    }
-    if (status == CleaningBookingStatus.awaitingCustomerCompletion) {
-      return const Color(0xff6366F1);
-    }
-    if (status == CleaningBookingStatus.completed) {
-      return const Color(0xff10B981);
-    }
-    return const Color(0xff64748B);
+    return AppStatusTone.neutral;
   }
 
   bool get _isDedicatedToMe =>
@@ -98,13 +91,13 @@ class OrderCard extends StatelessWidget {
         vertical: 10,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xffE0F2FE),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xff7DD3FC)),
+        color: context.semanticColors.infoContainer,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: context.semanticColors.info),
       ),
       child: AppText.labelMedium(
         message, // الآن نحن متأكدون أنها ليست null
-        color: const Color(0xff075985),
+        color: context.semanticColors.info,
         fontWeight: FontWeight.w700,
         textAlign: TextAlign.start,
       ),
@@ -349,8 +342,8 @@ class OrderCard extends StatelessWidget {
         vertical: 10,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xffF3F4F6),
-        borderRadius: BorderRadius.circular(12),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(AppRadius.md),
       ),
       child: Row(
         children: [
@@ -360,7 +353,7 @@ class OrderCard extends StatelessWidget {
               children: [
                 AppText.labelMedium(
                   title,
-                  color: const Color(0xff6B7280),
+                  color: context.semanticColors.textSecondary,
                   textAlign: TextAlign.start,
                 ),
                 const SizedBox(height: 4),
@@ -368,7 +361,11 @@ class OrderCard extends StatelessWidget {
               ],
             ),
           ),
-          Icon(icon, color: context.primaryContainer, size: 18),
+          Icon(
+            icon,
+            color: Theme.of(context).colorScheme.secondary,
+            size: AppIconSize.sm,
+          ),
         ],
       ),
     );
@@ -376,13 +373,12 @@ class OrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = _statusColor(context);
     final bookingLabel = data.bookingNumber ?? '${data.id ?? '-'}';
     final isDedicatedToMe = _isDedicatedToMe;
 
     return InkWell(
       onTap: () => _openDetails(context),
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(AppRadius.lg),
       child: Stack(
         children: [
           Container(
@@ -393,21 +389,15 @@ class OrderCard extends StatelessWidget {
               14,
             ),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
               border: Border.all(
                 color: isDedicatedToMe
-                    ? const Color(0xffEF4444).withAlpha(200)
-                    : const Color(0xffE5E7EB),
+                    ? Theme.of(context).colorScheme.secondary
+                    : Theme.of(context).colorScheme.outlineVariant,
                 width: isDedicatedToMe ? 2 : 1,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha(15),
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
-                ),
-              ],
+              boxShadow: AppShadows.subtle,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -426,14 +416,14 @@ class OrderCard extends StatelessWidget {
                           const SizedBox(height: 4),
                           AppText.labelSmall(
                             _bookingSubtitle(bookingLabel),
-                            color: const Color(0xff6B7280),
+                            color: context.semanticColors.textSecondary,
                             textAlign: TextAlign.start,
                           ),
                           if (data.displayNeighborhoodName != null) ...[
                             const SizedBox(height: 4),
                             AppText.labelSmall(
                               'الحي: ${data.displayNeighborhoodName}',
-                              color: const Color(0xff475569),
+                              color: context.semanticColors.textSecondary,
                               fontWeight: FontWeight.w600,
                               textAlign: TextAlign.start,
                             ),
@@ -445,62 +435,23 @@ class OrderCard extends StatelessWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Container(
-                          padding: const EdgeInsetsDirectional.symmetric(
-                            horizontal: 10,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: statusColor.withAlpha(30),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 3.5,
-                                backgroundColor: statusColor,
-                              ),
-                              const SizedBox(width: 6),
-                              AppText.labelSmall(
-                                _statusLabel(),
-                                color: statusColor,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ],
-                          ),
+                        AppStatusChip(
+                          label: _statusLabel(),
+                          tone: _statusTone(),
                         ),
                         const SizedBox(height: 4),
                         AppText.titleSmall(
                           data.totalPrice.formatMoney(),
-                          color: const Color(0xff1E2A78),
+                          color: Theme.of(context).colorScheme.primary,
                           fontWeight: FontWeight.bold,
                         ),
                         const SizedBox(height: 4),
 
                         isSameDate(data.createdAt, data.scheduledDate)
-                            ? Container(
-                                padding: const EdgeInsetsDirectional.symmetric(
-                                  horizontal: 10,
-                                  vertical: 5,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: context.error.withAlpha(30),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  children: [
-                                    CircleAvatar(
-                                      radius: 3.5,
-                                      backgroundColor: context.error,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    AppText.labelSmall(
-                                      'طلب ساخن',
-                                      color: context.error,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ],
-                                ),
+                            ? const AppStatusChip(
+                                label: 'طلب عاجل',
+                                tone: AppStatusTone.danger,
+                                icon: Icons.local_fire_department_outlined,
                               )
                             : const SizedBox(),
 
@@ -579,7 +530,9 @@ class OrderCard extends StatelessWidget {
                                     },
                               borderRadius: BorderRadius.circular(10),
                               child: Container(
-                                height: 44,
+                                constraints: const BoxConstraints(
+                                  minHeight: 48,
+                                ),
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(10),
                                   color: context.primary,
@@ -647,7 +600,9 @@ class OrderCard extends StatelessWidget {
                                     },
                               borderRadius: BorderRadius.circular(10),
                               child: Container(
-                                height: 44,
+                                constraints: const BoxConstraints(
+                                  minHeight: 48,
+                                ),
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(10),
                                   color: context.error.withAlpha(20),
@@ -715,7 +670,9 @@ class OrderCard extends StatelessWidget {
                                     },
                               borderRadius: BorderRadius.circular(10),
                               child: Container(
-                                height: 44,
+                                constraints: const BoxConstraints(
+                                  minHeight: 48,
+                                ),
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(10),
                                   color: context.primary,
@@ -757,7 +714,7 @@ class OrderCard extends StatelessWidget {
                               : null,
                           borderRadius: BorderRadius.circular(10),
                           child: Container(
-                            height: 44,
+                            constraints: const BoxConstraints(minHeight: 48),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(10),
                               color: context.error.withAlpha(20),
@@ -786,7 +743,7 @@ class OrderCard extends StatelessWidget {
                     },
                     borderRadius: BorderRadius.circular(10),
                     child: Container(
-                      height: 44,
+                      constraints: const BoxConstraints(minHeight: 48),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(10),
                         color: context.primaryContainer,

@@ -6,6 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
+import '../../../../core/theme/app_layout.dart';
+import '../../../../core/widgets/app_page_header.dart';
+
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
 
@@ -53,7 +56,6 @@ class _WalletScreenState extends State<WalletScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xffF3F4F6),
       body: SafeArea(
         child: Column(
           children: [
@@ -63,11 +65,10 @@ class _WalletScreenState extends State<WalletScreen> {
                 onRefresh: _refresh,
                 child: ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: EdgeInsetsDirectional.fromSTEB(
-                    20.w,
-                    18.h,
-                    20.w,
-                    24.h,
+                  padding: AppSpace.pagePadding(context).add(
+                    const EdgeInsetsDirectional.symmetric(
+                      vertical: AppSpace.md,
+                    ),
                   ),
                   children: [
                     _trustScoreSection(),
@@ -89,48 +90,15 @@ class _WalletScreenState extends State<WalletScreen> {
     final profileBloc = context.read<ProfileBloc>();
     profileBloc.add(FetchDepositAccountEvent());
     profileBloc.add(
-      FetchWorkerProfileUsecaseEvent(
-        params: FetchWorkerProfileUsecaseParams(),
-      ),
+      FetchWorkerProfileUsecaseEvent(params: FetchWorkerProfileUsecaseParams()),
     );
     await Future<void>.delayed(const Duration(milliseconds: 350));
   }
 
   Widget _appBar() {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(24.r),
-          bottomRight: Radius.circular(24.r),
-        ),
-        border: Border(
-          bottom: BorderSide(color: context.primaryContainer, width: 2),
-        ),
-      ),
-      padding: EdgeInsetsDirectional.symmetric(
-        horizontal: 22.w,
-        vertical: 16.h,
-      ),
-      child: Row(
-        children: [
-          InkWell(
-            onTap: () => Navigator.of(context).pop(),
-            child: Icon(
-              Icons.arrow_back_ios_new,
-              color: context.primaryContainer,
-            ),
-          ),
-          10.horizontalSpace,
-          _text(
-            'احصائياتي',
-            size: 26,
-            color: context.primaryContainer,
-            weight: FontWeight.w700,
-          ),
-        ],
-      ),
+    return const AppPageHeader(
+      title: 'المحفظة والإحصائيات',
+      subtitle: 'ملخص أرباحك ورصيد التأمين وسجل الحركة المالية',
     );
   }
 

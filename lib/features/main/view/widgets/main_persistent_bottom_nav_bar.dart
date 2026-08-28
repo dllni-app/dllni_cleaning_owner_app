@@ -2,6 +2,7 @@ import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 
+import '../../../../core/theme/app_layout.dart';
 import '../../../../generated/assets.dart';
 
 class MainPersistentBottomNavBar extends StatelessWidget {
@@ -16,66 +17,68 @@ class MainPersistentBottomNavBar extends StatelessWidget {
   final ValueChanged<int> onItemSelected;
   final VoidCallback onSupportTap;
 
-  static const _inactiveColor = Color(0xff526D6B);
-
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: controller,
       builder: (context, _) {
         final selectedIndex = controller.index;
-        return Container(
-          height: 84,
-          decoration: BoxDecoration(
-            color: context.onPrimary,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(24),
-              topRight: Radius.circular(24),
+        return Material(
+          color: Theme.of(context).colorScheme.surface,
+          elevation: 12,
+          shadowColor: Theme.of(
+            context,
+          ).colorScheme.shadow.withValues(alpha: 0.18),
+          shape: Border(
+            top: BorderSide(
+              color: Theme.of(context).colorScheme.outlineVariant,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(27),
-                offset: const Offset(0, -2),
-                blurRadius: 12,
-              ),
-            ],
           ),
-          child: Row(
-            children: [
-              _buildTabItem(
-                context: context,
-                tabIndex: 0,
-                selectedIndex: selectedIndex,
-                iconPath: Assets.images.navBarHome.path,
-                title: 'الرئيسية',
-                onTap: () => onItemSelected(0),
-              ),
-              _buildTabItem(
-                context: context,
-                tabIndex: 1,
-                selectedIndex: selectedIndex,
-                iconPath: Assets.images.navBarCalender.path,
-                title: 'تقويمي',
-                onTap: () => onItemSelected(1),
-              ),
-              _buildSupportItem(context),
-              _buildTabItem(
-                context: context,
-                tabIndex: 2,
-                selectedIndex: selectedIndex,
-                iconPath: Assets.images.navBarOrders.path,
-                title: 'الطلبات',
-                onTap: () => onItemSelected(2),
-              ),
-              _buildTabItem(
-                context: context,
-                tabIndex: 3,
-                selectedIndex: selectedIndex,
-                iconPath: Assets.images.navBarMore.path,
-                title: 'المزيد',
-                onTap: () => onItemSelected(3),
-              ),
-            ],
+          child: SafeArea(
+            top: false,
+            minimum: const EdgeInsets.fromLTRB(
+              AppSpace.xs,
+              AppSpace.xs,
+              AppSpace.xs,
+              AppSpace.xs,
+            ),
+            child: Row(
+              children: [
+                _buildTabItem(
+                  context: context,
+                  tabIndex: 0,
+                  selectedIndex: selectedIndex,
+                  iconPath: Assets.images.navBarHome.path,
+                  title: 'الرئيسية',
+                  onTap: () => onItemSelected(0),
+                ),
+                _buildTabItem(
+                  context: context,
+                  tabIndex: 1,
+                  selectedIndex: selectedIndex,
+                  iconPath: Assets.images.navBarCalender.path,
+                  title: 'تقويمي',
+                  onTap: () => onItemSelected(1),
+                ),
+                _buildSupportItem(context),
+                _buildTabItem(
+                  context: context,
+                  tabIndex: 2,
+                  selectedIndex: selectedIndex,
+                  iconPath: Assets.images.navBarOrders.path,
+                  title: 'الطلبات',
+                  onTap: () => onItemSelected(2),
+                ),
+                _buildTabItem(
+                  context: context,
+                  tabIndex: 3,
+                  selectedIndex: selectedIndex,
+                  iconPath: Assets.images.navBarMore.path,
+                  title: 'المزيد',
+                  onTap: () => onItemSelected(3),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -86,29 +89,37 @@ class MainPersistentBottomNavBar extends StatelessWidget {
     return Expanded(
       child: Material(
         color: Colors.transparent,
-        child: InkWell(
-          splashColor: Colors.transparent,
-          highlightColor: Colors.transparent,
-          onTap: onSupportTap,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: context.error.withAlpha(38),
-                child: Icon(
-                  Icons.support_agent_rounded,
-                  color: context.error,
-                  size: 28,
+        child: Semantics(
+          button: true,
+          label: 'الدعم الفني',
+          child: InkWell(
+            onTap: onSupportTap,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: const BoxDecoration(
+                    gradient: AppGradients.hero,
+                    shape: BoxShape.circle,
+                    boxShadow: AppShadows.subtle,
+                  ),
+                  child: const Icon(
+                    Icons.support_agent_rounded,
+                    color: Colors.white,
+                    size: AppIconSize.lg,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 6),
-              AppText.labelMedium(
-                'الدعم',
-                fontWeight: FontWeight.w300,
-                color: context.error,
-              ),
-            ],
+                const SizedBox(height: AppSpace.xxs),
+                AppText.labelMedium(
+                  'الدعم',
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -124,37 +135,53 @@ class MainPersistentBottomNavBar extends StatelessWidget {
     required VoidCallback onTap,
   }) {
     final isSelected = selectedIndex == tabIndex;
-    final iconColor = isSelected ? context.primaryContainer : _inactiveColor;
+    final colorScheme = Theme.of(context).colorScheme;
+    final iconColor = isSelected ? colorScheme.secondary : colorScheme.outline;
 
     return Expanded(
       child: Material(
         color: Colors.transparent,
-        child: InkWell(
-          splashColor: Colors.transparent,
-          highlightColor: Colors.transparent,
-          onTap: onTap,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: isSelected
-                    ? context.primaryContainer.withAlpha(63)
+        child: Semantics(
+          button: true,
+          selected: isSelected,
+          label: title,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            child: AnimatedContainer(
+              duration: AppMotion.resolved(context, AppMotion.standard),
+              padding: const EdgeInsetsDirectional.symmetric(
+                horizontal: AppSpace.xxs,
+                vertical: AppSpace.xxs,
+              ),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? colorScheme.secondaryContainer.withValues(alpha: 0.72)
                     : Colors.transparent,
-                child: AppImage.asset(
-                  iconPath,
-                  color: iconColor,
-                  width: 28,
-                  height: 28,
-                ),
+                borderRadius: BorderRadius.circular(AppRadius.md),
               ),
-              const SizedBox(height: 6),
-              AppText.labelMedium(
-                title,
-                fontWeight: FontWeight.w300,
-                color: iconColor,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 42,
+                    height: 36,
+                    child: AppImage.asset(
+                      iconPath,
+                      color: iconColor,
+                      width: AppIconSize.md,
+                      height: AppIconSize.md,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpace.xxs),
+                  AppText.labelMedium(
+                    title,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    color: iconColor,
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

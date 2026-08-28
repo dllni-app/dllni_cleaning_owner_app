@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shimmer/shimmer.dart';
 
+import '../../../../core/theme/app_layout.dart';
 import '../manager/bloc/profile_bloc.dart';
 import 'circular_star_rating.dart';
 
@@ -12,164 +13,101 @@ class ProfileAppBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [context.primary, context.primaryContainer],
-          end: AlignmentGeometry.centerRight,
-          begin: AlignmentGeometry.centerLeft,
+      width: double.infinity,
+      constraints: const BoxConstraints(minHeight: 132),
+      padding: AppSpace.pagePadding(
+        context,
+      ).add(const EdgeInsetsDirectional.symmetric(vertical: AppSpace.lg)),
+      decoration: const BoxDecoration(
+        gradient: AppGradients.hero,
+        borderRadius: BorderRadius.vertical(
+          bottom: Radius.circular(AppRadius.xl),
         ),
-        borderRadius: BorderRadius.only(
-          bottomRight: Radius.circular(16),
-          bottomLeft: Radius.circular(16),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(27),
-            offset: Offset(0, -2),
-            blurRadius: 12,
-            spreadRadius: 0,
-          ),
-        ],
       ),
-      width: context.width,
-      height: 110,
-      padding: EdgeInsetsDirectional.symmetric(horizontal: 24),
       child: BlocBuilder<ProfileBloc, ProfileState>(
         builder: (context, state) {
-          switch (state.workerProfileUsecaseStatus) {
-            case null:
-              return failedWidget(context);
-            case BlocStatus.failed:
-              return failedWidget(context);
-            case BlocStatus.success:
-              return Row(
-                children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundImage: NetworkImage(
-                      state.workerProfileUsecase?.data?.avatar?.url ?? '',
-                    ),
-                    backgroundColor: context.onPrimaryContainer,
-                  ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        AppText.labelMedium(
-                          state.workerProfileUsecase?.data?.user?.name ?? '-',
-                          color: context.onPrimary,
-                          fontWeight: FontWeight.w500,
-                          textAlign: TextAlign.start,
-                        ),
-                        SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            AppText.labelMedium(
-                              'ID: ${state.workerProfileUsecase?.data?.user?.id == null ? ' - ' : state.workerProfileUsecase!.data!.user!.id.toString()}',
-                              color: context.onPrimary,
-                              fontWeight: FontWeight.w500,
-                              textAlign: TextAlign.start,
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  CircularStarRating(
-                    rating:
-                        state.workerProfileUsecase?.data?.averageRating ?? 0,
-                  ),
-                ],
-              );
-            case BlocStatus.loading:
-              return loadingWidget(context);
-            case BlocStatus.init:
-              return loadingWidget(context);
+          if (state.workerProfileUsecaseStatus == BlocStatus.loading ||
+              state.workerProfileUsecaseStatus == BlocStatus.init) {
+            return _loading(context);
           }
+          final data = state.workerProfileUsecase?.data;
+          final avatarUrl = data?.avatar?.url?.trim() ?? '';
+          final name = data?.user?.name?.trim();
+          return Row(
+            children: [
+              Container(
+                width: 68,
+                height: 68,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.16),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.4),
+                    width: 2,
+                  ),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: avatarUrl.isEmpty
+                    ? const Icon(
+                        Icons.person_outline_rounded,
+                        color: Colors.white,
+                        size: AppIconSize.xl,
+                      )
+                    : Image.network(avatarUrl, fit: BoxFit.cover),
+              ),
+              const SizedBox(width: AppSpace.md),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AppText.titleMedium(
+                      name == null || name.isEmpty ? 'عامل دللني' : name,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    const SizedBox(height: AppSpace.xs),
+                    Directionality(
+                      textDirection: TextDirection.ltr,
+                      child: Text(
+                        'ID: ${data?.user?.id ?? '-'}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.82),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              CircularStarRating(rating: data?.averageRating ?? 0),
+            ],
+          );
         },
       ),
     );
   }
 
-  loadingWidget(BuildContext context) => Row(
-    children: [
-      Shimmer.fromColors(
-        baseColor: context.surface,
-        highlightColor: context.primary,
-        child: CircleAvatar(
-          radius: 30,
-          backgroundColor: context.onPrimaryContainer,
-        ),
-      ),
-      SizedBox(width: 12),
-      Expanded(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Shimmer.fromColors(
-              baseColor: context.surface,
-              highlightColor: context.primary,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: context.onPrimary,
-                ),
-                height: 10,
-                width: 60,
-              ),
+  Widget _loading(BuildContext context) {
+    return Shimmer.fromColors(
+      baseColor: Colors.white.withValues(alpha: 0.2),
+      highlightColor: Colors.white.withValues(alpha: 0.7),
+      child: Row(
+        children: [
+          const CircleAvatar(radius: 34, backgroundColor: Colors.white),
+          const SizedBox(width: AppSpace.md),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(width: 150, height: 18, color: Colors.white),
+                const SizedBox(height: AppSpace.sm),
+                Container(width: 80, height: 12, color: Colors.white),
+              ],
             ),
-            SizedBox(height: 12),
-            Shimmer.fromColors(
-              baseColor: context.surface,
-              highlightColor: context.primary,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: context.onPrimary,
-                ),
-                height: 10,
-                width: 100,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
-    ],
-  );
-
-  failedWidget(BuildContext context) => Row(
-    children: [
-      CircleAvatar(
-        radius: 30,
-        backgroundColor: context.onPrimaryContainer,
-        child: AppText.labelLarge('n', fontWeight: FontWeight.bold),
-      ),
-      SizedBox(width: 12),
-      Expanded(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AppText.labelMedium(
-              '-',
-              color: context.onPrimary,
-              fontWeight: FontWeight.w500,
-              textAlign: TextAlign.start,
-            ),
-            SizedBox(height: 12),
-            AppText.labelMedium(
-              '-',
-              color: context.onPrimary,
-              fontWeight: FontWeight.w500,
-              textAlign: TextAlign.start,
-            ),
-          ],
-        ),
-      ),
-    ],
-  );
+    );
+  }
 }

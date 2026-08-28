@@ -1,8 +1,8 @@
 import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
+import '../../../../core/theme/app_layout.dart';
 import '../../../profile/view/manager/bloc/profile_bloc.dart';
 import '../../../profile/view/screens/notifications_screen.dart';
 
@@ -11,92 +11,138 @@ class HomeAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: context.onPrimary,
-        border: Border(bottom: BorderSide(color: context.primaryContainer, width: 3)),
-        borderRadius: BorderRadius.only(bottomRight: Radius.circular(24.r), bottomLeft: Radius.circular(24.r)),
-        boxShadow: [BoxShadow(color: Colors.black.withAlpha(27), offset: Offset(0, -2.h), blurRadius: 12.r, spreadRadius: 0)],
-      ),
-      width: context.width,
-      height: 70.h,
-      padding: EdgeInsetsDirectional.symmetric(horizontal: 24.w),
-      child: BlocBuilder<ProfileBloc, ProfileState>(
-        builder: (context, state) {
-          return Row(
-            children: [
-              state.workerProfileUsecase?.data?.avatar?.url != null
-                  ? AppImage.network(
-                      state.workerProfileUsecase!.data!.avatar!.url!,
-                      borderRadius: BorderRadius.circular(99),
-                      width: 40,
-                      height: 40,
-                      fit: BoxFit.cover,
-                    )
-                  : SizedBox.shrink(),
-              8.horizontalSpace,
-              Expanded(
-                child: AppText.labelMedium(
-                  'مرحباً ${state.workerProfileUsecase?.data?.firstName ?? ''}, لنكتشف ماهي مهامك اليوم',
-                  color: Color(0xff2C6862),
-                  fontWeight: FontWeight.w500,
-                  textAlign: TextAlign.start,
+    final colorScheme = Theme.of(context).colorScheme;
+    return Material(
+      color: colorScheme.surface,
+      surfaceTintColor: Colors.transparent,
+      child: Container(
+        width: double.infinity,
+        constraints: const BoxConstraints(minHeight: 80),
+        padding: AppSpace.pagePadding(
+          context,
+        ).add(const EdgeInsetsDirectional.symmetric(vertical: AppSpace.sm)),
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: colorScheme.outlineVariant)),
+        ),
+        child: BlocBuilder<ProfileBloc, ProfileState>(
+          builder: (context, state) {
+            final profile = state.workerProfileUsecase?.data;
+            final firstName = profile?.firstName?.trim() ?? '';
+            final avatarUrl = profile?.avatar?.url;
+            return Row(
+              children: [
+                Semantics(
+                  image: true,
+                  label: 'الصورة الشخصية',
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      gradient: AppGradients.heroSoft,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      border: Border.all(color: colorScheme.outlineVariant),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: avatarUrl != null && avatarUrl.isNotEmpty
+                        ? AppImage.network(avatarUrl, fit: BoxFit.cover)
+                        : Icon(
+                            Icons.person_outline_rounded,
+                            color: colorScheme.primary,
+                          ),
+                  ),
                 ),
-              ),
-              InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: () {
-                  final profileBloc = context.read<ProfileBloc>();
-                  context.pushRoute(
-                    '/notifications',
-                    arguments: NotificationsScreenParams(profileBloc: profileBloc),
-                  );
-                },
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Icon(Icons.notifications_none_outlined, color: context.primaryContainer),
-                    if (state.unreadNotification != null && state.unreadNotification! > 0)
-                      Positioned(
-                        top: -6,
-                        right: -6,
-                        child: Container(
-                          constraints: const BoxConstraints(
-                            minWidth: 18,
-                            minHeight: 18,
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 5,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: context.error,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: context.onPrimary,
-                              width: 1.5,
-                            ),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            state.unreadNotification! > 99
-                                ? '99+'
-                                : state.unreadNotification.toString(),
-                            style: TextStyle(
-                              color: context.onError,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              height: 1.1,
-                            ),
-                          ),
+                const SizedBox(width: AppSpace.sm),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        firstName.isEmpty ? 'مرحبًا بك' : 'مرحبًا، $firstName',
+                        maxLines: 2,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: AppSpace.xxs),
+                      Text(
+                        'هذه مهماتك وأرباحك اليوم',
+                        maxLines: 2,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colorScheme.outline,
                         ),
                       ),
-                  ],
+                    ],
+                  ),
+                ),
+                _NotificationButton(
+                  unreadCount: state.unreadNotification ?? 0,
+                  onPressed: () {
+                    final profileBloc = context.read<ProfileBloc>();
+                    context.pushRoute(
+                      '/notifications',
+                      arguments: NotificationsScreenParams(
+                        profileBloc: profileBloc,
+                      ),
+                    );
+                  },
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _NotificationButton extends StatelessWidget {
+  const _NotificationButton({
+    required this.unreadCount,
+    required this.onPressed,
+  });
+
+  final int unreadCount;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final displayCount = unreadCount > 99 ? '99+' : '$unreadCount';
+    return Semantics(
+      button: true,
+      label: unreadCount > 0
+          ? 'الإشعارات، $unreadCount غير مقروءة'
+          : 'الإشعارات، لا توجد إشعارات غير مقروءة',
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          IconButton.filledTonal(
+            tooltip: 'عرض الإشعارات',
+            onPressed: onPressed,
+            icon: const Icon(Icons.notifications_none_rounded),
+          ),
+          if (unreadCount > 0)
+            PositionedDirectional(
+              top: -2,
+              end: -2,
+              child: Container(
+                constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                padding: const EdgeInsetsDirectional.symmetric(horizontal: 5),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: colorScheme.error,
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                  border: Border.all(color: colorScheme.surface, width: 2),
+                ),
+                child: Text(
+                  displayCount,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: colorScheme.onError,
+                    fontSize: 10,
+                  ),
                 ),
               ),
-            ],
-          );
-        },
+            ),
+        ],
       ),
     );
   }

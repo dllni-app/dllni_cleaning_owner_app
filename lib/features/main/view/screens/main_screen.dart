@@ -74,12 +74,15 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final accessibilityExtraHeight = 36 * (textScale - 1).clamp(0.0, 1.0);
     return PersistentTabView.custom(
       context,
       controller: _tabController,
       itemCount: 4,
-      navBarHeight: 84,
-      backgroundColor: Colors.white,
+      navBarHeight:
+          88 + accessibilityExtraHeight + MediaQuery.paddingOf(context).bottom,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       resizeToAvoidBottomInset: true,
       handleAndroidBackButtonPress: true,
       stateManagement: true,

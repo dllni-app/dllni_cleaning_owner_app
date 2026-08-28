@@ -6,6 +6,9 @@ import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orde
 import 'package:dllni_cleaninig_owner_app/features/orders/view/screens/order_details_screen.dart';
 import 'package:flutter/material.dart';
 
+import '../widgets/app_page_header.dart';
+import '../widgets/app_state_view.dart';
+
 class CleaningNotificationOrderLoaderScreen extends StatefulWidget {
   const CleaningNotificationOrderLoaderScreen({
     super.key,
@@ -85,28 +88,16 @@ class _CleaningNotificationOrderLoaderScreenState
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('تفاصيل الطلب')),
-      body: Center(
-        child: _loading
-            ? const CircularProgressIndicator()
-            : Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      _error ?? 'تعذر تحميل تفاصيل الطلب',
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    FilledButton(
-                      onPressed: _load,
-                      child: const Text('إعادة المحاولة'),
-                    ),
-                  ],
-                ),
-              ),
+      appBar: const AppPageHeader(
+        title: 'تفاصيل الطلب',
+        subtitle: 'فتح الطلب من الإشعار',
       ),
+      body: _loading
+          ? const AppStateView.loading(message: 'جارٍ تحميل الطلب…')
+          : AppStateView.error(
+              message: _error ?? 'تعذر تحميل تفاصيل الطلب',
+              onRetry: _load,
+            ),
     );
   }
 }

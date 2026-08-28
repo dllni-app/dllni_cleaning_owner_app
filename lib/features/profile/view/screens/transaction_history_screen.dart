@@ -4,6 +4,8 @@ import 'package:dllni_cleaninig_owner_app/features/profile/data/models/fetch_dep
 import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/fetch_deposit_transactions_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/manager/bloc/profile_bloc.dart';
 import 'package:flutter/material.dart';
+
+import '../../../../core/theme/app_layout.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
@@ -91,7 +93,7 @@ class _TransactionTypeTabs extends StatelessWidget {
     return SizedBox(
       height: 42,
       child: ListView.separated(
-        padding: const EdgeInsetsDirectional.symmetric(horizontal: 20),
+        padding: AppSpace.pagePadding(context),
         scrollDirection: Axis.horizontal,
         itemCount: _filters.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
@@ -102,15 +104,19 @@ class _TransactionTypeTabs extends StatelessWidget {
             selected: selected,
             label: Text(filter.label),
             onSelected: (_) => onSelected(filter.type),
-            selectedColor: context.primary,
+            selectedColor: Theme.of(context).colorScheme.primary,
             labelStyle: TextStyle(
-              color: selected ? context.onPrimary : const Color(0xff111827),
+              color: selected
+                  ? Theme.of(context).colorScheme.onPrimary
+                  : Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.w700,
             ),
             side: BorderSide(
-              color: selected ? context.primary : const Color(0xffE5E7EB),
+              color: selected
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.outlineVariant,
             ),
-            backgroundColor: Colors.white,
+            backgroundColor: Theme.of(context).colorScheme.surface,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
             ),

@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:common_package/common_package.dart';
-import 'package:common_package/helpers/shared_preferences_helper.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_realtime_contract.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_worker_extension_prompts.dart';
@@ -152,7 +151,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }) {
     if (!mounted) return;
 
-    final normalizedEvent = CleaningRealtimeContract.normalizeEventName(eventName);
+    final normalizedEvent = CleaningRealtimeContract.normalizeEventName(
+      eventName,
+    );
     final payloadBookingId = CleaningRealtimeContract.extractBookingId(payload);
 
     if (fromWorkerChannel) {
@@ -161,14 +162,17 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       return;
     }
 
-    final isExtensionRequest = normalizedEvent ==
-            CleaningRealtimeContract.serviceExtensionRequested ||
+    final isExtensionRequest =
+        normalizedEvent == CleaningRealtimeContract.serviceExtensionRequested ||
         (normalizedEvent == CleaningRealtimeContract.completionDecisionMade &&
             (payload['decision'] ?? '').toString().trim().toLowerCase() ==
                 'extension_requested');
     if (isExtensionRequest) {
       unawaited(
-        CleaningWorkerExtensionPrompts.dispatchRealtimeEvent(eventName, payload),
+        CleaningWorkerExtensionPrompts.dispatchRealtimeEvent(
+          eventName,
+          payload,
+        ),
       );
     }
 
@@ -204,14 +208,16 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         .toLowerCase();
     if (decision != 'rejected') return;
 
-    final rawMessage = payload['message'] ??
+    final rawMessage =
+        payload['message'] ??
         payload['reason'] ??
         payload['customerMessage'] ??
         payload['customer_message'];
     final message = rawMessage?.toString().trim();
     if (message == null || message.isEmpty) return;
 
-    final decidedAt = payload['decidedAt'] ??
+    final decidedAt =
+        payload['decidedAt'] ??
         payload['decided_at'] ??
         payload['updatedAt'] ??
         payload['updated_at'] ??
@@ -290,7 +296,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }) {
     if (!mounted) return;
 
-    final resolvedStatus = status != null &&
+    final resolvedStatus =
+        status != null &&
             OrderLifecyclePolicy.shouldApplyRealtimeStatus(
               currentStatus: _order.status,
               incomingStatus: status,
@@ -340,7 +347,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         setState(() {
           _order = _mergeDetailsIntoOrder(details);
         });
-        widget.params.bloc.add(ChangeDetailsCurrentStep(step: _stepFor(_order)));
+        widget.params.bloc.add(
+          ChangeDetailsCurrentStep(step: _stepFor(_order)),
+        );
         _syncAwaitingVerificationPoll();
       }
     }
@@ -359,13 +368,15 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       }
     }
 
-    if (previous == null || state.startTravelUsecase != previous.startTravelUsecase) {
+    if (previous == null ||
+        state.startTravelUsecase != previous.startTravelUsecase) {
       final st = state.startTravelUsecase?.data;
       if (st != null && st.id == oid && st.status != null) {
         _applyLifecyclePatch(
           status: st.status,
           startedTravelAt:
-              _order.startedTravelAt ?? DateTime.now().toUtc().toIso8601String(),
+              _order.startedTravelAt ??
+              DateTime.now().toUtc().toIso8601String(),
         );
       }
     }
@@ -391,7 +402,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       }
     }
 
-    if (previous == null || state.acceptOrderUsecase != previous.acceptOrderUsecase) {
+    if (previous == null ||
+        state.acceptOrderUsecase != previous.acceptOrderUsecase) {
       final acc = state.acceptOrderUsecase?.data;
       if (acc != null && acc.id == oid && acc.status != null) {
         _applyLifecyclePatch(status: acc.status);
@@ -404,11 +416,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     }
   }
 
-  List<T> _preferNonEmpty<T>(
-    List<T>? first,
-    List<T>? second,
-    List<T>? third,
-  ) {
+  List<T> _preferNonEmpty<T>(List<T>? first, List<T>? second, List<T>? third) {
     if (first != null && first.isNotEmpty) return first;
     if (second != null && second.isNotEmpty) return second;
     if (third != null && third.isNotEmpty) return third;

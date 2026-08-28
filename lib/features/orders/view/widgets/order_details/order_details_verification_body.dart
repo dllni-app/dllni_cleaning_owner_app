@@ -14,6 +14,7 @@ import '../../../data/models/fetch_orders_usecase_model.dart';
 import '../../helpers/cleaning_security_code_display.dart';
 import '../../manager/bloc/orders_bloc.dart';
 import '../order_details_map_app_bar.dart';
+import 'order_lifecycle_progress.dart';
 
 class OrderDetailsVerificationBody extends StatefulWidget {
   const OrderDetailsVerificationBody({
@@ -224,6 +225,7 @@ class _OrderDetailsVerificationBodyState
     return Column(
       children: [
         OrderDetailsMapAppBar(orderNum: widget.order.bookingNumber ?? ''),
+        const OrderLifecycleProgress(currentStep: 2),
         Expanded(
           child: Padding(
             padding: EdgeInsetsDirectional.symmetric(horizontal: 24.w),
@@ -275,7 +277,7 @@ class _OrderDetailsVerificationBodyState
                               8.horizontalSpace,
                               Expanded(
                                 child: AppText.bodyMedium(
-                                  '[🚨 طلب ساخن - تنفيذ فوري عاجل]',
+                                  'طلب عاجل يتطلب التنفيذ الفوري',
                                   color: const Color(0xff991B1B),
                                   fontWeight: FontWeight.bold,
                                   textAlign: TextAlign.start,

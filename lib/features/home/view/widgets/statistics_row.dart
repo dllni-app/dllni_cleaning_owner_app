@@ -2,10 +2,10 @@ import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:shimmer/shimmer.dart';
 
-import '../../../../generated/assets.dart';
+import '../../../../core/theme/app_layout.dart';
+import '../../../../core/widgets/app_surface_card.dart';
 import '../manager/bloc/home_bloc.dart';
 
 class StatisticsRow extends StatelessWidget {
@@ -20,120 +20,123 @@ class StatisticsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    List<Color> colors = [
-      Color(0xff2C3997),
-      Color(0xffEF6221),
-      Color(0xff00BA10),
-    ];
-    List<String> titles = ['إجمالي الطلبات', 'طلبات مؤكدة', 'طلبات مكتملة'];
-    List<String> images = [
-      Assets.images.homeNewOrdersIcon.path,
-      Assets.images.homeConfirmedOrdersIcon.path,
-      Assets.images.homeCompletedOrdersIcon.path,
-    ];
-    List<String> statuses = [
-      CleaningBookingStatus.workerAssigned,
-      CleaningBookingStatus.completed,
-    ];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 700 ? 3 : 1;
+        final cardWidth =
+            (constraints.maxWidth - (columns - 1) * AppSpace.sm) / columns;
+        return Wrap(
+          spacing: AppSpace.sm,
+          runSpacing: AppSpace.sm,
+          children: [
+            _MetricCard(
+              width: cardWidth,
+              title: 'كل الطلبات',
+              icon: Icons.receipt_long_outlined,
+              value: (state) => state.homePageUsecase?.totalBookings,
+              onTap: onStatisticsTap,
+            ),
+            _MetricCard(
+              width: cardWidth,
+              title: 'طلبات مؤكدة',
+              icon: Icons.event_available_outlined,
+              value: (state) => state.homePageUsecase?.confirmedCount,
+              onTap: () => onStatusTap(CleaningBookingStatus.workerAssigned),
+            ),
+            _MetricCard(
+              width: cardWidth,
+              title: 'طلبات مكتملة',
+              icon: Icons.task_alt_rounded,
+              value: (state) => state.homePageUsecase?.completedCount,
+              onTap: () => onStatusTap(CleaningBookingStatus.completed),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
 
-    return Row(
-      spacing: 24.w,
-      children: List.generate(3, (i) {
-        return Expanded(
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12.r),
-            onTap: i == 0
-                ? onStatisticsTap
-                : () => onStatusTap(statuses[i - 1]),
-            child: Container(
+class _MetricCard extends StatelessWidget {
+  const _MetricCard({
+    required this.width,
+    required this.title,
+    required this.icon,
+    required this.value,
+    required this.onTap,
+  });
+
+  final double width;
+  final String title;
+  final IconData icon;
+  final int? Function(HomeState) value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return SizedBox(
+      width: width,
+      child: AppSurfaceCard(
+        onTap: onTap,
+        semanticLabel: title,
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12.r),
-                border: Border(
-                  bottom: BorderSide(color: colors[i], width: 2.w),
-                ),
-                color: context.onPrimary,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withAlpha(63),
-                    offset: Offset(0, 2.h),
-                    blurRadius: 4.r,
-                  ),
-                ],
+                color: colorScheme.secondaryContainer,
+                borderRadius: BorderRadius.circular(AppRadius.md),
               ),
-              padding: EdgeInsetsDirectional.symmetric(vertical: 14.h),
+              child: Icon(icon, color: colorScheme.secondary),
+            ),
+            const SizedBox(width: AppSpace.sm),
+            Expanded(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircleAvatar(
-                    radius: 15.r,
-                    backgroundColor: colors[i].withAlpha(51),
-                    child: AppImage.asset(
-                      images[i],
-                      size: 15.r,
-                      color: colors[i],
-                    ),
-                  ),
-                  14.verticalSpace,
                   BlocBuilder<HomeBloc, HomeState>(
                     builder: (context, state) {
-                      switch (state.homePageUsecaseStatus) {
-                        case null:
-                          return Shimmer.fromColors(
-                            baseColor: context.onPrimary,
-                            highlightColor: context.primary,
-                            child: Container(
-                              color: context.surface,
-                              height: 20.h,
-                              width: 20.w,
-                            ),
-                          );
-                        case BlocStatus.failed:
-                          return CircleAvatar(
-                            radius: 15.r,
-                            backgroundColor: context.surface,
-                            child: AppText.labelMedium('0'),
-                          );
-                        case BlocStatus.success:
-                          final value = i == 0
-                              ? state.homePageUsecase!.totalBookings
-                              : i == 1
-                              ? state.homePageUsecase!.confirmedCount
-                              : state.homePageUsecase!.completedCount;
-                          return AppText.labelLarge('${value ?? 0}');
-                        case BlocStatus.loading:
-                          return Shimmer.fromColors(
-                            baseColor: context.onPrimary,
-                            highlightColor: context.primary,
-                            child: Container(
-                              color: context.surface,
-                              height: 20.h,
-                              width: 20.w,
-                            ),
-                          );
-                        case BlocStatus.init:
-                          return Shimmer.fromColors(
-                            baseColor: context.onPrimary,
-                            highlightColor: context.primary,
-                            child: Container(
-                              color: context.surface,
-                              height: 20.h,
-                              width: 20.w,
-                            ),
-                          );
+                      final loading =
+                          state.homePageUsecaseStatus == null ||
+                          state.homePageUsecaseStatus == BlocStatus.init ||
+                          state.homePageUsecaseStatus == BlocStatus.loading;
+                      if (loading) {
+                        return Shimmer.fromColors(
+                          baseColor: colorScheme.surfaceContainerHighest,
+                          highlightColor: colorScheme.surface,
+                          child: Container(
+                            width: 48,
+                            height: 24,
+                            color: colorScheme.surface,
+                          ),
+                        );
                       }
+                      return Text(
+                        '${value(state) ?? 0}',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      );
                     },
                   ),
-                  14.verticalSpace,
-                  AppText.labelMedium(
-                    titles[i],
-                    fontWeight: FontWeight.w500,
-                    textAlign: TextAlign.center,
+                  const SizedBox(height: AppSpace.xxs),
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.outline,
+                    ),
                   ),
                 ],
               ),
             ),
-          ),
-        );
-      }),
+            Icon(
+              Icons.arrow_back_ios_new_rounded,
+              size: AppIconSize.sm,
+              color: colorScheme.outline,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

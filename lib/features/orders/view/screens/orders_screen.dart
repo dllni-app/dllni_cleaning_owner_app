@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:common_package/helpers/error_message_formatter.dart';
 import 'package:common_package/helpers/pagination_helper.dart';
 import 'package:common_package/helpers/pusher_service_logger.dart';
-import 'package:common_package/widgets/app_text.dart';
 import 'package:common_package/helpers/shared_preferences_helper.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_booking_pusher_service.dart';
@@ -12,10 +11,13 @@ import 'package:dllni_cleaninig_owner_app/core/realtime/pusher_manager.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_realtime_contract.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_worker_extension_prompts.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/worker_realtime_orders_sync.dart';
+import 'package:dllni_cleaninig_owner_app/core/widgets/app_state_view.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/data/models/worker_dispatch_eligibility_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../../core/theme/app_layout.dart';
 
 import '../../../../core/widgets/order_card.dart';
 import '../../domain/usecases/fetch_orders_usecase_use_case.dart';
@@ -112,29 +114,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
     if ((status ?? '').trim().toLowerCase() == CleaningBookingStatus.pending) {
       final eligibility = _cachedEligibility();
       if (eligibility.canReceive == false) {
-        return Padding(
-          padding: const EdgeInsetsDirectional.only(
-            top: 40,
-            start: 24,
-            end: 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.info_outline_rounded, size: 34),
-              const SizedBox(height: 10),
-              AppText.labelMedium(
-                eligibility.message,
-                fontWeight: FontWeight.w500,
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
+        return AppStateView.empty(
+          message: eligibility.message,
+          icon: Icons.info_outline_rounded,
         );
       }
     }
 
-    return AppText.labelMedium('لا يوجد مهام', fontWeight: FontWeight.w400);
+    return const AppStateView.empty(message: 'لا توجد مهام لعرضها الآن');
   }
 
   @override
@@ -289,13 +276,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              OrdersAppBar(),
-              SizedBox(height: 20),
+              const OrdersAppBar(),
+              const SizedBox(height: AppSpace.md),
               Padding(
-                padding: EdgeInsetsDirectional.symmetric(horizontal: 24),
+                padding: AppSpace.pagePadding(context),
                 child: OrdersTypeTabBar(orderNotifier: orderNotifier),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: AppSpace.md),
               Expanded(
                 child: BlocBuilder<OrdersBloc, OrdersState>(
                   buildWhen: (previous, current) =>
@@ -303,46 +290,41 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   builder: (context, state) {
                     final orders = state.ordersUsecase;
                     if (orders == null) {
-                      return const Padding(
-                        padding: EdgeInsetsDirectional.only(top: 40),
-                        child: Center(
-                          child: CircularProgressIndicator.adaptive(),
+                      return const AppStateView.loading();
+                    }
+                    void retry() {
+                      context.read<OrdersBloc>().add(
+                        FetchOrdersUsecaseEvent(
+                          params: _assignedOrdersParams(
+                            page: _ordersCurrentPage,
+                          ),
+                          isReload: true,
                         ),
                       );
                     }
+
                     return orders.builder(
-                      loadingWidget: Padding(
-                        padding: EdgeInsetsDirectional.only(top: 40),
-                        child: Center(
-                          child: CircularProgressIndicator.adaptive(),
-                        ),
-                      ),
+                      loadingWidget: const AppStateView.loading(),
                       emptyWidget: _emptyOrdersWidget(
                         orderNotifier.status.value,
                       ),
-                      failedWidget: Padding(
-                        padding: const EdgeInsetsDirectional.only(top: 40),
-                        child: Center(
-                          child: AppText.labelMedium(
-                            ErrorMessageFormatter.format(
-                              orders.errorMessage.isNotEmpty
-                                  ? orders.errorMessage
-                                  : state.errorMessage,
-                              fallback: 'تعذر تحميل المهام',
-                            ),
-                            fontWeight: FontWeight.w400,
-                            textAlign: TextAlign.center,
-                          ),
+                      failedWidget: AppStateView.error(
+                        message: ErrorMessageFormatter.format(
+                          orders.errorMessage.isNotEmpty
+                              ? orders.errorMessage
+                              : state.errorMessage,
+                          fallback: 'تعذر تحميل المهام. حاول مجدداً.',
                         ),
+                        onRetry: retry,
                       ),
                       successWidget: () {
                         return ValueListenableBuilder(
                           valueListenable: orderNotifier.status,
                           builder: (context, status, _) => ListView.separated(
-                            padding: const EdgeInsetsDirectional.only(
-                              start: 24,
-                              end: 24,
-                              bottom: 20,
+                            padding: AppSpace.pagePadding(context).add(
+                              const EdgeInsetsDirectional.only(
+                                bottom: AppSpace.lg,
+                              ),
                             ),
                             itemCount: orders.listLength(1),
                             separatorBuilder: (context, index) =>
@@ -375,7 +357,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
                               final item = orders.list[index];
 
                               return AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 500),
+                                duration: AppMotion.resolved(
+                                  context,
+                                  AppMotion.standard,
+                                ),
                                 transitionBuilder: (child, animation) {
                                   return FadeTransition(
                                     opacity: animation,
@@ -399,16 +384,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                           ),
                         );
                       },
-                      onTapRetry: () {
-                        context.read<OrdersBloc>().add(
-                          FetchOrdersUsecaseEvent(
-                            params: _assignedOrdersParams(
-                              page: _ordersCurrentPage,
-                            ),
-                            isReload: true,
-                          ),
-                        );
-                      },
+                      onTapRetry: retry,
                     );
                   },
                 ),

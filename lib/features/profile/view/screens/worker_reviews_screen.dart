@@ -8,6 +8,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_rating/flutter_rating.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
+import '../../../../core/widgets/app_page_header.dart';
+
 const int _reviewsPerPage = 20;
 
 @AutoRoutePage(path: '/workerreviews')
@@ -123,7 +125,8 @@ class _WorkerReviewsScreenState extends State<WorkerReviewsScreen> {
                       .clamp(0.0, 5.0)
                       .toDouble();
                   final totalCount = meta?.totalCount ?? reviews.length;
-                  final ratingCounts = meta?.ratingCounts ?? _countsFromReviews(reviews);
+                  final ratingCounts =
+                      meta?.ratingCounts ?? _countsFromReviews(reviews);
                   final isLoadingMore =
                       state.workerReviewsStatus == BlocStatus.loading &&
                       state.workerReviews != null;
@@ -191,7 +194,9 @@ class _WorkerReviewsScreenState extends State<WorkerReviewsScreen> {
   }
 
   Map<int, int> _countsFromReviews(List<WorkerReview> reviews) {
-    final counts = <int, int>{for (var rating = 1; rating <= 5; rating++) rating: 0};
+    final counts = <int, int>{
+      for (var rating = 1; rating <= 5; rating++) rating: 0,
+    };
     for (final review in reviews) {
       final rating = review.rating?.round();
       if (rating == null || rating < 1 || rating > 5) continue;
@@ -262,48 +267,13 @@ class _ReviewsStateCard extends StatelessWidget {
 }
 
 class _ReviewsAppBar extends StatelessWidget {
+  const _ReviewsAppBar();
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: context.onPrimary,
-        borderRadius: const BorderRadius.only(
-          bottomRight: Radius.circular(24),
-          bottomLeft: Radius.circular(24),
-        ),
-        border: Border(
-          bottom: BorderSide(color: context.primaryContainer, width: 5),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(27),
-            offset: const Offset(0, -2),
-            blurRadius: 12,
-          ),
-        ],
-      ),
-      width: context.width,
-      height: 80.h,
-      padding: EdgeInsetsDirectional.symmetric(
-        horizontal: 24.w,
-        vertical: 16.h,
-      ),
-      child: Row(
-        children: [
-          InkWell(
-            onTap: context.pop,
-            child: Icon(Icons.arrow_back_ios_new, color: context.primary),
-          ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: AppText.headlineLarge(
-              'التقييمات والتعليقات',
-              fontWeight: FontWeight.w700,
-              textAlign: TextAlign.start,
-            ),
-          ),
-        ],
-      ),
+    return const AppPageHeader(
+      title: 'التقييمات والتعليقات',
+      subtitle: 'آراء العملاء بعد إكمال مهام التنظيف',
     );
   }
 }
@@ -410,7 +380,9 @@ class _RatingCountRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final progress = totalCount <= 0 ? 0.0 : (count / totalCount).clamp(0.0, 1.0);
+    final progress = totalCount <= 0
+        ? 0.0
+        : (count / totalCount).clamp(0.0, 1.0);
 
     return Padding(
       padding: EdgeInsets.only(bottom: 8.h),
@@ -438,12 +410,13 @@ class _RatingCountRow extends StatelessWidget {
           SizedBox(width: 10.w),
           Row(
             children: [
-              AppText.labelLarge(
-                '$rating',
-                color: const Color(0xff6B7280),
-              ),
+              AppText.labelLarge('$rating', color: const Color(0xff6B7280)),
               const SizedBox(width: 4),
-              const Icon(Icons.star_rate_rounded, color: Color(0xffFAE13D), size: 17),
+              const Icon(
+                Icons.star_rate_rounded,
+                color: Color(0xffFAE13D),
+                size: 17,
+              ),
             ],
           ),
         ],

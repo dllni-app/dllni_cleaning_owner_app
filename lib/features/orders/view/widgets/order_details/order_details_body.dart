@@ -3,9 +3,10 @@ import 'package:dllni_cleaninig_owner_app/core/extentions.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
 import '../../../../../core/widgets/cancel_order_dialog.dart';
+import '../../../../../core/widgets/app_page_header.dart';
+import '../../../../../core/widgets/app_status_chip.dart';
 import '../../../data/models/fetch_orders_usecase_model.dart';
 import '../../../domain/usecases/reject_order_usecase_use_case.dart';
 import '../../../domain/usecases/start_travel_usecase_use_case.dart';
@@ -18,6 +19,7 @@ import '../estate_info_card.dart';
 import '../order_info_card.dart';
 import '../payment_info_card.dart';
 import '../worker_room_assignments_card.dart';
+import 'order_lifecycle_progress.dart';
 
 class OrderDetailsBody extends StatefulWidget {
   const OrderDetailsBody({
@@ -96,10 +98,7 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.groups_2_outlined,
-            color: Color(0xffC2410C),
-          ),
+          const Icon(Icons.groups_2_outlined, color: Color(0xffC2410C)),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -134,51 +133,22 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            IconButton(
-              onPressed: () => context.pop(),
-              icon: Icon(Icons.arrow_back, color: Colors.black),
-            ),
-            Expanded(
-              child: AppText.headlineMedium(
-                'تفاصيل الطلب ${widget.order.bookingNumber}',
-                textAlign: TextAlign.start,
+        AppPageHeader(
+          title: 'تفاصيل الطلب',
+          subtitle: 'رقم الحجز: ${widget.order.bookingNumber ?? '-'}',
+          actions: [
+            if (isSameDate(widget.order.createdAt, widget.order.scheduledDate))
+              const Padding(
+                padding: EdgeInsetsDirectional.only(end: 12),
+                child: AppStatusChip(
+                  label: 'عاجل',
+                  tone: AppStatusTone.danger,
+                  icon: Icons.local_fire_department_rounded,
+                ),
               ),
-            ),
-            6.horizontalSpace,
-
-            isSameDate(widget.order.createdAt, widget.order.scheduledDate)
-                ? Container(
-                    padding: const EdgeInsetsDirectional.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: context.error.withAlpha(30),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 3.5,
-                          backgroundColor: context.error,
-                        ),
-                        const SizedBox(width: 6),
-                        AppText.labelSmall(
-                          'طلب ساخن',
-                          color: context.error,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ],
-                    ),
-                  )
-                : SizedBox(),
           ],
         ),
-        Divider(color: Colors.grey),
+        const OrderLifecycleProgress(currentStep: 0),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -327,8 +297,9 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
 
   Widget _buildOrderAddressCard(BuildContext context) {
     final neighborhood = widget.order.displayNeighborhoodName?.trim();
-    final hideExactAddress =
-        OrderLifecyclePolicy.isCustomerDataHidden(widget.order);
+    final hideExactAddress = OrderLifecyclePolicy.isCustomerDataHidden(
+      widget.order,
+    );
     final useNeighborhoodOnly =
         hideExactAddress && neighborhood != null && neighborhood.isNotEmpty;
     final visibleAddress = useNeighborhoodOnly

@@ -29,7 +29,7 @@ class _WeekCalendarState extends State<WeekCalendar> {
         _buildHeader(),
         SizedBox(height: 12.h),
         TableCalendar(
-          locale: 'en',
+          locale: 'ar',
           firstDay: DateTime(2020),
           lastDay: DateTime(2100),
           focusedDay: focusedDay,
@@ -52,7 +52,10 @@ class _WeekCalendarState extends State<WeekCalendar> {
                   page: 1,
                   assignedToCurrentWorker: true,
                   acceptedByCurrentWorkerOnly: true,
-                  scheduledDate: DateFormat('yyyy-MM-dd', 'en').format(selected),
+                  scheduledDate: DateFormat(
+                    'yyyy-MM-dd',
+                    'en',
+                  ).format(selected),
                 ),
                 isReload: true,
               ),
@@ -67,11 +70,11 @@ class _WeekCalendarState extends State<WeekCalendar> {
             dowTextFormatter: (date, _) =>
                 CleaningArabicTimeFormatter.arabicWeekdayShortName(date),
             weekdayStyle: TextStyle(
-              color: context.onPrimaryContainer,
+              color: Theme.of(context).colorScheme.onPrimary,
               fontSize: 12.sp,
             ),
             weekendStyle: TextStyle(
-              color: context.onPrimaryContainer,
+              color: Theme.of(context).colorScheme.onPrimary,
               fontSize: 12.sp,
             ),
           ),
@@ -80,8 +83,11 @@ class _WeekCalendarState extends State<WeekCalendar> {
                 _buildDayCell(context, day, selected: false),
             selectedBuilder: (context, day, focused) =>
                 _buildDayCell(context, day, selected: true),
-            todayBuilder: (context, day, focused) =>
-                _buildDayCell(context, day, selected: isSameDay(day, selectedDay)),
+            todayBuilder: (context, day, focused) => _buildDayCell(
+              context,
+              day,
+              selected: isSameDay(day, selectedDay),
+            ),
             outsideBuilder: (context, day, focused) =>
                 _buildDayCell(context, day, selected: false),
           ),
@@ -89,7 +95,10 @@ class _WeekCalendarState extends State<WeekCalendar> {
             isTodayHighlighted: false,
             outsideDaysVisible: false,
             todayDecoration: BoxDecoration(
-              border: Border.all(color: context.primaryContainer, width: 2),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.tertiary,
+                width: 2,
+              ),
               shape: BoxShape.circle,
             ),
             selectedDecoration: BoxDecoration(
@@ -100,8 +109,12 @@ class _WeekCalendarState extends State<WeekCalendar> {
               color: context.onPrimaryContainer,
               fontWeight: FontWeight.bold,
             ),
-            defaultTextStyle: TextStyle(color: context.onPrimaryContainer),
-            weekendTextStyle: TextStyle(color: context.onPrimaryContainer),
+            defaultTextStyle: TextStyle(
+              color: Theme.of(context).colorScheme.onPrimary,
+            ),
+            weekendTextStyle: TextStyle(
+              color: Theme.of(context).colorScheme.onPrimary,
+            ),
           ),
         ),
       ],
@@ -127,7 +140,9 @@ class _WeekCalendarState extends State<WeekCalendar> {
         child: Text(
           CleaningArabicTimeFormatter.formatCalendarDayNumber(day),
           style: TextStyle(
-            color: context.onPrimaryContainer,
+            color: selected
+                ? Theme.of(context).colorScheme.onPrimaryContainer
+                : Theme.of(context).colorScheme.onPrimary,
             fontWeight: selected ? FontWeight.bold : FontWeight.w400,
             fontSize: 14.sp,
           ),
@@ -157,19 +172,22 @@ class _WeekCalendarState extends State<WeekCalendar> {
                 focusedDay = focusedDay.subtract(const Duration(days: 7));
               });
             },
-            icon: Icon(Icons.chevron_left, color: context.onPrimaryContainer),
+            tooltip: 'الأسبوع السابق',
+            icon: Icon(
+              Icons.chevron_left,
+              color: Theme.of(context).colorScheme.onPrimary,
+            ),
           ),
           Expanded(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                title,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: context.onPrimaryContainer,
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.bold,
-                ),
+            child: Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onPrimary,
+                fontSize: 16.sp,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ),
@@ -179,7 +197,11 @@ class _WeekCalendarState extends State<WeekCalendar> {
                 focusedDay = focusedDay.add(const Duration(days: 7));
               });
             },
-            icon: Icon(Icons.chevron_right, color: context.onPrimaryContainer),
+            tooltip: 'الأسبوع التالي',
+            icon: Icon(
+              Icons.chevron_right,
+              color: Theme.of(context).colorScheme.onPrimary,
+            ),
           ),
         ],
       ),

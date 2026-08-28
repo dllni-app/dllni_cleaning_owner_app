@@ -10,6 +10,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
+import '../../../../core/theme/app_layout.dart';
+import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/app_page_header.dart';
+import '../../../../core/widgets/app_surface_card.dart';
+
 @AutoRoutePage()
 class UpdateProfileScreen extends StatefulWidget {
   const UpdateProfileScreen({super.key, required this.params});
@@ -32,8 +37,10 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
 
   String _preferredWorkType = 'both';
 
-  static const List<({String value, String title, String subtitle, IconData icon, Color color})>
-      _workTypeOptions = [
+  static const List<
+    ({String value, String title, String subtitle, IconData icon, Color color})
+  >
+  _workTypeOptions = [
     (
       value: 'cleaning',
       title: 'طلبات التنظيف فقط',
@@ -127,69 +134,19 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     return BlocProvider<ProfileBloc>.value(
       value: profileBloc,
       child: Scaffold(
-        backgroundColor: const Color(0xffF9FAFB),
         body: SafeArea(
           child: Column(
             children: [
-              Container(
-                decoration: BoxDecoration(
-                  color: context.onPrimary,
-                  borderRadius: BorderRadius.only(
-                    bottomRight: Radius.circular(24),
-                    bottomLeft: Radius.circular(24),
-                  ),
-                  border: Border(
-                    bottom: BorderSide(
-                      color: context.primaryContainer,
-                      width: 5,
-                    ),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(27),
-                      offset: Offset(0, -2),
-                      blurRadius: 12,
-                      spreadRadius: 0,
-                    ),
-                  ],
-                ),
-                width: context.width,
-                height: 80,
-                padding: EdgeInsetsDirectional.symmetric(
-                  horizontal: 24,
-                  vertical: 16,
-                ),
-                child: Row(
-                  children: [
-                    InkWell(
-                      onTap: () {
-                        context.pop();
-                      },
-                      child: Icon(
-                        Icons.arrow_back_ios_new,
-                        color: context.primary,
-                      ),
-                    ),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: AppText.headlineLarge(
-                        'التفاصيل الشخصية',
-                        fontWeight: FontWeight.w700,
-                        textAlign: TextAlign.start,
-                      ),
-                    ),
-                  ],
-                ),
+              const AppPageHeader(
+                title: 'التفاصيل الشخصية',
+                subtitle: 'حدّث معلومات العرض وتفضيلات العمل',
               ),
-              24.verticalSpace,
+              const SizedBox(height: AppSpace.md),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: EdgeInsetsDirectional.fromSTEB(
-                    20.w,
-                    16.h,
-                    20.w,
-                    24.h,
-                  ),
+                  padding: AppSpace.pagePadding(
+                    context,
+                  ).add(const EdgeInsetsDirectional.only(bottom: AppSpace.lg)),
                   child: Form(
                     key: _formKey,
                     child: Column(
@@ -252,7 +209,11 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                           title: 'نوع الطلبات المفضلة',
                           child: Column(
                             children: [
-                              for (var i = 0; i < _workTypeOptions.length; i++) ...[
+                              for (
+                                var i = 0;
+                                i < _workTypeOptions.length;
+                                i++
+                              ) ...[
                                 if (i > 0) 12.verticalSpace,
                                 _buildWorkTypeOption(_workTypeOptions[i]),
                               ],
@@ -277,9 +238,9 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                                     Loading.close();
                                     WidgetsBinding.instance
                                         .addPostFrameCallback((_) {
-                                      if (!context.mounted) return;
-                                      context.maybePop(true);
-                                    });
+                                          if (!context.mounted) return;
+                                          context.maybePop(true);
+                                        });
                                   } else if (state.updateWorkerProfileStatus ==
                                       BlocStatus.failed) {
                                     Loading.close();
@@ -289,67 +250,46 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                                   }
                                 },
                                 builder: (context, state) {
-                                  return ElevatedButton(
+                                  return AppButton(
+                                    label: 'حفظ التغييرات',
+                                    icon: Icons.save_outlined,
                                     onPressed: () async {
                                       if (!(_formKey.currentState?.validate() ??
                                           false)) {
                                         return;
                                       }
 
-                                      final email = _emailController.text.trim();
+                                      final email = _emailController.text
+                                          .trim();
 
                                       if (!context.mounted) return;
                                       context.read<ProfileBloc>().add(
                                         UpdateWorkerProfileEvent(
                                           params: UpdateWorkerProfileParams(
                                             bio: _aboutMeController.text,
-                                            birthday: _dateOfBirthController.text,
+                                            birthday:
+                                                _dateOfBirthController.text,
                                             city: _cityMeController.text,
                                             email: email.isEmpty ? '' : email,
                                             isActive: 1,
                                             name: widget.params.name,
                                             phone: widget.params.phone,
-                                            preferredWorkType: _preferredWorkType,
+                                            preferredWorkType:
+                                                _preferredWorkType,
                                           ),
                                         ),
                                       );
                                     },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xff1E3A8A),
-                                      foregroundColor: Colors.white,
-                                      elevation: 0,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10.r),
-                                      ),
-                                      padding: EdgeInsets.symmetric(vertical: 12.h),
-                                    ),
-                                    child: AppText.labelLarge(
-                                      'حفظ التغييرات',
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700,
-                                    ),
                                   );
                                 },
                               ),
                             ),
                             12.horizontalSpace,
                             Expanded(
-                              child: OutlinedButton(
+                              child: AppButton(
+                                label: 'إلغاء',
+                                variant: AppButtonVariant.outlined,
                                 onPressed: () => context.maybePop(),
-                                style: OutlinedButton.styleFrom(
-                                  side: BorderSide(
-                                    color: const Color(0xffE11D48).withAlpha(150),
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10.r),
-                                  ),
-                                  padding: EdgeInsets.symmetric(vertical: 12.h),
-                                ),
-                                child: AppText.labelLarge(
-                                  'إلغاء',
-                                  color: const Color(0xffE11D48),
-                                  fontWeight: FontWeight.w600,
-                                ),
                               ),
                             ),
                           ],
@@ -371,28 +311,21 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     required String title,
     required Widget child,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(26.r),
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(12),
-            offset: const Offset(0, 4),
-            blurRadius: 18,
-            spreadRadius: -2,
-          ),
-        ],
-      ),
-      padding: EdgeInsets.all(18.w),
+    return AppSurfaceCard(
+      padding: const EdgeInsetsDirectional.all(AppSpace.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              CircleAvatar(
-                backgroundColor: context.primary,
-                radius: 15.r,
+              Container(
+                width: 36,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
                 child: AppText.labelLarge(
                   sectionNumber,
                   color: context.onPrimary,
@@ -416,7 +349,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
 
   Widget _buildWorkTypeOption(
     ({String value, String title, String subtitle, IconData icon, Color color})
-        option,
+    option,
   ) {
     final isSelected = _preferredWorkType == option.value;
     return InkWell(
@@ -469,9 +402,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
             ),
             8.horizontalSpace,
             Icon(
-              isSelected
-                  ? Icons.radio_button_checked
-                  : Icons.radio_button_off,
+              isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
               color: isSelected ? option.color : const Color(0xff9CA3AF),
               size: 22.sp,
             ),
@@ -508,9 +439,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
           enabled: enabled,
           keyboardType: keyboardType,
           style: TextStyle(
-            color: enabled
-                ? const Color(0xff2F2B3D)
-                : const Color(0xff6B7280),
+            color: enabled ? const Color(0xff2F2B3D) : const Color(0xff6B7280),
             fontSize: 14.sp,
             fontWeight: FontWeight.w400,
           ),

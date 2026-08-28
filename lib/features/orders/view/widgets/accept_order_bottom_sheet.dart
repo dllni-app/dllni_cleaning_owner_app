@@ -14,6 +14,9 @@ import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/worker_pa
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/widgets/app_bottom_action_bar.dart';
+import '../../../../core/widgets/app_button.dart';
+
 const _borderColor = Color(0xffE5E7EB);
 const _mutedTextColor = Color(0xff6B7280);
 const _titleTextColor = Color(0xff111827);
@@ -545,39 +548,26 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                   ),
                 ),
               ),
-              Container(
-                padding: const EdgeInsetsDirectional.fromSTEB(16, 12, 16, 16),
-                decoration: const BoxDecoration(
-                  border: Border(top: BorderSide(color: _borderColor)),
-                ),
+              AppBottomActionBar(
                 child: Row(
                   children: [
                     Expanded(
-                      child: InkWell(
-                        onTap: accepting ? null : _dismissSheet,
-                        borderRadius: BorderRadius.circular(10),
-                        child: Container(
-                          height: 44,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: context.error),
-                            color: context.error.withAlpha(20),
-                          ),
-                          child: Center(
-                            child: AppText.labelLarge(
-                              widget.autoRejectOnClose ? 'رفض الطلب' : 'إلغاء',
-                              color: context.error,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
+                      child: AppButton(
+                        label: widget.autoRejectOnClose ? 'رفض الطلب' : 'إلغاء',
+                        onPressed: accepting ? null : _dismissSheet,
+                        variant: widget.autoRejectOnClose
+                            ? AppButtonVariant.destructive
+                            : AppButtonVariant.outlined,
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       flex: 2,
-                      child: InkWell(
-                        onTap: accepting
+                      child: AppButton(
+                        label: 'تأكيد القبول',
+                        icon: Icons.check_circle_outline_rounded,
+                        isLoading: accepting,
+                        onPressed: accepting
                             ? null
                             : () {
                                 if (_order.id == null) return;
@@ -603,30 +593,6 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                                   ),
                                 );
                               },
-                        borderRadius: BorderRadius.circular(10),
-                        child: Container(
-                          height: 44,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            color: context.primary,
-                          ),
-                          child: Center(
-                            child: accepting
-                                ? SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: context.onPrimary,
-                                    ),
-                                  )
-                                : AppText.labelLarge(
-                                    'تأكيد القبول',
-                                    color: context.onPrimary,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                          ),
-                        ),
                       ),
                     ),
                   ],

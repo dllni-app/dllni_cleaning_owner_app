@@ -1,6 +1,7 @@
-import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
+
+import '../../../../core/theme/app_layout.dart';
+import '../../../../core/widgets/app_surface_card.dart';
 
 class SectionCard extends StatelessWidget {
   const SectionCard({
@@ -19,26 +20,27 @@ class SectionCard extends StatelessWidget {
   final IconData image;
   final String title;
   final String subtitle;
-  final Function() onTap;
+  final VoidCallback onTap;
   final Widget? titleTrailing;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    final colorScheme = Theme.of(context).colorScheme;
+    return AppSurfaceCard(
       onTap: onTap,
-      splashColor: Colors.transparent,
-      highlightColor: Colors.transparent,
+      semanticLabel: '$title، $subtitle',
       child: Row(
         children: [
           Container(
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(AppRadius.md),
               color: containerColor,
             ),
-            padding: EdgeInsetsDirectional.all(8),
-            child: Icon(image, size: 25.sp, color: imageColor),
+            child: Icon(image, size: AppIconSize.md, color: imageColor),
           ),
-          SizedBox(width: 12),
+          const SizedBox(width: AppSpace.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -46,30 +48,33 @@ class SectionCard extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: AppText.bodyMedium(
+                      child: Text(
                         title,
-                        fontWeight: FontWeight.bold,
-                        textAlign: TextAlign.start
+                        style: Theme.of(context).textTheme.titleSmall,
                       ),
                     ),
                     if (titleTrailing != null) ...[
-                      SizedBox(width: 8.w),
+                      const SizedBox(width: AppSpace.xs),
                       titleTrailing!,
                     ],
                   ],
                 ),
-                SizedBox(height: 4),
-                AppText.labelLarge(
+                const SizedBox(height: AppSpace.xxs),
+                Text(
                   subtitle,
-                  fontWeight: FontWeight.w400,
-                  color: Color(0xff6B7280),
-                  textAlign: TextAlign.start,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: colorScheme.outline),
                 ),
               ],
             ),
           ),
-          SizedBox(width: 12),
-          Icon(Icons.arrow_forward_ios),
+          const SizedBox(width: AppSpace.sm),
+          Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: AppIconSize.sm,
+            color: colorScheme.outline,
+          ),
         ],
       ),
     );

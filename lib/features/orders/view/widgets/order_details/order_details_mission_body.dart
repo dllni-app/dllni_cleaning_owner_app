@@ -8,6 +8,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../../core/widgets/app_page_header.dart';
 import '../../../data/models/arrive_model.dart';
 import '../../../data/models/fetch_orders_usecase_model.dart';
 import '../../../domain/usecases/accept_extension_usecase_use_case.dart';
@@ -26,6 +27,7 @@ import 'mission/mission_task_card.dart';
 import 'mission/mission_timer_card.dart';
 import 'mission/mission_waiting_customer_card.dart';
 import 'mission/waiting_customer_confirmation_sheet.dart';
+import 'order_lifecycle_progress.dart';
 
 class OrderDetailsMissionBody extends StatefulWidget {
   const OrderDetailsMissionBody({
@@ -689,80 +691,78 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
         }
         unawaited(_showWaitingConfirmationSheet());
       },
-      child: Padding(
-        padding: EdgeInsetsDirectional.symmetric(horizontal: 14.w),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                IconButton(
-                  onPressed: () => context.pop(),
-                  icon: const Icon(Icons.arrow_back),
-                ),
-                Expanded(
-                  child: AppText.headlineMedium(
-                    'تفاصيل الطلب ${widget.order.bookingNumber ?? ''}',
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                const SizedBox(width: 48),
-              ],
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    MissionTimerCard(
-                      serviceDate: _serviceDate(),
-                      statusText: _missionStatusText,
-                      titleText: _timerTitleText,
-                      valueText: _timerValueText,
-                      helperText: _timerHelperText,
-                      gradientColors: _timerGradientColors,
-                      startTimeLabel: _canShowTwoTimes ? 'وقت بدء العمل' : null,
-                      startTimeValue: _canShowTwoTimes
-                          ? _formatClock(_orderStartTime!)
-                          : null,
-                      endTimeLabel: _canShowTwoTimes
-                          ? 'وقت الانتهاء المتوقع'
-                          : null,
-                      endTimeValue: _canShowTwoTimes
-                          ? _formatClock(_orderEndTime!)
-                          : null,
-                    ),
-                    14.verticalSpace,
-                    if (!_uiState.isDispute &&
-                        !_uiState.isFinal &&
-                        _servicesInfo.isNotEmpty) ...[
-                      MissionServicesInfoCard(services: _servicesInfo),
-                      14.verticalSpace,
-                    ],
-                    if (!_uiState.isDispute && !_uiState.isFinal)
-                      MissionTaskCard(
-                        tasks: _tasks,
-                        hintText: _taskListHintText,
-                        isChecklistLocked: _isChecklistLocked,
-                        allTasksChecked: _allTasksChecked,
-                        isChecked: _isTaskChecked,
-                        onChanged: _setTaskChecked,
+      child: Column(
+        children: [
+          AppPageHeader(
+            title: 'المهمة الجارية',
+            subtitle: 'رقم الحجز: ${widget.order.bookingNumber ?? '-'}',
+          ),
+          const OrderLifecycleProgress(currentStep: 3),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsetsDirectional.symmetric(horizontal: 14.w),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          MissionTimerCard(
+                            serviceDate: _serviceDate(),
+                            statusText: _missionStatusText,
+                            titleText: _timerTitleText,
+                            valueText: _timerValueText,
+                            helperText: _timerHelperText,
+                            gradientColors: _timerGradientColors,
+                            startTimeLabel: _canShowTwoTimes
+                                ? 'وقت بدء العمل'
+                                : null,
+                            startTimeValue: _canShowTwoTimes
+                                ? _formatClock(_orderStartTime!)
+                                : null,
+                            endTimeLabel: _canShowTwoTimes
+                                ? 'وقت الانتهاء المتوقع'
+                                : null,
+                            endTimeValue: _canShowTwoTimes
+                                ? _formatClock(_orderEndTime!)
+                                : null,
+                          ),
+                          14.verticalSpace,
+                          if (!_uiState.isDispute &&
+                              !_uiState.isFinal &&
+                              _servicesInfo.isNotEmpty) ...[
+                            MissionServicesInfoCard(services: _servicesInfo),
+                            14.verticalSpace,
+                          ],
+                          if (!_uiState.isDispute && !_uiState.isFinal)
+                            MissionTaskCard(
+                              tasks: _tasks,
+                              hintText: _taskListHintText,
+                              isChecklistLocked: _isChecklistLocked,
+                              allTasksChecked: _allTasksChecked,
+                              isChecked: _isTaskChecked,
+                              onChanged: _setTaskChecked,
+                            ),
+                          14.verticalSpace,
+                          MissionPaymentSummaryCard(order: widget.order),
+                          _buildWaitingCustomerCard(),
+                          _buildExtensionDecisionCard(widget.bloc.state),
+                          _buildStateNotice(),
+                          14.verticalSpace,
+                          _buildFinishButton(),
+                          10.verticalSpace,
+                          MissionSupportButton(orderId: widget.order.id),
+                          20.verticalSpace,
+                        ],
                       ),
-                    14.verticalSpace,
-                    MissionPaymentSummaryCard(order: widget.order),
-                    _buildWaitingCustomerCard(),
-                    _buildExtensionDecisionCard(widget.bloc.state),
-                    _buildStateNotice(),
-                    14.verticalSpace,
-                    _buildFinishButton(),
-                    10.verticalSpace,
-                    MissionSupportButton(orderId: widget.order.id),
-                    20.verticalSpace,
-                  ],
-                ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

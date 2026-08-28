@@ -5,6 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
+
+import '../../../../core/widgets/app_page_header.dart';
+import '../../../../core/widgets/app_bottom_action_bar.dart';
+import '../../../../core/widgets/app_button.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -171,10 +175,13 @@ class _MissionStartLocationScreenState
     );
     if (!mounted) return;
 
-    final locationStatus =
-        profileBloc.state.updateWorkerProfile?.data?.homeLocationStatus
-            ?.trim()
-            .toLowerCase();
+    final locationStatus = profileBloc
+        .state
+        .updateWorkerProfile
+        ?.data
+        ?.homeLocationStatus
+        ?.trim()
+        .toLowerCase();
     final isPendingApproval = locationStatus == 'pending';
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -265,58 +272,24 @@ class _MissionStartLocationScreenState
                 ),
               ),
             ),
-            12.verticalSpace,
-            Padding(
-              padding: EdgeInsetsDirectional.fromSTEB(20.w, 0, 20.w, 14.h),
+            AppBottomActionBar(
               child: Row(
                 children: [
                   Expanded(
                     flex: 3,
-                    child: InkWell(
-                      onTap: isSaveDisabled ? null : _saveSelection,
-                      borderRadius: BorderRadius.circular(8.r),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8.r),
-                          color: isSaveDisabled
-                              ? const Color(0xff9CA3AF)
-                              : context.primary,
-                        ),
-                        padding: EdgeInsetsDirectional.symmetric(
-                          horizontal: 12.w,
-                          vertical: 12.h,
-                        ),
-                        child: AppText.labelLarge(
-                          _isSaving ? 'جارٍ الحفظ...' : 'حفظ',
-                          color: context.onPrimary,
-                          fontWeight: FontWeight.w500,
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
+                    child: AppButton(
+                      label: 'حفظ الموقع',
+                      icon: Icons.location_on_outlined,
+                      isLoading: _isSaving,
+                      onPressed: isSaveDisabled ? null : _saveSelection,
                     ),
                   ),
-                  10.horizontalSpace,
+                  const SizedBox(width: 12),
                   Expanded(
-                    child: InkWell(
-                      onTap: () => Navigator.of(context).pop(false),
-                      borderRadius: BorderRadius.circular(8.r),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8.r),
-                          color: context.error.withAlpha(50),
-                          border: Border.all(color: context.error),
-                        ),
-                        padding: EdgeInsetsDirectional.symmetric(
-                          horizontal: 6.w,
-                          vertical: 12.h,
-                        ),
-                        child: AppText.labelLarge(
-                          'إلغاء',
-                          color: context.error,
-                          fontWeight: FontWeight.w500,
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
+                    child: AppButton(
+                      label: 'إلغاء',
+                      variant: AppButtonVariant.outlined,
+                      onPressed: () => Navigator.of(context).pop(false),
                     ),
                   ),
                 ],
@@ -329,39 +302,10 @@ class _MissionStartLocationScreenState
   }
 
   Widget _buildAppBar(BuildContext context) {
-    return Container(
-      width: context.width,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(24.r),
-          bottomRight: Radius.circular(24.r),
-        ),
-        border: Border(
-          bottom: BorderSide(color: context.primaryContainer, width: 2),
-        ),
-      ),
-      padding: EdgeInsetsDirectional.symmetric(
-        horizontal: 22.w,
-        vertical: 16.h,
-      ),
-      child: Row(
-        children: [
-          InkWell(
-            onTap: () => Navigator.of(context).pop(false),
-            child: Icon(
-              Icons.arrow_back_ios_new,
-              color: context.primaryContainer,
-            ),
-          ),
-          10.horizontalSpace,
-          AppText.headlineLarge(
-            'موقع بدء المهمة',
-            color: context.primaryContainer,
-            fontWeight: FontWeight.w700,
-          ),
-        ],
-      ),
+    return AppPageHeader(
+      title: 'موقع بدء المهمة',
+      subtitle: 'يُستخدم لحساب المسافة إلى الطلبات الجديدة',
+      leading: BackButton(onPressed: () => Navigator.of(context).pop(false)),
     );
   }
 }

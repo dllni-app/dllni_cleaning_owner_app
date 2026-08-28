@@ -5,6 +5,9 @@ import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_realtime_contra
 import 'package:dllni_cleaninig_owner_app/core/realtime/pusher_manager.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/worker_realtime_orders_sync.dart';
 import 'package:dllni_cleaninig_owner_app/core/widgets/order_card.dart';
+import 'package:dllni_cleaninig_owner_app/core/widgets/app_state_view.dart';
+import 'package:dllni_cleaninig_owner_app/core/theme/app_layout.dart';
+import 'package:dllni_cleaninig_owner_app/core/widgets/app_section_header.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:dllni_cleaninig_owner_app/features/home/view/widgets/today_overview_card.dart';
@@ -416,22 +419,17 @@ class _HomeScreenState extends State<HomeScreen> {
                     onRefresh: _refreshHomeScreen,
                     child: SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      padding: EdgeInsetsDirectional.only(
-                        start: 24.w,
-                        end: 24.w,
-                        bottom: 20.h,
+                      padding: AppSpace.pagePadding(context).add(
+                        const EdgeInsetsDirectional.only(bottom: AppSpace.lg),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          16.verticalSpace,
-                          AppText.labelLarge(
-                            'نظرة عامة عن اليوم',
-                            fontWeight: FontWeight.w400,
-                          ),
-                          12.verticalSpace,
+                          const SizedBox(height: AppSpace.md),
+                          const AppSectionHeader(title: 'نظرة عامة عن اليوم'),
+                          const SizedBox(height: AppSpace.sm),
                           TodayOverviewCard(),
-                          12.verticalSpace,
+                          const SizedBox(height: AppSpace.sm),
                           Builder(
                             builder: (innerContext) {
                               return StatisticsRow(
@@ -464,7 +462,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               );
                             },
                           ),
-                          16.verticalSpace,
+                          const SizedBox(height: AppSpace.lg),
                           _HomeOrdersSection(
                             selectedTab: _selectedHomeOrdersTab,
                             onTabSelected: _onHomeOrdersTabSelected,
@@ -511,21 +509,21 @@ class _HomeOrdersSection extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const AppSectionHeader(title: 'الطلبات والمهام'),
+            const SizedBox(height: AppSpace.sm),
             _HomeOrdersTabSelector(
               selectedTab: selectedTab,
               onChanged: onTabSelected,
             ),
-            8.verticalSpace,
+            const SizedBox(height: AppSpace.sm),
             orders.builder(
-              loadingWidget: Padding(
-                padding: EdgeInsetsDirectional.only(top: 40.h),
-                child: const Center(
-                  child: CircularProgressIndicator.adaptive(),
-                ),
+              loadingWidget: const Padding(
+                padding: EdgeInsetsDirectional.only(top: 24),
+                child: AppStateView.loading(),
               ),
-              emptyWidget: AppText.labelMedium(
-                selectedTab.emptyMessage,
-                fontWeight: FontWeight.w400,
+              emptyWidget: AppStateView.empty(
+                message: selectedTab.emptyMessage,
+                onRetry: onRetry,
               ),
               successWidget: () {
                 return ListView.separated(
@@ -581,12 +579,12 @@ class _HomeOrdersSection extends StatelessWidget {
                   },
                 );
               },
-              failedWidget: AppText.labelLarge(
-                ErrorMessageFormatter.format(
+              failedWidget: AppStateView.error(
+                message: ErrorMessageFormatter.format(
                   state.errorMessage,
-                  fallback: 'حدث خطأ ما',
+                  fallback: 'حدث خطأ ما. حاول مجدداً.',
                 ),
-                color: context.error,
+                onRetry: onRetry,
               ),
               onTapRetry: onRetry,
             ),
@@ -608,46 +606,62 @@ class _HomeOrdersTabSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: HomeOrdersTab.values
-          .map((tab) {
-            final isSelected = selectedTab == tab;
-            return Expanded(
-              child: InkWell(
-                onTap: () => onChanged(tab),
-                borderRadius: BorderRadius.circular(8.r),
-                child: Padding(
-                  padding: EdgeInsetsDirectional.only(bottom: 8.h),
-                  child: Column(
-                    children: [
-                      AppText.labelLarge(
-                        tab.label,
-                        fontWeight: isSelected
-                            ? FontWeight.w600
-                            : FontWeight.w400,
-                        color: isSelected
-                            ? context.primary
-                            : context.colorScheme.outline,
-                      ),
-                      6.verticalSpace,
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        height: 2.h,
-                        width: double.infinity,
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsetsDirectional.all(AppSpace.xxs),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
+      child: Row(
+        children: HomeOrdersTab.values
+            .map((tab) {
+              final isSelected = selectedTab == tab;
+              return Expanded(
+                child: Semantics(
+                  button: true,
+                  selected: isSelected,
+                  label: tab.label,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => onChanged(tab),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                      child: AnimatedContainer(
+                        duration: AppMotion.resolved(
+                          context,
+                          AppMotion.standard,
+                        ),
+                        constraints: const BoxConstraints(minHeight: 48),
+                        alignment: Alignment.center,
+                        padding: const EdgeInsetsDirectional.symmetric(
+                          horizontal: AppSpace.sm,
+                          vertical: AppSpace.xs,
+                        ),
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? context.primary
+                              ? colorScheme.surface
                               : Colors.transparent,
-                          borderRadius: BorderRadius.circular(2.r),
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                          boxShadow: isSelected ? AppShadows.subtle : null,
+                        ),
+                        child: AppText.labelLarge(
+                          tab.label,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                          color: isSelected
+                              ? colorScheme.primary
+                              : colorScheme.outline,
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            );
-          })
-          .toList(growable: false),
+              );
+            })
+            .toList(growable: false),
+      ),
     );
   }
 }

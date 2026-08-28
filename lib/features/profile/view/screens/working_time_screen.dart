@@ -9,6 +9,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
+import '../../../../core/widgets/app_bottom_action_bar.dart';
+import '../../../../core/widgets/app_button.dart';
+
 @AutoRoutePage()
 class WorkingTimeScreen extends StatefulWidget {
   final WorkingTimeScreenParams params;
@@ -21,7 +24,7 @@ class WorkingTimeScreen extends StatefulWidget {
 
 class WorkingTimeScreenParams {
   final FetchWorkerProfileUsecaseModelDataDefaultWorkingHours
-      defaultWorkingHours;
+  defaultWorkingHours;
 
   WorkingTimeScreenParams({required this.defaultWorkingHours});
 }
@@ -49,9 +52,9 @@ class _WorkingTimeScreenState extends State<WorkingTimeScreen> {
 
   final List<GlobalKey<WorkingTimeCardState>> _cardKeys =
       List<GlobalKey<WorkingTimeCardState>>.generate(
-    7,
-    (_) => GlobalKey<WorkingTimeCardState>(),
-  );
+        7,
+        (_) => GlobalKey<WorkingTimeCardState>(),
+      );
 
   FetchWorkerProfileUsecaseModelDataDefaultWorkingHours? _workingHours;
 
@@ -135,19 +138,15 @@ class _WorkingTimeScreenState extends State<WorkingTimeScreen> {
   void _onSave(BuildContext context) {
     final payload = _collectWorkingHours();
     if (!_validateWorkingHours(payload)) {
-      AppToast.showErrorGlobal(
-        'يرجى تحديد فترة عمل كاملة لكل يوم مفعّل',
-      );
+      AppToast.showErrorGlobal('يرجى تحديد فترة عمل كاملة لكل يوم مفعّل');
       return;
     }
 
     context.read<ProfileBloc>().add(
-          UpdateWorkerWorkingHoursEvent(
-            params: UpdateWorkerWorkingHoursParams(
-              defaultWorkingHours: payload,
-            ),
-          ),
-        );
+      UpdateWorkerWorkingHoursEvent(
+        params: UpdateWorkerWorkingHoursParams(defaultWorkingHours: payload),
+      ),
+    );
   }
 
   @override
@@ -165,8 +164,10 @@ class _WorkingTimeScreenState extends State<WorkingTimeScreen> {
       },
       child: BlocConsumer<ProfileBloc, ProfileState>(
         listenWhen: (previous, current) =>
-            previous.fetchWorkingHoursStatus != current.fetchWorkingHoursStatus ||
-            previous.updateWorkingHoursStatus != current.updateWorkingHoursStatus,
+            previous.fetchWorkingHoursStatus !=
+                current.fetchWorkingHoursStatus ||
+            previous.updateWorkingHoursStatus !=
+                current.updateWorkingHoursStatus,
         listener: (context, state) {
           if (state.fetchWorkingHoursStatus == BlocStatus.success &&
               state.workingHours != null) {
@@ -191,8 +192,7 @@ class _WorkingTimeScreenState extends State<WorkingTimeScreen> {
           final isLoadingFetch =
               state.fetchWorkingHoursStatus == BlocStatus.loading &&
               _workingHours == null;
-          final isSaving =
-              state.updateWorkingHoursStatus == BlocStatus.loading;
+          final isSaving = state.updateWorkingHoursStatus == BlocStatus.loading;
 
           return Scaffold(
             body: SafeArea(
@@ -213,7 +213,10 @@ class _WorkingTimeScreenState extends State<WorkingTimeScreen> {
                         child: Column(
                           children: List.generate(7, (index) {
                             final isToday = index == todayWeekday;
-                            final workingDay = _dayForIndex(workingHours, index);
+                            final workingDay = _dayForIndex(
+                              workingHours,
+                              index,
+                            );
 
                             return Padding(
                               padding: EdgeInsets.only(bottom: 16.h),
@@ -230,41 +233,14 @@ class _WorkingTimeScreenState extends State<WorkingTimeScreen> {
                         ),
                       ),
                     ),
-                  10.verticalSpace,
-                  GestureDetector(
-                    onTap: isSaving ? null : () => _onSave(context),
-                    child: Container(
-                      width: double.infinity,
-                      margin: EdgeInsets.symmetric(horizontal: 24.w),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8.r),
-                        color: isSaving
-                            ? context.primary.withAlpha(127)
-                            : context.primary,
-                      ),
-                      padding: EdgeInsetsDirectional.symmetric(
-                        horizontal: 12.w,
-                        vertical: 16.h,
-                      ),
-                      child: isSaving
-                          ? Center(
-                              child: SizedBox(
-                                width: 22.w,
-                                height: 22.w,
-                                child: CircularProgressIndicator.adaptive(
-                                  strokeWidth: 2,
-                                ),
-                              ),
-                            )
-                          : AppText.labelLarge(
-                              'حفظ التغييرات',
-                              color: context.onPrimary,
-                              fontWeight: FontWeight.w500,
-                              textAlign: TextAlign.center,
-                            ),
+                  AppBottomActionBar(
+                    child: AppButton(
+                      label: 'حفظ التغييرات',
+                      icon: Icons.save_outlined,
+                      isLoading: isSaving,
+                      onPressed: isSaving ? null : () => _onSave(context),
                     ),
                   ),
-                  10.verticalSpace,
                 ],
               ),
             ),

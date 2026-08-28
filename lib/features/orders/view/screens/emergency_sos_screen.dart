@@ -6,6 +6,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../../../../core/theme/app_layout.dart';
+import '../../../../core/widgets/app_bottom_action_bar.dart';
+import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/app_page_header.dart';
+
 class EmergencySosScreenParams {
   const EmergencySosScreenParams({required this.bookingId});
 
@@ -187,77 +192,33 @@ class _EmergencySosScreenState extends State<EmergencySosScreen> {
     final submitted = _submittedAlert;
 
     return Scaffold(
+      appBar: const AppPageHeader(
+        title: 'حالة طوارئ',
+        subtitle: 'أرسل تنبيهًا عاجلًا إلى فريق الدعم أثناء المهمة',
+      ),
       body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: EdgeInsetsDirectional.symmetric(horizontal: 24),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  InkWell(
-                    onTap: () => context.pop(),
-                    child: const Icon(Icons.arrow_back, color: Colors.black),
-                  ),
-                  12.horizontalSpace,
-                  Expanded(
-                    child: AppText.headlineMedium(
-                      'حالة طوارئ',
-                      textAlign: TextAlign.start,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsetsDirectional.all(24),
-                child: submitted != null
-                    ? _buildSubmittedState(submitted)
-                    : _buildForm(context),
-              ),
-            ),
-            if (submitted == null)
-              Container(
-                width: double.infinity,
-                padding: EdgeInsetsDirectional.all(24),
-                child: InkWell(
-                  onTap: _submitting ? null : _submit,
-                  child: Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      color: _submitting
-                          ? context.error.withValues(alpha: 0.6)
-                          : context.error,
-                    ),
-                    padding: EdgeInsetsDirectional.symmetric(
-                      horizontal: 12,
-                      vertical: 14,
-                    ),
-                    child: _submitting
-                        ? const Center(
-                            child: SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            ),
-                          )
-                        : AppText.labelLarge(
-                            'إرسال لفريق الدعم',
-                            textAlign: TextAlign.center,
-                            color: context.onError,
-                            fontWeight: FontWeight.bold,
-                          ),
-                  ),
-                ),
-              ),
-          ],
+        top: false,
+        child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: AppSpace.pagePadding(
+            context,
+          ).add(const EdgeInsetsDirectional.symmetric(vertical: AppSpace.lg)),
+          child: submitted != null
+              ? _buildSubmittedState(submitted)
+              : _buildForm(context),
         ),
       ),
+      bottomNavigationBar: submitted == null
+          ? AppBottomActionBar(
+              child: AppButton(
+                label: 'إرسال لفريق الدعم',
+                icon: Icons.sos_rounded,
+                isLoading: _submitting,
+                variant: AppButtonVariant.destructive,
+                onPressed: _submitting ? null : _submit,
+              ),
+            )
+          : null,
     );
   }
 

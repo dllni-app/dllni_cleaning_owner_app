@@ -1,12 +1,19 @@
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
+import 'package:dllni_cleaninig_owner_app/core/theme/app_layout.dart';
+import 'package:dllni_cleaninig_owner_app/core/widgets/app_bottom_action_bar.dart';
+import 'package:dllni_cleaninig_owner_app/core/widgets/app_button.dart';
+import 'package:dllni_cleaninig_owner_app/core/widgets/app_page_header.dart';
+import 'package:dllni_cleaninig_owner_app/core/widgets/app_section_header.dart';
+import 'package:dllni_cleaninig_owner_app/core/widgets/app_state_view.dart';
+import 'package:dllni_cleaninig_owner_app/core/widgets/app_status_chip.dart';
+import 'package:dllni_cleaninig_owner_app/core/widgets/app_surface_card.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/fetch_dispute_details_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/update_dispute_use_case.dart';
-import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../generated/assets.dart';
+import '../../data/models/fetch_dispute_details_usecase_model.dart';
 import '../manager/bloc/profile_bloc.dart';
 
 @AutoRoutePage()
@@ -16,16 +23,16 @@ class TransactionDetailsScreen extends StatefulWidget {
   final TransactionDetailsScreenParam params;
 
   @override
-  State<TransactionDetailsScreen> createState() => _TransactionDetailsScreenState();
+  State<TransactionDetailsScreen> createState() =>
+      _TransactionDetailsScreenState();
 }
 
 class _TransactionDetailsScreenState extends State<TransactionDetailsScreen> {
-  bool openMessageField = false;
-  late TextEditingController responseController;
-
+  bool _isReplying = false;
+  final _responseController = TextEditingController();
   String? _selectedResolution;
 
-  final Map<String, String> _resolutionOptions = {
+  static const _resolutionOptions = <String, String>{
     'full_refund': 'استرداد كامل',
     'partial_refund': 'استرداد جزئي',
     'worker_penalty': 'جزاء على العامل',
@@ -33,219 +40,267 @@ class _TransactionDetailsScreenState extends State<TransactionDetailsScreen> {
   };
 
   @override
-  void initState() {
-    super.initState();
-    responseController = TextEditingController();
+  void dispose() {
+    _responseController.dispose();
+    super.dispose();
   }
 
-  @override
-  void dispose() {
-    responseController.dispose();
-    super.dispose();
+  void _reload(BuildContext context) {
+    context.read<ProfileBloc>().add(
+      FetchDisputeDetailsUsecaseEvent(
+        params: FetchDisputeDetailsUsecaseParams(id: widget.params.id),
+      ),
+    );
+  }
+
+  void _submit(BuildContext context, FetchDisputeDetailsUsecaseModelData data) {
+    context.read<ProfileBloc>().add(
+      UpdateDisputeEvent(
+        params: UpdateDisputeParams(
+          disputeId: data.id!,
+          bookingId: data.bookingId!,
+          bookingType: data.bookingType!,
+          ticketNumber: data.ticketNumber!,
+          category: data.category!,
+          status: data.status!,
+          resolution: _selectedResolution ?? data.resolution!,
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider<ProfileBloc>(
       lazy: false,
-      create: (context) => getIt<ProfileBloc>()..add(FetchDisputeDetailsUsecaseEvent(params: FetchDisputeDetailsUsecaseParams(id: widget.params.id))),
+      create: (_) => getIt<ProfileBloc>()
+        ..add(
+          FetchDisputeDetailsUsecaseEvent(
+            params: FetchDisputeDetailsUsecaseParams(id: widget.params.id),
+          ),
+        ),
       child: BlocListener<ProfileBloc, ProfileState>(
-        listenWhen: (previous, current) => previous.updateDisputeStatus != current.updateDisputeStatus,
+        listenWhen: (previous, current) =>
+            previous.updateDisputeStatus != current.updateDisputeStatus,
         listener: (context, state) {
           if (state.updateDisputeStatus == BlocStatus.success) {
             Loading.close();
             context.pop();
           } else if (state.updateDisputeStatus == BlocStatus.failed) {
             Loading.close();
+            AppToast.showErrorGlobal(
+              ErrorMessageFormatter.format(
+                state.errorMessage,
+                fallback: 'تعذر إرسال الرد',
+              ),
+            );
           } else if (state.updateDisputeStatus == BlocStatus.loading) {
             Loading.show(context);
           }
         },
         child: Scaffold(
-          body: SafeArea(
-            child: Padding(
-              padding: EdgeInsetsDirectional.symmetric(horizontal: 24),
-              child: BlocBuilder<ProfileBloc, ProfileState>(
-                builder: (context, state) {
-                  return Column(
-                    children: [
-                      SizedBox(height: 20),
-                      Row(
-                        children: [
-                          InkWell(
-                            onTap: () {
-                              context.pop();
-                            },
-                            child: Icon(Icons.arrow_back_ios_new, color: context.primary),
-                          ),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: AppText.bodyLarge(
-                              'تفاصيل النزاع رقم #${widget.params.title}',
-                              fontWeight: FontWeight.w700,
-                              textAlign: TextAlign.start,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 40),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          child: Column(
-                            children: [
-                              SizedBox(
-                                height: 275,
-                                child: Stack(
-                                  alignment: AlignmentGeometry.center,
-                                  children: [
-                                    DottedBorder(
-                                      options: RoundedRectDottedBorderOptions(
-                                        radius: Radius.circular(24),
-                                        color: context.primary,
-                                        strokeWidth: 1,
-                                        dashPattern: [8, 4],
-                                      ),
-                                      child: Container(
-                                        decoration: BoxDecoration(color: context.primary.withAlpha(14), borderRadius: BorderRadius.circular(24)),
-                                        width: context.width,
-                                        height: 200,
-                                        padding: EdgeInsetsDirectional.symmetric(horizontal: 15, vertical: 8),
-                                        child: Column(
-                                          children: [
-                                            AppText.bodyLarge('محتوى الشكوى', color: context.primary),
-                                            SizedBox(height: 20),
-                                            Expanded(
-                                              child: state.disputeDetailsUsecaseStatus == BlocStatus.success
-                                                  ? SingleChildScrollView(
-                                                      child: Column(
-                                                        children: List.generate(
-                                                          state.disputeDetailsUsecase!.data!.messages!.length,
-                                                          (i) =>
-                                                              AppText.labelLarge('${i + 1}-${state.disputeDetailsUsecase!.data!.messages![i].body!}'),
-                                                        ),
-                                                      ),
-                                                    )
-                                                  : Center(child: CircularProgressIndicator.adaptive()),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      width: context.width,
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [AppImage.asset(Assets.images.disputeIcon.path)],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              if (openMessageField) ...[
-                                _buildDropdownField(
-                                  label: 'الحل',
-                                  value: _selectedResolution,
-                                  options: _resolutionOptions,
-                                  onChanged: (val) => setState(() => _selectedResolution = val),
-                                ),
-                                SizedBox(height: 16),
-                                Container(
-                                  decoration: BoxDecoration(color: context.primary.withAlpha(14), borderRadius: BorderRadius.circular(24)),
-                                  padding: EdgeInsetsDirectional.symmetric(horizontal: 15, vertical: 12),
-                                  child: TextFormField(
-                                    controller: responseController,
-                                    maxLines: null,
-                                    minLines: 5,
-                                    textDirection: TextDirection.rtl,
-                                    decoration: InputDecoration(
-                                      hintText: 'هنا نص الرد على الشكوى',
-                                      hintTextDirection: TextDirection.rtl,
-                                      border: InputBorder.none,
-                                      contentPadding: EdgeInsets.zero,
-                                      hintStyle: TextStyle(color: Colors.grey.shade600, fontSize: 14),
-                                    ),
-                                    style: TextStyle(fontSize: 14, color: Colors.black87),
-                                  ),
-                                ),
-                                SizedBox(height: 20),
-                              ],
-                              InkWell(
-                                onTap: () {
-                                  if (!openMessageField) {
-                                    setState(() {
-                                      openMessageField = true;
-                                    });
-                                  } else {
-                                    if (state.disputeDetailsUsecaseStatus == BlocStatus.success) {
-                                      final data = state.disputeDetailsUsecase!.data!;
-                                      context.read<ProfileBloc>().add(
-                                        UpdateDisputeEvent(
-                                          params: UpdateDisputeParams(
-                                            disputeId: data.id!,
-                                            bookingId: data.bookingId!,
-                                            bookingType: data.bookingType!,
-                                            ticketNumber: data.ticketNumber!,
-                                            category: data.category!,
-                                            status: data.status!,
-                                            resolution: _selectedResolution ?? data.resolution!,
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                  }
-                                },
-                                borderRadius: BorderRadius.circular(8),
-                                child: Container(
-                                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), color: context.primary),
-                                  width: context.width,
-                                  padding: EdgeInsetsDirectional.symmetric(horizontal: 12, vertical: 12),
-                                  child: AppText.labelLarge(
-                                    openMessageField ? 'إرسال الرد' : 'الرد على الشكوى',
-                                    color: context.onPrimary,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                              SizedBox(height: 20),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
+          appBar: AppPageHeader(
+            title: 'تفاصيل النزاع',
+            subtitle: 'رقم التذكرة: ${widget.params.title}',
+          ),
+          body: BlocBuilder<ProfileBloc, ProfileState>(
+            builder: (context, state) {
+              if (state.disputeDetailsUsecaseStatus == BlocStatus.loading ||
+                  state.disputeDetailsUsecaseStatus == null) {
+                return const AppStateView.loading(
+                  message: 'جارٍ تحميل تفاصيل النزاع…',
+                );
+              }
+              if (state.disputeDetailsUsecaseStatus == BlocStatus.failed) {
+                return AppStateView.error(
+                  message: ErrorMessageFormatter.format(
+                    state.errorMessage,
+                    fallback: 'تعذر تحميل تفاصيل النزاع',
+                  ),
+                  onRetry: () => _reload(context),
+                );
+              }
+              final data = state.disputeDetailsUsecase?.data;
+              if (data == null) {
+                return AppStateView.empty(
+                  message: 'لا توجد تفاصيل متاحة لهذا النزاع',
+                  onRetry: () => _reload(context),
+                );
+              }
+              return _DisputeContent(
+                data: data,
+                isReplying: _isReplying,
+                selectedResolution: _selectedResolution,
+                resolutionOptions: _resolutionOptions,
+                responseController: _responseController,
+                onResolutionChanged: (value) =>
+                    setState(() => _selectedResolution = value),
+              );
+            },
+          ),
+          bottomNavigationBar: BlocBuilder<ProfileBloc, ProfileState>(
+            builder: (context, state) {
+              final data = state.disputeDetailsUsecase?.data;
+              if (state.disputeDetailsUsecaseStatus != BlocStatus.success ||
+                  data == null ||
+                  !widget.params.isOpen) {
+                return const SizedBox.shrink();
+              }
+              return AppBottomActionBar(
+                child: AppButton(
+                  label: _isReplying ? 'إرسال الرد' : 'الرد على الشكوى',
+                  icon: _isReplying ? Icons.send_rounded : Icons.reply_rounded,
+                  isLoading: state.updateDisputeStatus == BlocStatus.loading,
+                  onPressed: _isReplying
+                      ? () => _submit(context, data)
+                      : () => setState(() => _isReplying = true),
+                ),
+              );
+            },
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildDropdownField({
-    required String label,
-    required String? value,
-    required Map<String, String> options,
-    required void Function(String?) onChanged,
-  }) {
-    return Column(
+class _DisputeContent extends StatelessWidget {
+  const _DisputeContent({
+    required this.data,
+    required this.isReplying,
+    required this.selectedResolution,
+    required this.resolutionOptions,
+    required this.responseController,
+    required this.onResolutionChanged,
+  });
+
+  final FetchDisputeDetailsUsecaseModelData data;
+  final bool isReplying;
+  final String? selectedResolution;
+  final Map<String, String> resolutionOptions;
+  final TextEditingController responseController;
+  final ValueChanged<String?> onResolutionChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final messages = data.messages ?? const <DisputeMessage>[];
+    final closed = data.status?.toLowerCase() == 'closed';
+    return ListView(
+      padding: AppSpace.pagePadding(context).add(
+        const EdgeInsetsDirectional.only(top: AppSpace.md, bottom: AppSpace.xl),
+      ),
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: AppSectionHeader(
+                title: 'ملخص النزاع',
+                subtitle: data.category ?? 'شكوى خدمة',
+              ),
+            ),
+            AppStatusChip(
+              label: closed ? 'مغلق' : 'قيد المراجعة',
+              tone: closed ? AppStatusTone.neutral : AppStatusTone.warning,
+              icon: closed ? Icons.lock_outline : Icons.schedule_rounded,
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpace.sm),
+        AppSurfaceCard(
+          emphasized: true,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'محتوى الشكوى',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: AppSpace.md),
+              if (messages.isEmpty)
+                Text(
+                  'لا توجد رسائل مضافة',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                )
+              else
+                for (var index = 0; index < messages.length; index++) ...[
+                  _MessageItem(index: index + 1, body: messages[index].body),
+                  if (index < messages.length - 1)
+                    const Divider(height: AppSpace.lg),
+                ],
+            ],
+          ),
+        ),
+        if (isReplying) ...[
+          const SizedBox(height: AppSpace.lg),
+          const AppSectionHeader(
+            title: 'إضافة الرد',
+            subtitle: 'اختر الحل وأضف ملاحظاتك بوضوح',
+          ),
+          const SizedBox(height: AppSpace.sm),
+          AppSurfaceCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                DropdownButtonFormField<String>(
+                  initialValue: selectedResolution,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'الحل المقترح',
+                    prefixIcon: Icon(Icons.fact_check_outlined),
+                  ),
+                  items: resolutionOptions.entries
+                      .map(
+                        (entry) => DropdownMenuItem<String>(
+                          value: entry.key,
+                          child: Text(entry.value),
+                        ),
+                      )
+                      .toList(growable: false),
+                  onChanged: onResolutionChanged,
+                ),
+                const SizedBox(height: AppSpace.md),
+                TextFormField(
+                  controller: responseController,
+                  minLines: 4,
+                  maxLines: 7,
+                  textDirection: TextDirection.rtl,
+                  decoration: const InputDecoration(
+                    labelText: 'ملاحظات الرد',
+                    hintText: 'اكتب توضيحك هنا',
+                    alignLabelWithHint: true,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _MessageItem extends StatelessWidget {
+  const _MessageItem({required this.index, required this.body});
+
+  final int index;
+  final String? body;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AppText.labelLarge(label, fontWeight: FontWeight.w600),
-        SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          initialValue: value,
-          isExpanded: true,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: context.primary.withAlpha(14),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        CircleAvatar(
+          radius: 16,
+          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+          child: Text('$index'),
+        ),
+        const SizedBox(width: AppSpace.sm),
+        Expanded(
+          child: Text(
+            body?.trim().isNotEmpty == true ? body!.trim() : 'رسالة بلا محتوى',
+            style: Theme.of(context).textTheme.bodyMedium,
           ),
-          items: options.entries.map((e) {
-            return DropdownMenuItem<String>(value: e.key, child: AppText.labelMedium(e.value));
-          }).toList(),
-          onChanged: onChanged,
         ),
       ],
     );
@@ -257,5 +312,9 @@ class TransactionDetailsScreenParam {
   final String title;
   final bool isOpen;
 
-  TransactionDetailsScreenParam({required this.id, required this.title, required this.isOpen});
+  TransactionDetailsScreenParam({
+    required this.id,
+    required this.title,
+    required this.isOpen,
+  });
 }

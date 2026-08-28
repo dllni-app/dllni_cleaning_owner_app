@@ -11,6 +11,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
+import '../../../../core/widgets/app_page_header.dart';
+import '../../../../core/widgets/app_bottom_action_bar.dart';
+import '../../../../core/widgets/app_button.dart';
+
 class WorkAreasScreenParams {
   final List<Zone> zones;
 
@@ -406,96 +410,57 @@ class _WorkAreasScreenState extends State<WorkAreasScreen> {
                       ),
                     ),
                   ),
-                  12.verticalSpace,
-                  Padding(
-                    padding: EdgeInsetsDirectional.fromSTEB(
-                      20.w,
-                      0,
-                      20.w,
-                      14.h,
-                    ),
-                    child: BlocConsumer<ProfileBloc, ProfileState>(
-                      listenWhen: (previous, current) =>
-                          previous.updateWorkAreasStatus !=
-                          current.updateWorkAreasStatus,
-                      buildWhen: (previous, current) =>
-                          previous.updateWorkAreasStatus !=
-                          current.updateWorkAreasStatus,
-                      listener: (context, state) {
-                        if (state.updateWorkAreasStatus == BlocStatus.success) {
-                          Loading.close();
-                          final opened = MainTabNavigation.instance.jumpToTab(
-                            3,
+                  BlocConsumer<ProfileBloc, ProfileState>(
+                    listenWhen: (previous, current) =>
+                        previous.updateWorkAreasStatus !=
+                        current.updateWorkAreasStatus,
+                    buildWhen: (previous, current) =>
+                        previous.updateWorkAreasStatus !=
+                        current.updateWorkAreasStatus,
+                    listener: (context, state) {
+                      if (state.updateWorkAreasStatus == BlocStatus.success) {
+                        Loading.close();
+                        final opened = MainTabNavigation.instance.jumpToTab(3);
+                        if (!opened) {
+                          context.pushRouteAndRemoveUntil(
+                            '/main',
+                            arguments: MainScreenParam(returnedPageIndex: 3),
                           );
-                          if (!opened) {
-                            context.pushRouteAndRemoveUntil(
-                              '/main',
-                              arguments: MainScreenParam(returnedPageIndex: 3),
-                            );
-                          }
-                        } else if (state.updateWorkAreasStatus ==
-                            BlocStatus.loading) {
-                          Loading.show(context);
-                        } else if (state.updateWorkAreasStatus ==
-                            BlocStatus.failed) {
-                          Loading.close();
                         }
-                      },
-                      builder: (context, state) {
-                        return Row(
+                      } else if (state.updateWorkAreasStatus ==
+                          BlocStatus.loading) {
+                        Loading.show(context);
+                      } else if (state.updateWorkAreasStatus ==
+                          BlocStatus.failed) {
+                        Loading.close();
+                      }
+                    },
+                    builder: (context, state) {
+                      return AppBottomActionBar(
+                        child: Row(
                           children: [
                             Expanded(
-                              flex: 3,
-                              child: InkWell(
-                                onTap: canSave ? () => _onSave(context) : null,
-                                child: Opacity(
-                                  opacity: canSave ? 1 : 0.5,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(8.r),
-                                      color: context.primary,
-                                    ),
-                                    padding: EdgeInsetsDirectional.symmetric(
-                                      horizontal: 12.w,
-                                      vertical: 8.h,
-                                    ),
-                                    child: AppText.labelLarge(
-                                      'حفظ التغييرات',
-                                      color: context.onPrimary,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
+                              flex: 2,
+                              child: AppButton(
+                                label: 'حفظ التغييرات',
+                                icon: Icons.save_outlined,
+                                onPressed: canSave
+                                    ? () => _onSave(context)
+                                    : null,
                               ),
                             ),
-                            10.horizontalSpace,
+                            const SizedBox(width: 12),
                             Expanded(
-                              child: InkWell(
-                                onTap: () {
-                                  context.pop();
-                                },
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(8.r),
-                                    color: context.error.withAlpha(50),
-                                    border: Border.all(color: context.error),
-                                  ),
-                                  padding: EdgeInsetsDirectional.symmetric(
-                                    horizontal: 6.w,
-                                    vertical: 8.h,
-                                  ),
-                                  child: AppText.labelLarge(
-                                    'إلغاء',
-                                    color: context.error,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
+                              child: AppButton(
+                                label: 'إلغاء',
+                                variant: AppButtonVariant.outlined,
+                                onPressed: context.pop,
                               ),
                             ),
                           ],
-                        );
-                      },
-                    ),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -507,41 +472,9 @@ class _WorkAreasScreenState extends State<WorkAreasScreen> {
   }
 
   Widget _buildAppBar(BuildContext context) {
-    return Container(
-      width: context.width,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(24.r),
-          bottomRight: Radius.circular(24.r),
-        ),
-        border: Border(
-          bottom: BorderSide(color: context.primaryContainer, width: 2),
-        ),
-      ),
-      padding: EdgeInsetsDirectional.symmetric(
-        horizontal: 22.w,
-        vertical: 16.h,
-      ),
-      child: Row(
-        children: [
-          InkWell(
-            onTap: () {
-              context.pop();
-            },
-            child: Icon(
-              Icons.arrow_back_ios_new,
-              color: context.primaryContainer,
-            ),
-          ),
-          10.horizontalSpace,
-          AppText.headlineLarge(
-            'مناطق العمل',
-            color: context.primaryContainer,
-            fontWeight: FontWeight.w700,
-          ),
-        ],
-      ),
+    return const AppPageHeader(
+      title: 'مناطق العمل',
+      subtitle: 'اختر الأحياء التي يمكنك استقبال الطلبات ضمنها',
     );
   }
 
