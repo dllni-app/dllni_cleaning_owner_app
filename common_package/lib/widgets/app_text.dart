@@ -3,10 +3,8 @@ import 'dart:ui' as ui;
 
 import 'package:text_scroll/text_scroll.dart';
 
-import '../theme/text_theme.dart';
-
 class AppText extends StatelessWidget {
-  AppText(
+  const AppText(
     this.text, {
     super.key,
     this.textAlign,
@@ -16,10 +14,11 @@ class AppText extends StatelessWidget {
     this.overflow,
     this.maxLines,
     this.decoration,
-    TextStyle? style,
+    this.style,
     this.color,
     this.scrollText = false,
-  }) : style = (style ?? const TextStyle()).copyWith(color: color);
+  }) : _role = null,
+       _fontWeight = null;
 
   final String text;
   final TextAlign? textAlign;
@@ -32,30 +31,46 @@ class AppText extends StatelessWidget {
   final Color? color;
   final bool scrollText;
   final TextDecoration? decoration;
+  final _AppTextRole? _role;
+  final FontWeight? _fontWeight;
 
   @override
   Widget build(BuildContext context) {
-    return scrollText
+    final themedStyle =
+        _role?.resolve(Theme.of(context).textTheme) ?? const TextStyle();
+    final resolvedStyle = themedStyle
+        .merge(style)
+        .copyWith(
+          color: color ?? style?.color ?? themedStyle.color,
+          fontWeight:
+              _fontWeight ?? style?.fontWeight ?? themedStyle.fontWeight,
+          decoration: decoration ?? style?.decoration ?? themedStyle.decoration,
+          textBaseline: TextBaseline.alphabetic,
+        );
+    final resolvedTextAlign = textAlign ?? TextAlign.start;
+    final mayAnimate = scrollText && !MediaQuery.disableAnimationsOf(context);
+
+    return mayAnimate
         ? TextScroll(
             text,
             mode: TextScrollMode.endless,
             velocity: const Velocity(pixelsPerSecond: Offset(30, 0)),
             delayBefore: const Duration(milliseconds: 1000),
             pauseBetween: const Duration(milliseconds: 2000),
-            style: style?.copyWith(color: color),
+            style: resolvedStyle,
             selectable: true,
             intervalSpaces: 5,
-            textAlign: textAlign,
+            textAlign: resolvedTextAlign,
           )
         : Text(
             text,
-            style: style?.copyWith(color: color, textBaseline: TextBaseline.alphabetic, decoration: decoration),
+            style: resolvedStyle,
             key: key,
             locale: locale,
             maxLines: maxLines,
             overflow: overflow,
             softWrap: softWrap,
-            textAlign: textAlign ?? TextAlign.center,
+            textAlign: resolvedTextAlign,
             textDirection: textDirection,
           );
   }
@@ -74,9 +89,10 @@ class AppText extends StatelessWidget {
     this.color,
     this.scrollText = true,
     super.key,
-  });
+  }) : _role = null,
+       _fontWeight = null;
 
-  AppText.displayLarge(
+  const AppText.displayLarge(
     this.text, {
     this.textAlign,
     this.textDirection,
@@ -88,29 +104,13 @@ class AppText extends StatelessWidget {
 
     this.color,
     this.scrollText = false,
-    TextStyle? style,
+    this.style,
     FontWeight? fontWeight,
     super.key,
-  }) : style = textTheme.displayLarge?.merge(style).copyWith(fontWeight: fontWeight);
+  }) : _role = _AppTextRole.displayLarge,
+       _fontWeight = fontWeight;
 
-  AppText.displayMedium(
-    this.text, {
-    this.scrollText = false,
-    this.textAlign,
-    this.decoration,
-    this.textDirection,
-    this.locale,
-    this.softWrap,
-    this.overflow,
-    this.maxLines,
-
-    this.color,
-    super.key,
-    TextStyle? style,
-    FontWeight? fontWeight,
-  }) : style = textTheme.displayMedium?.merge(style).copyWith(fontWeight: fontWeight);
-
-  AppText.displaySmall(
+  const AppText.displayMedium(
     this.text, {
     this.scrollText = false,
     this.textAlign,
@@ -123,11 +123,12 @@ class AppText extends StatelessWidget {
 
     this.color,
     super.key,
-    TextStyle? style,
+    this.style,
     FontWeight? fontWeight,
-  }) : style = textTheme.displaySmall?.merge(style).copyWith(fontWeight: fontWeight);
+  }) : _role = _AppTextRole.displayMedium,
+       _fontWeight = fontWeight;
 
-  AppText.headlineLarge(
+  const AppText.displaySmall(
     this.text, {
     this.scrollText = false,
     this.textAlign,
@@ -140,11 +141,30 @@ class AppText extends StatelessWidget {
 
     this.color,
     super.key,
-    TextStyle? style,
+    this.style,
     FontWeight? fontWeight,
-  }) : style = textTheme.headlineLarge?.merge(style).copyWith(fontWeight: fontWeight);
+  }) : _role = _AppTextRole.displaySmall,
+       _fontWeight = fontWeight;
 
-  AppText.headlineMedium(
+  const AppText.headlineLarge(
+    this.text, {
+    this.scrollText = false,
+    this.textAlign,
+    this.decoration,
+    this.textDirection,
+    this.locale,
+    this.softWrap,
+    this.overflow,
+    this.maxLines,
+
+    this.color,
+    super.key,
+    this.style,
+    FontWeight? fontWeight,
+  }) : _role = _AppTextRole.headlineLarge,
+       _fontWeight = fontWeight;
+
+  const AppText.headlineMedium(
     this.text, {
     this.scrollText = false,
     this.decoration,
@@ -157,11 +177,12 @@ class AppText extends StatelessWidget {
 
     this.color,
     super.key,
-    TextStyle? style,
+    this.style,
     FontWeight? fontWeight,
-  }) : style = textTheme.headlineMedium?.merge(style).copyWith(fontWeight: fontWeight);
+  }) : _role = _AppTextRole.headlineMedium,
+       _fontWeight = fontWeight;
 
-  AppText.headlineSmall(
+  const AppText.headlineSmall(
     this.text, {
     this.scrollText = false,
     this.textAlign,
@@ -174,11 +195,12 @@ class AppText extends StatelessWidget {
     this.color,
     super.key,
     this.decoration,
-    TextStyle? style,
+    this.style,
     FontWeight? fontWeight,
-  }) : style = textTheme.headlineSmall?.merge(style).copyWith(fontWeight: fontWeight);
+  }) : _role = _AppTextRole.headlineSmall,
+       _fontWeight = fontWeight;
 
-  AppText.titleLarge(
+  const AppText.titleLarge(
     this.text, {
     this.scrollText = false,
     this.textAlign,
@@ -191,11 +213,12 @@ class AppText extends StatelessWidget {
     this.color,
     this.decoration,
     super.key,
-    TextStyle? style,
+    this.style,
     FontWeight? fontWeight,
-  }) : style = textTheme.titleLarge?.merge(style).copyWith(fontWeight: fontWeight);
+  }) : _role = _AppTextRole.titleLarge,
+       _fontWeight = fontWeight;
 
-  AppText.titleMedium(
+  const AppText.titleMedium(
     this.text, {
     this.scrollText = false,
     this.textAlign,
@@ -208,11 +231,12 @@ class AppText extends StatelessWidget {
     this.decoration,
     this.color,
     super.key,
-    TextStyle? style,
+    this.style,
     FontWeight? fontWeight,
-  }) : style = textTheme.titleMedium?.merge(style).copyWith(fontWeight: fontWeight);
+  }) : _role = _AppTextRole.titleMedium,
+       _fontWeight = fontWeight;
 
-  AppText.titleSmall(
+  const AppText.titleSmall(
     this.text, {
     this.scrollText = false,
     this.textAlign,
@@ -225,11 +249,12 @@ class AppText extends StatelessWidget {
     this.color,
     this.decoration,
     super.key,
-    TextStyle? style,
+    this.style,
     FontWeight? fontWeight,
-  }) : style = textTheme.titleSmall?.merge(style).copyWith(fontWeight: fontWeight);
+  }) : _role = _AppTextRole.titleSmall,
+       _fontWeight = fontWeight;
 
-  AppText.labelLarge(
+  const AppText.labelLarge(
     this.text, {
     this.scrollText = false,
     this.textAlign,
@@ -242,11 +267,12 @@ class AppText extends StatelessWidget {
     this.color,
     this.decoration,
     super.key,
-    TextStyle? style,
+    this.style,
     FontWeight? fontWeight,
-  }) : style = textTheme.labelLarge?.merge(style).copyWith(fontWeight: fontWeight);
+  }) : _role = _AppTextRole.labelLarge,
+       _fontWeight = fontWeight;
 
-  AppText.labelMedium(
+  const AppText.labelMedium(
     this.text, {
     this.scrollText = false,
     this.textAlign,
@@ -259,11 +285,12 @@ class AppText extends StatelessWidget {
     this.decoration,
     this.color,
     super.key,
-    TextStyle? style,
+    this.style,
     FontWeight? fontWeight,
-  }) : style = textTheme.labelMedium?.merge(style).copyWith(fontWeight: fontWeight);
+  }) : _role = _AppTextRole.labelMedium,
+       _fontWeight = fontWeight;
 
-  AppText.labelSmall(
+  const AppText.labelSmall(
     this.text, {
     this.scrollText = false,
     this.textAlign,
@@ -275,11 +302,12 @@ class AppText extends StatelessWidget {
     this.decoration,
     this.color,
     super.key,
-    TextStyle? style,
+    this.style,
     FontWeight? fontWeight,
-  }) : style = textTheme.labelSmall?.merge(style).copyWith(fontWeight: fontWeight);
+  }) : _role = _AppTextRole.labelSmall,
+       _fontWeight = fontWeight;
 
-  AppText.bodyLarge(
+  const AppText.bodyLarge(
     this.text, {
     this.scrollText = false,
     this.textAlign,
@@ -291,11 +319,12 @@ class AppText extends StatelessWidget {
     this.decoration,
     this.color,
     super.key,
-    TextStyle? style,
+    this.style,
     FontWeight? fontWeight,
-  }) : style = textTheme.bodyLarge?.merge(style).copyWith(fontWeight: fontWeight);
+  }) : _role = _AppTextRole.bodyLarge,
+       _fontWeight = fontWeight;
 
-  AppText.bodyMedium(
+  const AppText.bodyMedium(
     this.text, {
     this.scrollText = false,
     this.textAlign,
@@ -308,11 +337,12 @@ class AppText extends StatelessWidget {
     this.decoration,
     this.color,
     super.key,
-    TextStyle? style,
+    this.style,
     FontWeight? fontWeight,
-  }) : style = textTheme.bodyMedium?.merge(style).copyWith(fontWeight: fontWeight);
+  }) : _role = _AppTextRole.bodyMedium,
+       _fontWeight = fontWeight;
 
-  AppText.bodySmall(
+  const AppText.bodySmall(
     this.text, {
     this.scrollText = false,
     this.textAlign,
@@ -324,8 +354,45 @@ class AppText extends StatelessWidget {
 
     this.decoration,
     this.color,
-    TextStyle? style,
+    this.style,
     FontWeight? fontWeight,
     super.key,
-  }) : style = textTheme.bodySmall?.merge(style).copyWith(fontWeight: fontWeight);
+  }) : _role = _AppTextRole.bodySmall,
+       _fontWeight = fontWeight;
+}
+
+enum _AppTextRole {
+  displayLarge,
+  displayMedium,
+  displaySmall,
+  headlineLarge,
+  headlineMedium,
+  headlineSmall,
+  titleLarge,
+  titleMedium,
+  titleSmall,
+  labelLarge,
+  labelMedium,
+  labelSmall,
+  bodyLarge,
+  bodyMedium,
+  bodySmall;
+
+  TextStyle? resolve(TextTheme textTheme) => switch (this) {
+    _AppTextRole.displayLarge => textTheme.displayLarge,
+    _AppTextRole.displayMedium => textTheme.displayMedium,
+    _AppTextRole.displaySmall => textTheme.displaySmall,
+    _AppTextRole.headlineLarge => textTheme.headlineLarge,
+    _AppTextRole.headlineMedium => textTheme.headlineMedium,
+    _AppTextRole.headlineSmall => textTheme.headlineSmall,
+    _AppTextRole.titleLarge => textTheme.titleLarge,
+    _AppTextRole.titleMedium => textTheme.titleMedium,
+    _AppTextRole.titleSmall => textTheme.titleSmall,
+    _AppTextRole.labelLarge => textTheme.labelLarge,
+    _AppTextRole.labelMedium => textTheme.labelMedium,
+    _AppTextRole.labelSmall => textTheme.labelSmall,
+    _AppTextRole.bodyLarge => textTheme.bodyLarge,
+    _AppTextRole.bodyMedium => textTheme.bodyMedium,
+    _AppTextRole.bodySmall => textTheme.bodySmall,
+  };
 }

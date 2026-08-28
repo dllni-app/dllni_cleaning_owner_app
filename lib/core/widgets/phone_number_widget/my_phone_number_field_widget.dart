@@ -43,7 +43,7 @@ class MyPhoneNumberField extends StatelessWidget {
 
   final Function(Country)? onCountryChanged;
 
-  final TextEditingController controller=TextEditingController();
+  final TextEditingController controller = TextEditingController();
 
   // final FocusNode? nextFocusNode;
 
@@ -88,7 +88,6 @@ class MyPhoneNumberField extends StatelessWidget {
     String initialValue = internationalPhoneValue?.value.trim() ?? '';
 
     // 🟢 2. نحدّد الدولة والرقم بناءً على القيمة
-    String countryCode = '+963';
     String countryISO = 'SY';
     String localNumber = '';
 
@@ -96,7 +95,6 @@ class MyPhoneNumberField extends StatelessWidget {
       // مثال: +963947861234 → نستخرج الدولة والرقم
       for (final c in countries) {
         if (initialValue.startsWith('+${c.fullCountryCode}')) {
-          countryCode = '+${c.dialCode}';
           countryISO = c.code;
           localNumber = initialValue.replaceFirst('+${c.fullCountryCode}', '');
           break;
@@ -110,11 +108,12 @@ class MyPhoneNumberField extends StatelessWidget {
     }
 
     // 🟢 4. نضبط الدولة الابتدائية على حسب ما وجدناه
-    final effectiveCountryCode =
-    initialValue.isEmpty ? initialCountryCode : countryISO;
+    final effectiveCountryCode = initialValue.isEmpty
+        ? initialCountryCode
+        : countryISO;
 
     // دالة مساعدة: تحدّث الـ ValueNotifier بالقيمة الدولية
-    void _updateIntlByParts({required String countryCodeWithPlus}) {
+    void updateIntlByParts({required String countryCodeWithPlus}) {
       if (internationalPhoneValue == null) return;
       String raw = controller.text.trim().replaceAll(RegExp(r'\D'), '');
       if (raw.startsWith('0')) raw = raw.substring(1);
@@ -134,39 +133,34 @@ class MyPhoneNumberField extends StatelessWidget {
           onSubmitted: onSubmitted,
           onCountryChanged: (country) {
             // حدّث الرقم الدولي عند تغيير الدولة
-            _updateIntlByParts(countryCodeWithPlus: '+${country.dialCode}');
+            updateIntlByParts(countryCodeWithPlus: '+${country.dialCode}');
             if (onCountryChanged != null) onCountryChanged!(country);
           },
           enabled: enabled,
           invalidNumberMessage: invalidNumberMessage,
           pickerDialogStyle: PickerDialogStyle(
-            countryCodeStyle: const TextStyle(
-              color: Color(0xff2F2B3D),
+            countryCodeStyle: TextStyle(
+              color: theme.colorScheme.onSurface,
               fontSize: 14,
               fontWeight: FontWeight.w400,
             ),
-            countryNameStyle: const TextStyle(
-              color: Color(0xff2F2B3D),
+            countryNameStyle: TextStyle(
+              color: theme.colorScheme.onSurface,
               fontSize: 14,
               fontWeight: FontWeight.w400,
             ),
             searchFieldInputDecoration: InputDecoration(
               contentPadding: const EdgeInsets.symmetric(horizontal: 16),
               filled: true,
-              fillColor: const Color(0xffF9FAFB),
-              labelStyle: TextStyle(
-                color: Colors.grey.shade500,
-                fontSize: 14,
-              ),
-              floatingLabelStyle: const TextStyle(
-                color: Color(0xff1E2A78),
+              fillColor: theme.colorScheme.surface,
+              labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+              floatingLabelStyle: TextStyle(
+                color: theme.colorScheme.primary,
                 fontSize: 14,
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(
-                  color: Color(0xffE5E7EB),
-                ),
+                borderSide: BorderSide(color: theme.colorScheme.outlineVariant),
               ),
             ),
           ),
@@ -188,11 +182,10 @@ class MyPhoneNumberField extends StatelessWidget {
           obscureText: obscureText,
           initialCountryCode: effectiveCountryCode,
 
-
           textAlign: textAlign ?? TextAlign.start,
           keyboardType: keyboardType ?? TextInputType.phone,
-          style: const TextStyle(
-            color: Color(0xff2F2B3D),
+          style: TextStyle(
+            color: theme.colorScheme.onSurface,
             fontSize: 14,
             fontWeight: FontWeight.w400,
           ),
@@ -201,57 +194,20 @@ class MyPhoneNumberField extends StatelessWidget {
 
             hintText: hintText,
             filled: true,
-            fillColor: const Color(0xffF9FAFB),
+            fillColor: theme.colorScheme.surface,
 
-            hintStyle: TextStyle(
-              color: Colors.grey.shade500,
-              fontSize: 14,
-            ),
+            hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
 
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 14,
               vertical: 12,
             ),
 
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(
-                color: Color(0xffE5E7EB),
-                width: 1,
-              ),
-            ),
-
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(
-                color: Color(0xffE5E7EB),
-                width: 1,
-              ),
-            ),
-
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(
-                color: Color(0xff1E2A78),
-                width: 1.2,
-              ),
-            ),
-
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(
-                color: Colors.red,
-                width: 1,
-              ),
-            ),
-
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(
-                color: Colors.red,
-                width: 1.2,
-              ),
-            ),
+            border: baseDecoration.border,
+            enabledBorder: baseDecoration.enabledBorder,
+            focusedBorder: baseDecoration.focusedBorder,
+            errorBorder: baseDecoration.errorBorder,
+            focusedErrorBorder: baseDecoration.focusedErrorBorder,
           ),
         ),
       ),
@@ -292,7 +248,7 @@ class MyPhoneNumberInitField extends StatelessWidget {
     this.enabled = true,
     this.initialCountryCode = 'SY',
     // الرقم الدولي المبدئي +963...
-  }) {
+  }) : _initialCountryDialCode = _initialDialCode(initialPhoneNumber) {
     // إذا تم تمرير رقم مبدئي، نقوم بفصله لرمز دولة + رقم محلي
     if (initialPhoneNumber != null && initialPhoneNumber!.startsWith('+')) {
       final match = RegExp(
@@ -301,7 +257,6 @@ class MyPhoneNumberInitField extends StatelessWidget {
       if (match != null) {
         final countryDial = match.group(1)!;
         final local = match.group(2)!.trim();
-        _initialCountryDialCode = countryDial;
         controller.text = local;
         internationalPhoneValue?.value = '+$countryDial$local';
       }
@@ -309,7 +264,7 @@ class MyPhoneNumberInitField extends StatelessWidget {
   }
 
   final String? initialPhoneNumber;
-  String? _initialCountryDialCode;
+  final String? _initialCountryDialCode;
 
   final Function(Country)? onCountryChanged;
   final TextEditingController controller;
@@ -346,7 +301,7 @@ class MyPhoneNumberInitField extends StatelessWidget {
       theme.inputDecorationTheme,
     );
 
-    void _updateIntlByParts({required String countryCodeWithPlus}) {
+    void updateIntlByParts({required String countryCodeWithPlus}) {
       if (internationalPhoneValue == null) return;
       String raw = controller.text.trim().replaceAll(RegExp(r'\D'), '');
       if (raw.startsWith('0')) raw = raw.substring(1);
@@ -358,7 +313,7 @@ class MyPhoneNumberInitField extends StatelessWidget {
       child: MyCustomIntlField(
         textInputAction: textInputAction,
         initialCountryCode: _initialCountryDialCode != null
-            ? _countryCodeFromDial(_initialCountryDialCode!) ??
+            ? _countryCodeFromDial(_initialCountryDialCode) ??
                   initialCountryCode
             : initialCountryCode,
         controller: controller,
@@ -367,7 +322,7 @@ class MyPhoneNumberInitField extends StatelessWidget {
         readOnly: readOnly,
         invalidNumberMessage: invalidNumberMessage,
         onCountryChanged: (country) {
-          _updateIntlByParts(countryCodeWithPlus: '+${country.dialCode}');
+          updateIntlByParts(countryCodeWithPlus: '+${country.dialCode}');
           onCountryChanged?.call(country);
         },
         onChanged: (phone) {
@@ -381,8 +336,8 @@ class MyPhoneNumberInitField extends StatelessWidget {
         validator: validator,
         keyboardType: keyboardType ?? TextInputType.phone,
         textAlign: textAlign ?? TextAlign.start,
-        style: const TextStyle(
-          color: Color(0xff2F2B3D),
+        style: TextStyle(
+          color: theme.colorScheme.onSurface,
           fontSize: 14,
           fontWeight: FontWeight.w400,
         ),
@@ -391,63 +346,31 @@ class MyPhoneNumberInitField extends StatelessWidget {
 
           hintText: hintText,
           filled: true,
-          fillColor: const Color(0xffF9FAFB),
+          fillColor: theme.colorScheme.surface,
 
-          hintStyle: TextStyle(
-            color: Colors.grey.shade500,
-            fontSize: 14,
-          ),
+          hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
 
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 14,
             vertical: 12,
           ),
 
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(
-              color: Color(0xffE5E7EB),
-              width: 1,
-            ),
-          ),
-
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(
-              color: Color(0xffE5E7EB),
-              width: 1,
-            ),
-          ),
-
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(
-              color: Color(0xff1E2A78),
-              width: 1.2,
-            ),
-          ),
-
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(
-              color: Colors.red,
-              width: 1,
-            ),
-          ),
-
-          focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(
-              color: Colors.red,
-              width: 1.2,
-            ),
-          ),
+          border: baseDecoration.border,
+          enabledBorder: baseDecoration.enabledBorder,
+          focusedBorder: baseDecoration.focusedBorder,
+          errorBorder: baseDecoration.errorBorder,
+          focusedErrorBorder: baseDecoration.focusedErrorBorder,
         ),
       ),
     );
   }
 
   /// يحاول إيجاد كود الدولة من رقم الطلب الدولي
+  static String? _initialDialCode(String? value) {
+    final raw = value?.trim() ?? '';
+    return RegExp(r'^\+(\d{1,3})').firstMatch(raw)?.group(1);
+  }
+
   String? _countryCodeFromDial(String dial) {
     final allCountries = countries; // من مكتبة intl_phone_field
     final found = allCountries.firstWhere(

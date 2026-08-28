@@ -11,7 +11,7 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
-        android:label="عامل عالندهة"
+        android:label="عامل التنظيف"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
         <activity

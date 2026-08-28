@@ -1,18 +1,11 @@
 import 'dart:async';
-import 'package:common_package/generated/locale_keys.g.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl_phone_field/countries.dart';
 import 'package:intl_phone_field/helpers.dart';
 import 'package:intl_phone_field/phone_number.dart';
-import 'package:intl_phone_number_input/intl_phone_number_input.dart' hide PhoneNumber;
-
-import '../../../generated/assets.dart';
-
-
 
 class MyCustomIntlField extends StatefulWidget {
   final bool obscureText;
@@ -60,8 +53,8 @@ class MyCustomIntlField extends StatefulWidget {
   final EdgeInsets flagsButtonMargin;
   final bool disableAutoFillHints;
 
-  MyCustomIntlField({
-    Key? key,
+  const MyCustomIntlField({
+    super.key,
     this.initialCountryCode,
     // this.nextFocusNode,
     this.languageCode = 'en',
@@ -106,10 +99,10 @@ class MyCustomIntlField extends StatefulWidget {
     this.showCursor = true,
     this.pickerDialogStyle,
     this.flagsButtonMargin = EdgeInsets.zero,
-  }) : super(key: key);
+  });
 
   @override
-  _IntlPhoneFieldState createState() => _IntlPhoneFieldState();
+  State<MyCustomIntlField> createState() => _IntlPhoneFieldState();
 }
 
 class _IntlPhoneFieldState extends State<MyCustomIntlField> {
@@ -147,7 +140,7 @@ class _IntlPhoneFieldState extends State<MyCustomIntlField> {
     if (widget.initialCountryCode == null && number.startsWith('+')) {
       number = number.substring(1);
       _selectedCountry = _countryList.firstWhere(
-            (country) => number.startsWith(country.fullCountryCode),
+        (country) => number.startsWith(country.fullCountryCode),
         orElse: () => _countryList.first,
       );
       number = number.replaceFirst(
@@ -156,7 +149,7 @@ class _IntlPhoneFieldState extends State<MyCustomIntlField> {
       );
     } else {
       _selectedCountry = _countryList.firstWhere(
-            (item) => item.code == (widget.initialCountryCode ?? 'US'),
+        (item) => item.code == (widget.initialCountryCode ?? 'US'),
         orElse: () => _countryList.first,
       );
 
@@ -214,55 +207,53 @@ class _IntlPhoneFieldState extends State<MyCustomIntlField> {
     );
     if (mounted) setState(() {});
   }
+
   Widget _buildFlagsButton() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: const Color(0xffE5E7EB),
-          width: 1,
+    final textScaler = MediaQuery.textScalerOf(context);
+    final showDecorativeFlag =
+        widget.showCountryFlag && textScaler.scale(14) <= 21;
+    final dialCode = '+${_selectedCountry.dialCode}';
+    return Semantics(
+      button: true,
+      enabled: widget.enabled,
+      label: 'رمز الدولة $dialCode',
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xffE5E7EB), width: 1),
         ),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        // onTap: widget.enabled ? _changeCountry : null,
-        onTap: null,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const SizedBox(width: 4),
-
-            if (widget.showCountryFlag) ...[
-              _buildFlagWidget(_selectedCountry),
-              const SizedBox(width: 8),
-            ],
-
-            FittedBox(
-              child: Text(
-                '+${_selectedCountry.dialCode}',
-                style: const TextStyle(
-                  color: Color(0xff2F2B3D),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: widget.enabled ? _changeCountry : null,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              const SizedBox(width: 4),
+              if (showDecorativeFlag) ...[
+                ExcludeSemantics(child: _buildFlagWidget(_selectedCountry)),
+                const SizedBox(width: 8),
+              ],
+              Flexible(
+                child: Text(
+                  dialCode,
+                  maxLines: 1,
+                  style: const TextStyle(
+                    color: Color(0xff2F2B3D),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                  ),
                 ),
               ),
-            ),
-
-            const SizedBox(width: 4),
-          ],
+              const SizedBox(width: 4),
+            ],
+          ),
         ),
       ),
     );
-  }
-
-  bool _isAssetPath(String flag) {
-    return flag.contains('assets/') ||
-        flag.endsWith('.png') ||
-        flag.endsWith('.jpg');
   }
 
   Widget _buildFlagWidget(Country country) {
@@ -319,8 +310,8 @@ class _IntlPhoneFieldState extends State<MyCustomIntlField> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height:kMinInteractiveDimension+24 ,
+    return SizedBox(
+      height: kMinInteractiveDimension + 24,
 
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -331,13 +322,10 @@ class _IntlPhoneFieldState extends State<MyCustomIntlField> {
             flex: 2,
             child: SizedBox.expand(
               child: SizedBox(
-
-
                 child: TextFormField(
                   expands: true,
-                  minLines:null,
-                  maxLines:null,
-
+                  minLines: null,
+                  maxLines: null,
 
                   initialValue: (widget.controller == null) ? number : null,
                   autofillHints: widget.disableAutoFillHints
@@ -357,14 +345,12 @@ class _IntlPhoneFieldState extends State<MyCustomIntlField> {
                   showCursor: widget.showCursor,
                   onFieldSubmitted: widget.onSubmitted,
 
-
                   decoration: widget.decoration.copyWith(
-
                     fillColor: Colors.white,
                     counterText: !widget.enabled ? '' : null,
                     contentPadding: EdgeInsets.symmetric(
-                        vertical: 8,
-                        horizontal: 12
+                      vertical: 8,
+                      horizontal: 12,
                     ),
                   ),
                   style: widget.style,
@@ -373,7 +359,7 @@ class _IntlPhoneFieldState extends State<MyCustomIntlField> {
                       PhoneNumber(
                         countryISOCode: _selectedCountry.code,
                         countryCode:
-                        '+${_selectedCountry.dialCode}${_selectedCountry.regionCode}',
+                            '+${_selectedCountry.dialCode}${_selectedCountry.regionCode}',
                         number: value!,
                       ),
                     );
@@ -386,7 +372,9 @@ class _IntlPhoneFieldState extends State<MyCustomIntlField> {
                     );
 
                     if (widget.autovalidateMode != AutovalidateMode.disabled) {
-                      validatorMessage = await widget.validator?.call(phoneNumber);
+                      validatorMessage = await widget.validator?.call(
+                        phoneNumber,
+                      );
                     }
 
                     widget.onChanged?.call(phoneNumber);
@@ -398,14 +386,16 @@ class _IntlPhoneFieldState extends State<MyCustomIntlField> {
 
                     if (!widget.disableLengthCheck) {
                       return value.length >= _selectedCountry.minLength &&
-                          value.length <= _selectedCountry.maxLength
+                              value.length <= _selectedCountry.maxLength
                           ? null
                           : 'رقم الهاتف غير صحيح';
                     }
 
                     return validatorMessage;
                   },
-                  maxLength: widget.disableLengthCheck ? null : _selectedCountry.maxLength,
+                  maxLength: widget.disableLengthCheck
+                      ? null
+                      : _selectedCountry.maxLength,
                   keyboardType: widget.keyboardType,
                   inputFormatters: widget.inputFormatters,
                   enabled: widget.enabled,
@@ -413,19 +403,14 @@ class _IntlPhoneFieldState extends State<MyCustomIntlField> {
                   autofocus: widget.autofocus,
                   textInputAction: widget.textInputAction,
                   autovalidateMode: widget.autovalidateMode,
-
                 ),
               ),
             ),
           ),
-
         ],
       ),
     );
   }
-
-
-
 }
 
 enum IconPosition { leading, trailing }
@@ -466,17 +451,17 @@ class CountryPickerDialog extends StatefulWidget {
   final String languageCode;
 
   const CountryPickerDialog({
-    Key? key,
+    super.key,
     required this.languageCode,
     required this.countryList,
     required this.onCountryChanged,
     required this.selectedCountry,
     required this.filteredCountries,
     this.style,
-  }) : super(key: key);
+  });
 
   @override
-  _CountryPickerDialogState createState() => _CountryPickerDialogState();
+  State<CountryPickerDialog> createState() => _CountryPickerDialogState();
 }
 
 class _CountryPickerDialogState extends State<CountryPickerDialog> {
@@ -488,7 +473,7 @@ class _CountryPickerDialogState extends State<CountryPickerDialog> {
     _selectedCountry = widget.selectedCountry;
     _filteredCountries = widget.filteredCountries.toList()
       ..sort(
-            (a, b) => a
+        (a, b) => a
             .localizedName(widget.languageCode)
             .compareTo(b.localizedName(widget.languageCode)),
       );
@@ -504,13 +489,7 @@ class _CountryPickerDialogState extends State<CountryPickerDialog> {
 
   Widget _buildFlagWidget(Country country) {
     if (_isAssetPath(country.flag)) {
-      return SvgAsset(
-        country.flag,
-        width: 25,
-
-
-
-      );
+      return SvgAsset(country.flag, width: 25);
     } else {
       return Text(country.flag, style: const TextStyle(fontSize: 18));
     }
@@ -531,7 +510,9 @@ class _CountryPickerDialogState extends State<CountryPickerDialog> {
       ),
       backgroundColor: widget.style?.backgroundColor,
       child: Container(
-        padding: widget.style?.padding ?? const EdgeInsets.symmetric(vertical:  20,horizontal: 10),
+        padding:
+            widget.style?.padding ??
+            const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
         child: Column(
           children: [
             TextField(
@@ -544,59 +525,51 @@ class _CountryPickerDialogState extends State<CountryPickerDialog> {
                 fontWeight: FontWeight.w400,
               ),
 
-              decoration:
-              InputDecoration(
-          filled: true,
-          fillColor: const Color(0xffF9FAFB),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: const Color(0xffF9FAFB),
 
-          suffixIcon: const Icon(
-            Icons.search,
-            color: Color(0xff6B7280),
-          ),
+                suffixIcon: const Icon(Icons.search, color: Color(0xff6B7280)),
 
-          labelText: 'ابحث عن الدولة',
+                labelText: 'ابحث عن الدولة',
 
-          labelStyle: TextStyle(
-            color: Colors.grey.shade500,
-            fontSize: 14,
-          ),
+                labelStyle: TextStyle(
+                  color: Colors.grey.shade500,
+                  fontSize: 14,
+                ),
 
-          floatingLabelStyle: const TextStyle(
-            color: Color(0xff1E2A78),
-            fontSize: 12,
-          ),
+                floatingLabelStyle: const TextStyle(
+                  color: Color(0xff1E2A78),
+                  fontSize: 12,
+                ),
 
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 12,
-          ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
 
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(
-              color: Color(0xffE5E7EB),
-            ),
-          ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xffE5E7EB)),
+                ),
 
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(
-              color: Color(0xffE5E7EB),
-            ),
-          ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xffE5E7EB)),
+                ),
 
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(
-              color: Color(0xff1E2A78),
-              width: 1.2,
-            ),
-          ),
-        ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(
+                    color: Color(0xff1E2A78),
+                    width: 1.2,
+                  ),
+                ),
+              ),
               onChanged: (value) {
                 _filteredCountries = widget.countryList.stringSearch(value)
                   ..sort(
-                        (a, b) => a
+                    (a, b) => a
                         .localizedName(widget.languageCode)
                         .compareTo(b.localizedName(widget.languageCode)),
                   );
@@ -639,10 +612,7 @@ class _CountryPickerDialogState extends State<CountryPickerDialog> {
                       },
                     ),
                     widget.style?.listTileDivider ??
-                        const  Divider(
-                      thickness: 1,
-                      color: Color(0xffE5E7EB),
-                    ),
+                        const Divider(thickness: 1, color: Color(0xffE5E7EB)),
                   ],
                 ),
               ),
@@ -654,18 +624,14 @@ class _CountryPickerDialogState extends State<CountryPickerDialog> {
   }
 }
 
-
-
-
 class SvgAsset extends StatelessWidget {
   const SvgAsset(
-      this.assetName, {
-        super.key,
-        this.color,
-        this.width = 25,
-        this.height = 25,
-
-      });
+    this.assetName, {
+    super.key,
+    this.color,
+    this.width = 25,
+    this.height = 25,
+  });
   final Color? color;
   final double width;
   final double height;
@@ -675,13 +641,12 @@ class SvgAsset extends StatelessWidget {
   Widget build(BuildContext context) {
     return SvgPicture.asset(
       assetName,
-      color: color,
+      colorFilter: color == null
+          ? null
+          : ColorFilter.mode(color!, BlendMode.srcIn),
       width: width,
       height: height,
       fit: BoxFit.contain,
-
-
     );
   }
 }
-

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_booking_pusher_service.dart';
@@ -10,6 +11,7 @@ import 'package:toastification/toastification.dart';
 import 'core/lifecycle/background_keep_alive.dart';
 import 'core/location/worker_location_tracker.dart';
 import 'core/routes/app_router.dart';
+import 'core/theme/app_theme.dart';
 import 'features/auth/view/screens/login_screen.dart';
 import 'features/main/view/screens/main_screen.dart';
 
@@ -68,10 +70,10 @@ class _AppState extends State<App> {
     return ToastificationWrapper(
       child: MaterialApp(
         navigatorKey: widget.navigatorKey,
-        title: 'cleaning owner',
+        title: 'دللني — إدارة التنظيف',
         debugShowCheckedModeBanner: false,
-        locale: context.locale,
-        supportedLocales: context.supportedLocales,
+        locale: const Locale('ar'),
+        supportedLocales: const [Locale('ar')],
         localizationsDelegates: context.localizationDelegates,
         onGenerateRoute: AppRouter.onGenerateRoute,
         home: hasToken ? const MainScreen() : const LoginScreen(),
@@ -79,29 +81,18 @@ class _AppState extends State<App> {
           final mediaQuery = MediaQuery.of(context);
           final clampedScaler = mediaQuery.textScaler.clamp(
             minScaleFactor: 1.0,
-            maxScaleFactor: 1.2,
+            maxScaleFactor: 2.0,
           );
-          return MediaQuery(
-            data: mediaQuery.copyWith(textScaler: clampedScaler),
-            child: child ?? const SizedBox.shrink(),
+          return Directionality(
+            textDirection: ui.TextDirection.rtl,
+            child: MediaQuery(
+              data: mediaQuery.copyWith(textScaler: clampedScaler),
+              child: child ?? const SizedBox.shrink(),
+            ),
           );
         },
-        theme: ThemeData(
-          fontFamily: 'cairo',
-          colorScheme: ColorScheme(
-            brightness: Brightness.light,
-            primary: Color(0xff1E2A7B),
-            onPrimary: Colors.white,
-            secondary: Color(0xff6C63FF),
-            onSecondary: Colors.white,
-            error: Color(0xffD92341),
-            onError: Colors.white,
-            surface: Color(0xffF0F0F0),
-            onSurface: Colors.black,
-            primaryContainer: Color(0xff2EC4B6),
-            onPrimaryContainer: Colors.white,
-          ),
-        ),
+        theme: AppTheme.lightTheme,
+        themeMode: ThemeMode.light,
       ),
     );
   }

@@ -4,6 +4,7 @@ import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 import 'app.dart';
 import 'core/di/injection.dart';
@@ -17,7 +18,8 @@ Future<void> main() async {
       WidgetsFlutterBinding.ensureInitialized();
       await AppDebugLogger.init();
 
-      Intl.defaultLocale = 'en';
+      Intl.defaultLocale = 'ar';
+      await initializeDateFormatting('ar');
       final navigatorKey = GlobalKey<NavigatorState>();
       SessionExpiredHandler.navigatorKey = navigatorKey;
       AppToast.bindNavigatorKey(navigatorKey);
@@ -35,7 +37,7 @@ Future<void> main() async {
           enableNotifications: false,
           startLocale: Locale('ar'),
           fallbackLocale: const Locale('ar'),
-          supportedLocales: const <Locale>[Locale('en'), Locale('ar')],
+          supportedLocales: const <Locale>[Locale('ar')],
           translationsAssetPath: 'assets/translations',
         ),
       );
