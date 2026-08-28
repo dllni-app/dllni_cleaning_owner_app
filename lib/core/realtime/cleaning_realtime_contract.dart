@@ -56,10 +56,8 @@ class CleaningRealtimeContract {
   static Map<String, String> _buildNormalizedEventAliases() {
     final aliases = <String, String>{};
     void addAlias(String key, String value, {bool overrideExisting = true}) {
-      final keys = <String>{
-        key.trim(),
-        _canonicalEventKey(key),
-      }..removeWhere((item) => item.isEmpty);
+      final keys = <String>{key.trim(), _canonicalEventKey(key)}
+        ..removeWhere((item) => item.isEmpty);
 
       for (final eventKey in keys) {
         final lower = eventKey.toLowerCase();
@@ -140,7 +138,8 @@ class CleaningRealtimeContract {
   static bool matchesEventFilter(Set<String> filter, String rawEventName) {
     if (filter.contains(rawEventName)) return true;
     final normalized = normalizeEventName(rawEventName);
-    return filter.contains(normalized) || filter.contains(normalized.toLowerCase());
+    return filter.contains(normalized) ||
+        filter.contains(normalized.toLowerCase());
   }
 
   static Map<String, dynamic> unwrapPayload(Map<String, dynamic> payload) {
@@ -190,7 +189,8 @@ class CleaningRealtimeContract {
     final trackingMap = _asStringMap(unwrapped['tracking']);
     final bookingMap = _asStringMap(unwrapped['booking']);
     final cleaningOrderMap = _nestedBookingMap(unwrapped);
-    final raw = trackingMap['status'] ??
+    final raw =
+        trackingMap['status'] ??
         bookingMap['status'] ??
         cleaningOrderMap['status'] ??
         unwrapped['status'];
@@ -201,7 +201,8 @@ class CleaningRealtimeContract {
 
   static String? extractDecision(Map<String, dynamic> payload) {
     final unwrapped = unwrapPayload(payload);
-    final raw = unwrapped['decision'] ??
+    final raw =
+        unwrapped['decision'] ??
         unwrapped['customerDecision'] ??
         unwrapped['customer_decision'];
     final text = raw?.toString().trim().toLowerCase();
@@ -211,7 +212,8 @@ class CleaningRealtimeContract {
   static String? extractDecisionMessage(Map<String, dynamic> payload) {
     final unwrapped = unwrapPayload(payload);
     final booking = _nestedBookingMap(unwrapped);
-    final raw = unwrapped['message'] ??
+    final raw =
+        unwrapped['message'] ??
         unwrapped['completionMessage'] ??
         unwrapped['completion_message'] ??
         unwrapped['customerCompletionRejectionMessage'] ??
@@ -226,7 +228,8 @@ class CleaningRealtimeContract {
   static String? extractCompletionMessage(Map<String, dynamic> payload) {
     final unwrapped = unwrapPayload(payload);
     final booking = _nestedBookingMap(unwrapped);
-    final raw = unwrapped['completionMessage'] ??
+    final raw =
+        unwrapped['completionMessage'] ??
         unwrapped['completion_message'] ??
         booking['completionMessage'] ??
         booking['completion_message'] ??
@@ -243,9 +246,8 @@ class CleaningRealtimeContract {
     return text == null || text.isEmpty ? null : text;
   }
 
-  static ({String? arrivedAt, String? workStartedAt}) extractLifecycleTimestamps(
-    Map<String, dynamic> payload,
-  ) {
+  static ({String? arrivedAt, String? workStartedAt})
+  extractLifecycleTimestamps(Map<String, dynamic> payload) {
     final unwrapped = unwrapPayload(payload);
     final sources = <Map<String, dynamic>>[
       unwrapped,
@@ -296,6 +298,10 @@ class CleaningRealtimeContract {
   }
 
   static Map<String, dynamic> _nestedBookingMap(Map<String, dynamic> payload) {
+    final cleaningBooking = _asStringMap(payload['cleaningBooking']);
+    if (cleaningBooking.isNotEmpty) return cleaningBooking;
+    final cleaningBookingSnake = _asStringMap(payload['cleaning_booking']);
+    if (cleaningBookingSnake.isNotEmpty) return cleaningBookingSnake;
     final cleaningOrder = _asStringMap(payload['cleaningOrder']);
     if (cleaningOrder.isNotEmpty) return cleaningOrder;
     return _asStringMap(payload['cleaning_order']);

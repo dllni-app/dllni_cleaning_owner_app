@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:common_package/common_package.dart';
-import 'package:common_package/helpers/shared_preferences_helper.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_worker_global_prompt_coordinator.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_team_models.dart';
@@ -15,49 +14,55 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   group('Cleaning worker booking model parsing', () {
-    test('parses worker status, counts, and assignments from snake/camel payload', () {
-      final item = FetchOrdersUsecaseModelDataItem.fromJson(<String, dynamic>{
-        'id': 123,
-        'status': CleaningBookingStatus.pending,
-        'worker_order_status': 'accepted_waiting_team',
-        'worker_order_status_label': 'بانتظار اكتمال الفريق',
-        'required_workers_count': 2,
-        'accepted_workers_count': 1,
-        'pending_workers_count': 1,
-        'basePrice': 100,
-        'travelFee': 20,
-        'addonsTotal': 15,
-        'totalPrice': 135,
-        'my_assignment': <String, dynamic>{
-          'workerId': 9,
-          'status': 'accepted',
-        },
-        'room_assignments': <Map<String, dynamic>>[
-          <String, dynamic>{
-            'id': 1,
-            'roomKey': 'bedroom_1',
-            'roomType': 'bedroom',
-            'roomTypeLabel': 'غرفة نوم',
-            'roomSize': 'large',
-            'roomSizeLabel': 'كبيرة',
-            'assignedWorkerId': 9,
-            'isAssignedToMe': true,
+    test(
+      'parses worker status, counts, and assignments from snake/camel payload',
+      () {
+        final item = FetchOrdersUsecaseModelDataItem.fromJson(<String, dynamic>{
+          'id': 123,
+          'status': CleaningBookingStatus.pending,
+          'worker_order_status': 'accepted_waiting_team',
+          'worker_order_status_label': 'بانتظار اكتمال الفريق',
+          'required_workers_count': 2,
+          'accepted_workers_count': 1,
+          'pending_workers_count': 1,
+          'basePrice': 100,
+          'travelFee': 20,
+          'addonsTotal': 15,
+          'totalPrice': 135,
+          'my_assignment': <String, dynamic>{
+            'workerId': 9,
+            'status': 'accepted',
           },
-        ],
-      });
+          'room_assignments': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'id': 1,
+              'roomKey': 'bedroom_1',
+              'roomType': 'bedroom',
+              'roomTypeLabel': 'غرفة نوم',
+              'roomSize': 'large',
+              'roomSizeLabel': 'كبيرة',
+              'assignedWorkerId': 9,
+              'isAssignedToMe': true,
+            },
+          ],
+        });
 
-      expect(item.workerOrderStatus, 'accepted_waiting_team');
-      expect(item.workerOrderStatusLabel, 'بانتظار اكتمال الفريق');
-      expect(item.requiredWorkersCount, 2);
-      expect(item.acceptedWorkersCount, 1);
-      expect(item.pendingWorkersCount, 1);
-      expect(item.effectiveWorkerStatus, CleaningWorkerOrderStatus.acceptedWaitingTeam);
-      expect(item.myAssignedRooms.length, 1);
-      expect(
-        assignedRoomLabel(item.myAssignedRooms.first, 0),
-        'غرفة نوم 1 - كبيرة',
-      );
-    });
+        expect(item.workerOrderStatus, 'accepted_waiting_team');
+        expect(item.workerOrderStatusLabel, 'بانتظار اكتمال الفريق');
+        expect(item.requiredWorkersCount, 2);
+        expect(item.acceptedWorkersCount, 1);
+        expect(item.pendingWorkersCount, 1);
+        expect(
+          item.effectiveWorkerStatus,
+          CleaningWorkerOrderStatus.acceptedWaitingTeam,
+        );
+        expect(item.myAssignedRooms.length, 1);
+        expect(
+          assignedRoomLabel(item.myAssignedRooms.first, 0),
+          'غرفة نوم 1 - كبيرة',
+        );
+      },
+    );
   });
 
   group('OrderLifecyclePolicy worker status mapping', () {
@@ -65,10 +70,14 @@ void main() {
       final order = FetchOrdersUsecaseModelDataItem(
         id: 1,
         status: CleaningBookingStatus.awaitingWorkerStartConfirmation,
-        workerOrderStatus: CleaningBookingStatus.awaitingWorkerStartConfirmation,
+        workerOrderStatus:
+            CleaningBookingStatus.awaitingWorkerStartConfirmation,
       );
 
-      expect(OrderLifecyclePolicy.isAwaitingWorkerStartConfirmation(order), isTrue);
+      expect(
+        OrderLifecyclePolicy.isAwaitingWorkerStartConfirmation(order),
+        isTrue,
+      );
       expect(OrderLifecyclePolicy.detailsStepFor(order), 2);
       expect(
         OrderLifecyclePolicy.statusLabel(order),
@@ -95,21 +104,30 @@ void main() {
       );
     });
 
-    test('does not allow accepting an already accepted pending order from worker_order_status', () {
-      final order = FetchOrdersUsecaseModelDataItem(
-        id: 2,
-        status: CleaningBookingStatus.pending,
-        workerOrderStatus: 'accepted_waiting_for_order_start',
-        requiredWorkersCount: 2,
-        acceptedWorkersCount: 1,
-        pendingWorkersCount: 1,
-      );
+    test(
+      'does not allow accepting an already accepted pending order from worker_order_status',
+      () {
+        final order = FetchOrdersUsecaseModelDataItem(
+          id: 2,
+          status: CleaningBookingStatus.pending,
+          workerOrderStatus: 'accepted_waiting_for_order_start',
+          requiredWorkersCount: 2,
+          acceptedWorkersCount: 1,
+          pendingWorkersCount: 1,
+        );
 
-      expect(order.effectiveWorkerStatus, CleaningWorkerOrderStatus.acceptedWaitingTeam);
-      expect(OrderLifecyclePolicy.hasCurrentWorkerAccepted(order), isTrue);
-      expect(OrderLifecyclePolicy.isAvailableNewOrderForCurrentWorker(order), isFalse);
-      expect(OrderLifecyclePolicy.canAcceptReject(order), isFalse);
-    });
+        expect(
+          order.effectiveWorkerStatus,
+          CleaningWorkerOrderStatus.acceptedWaitingTeam,
+        );
+        expect(OrderLifecyclePolicy.hasCurrentWorkerAccepted(order), isTrue);
+        expect(
+          OrderLifecyclePolicy.isAvailableNewOrderForCurrentWorker(order),
+          isFalse,
+        );
+        expect(OrderLifecyclePolicy.canAcceptReject(order), isFalse);
+      },
+    );
 
     test('does not allow accepting when my assignment is start approved', () {
       final order = FetchOrdersUsecaseModelDataItem(
@@ -129,7 +147,10 @@ void main() {
         workerOrderStatus: CleaningBookingStatus.pending,
       );
 
-      expect(OrderLifecyclePolicy.isAvailableNewOrderForCurrentWorker(order), isTrue);
+      expect(
+        OrderLifecyclePolicy.isAvailableNewOrderForCurrentWorker(order),
+        isTrue,
+      );
       expect(OrderLifecyclePolicy.canAcceptReject(order), isTrue);
     });
   });
@@ -179,68 +200,74 @@ void main() {
   });
 
   group('OrdersAcceptFlowPolicy', () {
-    test('keeps an accepted order in pending list when backend still returns pending', () {
-      final current = PaginationStateModel<FetchOrdersUsecaseModelDataItem>(
-        status: BlocStatus.success,
-        list: <FetchOrdersUsecaseModelDataItem>[
-          FetchOrdersUsecaseModelDataItem(
-            id: 20,
-            status: CleaningBookingStatus.pending,
-            workerOrderStatus: CleaningBookingStatus.pending,
-          ),
-        ],
-      );
-      final updated = FetchOrdersUsecaseModelDataItem(
-        id: 20,
-        status: CleaningBookingStatus.pending,
-        workerOrderStatus: 'accepted_waiting_for_order_start',
-      );
+    test(
+      'keeps an accepted order in pending list when backend still returns pending',
+      () {
+        final current = PaginationStateModel<FetchOrdersUsecaseModelDataItem>(
+          status: BlocStatus.success,
+          list: <FetchOrdersUsecaseModelDataItem>[
+            FetchOrdersUsecaseModelDataItem(
+              id: 20,
+              status: CleaningBookingStatus.pending,
+              workerOrderStatus: CleaningBookingStatus.pending,
+            ),
+          ],
+        );
+        final updated = FetchOrdersUsecaseModelDataItem(
+          id: 20,
+          status: CleaningBookingStatus.pending,
+          workerOrderStatus: 'accepted_waiting_for_order_start',
+        );
 
-      final next = OrdersAcceptFlowPolicy.applyAcceptSuccessToPendingList(
-        current: current,
-        bookingId: 20,
-        updatedOrder: updated,
-      );
-
-      expect(next.list.length, 1);
-      expect(next.list.first.id, 20);
-      expect(next.list.first.workerOrderStatus, 'accepted_waiting_for_order_start');
-      expect(
-        OrderLifecyclePolicy.canAcceptReject(next.list.first),
-        isFalse,
-      );
-    });
-
-    test('removes accepted order from pending list when backend moves to worker_assigned', () {
-      final current = PaginationStateModel<FetchOrdersUsecaseModelDataItem>(
-        status: BlocStatus.success,
-        list: <FetchOrdersUsecaseModelDataItem>[
-          FetchOrdersUsecaseModelDataItem(
-            id: 21,
-            status: CleaningBookingStatus.pending,
-            workerOrderStatus: CleaningBookingStatus.pending,
-          ),
-        ],
-      );
-      final updated = FetchOrdersUsecaseModelDataItem(
-        id: 21,
-        status: CleaningBookingStatus.workerAssigned,
-        workerOrderStatus: 'accepted_waiting_for_order_start',
-      );
-
-      final next = OrdersAcceptFlowPolicy.applyAcceptSuccessToPendingList(
-        current: current,
-        bookingId: 21,
-        updatedOrder: updated,
-      );
-
-      expect(next.list, isEmpty);
-      expect(
-        OrdersAcceptFlowPolicy.shouldRefreshWorkerAssignedList(
+        final next = OrdersAcceptFlowPolicy.applyAcceptSuccessToPendingList(
+          current: current,
+          bookingId: 20,
           updatedOrder: updated,
-        ),
-        isTrue,
-      );
-    });
+        );
+
+        expect(next.list.length, 1);
+        expect(next.list.first.id, 20);
+        expect(
+          next.list.first.workerOrderStatus,
+          'accepted_waiting_for_order_start',
+        );
+        expect(OrderLifecyclePolicy.canAcceptReject(next.list.first), isFalse);
+      },
+    );
+
+    test(
+      'removes accepted order from pending list when backend moves to worker_assigned',
+      () {
+        final current = PaginationStateModel<FetchOrdersUsecaseModelDataItem>(
+          status: BlocStatus.success,
+          list: <FetchOrdersUsecaseModelDataItem>[
+            FetchOrdersUsecaseModelDataItem(
+              id: 21,
+              status: CleaningBookingStatus.pending,
+              workerOrderStatus: CleaningBookingStatus.pending,
+            ),
+          ],
+        );
+        final updated = FetchOrdersUsecaseModelDataItem(
+          id: 21,
+          status: CleaningBookingStatus.workerAssigned,
+          workerOrderStatus: 'accepted_waiting_for_order_start',
+        );
+
+        final next = OrdersAcceptFlowPolicy.applyAcceptSuccessToPendingList(
+          current: current,
+          bookingId: 21,
+          updatedOrder: updated,
+        );
+
+        expect(next.list, isEmpty);
+        expect(
+          OrdersAcceptFlowPolicy.shouldRefreshWorkerAssignedList(
+            updatedOrder: updated,
+          ),
+          isTrue,
+        );
+      },
+    );
   });
 }

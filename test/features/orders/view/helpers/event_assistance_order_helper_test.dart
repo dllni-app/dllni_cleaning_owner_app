@@ -57,8 +57,8 @@ void main() {
       expect(body, <String, dynamic>{
         'emergency_type': 'severe_conflict',
         'message': 'Need urgent help',
-        'lat': 33.5138,
-        'lng': 36.2765,
+        'latitude': 33.5138,
+        'longitude': 36.2765,
       });
     });
 

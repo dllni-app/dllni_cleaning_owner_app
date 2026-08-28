@@ -173,8 +173,9 @@ class CleaningWorkerGlobalPromptCoordinator {
     if (workerId == null || workerId <= 0) return;
     if (!forceRebind &&
         _listeningWorkerId == workerId &&
-        _workerListenerHandle != null)
+        _workerListenerHandle != null) {
       return;
+    }
 
     await _detachWorkerListener();
     await _closePromptBloc();
@@ -317,7 +318,9 @@ class CleaningWorkerGlobalPromptCoordinator {
     List<FetchOrdersUsecaseModelDataItem> orders,
   ) {
     return orders
-        .where(OrderLifecyclePolicy.isDedicatedAvailableNewOrderForCurrentWorker)
+        .where(
+          OrderLifecyclePolicy.isDedicatedAvailableNewOrderForCurrentWorker,
+        )
         .map((order) => order.id)
         .whereType<int>()
         .toList(growable: false);
@@ -514,8 +517,9 @@ class CleaningWorkerGlobalPromptCoordinator {
       payload: payload,
     );
     if (decisionKey != null &&
-        _handledCompletionDecisionKeys.contains(decisionKey))
+        _handledCompletionDecisionKeys.contains(decisionKey)) {
       return;
+    }
 
     var handled = false;
     if (decision == 'approved') {
@@ -560,8 +564,9 @@ class CleaningWorkerGlobalPromptCoordinator {
       );
     }
 
-    if (handled && decisionKey != null)
+    if (handled && decisionKey != null) {
       _handledCompletionDecisionKeys.add(decisionKey);
+    }
   }
 
   Future<bool> _openExtensionPromptForWarning({
@@ -784,10 +789,12 @@ class CleaningWorkerGlobalPromptCoordinator {
     response.fold((_) => null, (result) {
       final details = result.data;
       if (details == null) return;
-      if (resolvedCustomerName?.trim().isEmpty ?? true)
+      if (resolvedCustomerName?.trim().isEmpty ?? true) {
         resolvedCustomerName = details.customer?.name;
-      if (resolvedPaymentMethod?.trim().isEmpty ?? true)
+      }
+      if (resolvedPaymentMethod?.trim().isEmpty ?? true) {
         resolvedPaymentMethod = 'cash_on_delivery';
+      }
     });
 
     return _ExtensionPromptEnrichment(

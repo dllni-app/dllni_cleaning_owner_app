@@ -137,7 +137,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
 
   EventTransformer<T> droppableProMax<T extends EventWithReload>() {
     return (events, mapper) {
-      return events.transform(ExhaustMapStreamTransformer(maper: mapper));
+      return events.transform(exhaustMapStreamTransformer(maper: mapper));
     };
   }
 

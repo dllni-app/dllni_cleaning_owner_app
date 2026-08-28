@@ -21,10 +21,7 @@ class SetOrdersListFilterEvent extends OrdersEvent {
   final String status;
   final String? scheduledDate;
 
-  SetOrdersListFilterEvent({
-    required this.status,
-    this.scheduledDate,
-  });
+  SetOrdersListFilterEvent({required this.status, this.scheduledDate});
 }
 
 class FetchOrderDetailsUsecaseEvent extends OrdersEvent {
@@ -39,7 +36,11 @@ class AcceptOrderUsecaseEvent extends OrdersEvent {
   final int index;
   final BuildContext context;
 
-  AcceptOrderUsecaseEvent({required this.params, required this.index, required this.context});
+  AcceptOrderUsecaseEvent({
+    required this.params,
+    required this.index,
+    required this.context,
+  });
 }
 
 class StartTravelUsecaseEvent extends OrdersEvent {
@@ -175,7 +176,7 @@ class SyncPendingOrderFromRealtimeEvent extends OrdersEvent {
   });
 }
 
-StreamTransformer<T, T> ExhaustMapStreamTransformer<T>({
+StreamTransformer<T, T> exhaustMapStreamTransformer<T>({
   required Stream<T> Function(T event) maper,
 }) {
   return StreamTransformer<T, T>.fromBind((events) {

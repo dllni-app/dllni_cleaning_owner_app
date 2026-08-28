@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:common_package/common_package.dart';
 import 'package:dio/dio.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_realtime_contract.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
@@ -7,6 +10,7 @@ import 'package:dllni_cleaninig_owner_app/core/realtime/pusher_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pusher_channels_flutter/pusher_channels_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   group('CleaningWorkerGlobalPromptCoordinator', () {
@@ -361,6 +365,13 @@ void main() {
     test(
       'pollPendingOrderPrompts opens first pending dedicated order',
       () async {
+        const currentWorkerId = 99;
+        SharedPreferences.setMockInitialValues({
+          'user': jsonEncode({
+            'data': {'id': currentWorkerId},
+          }),
+        });
+        await SharedPreferencesHelper.init();
         final shown = <WorkerPendingOrderPromptData>[];
         final coordinator =
             CleaningWorkerGlobalPromptCoordinator(
@@ -371,6 +382,7 @@ void main() {
                       FetchOrdersUsecaseModelDataItem(
                         id: 321,
                         status: CleaningBookingStatus.pending,
+                        preferredWorkerId: currentWorkerId,
                       ),
                     ],
                 pendingOrderPromptPresenter: (prompt) async {
