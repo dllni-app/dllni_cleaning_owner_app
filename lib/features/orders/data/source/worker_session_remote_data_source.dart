@@ -229,7 +229,7 @@ class WorkerSessionRemoteDataSource with HandlingApiManager {
       '/api/v1/cleaning-bookings/$bookingId/sessions/$sessionId/complete',
       data: <String, dynamic>{
         if (completionMessage != null && completionMessage.trim().isNotEmpty)
-          'completionMessage': completionMessage.trim(),
+          'message': completionMessage.trim(),
       },
     );
   }
