@@ -1,0 +1,49 @@
+name: Cleaning Suite Worker
+
+on:
+  push:
+    branches:
+      - feature/cleaning-suite-main
+    paths:
+      - 'lib/features/orders/data/models/worker_booking_schedule_model.dart'
+      - 'lib/features/orders/data/source/worker_session_remote_data_source.dart'
+      - 'lib/features/orders/view/widgets/accept_order_bottom_sheet.dart'
+      - '.github/workflows/cleaning-suite.yml'
+  pull_request:
+    paths:
+      - 'lib/features/orders/data/models/worker_booking_schedule_model.dart'
+      - 'lib/features/orders/data/source/worker_session_remote_data_source.dart'
+      - 'lib/features/orders/view/widgets/accept_order_bottom_sheet.dart'
+      - '.github/workflows/cleaning-suite.yml'
+
+jobs:
+  multi-session-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Check formatting
+        run: |
+          dart format --output=none --set-exit-if-changed \
+            lib/features/orders/data/models/worker_booking_schedule_model.dart \
+            lib/features/orders/data/source/worker_session_remote_data_source.dart \
+            lib/features/orders/view/widgets/accept_order_bottom_sheet.dart
+
+      - name: Analyze multi-session sources
+        run: |
+          flutter analyze \
+            lib/features/orders/data/models/worker_booking_schedule_model.dart \
+            lib/features/orders/data/source/worker_session_remote_data_source.dart \
+            lib/features/orders/view/widgets/accept_order_bottom_sheet.dart
