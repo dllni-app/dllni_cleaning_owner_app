@@ -309,9 +309,9 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                         child: FilledButton(
                           onPressed: selectedIds.isEmpty
                               ? null
-                              : () => Navigator.of(sheetContext).pop(
-                                    selectedIds.toList(growable: false),
-                                  ),
+                              : () => Navigator.of(
+                                  sheetContext,
+                                ).pop(selectedIds.toList(growable: false)),
                           child: Text(
                             selectedIds.isEmpty
                                 ? 'اختر جلسة واحدة على الأقل'
@@ -340,10 +340,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
     setState(() => _sessionAcceptanceLoading = true);
     try {
       final result = await getIt<WorkerSessionRemoteDataSource>()
-          .acceptSelectedSessions(
-            bookingId: bookingId,
-            sessionIds: sessionIds,
-          );
+          .acceptSelectedSessions(bookingId: bookingId, sessionIds: sessionIds);
       if (!mounted) return;
 
       if (result.acceptedSessionIds.isEmpty) {
@@ -728,11 +725,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       return _detailCard(context, [
         _orderInfoRow(label: 'يوم الخدمة', value: _formatWeekday()),
         _orderInfoRow(label: 'التاريخ', value: _formatDate()),
-        _orderInfoRow(
-          label: 'الوقت',
-          value: _formatTime(),
-          withDivider: false,
-        ),
+        _orderInfoRow(label: 'الوقت', value: _formatTime(), withDivider: false),
       ]);
     }
 
@@ -1012,10 +1005,9 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                               Expanded(
                                 flex: 2,
                                 child: FilledButton(
-                                  onPressed:
-                                      accepting || !_canConfirmAcceptance
-                                          ? null
-                                          : _acceptAllSessions,
+                                  onPressed: accepting || !_canConfirmAcceptance
+                                      ? null
+                                      : _acceptAllSessions,
                                   child: accepting
                                       ? SizedBox(
                                           width: 18,

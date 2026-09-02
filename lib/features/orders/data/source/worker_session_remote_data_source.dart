@@ -46,7 +46,8 @@ class WorkerSessionSecurityCodeModel {
       sessionId: _toInt(data['sessionId'] ?? data['session_id']),
       securityCode:
           data['securityCode']?.toString() ?? data['security_code']?.toString(),
-      expiresAt: data['expiresAt']?.toString() ?? data['expires_at']?.toString(),
+      expiresAt:
+          data['expiresAt']?.toString() ?? data['expires_at']?.toString(),
     );
   }
 
@@ -78,10 +79,12 @@ class WorkerSessionAcceptanceRejection {
     final value = _map(json);
     return WorkerSessionAcceptanceRejection(
       sessionId: _toInt(value['sessionId'] ?? value['session_id']) ?? 0,
-      reasonCode: value['reasonCode']?.toString() ??
+      reasonCode:
+          value['reasonCode']?.toString() ??
           value['reason_code']?.toString() ??
           'acceptance_failed',
-      message: value['message']?.toString() ??
+      message:
+          value['message']?.toString() ??
           'تعذر قبول هذه الجلسة. حدّث الطلب وحاول من جديد.',
     );
   }
@@ -113,15 +116,12 @@ class WorkerSessionAcceptanceResult {
         acceptance['allAccepted'] ?? acceptance['all_accepted'],
       ),
       acceptedSessionIds: acceptedRaw is List
-          ? acceptedRaw
-              .map(_toInt)
-              .whereType<int>()
-              .toList(growable: false)
+          ? acceptedRaw.map(_toInt).whereType<int>().toList(growable: false)
           : const <int>[],
       rejected: rejectedRaw is List
           ? rejectedRaw
-              .map(WorkerSessionAcceptanceRejection.fromJson)
-              .toList(growable: false)
+                .map(WorkerSessionAcceptanceRejection.fromJson)
+                .toList(growable: false)
           : const <WorkerSessionAcceptanceRejection>[],
     );
   }
@@ -183,10 +183,7 @@ class WorkerSessionRemoteDataSource with HandlingApiManager {
   }) {
     return _post(
       '/api/v1/cleaning-bookings/$bookingId/sessions/$sessionId/location',
-      data: <String, dynamic>{
-        'latitude': latitude,
-        'longitude': longitude,
-      },
+      data: <String, dynamic>{'latitude': latitude, 'longitude': longitude},
     );
   }
 
@@ -208,8 +205,9 @@ class WorkerSessionRemoteDataSource with HandlingApiManager {
         endPoint:
             '/api/v1/cleaning-bookings/$bookingId/sessions/$sessionId/security-code',
       ),
-      jsonConvert: (json) => WorkerSessionSecurityCodeModel.fromJson(json)
-          .withRequestContext(bookingId: bookingId, sessionId: sessionId),
+      jsonConvert: (json) => WorkerSessionSecurityCodeModel.fromJson(
+        json,
+      ).withRequestContext(bookingId: bookingId, sessionId: sessionId),
     );
   }
 
