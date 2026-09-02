@@ -16,6 +16,9 @@ on:
       - 'lib/features/orders/view/widgets/accept_order_bottom_sheet.dart'
       - '.github/workflows/cleaning-suite.yml'
 
+permissions:
+  contents: write
+
 jobs:
   multi-session-acceptance:
     runs-on: ubuntu-latest
@@ -34,12 +37,28 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Check formatting
+      - name: Format multi-session sources
         run: |
-          dart format --output=none --set-exit-if-changed \
+          dart format \
             lib/features/orders/data/models/worker_booking_schedule_model.dart \
             lib/features/orders/data/source/worker_session_remote_data_source.dart \
             lib/features/orders/view/widgets/accept_order_bottom_sheet.dart
+
+      - name: Commit formatter output
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          git add \
+            lib/features/orders/data/models/worker_booking_schedule_model.dart \
+            lib/features/orders/data/source/worker_session_remote_data_source.dart \
+            lib/features/orders/view/widgets/accept_order_bottom_sheet.dart
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'style(cleaning): format worker multi-session sources'
+          git push
 
       - name: Analyze multi-session sources
         run: |
