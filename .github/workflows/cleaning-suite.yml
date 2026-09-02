@@ -5,21 +5,31 @@ on:
     branches:
       - feature/cleaning-suite-main
     paths:
+      - 'lib/core/di/injection.dart'
+      - 'lib/core/location/location_reporter.dart'
+      - 'lib/core/location/worker_location_tracker.dart'
       - 'lib/features/orders/data/models/worker_booking_schedule_model.dart'
       - 'lib/features/orders/data/source/worker_session_remote_data_source.dart'
       - 'lib/features/orders/view/widgets/accept_order_bottom_sheet.dart'
+      - 'lib/features/orders/view/widgets/order_details/multi_day_order_details_body.dart'
+      - 'test/features/orders/data/models/worker_booking_schedule_model_test.dart'
       - '.github/workflows/cleaning-suite.yml'
   pull_request:
     paths:
+      - 'lib/core/di/injection.dart'
+      - 'lib/core/location/location_reporter.dart'
+      - 'lib/core/location/worker_location_tracker.dart'
       - 'lib/features/orders/data/models/worker_booking_schedule_model.dart'
       - 'lib/features/orders/data/source/worker_session_remote_data_source.dart'
       - 'lib/features/orders/view/widgets/accept_order_bottom_sheet.dart'
+      - 'lib/features/orders/view/widgets/order_details/multi_day_order_details_body.dart'
+      - 'test/features/orders/data/models/worker_booking_schedule_model_test.dart'
       - '.github/workflows/cleaning-suite.yml'
 
 jobs:
-  multi-session-acceptance:
+  multi-session-lifecycle:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
@@ -37,13 +47,27 @@ jobs:
       - name: Check formatting
         run: |
           dart format --output=none --set-exit-if-changed \
+            lib/core/di/injection.dart \
+            lib/core/location/location_reporter.dart \
+            lib/core/location/worker_location_tracker.dart \
             lib/features/orders/data/models/worker_booking_schedule_model.dart \
             lib/features/orders/data/source/worker_session_remote_data_source.dart \
-            lib/features/orders/view/widgets/accept_order_bottom_sheet.dart
+            lib/features/orders/view/widgets/accept_order_bottom_sheet.dart \
+            lib/features/orders/view/widgets/order_details/multi_day_order_details_body.dart \
+            test/features/orders/data/models/worker_booking_schedule_model_test.dart
 
-      - name: Analyze multi-session sources
+      - name: Analyze multi-session lifecycle sources
         run: |
           flutter analyze \
+            lib/core/di/injection.dart \
+            lib/core/location/location_reporter.dart \
+            lib/core/location/worker_location_tracker.dart \
             lib/features/orders/data/models/worker_booking_schedule_model.dart \
             lib/features/orders/data/source/worker_session_remote_data_source.dart \
-            lib/features/orders/view/widgets/accept_order_bottom_sheet.dart
+            lib/features/orders/view/widgets/accept_order_bottom_sheet.dart \
+            lib/features/orders/view/widgets/order_details/multi_day_order_details_body.dart
+
+      - name: Run multi-session model tests
+        run: |
+          flutter test \
+            test/features/orders/data/models/worker_booking_schedule_model_test.dart
