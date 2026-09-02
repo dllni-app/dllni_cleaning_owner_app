@@ -183,9 +183,7 @@ class WorkerSessionPricingModel {
         json['cancellationFee'] ?? json['cancellation_fee'],
       ),
       totalPrice: _double(json['totalPrice'] ?? json['total_price']),
-      isPricingFinal: _bool(
-        json['isPricingFinal'] ?? json['is_pricing_final'],
-      ),
+      isPricingFinal: _bool(json['isPricingFinal'] ?? json['is_pricing_final']),
       currency: _string(json['currency']),
     );
   }
@@ -293,7 +291,8 @@ class WorkerBookingSessionModel {
         json['myAssignment'] ??
         json['my_assignment'] ??
         json['assignment'];
-    final assignmentsRaw = json['workerAssignments'] ?? json['worker_assignments'];
+    final assignmentsRaw =
+        json['workerAssignments'] ?? json['worker_assignments'];
     final financialRaw = json['financial'] ?? json['workerFinancial'];
 
     return WorkerBookingSessionModel(
@@ -301,7 +300,8 @@ class WorkerBookingSessionModel {
       sequence: _int(json['sequence']) ?? 1,
       date: DateTime.tryParse(_string(json['date']) ?? ''),
       time: _string(json['time']),
-      hours: _double(
+      hours:
+          _double(
             json['hours'] ?? json['durationHours'] ?? json['duration_hours'],
           ) ??
           0,
@@ -309,14 +309,13 @@ class WorkerBookingSessionModel {
       statusLabel: _string(json['statusLabel'] ?? json['status_label']),
       isToday: _bool(json['isToday'] ?? json['is_today']) ?? false,
       isPast: _bool(json['isPast'] ?? json['is_past']) ?? false,
-      canStartTravel: _bool(
-            json['canStartTravel'] ?? json['can_start_travel'],
-          ) ??
+      canStartTravel:
+          _bool(json['canStartTravel'] ?? json['can_start_travel']) ??
           _bool(json['canStart'] ?? json['can_start']) ??
           false,
       canArrive: _bool(json['canArrive'] ?? json['can_arrive']) ?? false,
-      canStartWork: _bool(json['canStartWork'] ?? json['can_start_work']) ??
-          false,
+      canStartWork:
+          _bool(json['canStartWork'] ?? json['can_start_work']) ?? false,
       canComplete: _bool(json['canComplete'] ?? json['can_complete']) ?? false,
       canExtend: _bool(json['canExtend'] ?? json['can_extend']) ?? false,
       canCancel: _bool(json['canCancel'] ?? json['can_cancel']) ?? false,
@@ -346,9 +345,11 @@ class WorkerBookingSessionModel {
           : null,
       workerAssignments: assignmentsRaw is List
           ? assignmentsRaw
-              .whereType<Map>()
-              .map((item) => WorkerSessionAssignmentModel.fromJson(_map(item)))
-              .toList(growable: false)
+                .whereType<Map>()
+                .map(
+                  (item) => WorkerSessionAssignmentModel.fromJson(_map(item)),
+                )
+                .toList(growable: false)
           : const <WorkerSessionAssignmentModel>[],
       financial: financialRaw is Map
           ? WorkerSessionFinancialModel.fromJson(_map(financialRaw))
@@ -360,9 +361,11 @@ class WorkerBookingSessionModel {
   bool get canStart => canStartTravel;
   bool get isCompleted => status == 'completed';
   bool get isCancelled => status == 'cancelled';
-  bool get isTerminal => isCompleted || isCancelled || status == 'under_dispute';
+  bool get isTerminal =>
+      isCompleted || isCancelled || status == 'under_dispute';
   bool get isInProgress => status == 'in_progress';
-  bool get isAwaitingStartVerification => status == 'awaiting_start_verification';
+  bool get isAwaitingStartVerification =>
+      status == 'awaiting_start_verification';
   bool get isAwaitingWorkerStartConfirmation =>
       status == 'awaiting_worker_start_confirmation';
   bool get isAwaitingCustomerCompletion =>
@@ -398,29 +401,29 @@ class WorkerBookingScheduleModel {
     final rawSessions = json['sessions'];
     final sessions = rawSessions is List
         ? rawSessions
-            .whereType<Map>()
-            .map((item) => WorkerBookingSessionModel.fromJson(_map(item)))
-            .toList(growable: false)
+              .whereType<Map>()
+              .map((item) => WorkerBookingSessionModel.fromJson(_map(item)))
+              .toList(growable: false)
         : const <WorkerBookingSessionModel>[];
     final rawNext = json['nextSession'] ?? json['next_session'];
 
     return WorkerBookingScheduleModel(
-      mode: _string(json['mode']) ??
+      mode:
+          _string(json['mode']) ??
           (sessions.length > 1 ? 'multi_day' : 'single_day'),
-      daysCount: _int(json['daysCount'] ?? json['days_count']) ?? sessions.length,
-      completedDaysCount: _int(
-            json['completedDaysCount'] ?? json['completed_days_count'],
-          ) ??
+      daysCount:
+          _int(json['daysCount'] ?? json['days_count']) ?? sessions.length,
+      completedDaysCount:
+          _int(json['completedDaysCount'] ?? json['completed_days_count']) ??
           sessions.where((item) => item.isCompleted).length,
-      cancelledDaysCount: _int(
-            json['cancelledDaysCount'] ?? json['cancelled_days_count'],
-          ) ??
+      cancelledDaysCount:
+          _int(json['cancelledDaysCount'] ?? json['cancelled_days_count']) ??
           sessions.where((item) => item.isCancelled).length,
-      remainingDaysCount: _int(
-            json['remainingDaysCount'] ?? json['remaining_days_count'],
-          ) ??
+      remainingDaysCount:
+          _int(json['remainingDaysCount'] ?? json['remaining_days_count']) ??
           sessions.where((item) => !item.isTerminal).length,
-      totalHours: _double(json['totalHours'] ?? json['total_hours']) ??
+      totalHours:
+          _double(json['totalHours'] ?? json['total_hours']) ??
           sessions
               .where((item) => !item.isCancelled)
               .fold<double>(0, (sum, item) => sum + item.hours),
@@ -483,7 +486,9 @@ class WorkerMultiDayBookingEnvelope {
   }
 }
 
-WorkerMultiDayBookingEnvelope workerMultiDayBookingEnvelopeFromJson(dynamic json) {
+WorkerMultiDayBookingEnvelope workerMultiDayBookingEnvelopeFromJson(
+  dynamic json,
+) {
   if (json is String) {
     return WorkerMultiDayBookingEnvelope.fromJson(_map(jsonDecode(json)));
   }
