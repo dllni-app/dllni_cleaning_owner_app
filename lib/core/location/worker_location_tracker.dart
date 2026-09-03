@@ -104,21 +104,14 @@ class WorkerLocationTracker {
 
     _iosPositionSub = Geolocator.getPositionStream(locationSettings: settings)
         .listen(
-          (position) => _handlePosition(
-            position,
-            bookingId,
-            sessionId: sessionId,
-          ),
+          (position) =>
+              _handlePosition(position, bookingId, sessionId: sessionId),
           onError: (_) {},
           cancelOnError: false,
         );
   }
 
-  void _handlePosition(
-    Position position,
-    int bookingId, {
-    int? sessionId,
-  }) {
+  void _handlePosition(Position position, int bookingId, {int? sessionId}) {
     if (_activeBookingId != bookingId || _activeSessionId != sessionId) return;
     final now = DateTime.now();
     if (_lastSentAt != null &&

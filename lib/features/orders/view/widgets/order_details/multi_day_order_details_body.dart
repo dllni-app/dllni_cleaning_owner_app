@@ -192,10 +192,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     });
     try {
       final result = await getIt<WorkerSessionRemoteDataSource>()
-          .fetchSecurityCode(
-            bookingId: bookingId,
-            sessionId: sessionId,
-          );
+          .fetchSecurityCode(bookingId: bookingId, sessionId: sessionId);
       if (!mounted) return;
       setState(() => _securityCode = result);
     } catch (error) {
@@ -379,9 +376,10 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     if (fromApi != null && fromApi.isNotEmpty) return fromApi;
     return switch (session.status) {
       'scheduled' => 'مجدول',
-      'worker_assigned' => session.startedTravelAt != null
-          ? 'في الطريق إلى العميل'
-          : 'جاهز للتنفيذ',
+      'worker_assigned' =>
+        session.startedTravelAt != null
+            ? 'في الطريق إلى العميل'
+            : 'جاهز للتنفيذ',
       'awaiting_start_verification' => 'بانتظار تحقق العميل',
       'awaiting_worker_start_confirmation' => 'بانتظار بدء العمال',
       'in_progress' => 'قيد التنفيذ',
@@ -397,9 +395,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
   Duration? _remaining(WorkerBookingSessionModel session) {
     final started = DateTime.tryParse(session.workStartedAt ?? '');
     if (started == null || session.hours <= 0) return null;
-    final end = started.add(
-      Duration(minutes: (session.hours * 60).round()),
-    );
+    final end = started.add(Duration(minutes: (session.hours * 60).round()));
     final remaining = end.difference(_now);
     return remaining.isNegative ? Duration.zero : remaining;
   }
@@ -433,8 +429,8 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
             avatar: session.isCompleted
                 ? const Icon(Icons.check_circle, size: 18)
                 : session.isCancelled
-                    ? const Icon(Icons.cancel_outlined, size: 18)
-                    : null,
+                ? const Icon(Icons.cancel_outlined, size: 18)
+                : null,
           );
         },
       ),
@@ -614,7 +610,8 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
             const SizedBox(height: 8),
             _InfoBanner(
               icon: Icons.event_available_outlined,
-              text: 'موعدك القادم: ${_dateLabel(next)}، ${_timeLabel(next.time)}.',
+              text:
+                  'موعدك القادم: ${_dateLabel(next)}، ${_timeLabel(next.time)}.',
             ),
           ],
         ],
