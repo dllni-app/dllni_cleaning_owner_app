@@ -59,9 +59,8 @@ jobs:
       - name: Run worker session tests
         run: flutter test test/features/orders/data/models/worker_booking_schedule_model_test.dart
 
-      - name: Restore check-only CI and commit worker UI
+      - name: Commit worker UI
         run: |
-          git checkout 76154eb642b94904cf3569ec024eab3f2b5e6e3f -- .github/workflows/cleaning-suite.yml
           git rm .github/scripts/finalize_event_phase_one_ui.py
           git add -A
           git config user.name 'github-actions[bot]'
