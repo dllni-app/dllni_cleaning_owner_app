@@ -303,7 +303,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
         bookingId: bookingId,
         sessionId: sessionId,
         data: <String, dynamic>{
-          'emergency_type': 'other',
+          'emergency_type': 'safety_threat',
           'message': message.trim(),
         },
       );
