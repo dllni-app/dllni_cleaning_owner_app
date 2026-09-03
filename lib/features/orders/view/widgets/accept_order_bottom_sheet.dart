@@ -786,7 +786,9 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
             border: Border.all(color: const Color(0xffBFDBFE)),
           ),
           child: AppText.bodySmall(
-            'يمكنك قبول جميع الجلسات، أو تحديد الجلسات التي تستطيع تنفيذها فقط. الجلسات التي لا تقبلها تبقى متاحة لعمال مؤهلين آخرين.',
+            _isEventAssistance
+                ? 'هذه المناسبة تتطلب الالتزام بجميع الأيام. لن يتم قبول الطلب إذا كان لديك تعارض في أي يوم.'
+                : 'يمكنك قبول جميع الجلسات، أو تحديد الجلسات التي تستطيع تنفيذها فقط. الجلسات التي لا تقبلها تبقى متاحة لعمال مؤهلين آخرين.',
             fontWeight: FontWeight.w800,
             color: const Color(0xff1E3A8A),
             textAlign: TextAlign.start,
@@ -856,7 +858,9 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                             textAlign: TextAlign.start,
                           ),
                           AppText.bodySmall(
-                            _isMultiSession
+                            _isEventAssistance && _isMultiSession
+                                ? 'راجع جميع أيام المناسبة؛ القبول يعني الالتزام بها جميعاً'
+                                : _isMultiSession
                                 ? 'راجع جميع الجلسات وحدد نطاق التزامك قبل القبول'
                                 : 'يرجى تأكيد تفاصيل الطلب قبل القبول',
                             color: _mutedTextColor,
@@ -1017,24 +1021,30 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                                             color: context.onPrimary,
                                           ),
                                         )
-                                      : const Text('قبول جميع الجلسات'),
+                                      : Text(
+                                          _isEventAssistance
+                                              ? 'قبول جميع أيام المناسبة'
+                                              : 'قبول جميع الجلسات',
+                                        ),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 10),
-                          SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton.icon(
-                              onPressed: accepting || !_canConfirmAcceptance
-                                  ? null
-                                  : _showSelectedSessionsPicker,
-                              icon: const Icon(Icons.checklist_rtl),
-                              label: const Text(
-                                'تحديد الجلسات التي يمكنني قبولها',
+                          if (!_isEventAssistance) ...[
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: accepting || !_canConfirmAcceptance
+                                    ? null
+                                    : _showSelectedSessionsPicker,
+                                icon: const Icon(Icons.checklist_rtl),
+                                label: const Text(
+                                  'تحديد الجلسات التي يمكنني قبولها',
+                                ),
                               ),
                             ),
-                          ),
+                          ],
                         ],
                       )
                     : Row(
