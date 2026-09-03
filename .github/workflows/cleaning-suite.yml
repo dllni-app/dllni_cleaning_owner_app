@@ -5,24 +5,35 @@ on:
     branches:
       - feature/cleaning-suite-main
     paths:
+      - 'lib/core/di/injection.dart'
+      - 'lib/core/location/location_reporter.dart'
+      - 'lib/core/location/worker_location_tracker.dart'
+      - 'lib/features/orders/data/models/worker_booking_schedule_model.dart'
+      - 'lib/features/orders/data/source/worker_session_remote_data_source.dart'
+      - 'lib/features/orders/view/widgets/accept_order_bottom_sheet.dart'
+      - 'lib/features/orders/view/widgets/order_details/multi_day_order_details_body.dart'
+      - 'test/features/orders/data/models/worker_booking_schedule_model_test.dart'
+      - '.github/workflows/cleaning-suite.yml'
+  pull_request:
+    paths:
+      - 'lib/core/di/injection.dart'
+      - 'lib/core/location/location_reporter.dart'
+      - 'lib/core/location/worker_location_tracker.dart'
+      - 'lib/features/orders/data/models/worker_booking_schedule_model.dart'
+      - 'lib/features/orders/data/source/worker_session_remote_data_source.dart'
+      - 'lib/features/orders/view/widgets/accept_order_bottom_sheet.dart'
+      - 'lib/features/orders/view/widgets/order_details/multi_day_order_details_body.dart'
+      - 'test/features/orders/data/models/worker_booking_schedule_model_test.dart'
       - '.github/workflows/cleaning-suite.yml'
 
-permissions:
-  contents: write
-
 jobs:
-  event-phase-one-ui:
+  multi-session-lifecycle:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Apply worker event UI patch
-        run: python3 .github/scripts/finalize_event_phase_one_ui.py
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -33,9 +44,9 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Format worker lifecycle sources
+      - name: Check formatting
         run: |
-          dart format \
+          dart format --output=none --set-exit-if-changed \
             lib/core/di/injection.dart \
             lib/core/location/location_reporter.dart \
             lib/core/location/worker_location_tracker.dart \
@@ -45,7 +56,7 @@ jobs:
             lib/features/orders/view/widgets/order_details/multi_day_order_details_body.dart \
             test/features/orders/data/models/worker_booking_schedule_model_test.dart
 
-      - name: Analyze worker lifecycle
+      - name: Analyze multi-session lifecycle sources
         run: |
           flutter analyze \
             lib/core/di/injection.dart \
@@ -56,14 +67,7 @@ jobs:
             lib/features/orders/view/widgets/accept_order_bottom_sheet.dart \
             lib/features/orders/view/widgets/order_details/multi_day_order_details_body.dart
 
-      - name: Run worker session tests
-        run: flutter test test/features/orders/data/models/worker_booking_schedule_model_test.dart
-
-      - name: Commit worker UI
+      - name: Run multi-session model tests
         run: |
-          git rm .github/scripts/finalize_event_phase_one_ui.py
-          git add -A
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'fix(cleaning): require all event days in worker acceptance UI'
-          git push
+          flutter test \
+            test/features/orders/data/models/worker_booking_schedule_model_test.dart
