@@ -18,6 +18,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Apply worker event UI patch
         run: python3 .github/scripts/finalize_event_phase_one_ui.py
