@@ -1,6 +1,7 @@
 name: Cleaning Suite Worker
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - feature/cleaning-suite-dev
