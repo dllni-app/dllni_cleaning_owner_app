@@ -4,12 +4,14 @@ on:
   push:
     branches:
       - feature/cleaning-suite-main
+      - feature/cleaning-suite-dev
     paths:
       - 'lib/core/di/injection.dart'
       - 'lib/core/location/location_reporter.dart'
       - 'lib/core/location/worker_location_tracker.dart'
       - 'lib/features/orders/data/models/worker_booking_schedule_model.dart'
       - 'lib/features/orders/data/source/worker_session_remote_data_source.dart'
+      - 'lib/features/orders/view/screens/order_details_screen.dart'
       - 'lib/features/orders/view/widgets/accept_order_bottom_sheet.dart'
       - 'lib/features/orders/view/widgets/order_details/multi_day_order_details_body.dart'
       - 'test/features/orders/data/models/worker_booking_schedule_model_test.dart'
@@ -21,10 +23,14 @@ on:
       - 'lib/core/location/worker_location_tracker.dart'
       - 'lib/features/orders/data/models/worker_booking_schedule_model.dart'
       - 'lib/features/orders/data/source/worker_session_remote_data_source.dart'
+      - 'lib/features/orders/view/screens/order_details_screen.dart'
       - 'lib/features/orders/view/widgets/accept_order_bottom_sheet.dart'
       - 'lib/features/orders/view/widgets/order_details/multi_day_order_details_body.dart'
       - 'test/features/orders/data/models/worker_booking_schedule_model_test.dart'
       - '.github/workflows/cleaning-suite.yml'
+
+permissions:
+  contents: read
 
 jobs:
   multi-session-lifecycle:
@@ -52,6 +58,7 @@ jobs:
             lib/core/location/worker_location_tracker.dart \
             lib/features/orders/data/models/worker_booking_schedule_model.dart \
             lib/features/orders/data/source/worker_session_remote_data_source.dart \
+            lib/features/orders/view/screens/order_details_screen.dart \
             lib/features/orders/view/widgets/accept_order_bottom_sheet.dart \
             lib/features/orders/view/widgets/order_details/multi_day_order_details_body.dart \
             test/features/orders/data/models/worker_booking_schedule_model_test.dart
@@ -64,6 +71,7 @@ jobs:
             lib/core/location/worker_location_tracker.dart \
             lib/features/orders/data/models/worker_booking_schedule_model.dart \
             lib/features/orders/data/source/worker_session_remote_data_source.dart \
+            lib/features/orders/view/screens/order_details_screen.dart \
             lib/features/orders/view/widgets/accept_order_bottom_sheet.dart \
             lib/features/orders/view/widgets/order_details/multi_day_order_details_body.dart
 
