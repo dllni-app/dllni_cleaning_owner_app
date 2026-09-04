@@ -1,0 +1,78 @@
+name: Apply Recurring Worker Dev Once
+
+on:
+  push:
+    branches:
+      - feature/cleaning-suite-dev
+    paths:
+      - '.github/workflows/apply-recurring-worker-dev-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/cleaning-suite-dev
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Port generic multi-session details flow
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('lib/features/orders/view/screens/order_details_screen.dart')
+          text = path.read_text()
+          replacements = [
+              (
+                  "  bool get _isEventAssistance =>\n      (_order.propertyType ?? '').trim().toLowerCase() == 'event_assistance';\n\n",
+                  "",
+              ),
+              (
+                  "      if (_isEventAssistance) {\n        unawaited(_loadSchedule());\n      } else {\n        _scheduleChecked = true;\n      }",
+                  "      unawaited(_loadSchedule());",
+              ),
+              (
+                  "    if (bookingId == null || !_isEventAssistance || _scheduleLoading) return;",
+                  "    if (bookingId == null || _scheduleLoading) return;",
+              ),
+              (
+                  "        _scheduleLoadError =\n            'تعذر تحميل أيام المناسبة. أعد المحاولة قبل تنفيذ أي إجراء.';",
+                  "        _scheduleLoadError =\n            'تعذر تحميل جلسات الطلب. أعد المحاولة قبل تنفيذ أي إجراء.';",
+              ),
+          ]
+          for old, new in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'Expected one match, found {count}: {old[:100]!r}')
+              text = text.replace(old, new, 1)
+          if '_isEventAssistance' in text:
+              raise SystemExit('Unexpected remaining _isEventAssistance reference')
+          path.write_text(text)
+          PY
+      - name: Format worker details
+        run: dart format lib/features/orders/view/screens/order_details_screen.dart
+      - name: Analyze worker multi-session sources
+        run: |
+          flutter analyze \
+            lib/features/orders/data/models/worker_booking_schedule_model.dart \
+            lib/features/orders/data/source/worker_session_remote_data_source.dart \
+            lib/features/orders/view/screens/order_details_screen.dart \
+            lib/features/orders/view/widgets/accept_order_bottom_sheet.dart
+      - name: Run worker model tests
+        run: flutter test test/features/orders/data/models/worker_booking_schedule_model_test.dart
+      - name: Commit worker dev port
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/orders/view/screens/order_details_screen.dart
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "feat(cleaning): enable recurring multi-session details on dev"
+          git push origin HEAD:feature/cleaning-suite-dev
