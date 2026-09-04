@@ -1,3 +1,4 @@
+# One-time recovery trigger; delete after the worker details patch is committed.
 name: Apply Recurring Worker Details
 
 on:
