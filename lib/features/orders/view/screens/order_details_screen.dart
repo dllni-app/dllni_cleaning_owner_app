@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:common_package/common_package.dart';
-import 'package:common_package/helpers/shared_preferences_helper.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_realtime_contract.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_worker_extension_prompts.dart';
@@ -57,9 +56,6 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   bool _scheduleLoading = false;
   String? _scheduleLoadError;
 
-  bool get _isEventAssistance =>
-      (_order.propertyType ?? '').trim().toLowerCase() == 'event_assistance';
-
   bool get _isMultiDay => _multiDaySchedule?.isMultiDay == true;
 
   int _stepFor(FetchOrdersUsecaseModelDataItem o) =>
@@ -106,11 +102,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           params: FetchOrderDetailsUsecaseParams(id: id),
         ),
       );
-      if (_isEventAssistance) {
-        unawaited(_loadSchedule());
-      } else {
-        _scheduleChecked = true;
-      }
+      unawaited(_loadSchedule());
       unawaited(_bindRealtimeListeners());
       _syncAwaitingVerificationPoll();
     } else {
@@ -120,7 +112,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 
   Future<void> _loadSchedule() async {
     final bookingId = _order.id;
-    if (bookingId == null || !_isEventAssistance || _scheduleLoading) return;
+    if (bookingId == null || _scheduleLoading) return;
     if (mounted) {
       setState(() {
         _scheduleLoading = true;
@@ -139,7 +131,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         _scheduleLoadError = null;
         if (_multiDaySchedule != null &&
             _multiDaySchedule!.sessionById(_selectedSessionId) == null) {
-          _selectedSessionId = _multiDaySchedule!.nextSession?.id ??
+          _selectedSessionId =
+              _multiDaySchedule!.nextSession?.id ??
               (_multiDaySchedule!.sessions.isEmpty
                   ? null
                   : _multiDaySchedule!.sessions.first.id);
@@ -152,7 +145,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         _scheduleChecked = true;
         _scheduleLoading = false;
         _scheduleLoadError =
-            'تعذر تحميل أيام المناسبة. أعد المحاولة قبل تنفيذ أي إجراء.';
+            'تعذر تحميل جلسات الطلب. أعد المحاولة قبل تنفيذ أي إجراء.';
       });
     }
   }
@@ -260,9 +253,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       );
     }
 
-    if (_isEventAssistance) {
-      unawaited(_loadSchedule());
-    }
+    unawaited(_loadSchedule());
 
     if (CleaningRealtimeContract.isLifecycleRefreshEvent(normalizedEvent)) {
       _scheduleSyncFallback(
@@ -330,7 +321,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     if (error.statusCode != 403) return;
     final bookingId = _order.id;
     if (bookingId != null) {
-      if (_isEventAssistance) unawaited(_loadSchedule());
+      unawaited(_loadSchedule());
       _scheduleSyncFallback(
         bookingId: bookingId,
         reason: 'owner_details_channel_auth_403_refresh',
@@ -351,7 +342,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         fallbackReason: reason,
       );
       widget.params.bloc.add(SyncOrderFromRealtimeEvent(bookingId: bookingId));
-      if (_isEventAssistance) unawaited(_loadSchedule());
+      unawaited(_loadSchedule());
     });
   }
 
@@ -434,7 +425,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         widget.params.bloc.add(
           ChangeDetailsCurrentStep(step: _stepFor(_order)),
         );
-        if (_isEventAssistance) unawaited(_loadSchedule());
+        unawaited(_loadSchedule());
         _syncAwaitingVerificationPoll();
       }
     }
@@ -572,10 +563,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    _scheduleLoadError!,
-                    textAlign: TextAlign.center,
-                  ),
+                  Text(_scheduleLoadError!, textAlign: TextAlign.center),
                   const SizedBox(height: 12),
                   FilledButton.icon(
                     onPressed: _scheduleLoading ? null : _loadSchedule,
@@ -613,10 +601,10 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           child: BlocBuilder<OrdersBloc, OrdersState>(
             bloc: widget.params.bloc,
             builder: (context, state) {
-              if (_isEventAssistance && !_scheduleChecked) {
+              if (!_scheduleChecked) {
                 return _scheduleLoadingBody();
               }
-              if (_isEventAssistance && _scheduleLoadError != null) {
+              if (_scheduleLoadError != null) {
                 return _scheduleErrorBody();
               }
               final schedule = _multiDaySchedule;
