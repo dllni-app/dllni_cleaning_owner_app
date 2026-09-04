@@ -61,6 +61,16 @@ jobs:
                   "unawaited(_loadSchedule());",
                   3,
               ),
+              (
+                  "if (_isEventAssistance && !_scheduleChecked)",
+                  "if (!_scheduleChecked)",
+                  1,
+              ),
+              (
+                  "if (_isEventAssistance && _scheduleLoadError != null)",
+                  "if (_scheduleLoadError != null)",
+                  1,
+              ),
           ]
           for old, new, expected in replacements:
               count = text.count(old)
