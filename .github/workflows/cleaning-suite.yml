@@ -7,17 +7,24 @@ on:
     paths:
       - 'lib/features/orders/data/models/worker_booking_schedule_model.dart'
       - 'lib/features/orders/data/source/worker_session_remote_data_source.dart'
+      - 'lib/features/orders/view/screens/order_details_screen.dart'
       - 'lib/features/orders/view/widgets/accept_order_bottom_sheet.dart'
+      - 'test/features/orders/data/models/worker_booking_schedule_model_test.dart'
       - '.github/workflows/cleaning-suite.yml'
   pull_request:
     paths:
       - 'lib/features/orders/data/models/worker_booking_schedule_model.dart'
       - 'lib/features/orders/data/source/worker_session_remote_data_source.dart'
+      - 'lib/features/orders/view/screens/order_details_screen.dart'
       - 'lib/features/orders/view/widgets/accept_order_bottom_sheet.dart'
+      - 'test/features/orders/data/models/worker_booking_schedule_model_test.dart'
       - '.github/workflows/cleaning-suite.yml'
 
+permissions:
+  contents: read
+
 jobs:
-  multi-session-acceptance:
+  multi-session-lifecycle:
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
@@ -39,11 +46,19 @@ jobs:
           dart format --output=none --set-exit-if-changed \
             lib/features/orders/data/models/worker_booking_schedule_model.dart \
             lib/features/orders/data/source/worker_session_remote_data_source.dart \
-            lib/features/orders/view/widgets/accept_order_bottom_sheet.dart
+            lib/features/orders/view/screens/order_details_screen.dart \
+            lib/features/orders/view/widgets/accept_order_bottom_sheet.dart \
+            test/features/orders/data/models/worker_booking_schedule_model_test.dart
 
       - name: Analyze multi-session sources
         run: |
           flutter analyze \
             lib/features/orders/data/models/worker_booking_schedule_model.dart \
             lib/features/orders/data/source/worker_session_remote_data_source.dart \
+            lib/features/orders/view/screens/order_details_screen.dart \
             lib/features/orders/view/widgets/accept_order_bottom_sheet.dart
+
+      - name: Run multi-session model tests
+        run: |
+          flutter test \
+            test/features/orders/data/models/worker_booking_schedule_model_test.dart
