@@ -41,6 +41,16 @@ jobs:
 
           replacements = [
               (
+                  "import 'package:common_package/helpers/shared_preferences_helper.dart';\n",
+                  "",
+                  1,
+              ),
+              (
+                  "  bool get _isEventAssistance =>\n      (_order.propertyType ?? '').trim().toLowerCase() == 'event_assistance';\n\n",
+                  "",
+                  1,
+              ),
+              (
                   "      if (_isEventAssistance) {\n        unawaited(_loadSchedule());\n      } else {\n        _scheduleChecked = true;\n      }",
                   "      unawaited(_loadSchedule());",
                   1,
