@@ -34,31 +34,50 @@ jobs:
               (
                   "  bool get _isEventAssistance =>\n      (_order.propertyType ?? '').trim().toLowerCase() == 'event_assistance';\n\n",
                   "",
+                  1,
               ),
               (
                   "      if (_isEventAssistance) {\n        unawaited(_loadSchedule());\n      } else {\n        _scheduleChecked = true;\n      }",
                   "      unawaited(_loadSchedule());",
+                  1,
               ),
               (
                   "    if (bookingId == null || !_isEventAssistance || _scheduleLoading) return;",
                   "    if (bookingId == null || _scheduleLoading) return;",
+                  1,
               ),
               (
                   "        _scheduleLoadError =\n            'تعذر تحميل أيام المناسبة. أعد المحاولة قبل تنفيذ أي إجراء.';",
                   "        _scheduleLoadError =\n            'تعذر تحميل جلسات الطلب. أعد المحاولة قبل تنفيذ أي إجراء.';",
+                  1,
+              ),
+              (
+                  "    if (_isEventAssistance) {\n      unawaited(_loadSchedule());\n    }",
+                  "    unawaited(_loadSchedule());",
+                  1,
+              ),
+              (
+                  "if (_isEventAssistance) unawaited(_loadSchedule());",
+                  "unawaited(_loadSchedule());",
+                  3,
               ),
           ]
-          for old, new in replacements:
+          for old, new, expected in replacements:
               count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f'Expected one match, found {count}: {old[:100]!r}')
-              text = text.replace(old, new, 1)
+              if count != expected:
+                  raise SystemExit(
+                      f'Expected {expected} matches, found {count}: {old[:100]!r}'
+                  )
+              text = text.replace(old, new)
           if '_isEventAssistance' in text:
               raise SystemExit('Unexpected remaining _isEventAssistance reference')
           path.write_text(text)
           PY
-      - name: Format worker details
-        run: dart format lib/features/orders/view/screens/order_details_screen.dart
+      - name: Format worker details and tests
+        run: |
+          dart format \
+            lib/features/orders/view/screens/order_details_screen.dart \
+            test/features/orders/data/models/worker_booking_schedule_model_test.dart
       - name: Analyze worker multi-session sources
         run: |
           flutter analyze \
@@ -72,7 +91,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add lib/features/orders/view/screens/order_details_screen.dart
+          git add \
+            lib/features/orders/view/screens/order_details_screen.dart \
+            test/features/orders/data/models/worker_booking_schedule_model_test.dart
           if git diff --cached --quiet; then exit 0; fi
           git commit -m "feat(cleaning): enable recurring multi-session details on dev"
           git push origin HEAD:feature/cleaning-suite-dev
