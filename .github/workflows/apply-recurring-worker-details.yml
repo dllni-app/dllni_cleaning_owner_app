@@ -66,11 +66,6 @@ jobs:
                   3,
               ),
               (
-                  "        if (_isEventAssistance) unawaited(_loadSchedule());",
-                  "        unawaited(_loadSchedule());",
-                  1,
-              ),
-              (
                   "              if (_isEventAssistance && !_scheduleChecked) {",
                   "              if (!_scheduleChecked) {",
                   1,
