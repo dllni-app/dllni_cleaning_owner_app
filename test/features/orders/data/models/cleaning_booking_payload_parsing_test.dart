@@ -40,6 +40,41 @@ void main() {
           'addons': <Map<String, dynamic>>[
             <String, dynamic>{'id': 2, 'name': 'Windows', 'quantity': 2},
           ],
+          'materials': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'id': 3,
+              'name': 'منظف أرضيات',
+              'quantity': '1.5',
+              'unit': 'liter',
+              'unit_label': 'لتر',
+            },
+          ],
+          'special_services': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'id': 4,
+              'name': 'تنظيف السجاد',
+              'quantity': '2',
+              'pricing_unit': 'piece',
+              'pricing_unit_label': 'قطعة',
+              'dirtiness_level': 'heavy',
+              'dirtiness_label': 'شديد',
+              'equipment': <Map<String, dynamic>>[
+                <String, dynamic>{'id': 7, 'name': 'آلة السجاد'},
+              ],
+              'notes': 'يرجى العناية بالحواف',
+            },
+          ],
+          'open_time': <String, dynamic>{
+            'is_open_time': true,
+            'hourly_rate': '25.5',
+            'requested_worker_count': 2,
+            'work_started_at': '2026-05-17T10:05:00Z',
+            'work_finished_at': '2026-05-17T11:07:00Z',
+            'actual_duration_minutes': 62,
+            'billable_duration_minutes': 90,
+            'final_amount': '51',
+            'is_finalized': 1,
+          },
           'billing_policy': <String, dynamic>{
             'id': 3,
             'billing_mode': 'hourly',
@@ -69,6 +104,13 @@ void main() {
       expect(data.worker?.name, 'Sami');
       expect(data.services?.first.name, 'Kitchen');
       expect(data.addons?.first.quantity, 2);
+      expect(data.materials?.first.quantity, 1.5);
+      expect(data.materials?.first.unitLabel, 'لتر');
+      expect(data.specialServices?.first.pricingUnit, 'piece');
+      expect(data.specialServices?.first.equipment.single.name, 'آلة السجاد');
+      expect(data.openTime?.isOpenTime, isTrue);
+      expect(data.openTime?.actualDurationMinutes, 62);
+      expect(data.openTime?.isFinalized, isTrue);
       expect(data.billingPolicy?.raw['id'], 3);
       expect((data.timeWarnings ?? <dynamic>[]).isNotEmpty, isTrue);
       expect((data.disputes ?? <dynamic>[]).isNotEmpty, isTrue);
@@ -88,6 +130,26 @@ void main() {
             'adminMargin': '12.75',
             'isPricingFinal': 1,
             'customer': <String, dynamic>{'id': 7, 'name': 'Nour'},
+            'materials': <Map<String, dynamic>>[
+              <String, dynamic>{
+                'id': 8,
+                'name': 'مناديل',
+                'quantity': 3,
+                'unitLabel': 'قطعة',
+              },
+            ],
+            'specialServices': <Map<String, dynamic>>[
+              <String, dynamic>{
+                'id': 9,
+                'name': 'تنظيف المكيف',
+                'quantity': 1,
+                'dirtinessLabel': 'متوسط',
+              },
+            ],
+            'openTime': <String, dynamic>{
+              'isOpenTime': true,
+              'requestedWorkerCount': 3,
+            },
           },
         ],
       });
@@ -100,6 +162,9 @@ void main() {
       expect(item.adminMargin, 12.75);
       expect(item.isPricingFinal, isTrue);
       expect(item.customer?.name, 'Nour');
+      expect(item.materials?.single.unitLabel, 'قطعة');
+      expect(item.specialServices?.single.dirtinessLabel, 'متوسط');
+      expect(item.openTime?.requestedWorkerCount, 3);
     });
   });
 }

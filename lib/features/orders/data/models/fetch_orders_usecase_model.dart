@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'arrive_model.dart';
+import 'cleaning_booking_operational_details.dart';
 import 'cleaning_booking_status.dart';
 import 'cleaning_team_models.dart';
 import '../../../profile/data/models/worker_dispatch_eligibility_model.dart';
@@ -340,6 +341,9 @@ class FetchOrdersUsecaseModelDataItem {
 
   final List<Service>? services;
   final List<Addon>? addons;
+  final List<CleaningBookingMaterialLine>? materials;
+  final List<CleaningSpecialServiceLine>? specialServices;
+  final CleaningOpenTimeDetails? openTime;
   final Map<String, dynamic>? billingPolicy;
   final List<dynamic>? timeWarnings;
   final List<dynamic>? disputes;
@@ -415,6 +419,9 @@ class FetchOrdersUsecaseModelDataItem {
     this.propertyDetails,
     this.services,
     this.addons,
+    this.materials,
+    this.specialServices,
+    this.openTime,
     this.billingPolicy,
     this.timeWarnings,
     this.disputes,
@@ -588,6 +595,17 @@ class FetchOrdersUsecaseModelDataItem {
       addons: _toMapList(
         m['addons'],
       ).map(Addon.fromJson).toList(growable: false),
+      materials: _toMapList(
+        m['materials'],
+      ).map(CleaningBookingMaterialLine.fromJson).toList(growable: false),
+      specialServices: _toMapList(
+        m['specialServices'] ?? m['special_services'],
+      ).map(CleaningSpecialServiceLine.fromJson).toList(growable: false),
+      openTime: (m['openTime'] ?? m['open_time']) is Map
+          ? CleaningOpenTimeDetails.fromJson(
+              _toMap(m['openTime'] ?? m['open_time']),
+            )
+          : null,
       billingPolicy: m['billingPolicy'] is Map
           ? _toMap(m['billingPolicy'])
           : (m['billing_policy'] is Map ? _toMap(m['billing_policy']) : null),
@@ -772,6 +790,11 @@ class FetchOrdersUsecaseModelDataItem {
       'propertyDetails': propertyDetails?.toJson(),
       'services': services?.map((e) => e.toJson()).toList(growable: false),
       'addons': addons?.map((e) => e.toJson()).toList(growable: false),
+      'materials': materials?.map((e) => e.toJson()).toList(growable: false),
+      'specialServices': specialServices
+          ?.map((e) => e.toJson())
+          .toList(growable: false),
+      'openTime': openTime?.toJson(),
       'billingPolicy': billingPolicy,
       'timeWarnings': timeWarnings,
       'disputes': disputes,
@@ -849,6 +872,9 @@ class FetchOrdersUsecaseModelDataItem {
       propertyDetails: propertyDetails,
       services: services,
       addons: addons,
+      materials: materials,
+      specialServices: specialServices,
+      openTime: openTime,
       billingPolicy: billingPolicy,
       timeWarnings: timeWarnings,
       disputes: disputes,
@@ -926,6 +952,9 @@ class FetchOrdersUsecaseModelDataItem {
       propertyDetails: propertyDetails,
       services: services,
       addons: addons,
+      materials: materials,
+      specialServices: specialServices,
+      openTime: openTime,
       billingPolicy: billingPolicy,
       timeWarnings: timeWarnings,
       disputes: disputes,

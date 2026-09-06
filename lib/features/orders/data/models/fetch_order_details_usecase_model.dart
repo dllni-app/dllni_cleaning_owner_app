@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'arrive_model.dart';
+import 'cleaning_booking_operational_details.dart';
 import 'cleaning_team_models.dart';
 
 Map<String, dynamic> _toMap(dynamic value) {
@@ -185,6 +186,9 @@ class FetchOrderDetailsUsecaseModelData {
 
   final List<Service>? services;
   final List<Addon>? addons;
+  final List<CleaningBookingMaterialLine>? materials;
+  final List<CleaningSpecialServiceLine>? specialServices;
+  final CleaningOpenTimeDetails? openTime;
   final FetchOrderDetailsUsecaseModelDataBillingPolicy? billingPolicy;
   final List<dynamic>? timeWarnings;
   final List<dynamic>? disputes;
@@ -239,6 +243,9 @@ class FetchOrderDetailsUsecaseModelData {
     this.propertyDetails,
     this.services,
     this.addons,
+    this.materials,
+    this.specialServices,
+    this.openTime,
     this.billingPolicy,
     this.timeWarnings,
     this.disputes,
@@ -392,6 +399,17 @@ class FetchOrderDetailsUsecaseModelData {
       addons: _toMapList(
         m['addons'],
       ).map(Addon.fromJson).toList(growable: false),
+      materials: _toMapList(
+        m['materials'],
+      ).map(CleaningBookingMaterialLine.fromJson).toList(growable: false),
+      specialServices: _toMapList(
+        m['specialServices'] ?? m['special_services'],
+      ).map(CleaningSpecialServiceLine.fromJson).toList(growable: false),
+      openTime: (m['openTime'] ?? m['open_time']) is Map
+          ? CleaningOpenTimeDetails.fromJson(
+              _toMap(m['openTime'] ?? m['open_time']),
+            )
+          : null,
       billingPolicy: (m['billingPolicy'] ?? m['billing_policy']) is Map
           ? FetchOrderDetailsUsecaseModelDataBillingPolicy.fromJson(
               _toMap(m['billingPolicy'] ?? m['billing_policy']),
@@ -405,22 +423,18 @@ class FetchOrderDetailsUsecaseModelData {
       numberOfWorkers: _toInt(
         _pick(m, const <String>['numberOfWorkers', 'number_of_workers']),
       ),
-      workerAcceptance: m['workerAcceptance'] == null &&
-              m['worker_acceptance'] == null
+      workerAcceptance:
+          m['workerAcceptance'] == null && m['worker_acceptance'] == null
           ? null
           : CleaningWorkerAcceptanceModel.fromJson(
               _toMap(m['workerAcceptance'] ?? m['worker_acceptance']),
             ),
       workerAssignments: _toMapList(
         m['workerAssignments'] ?? m['worker_assignments'],
-      )
-          .map(CleaningWorkerAssignmentModel.fromJson)
-          .toList(growable: false),
+      ).map(CleaningWorkerAssignmentModel.fromJson).toList(growable: false),
       roomAssignments: _toMapList(
         m['roomAssignments'] ?? m['room_assignments'],
-      )
-          .map(CleaningRoomAssignmentModel.fromJson)
-          .toList(growable: false),
+      ).map(CleaningRoomAssignmentModel.fromJson).toList(growable: false),
       myAssignment: m['myAssignment'] == null && m['my_assignment'] == null
           ? null
           : CleaningMyAssignmentModel.fromJson(
@@ -474,6 +488,11 @@ class FetchOrderDetailsUsecaseModelData {
       'propertyDetails': propertyDetails?.toJson(),
       'services': services?.map((e) => e.toJson()).toList(growable: false),
       'addons': addons?.map((e) => e.toJson()).toList(growable: false),
+      'materials': materials?.map((e) => e.toJson()).toList(growable: false),
+      'specialServices': specialServices
+          ?.map((e) => e.toJson())
+          .toList(growable: false),
+      'openTime': openTime?.toJson(),
       'billingPolicy': billingPolicy?.toJson(),
       'timeWarnings': timeWarnings,
       'disputes': disputes,
@@ -625,10 +644,10 @@ class FetchOrderDetailsUsecaseModelDataPropertyDetails {
   factory FetchOrderDetailsUsecaseModelDataPropertyDetails.fromJson(
     Map<String, dynamic> json,
   ) {
-    final breakdownRaw = _pick(
-      json,
-      const <String>['roomSizeBreakdown', 'room_size_breakdown'],
-    );
+    final breakdownRaw = _pick(json, const <String>[
+      'roomSizeBreakdown',
+      'room_size_breakdown',
+    ]);
 
     return FetchOrderDetailsUsecaseModelDataPropertyDetails(
       locationName: _toStringValue(
@@ -666,7 +685,10 @@ class FetchOrderDetailsUsecaseModelDataPropertyDetails {
       ),
       hours: _toDouble(_pick(json, const <String>['hours'])),
       specialRequirement: _toStringValue(
-        _pick(json, const <String>['special_requirement', 'specialRequirement']),
+        _pick(json, const <String>[
+          'special_requirement',
+          'specialRequirement',
+        ]),
       ),
       notes: _toStringValue(_pick(json, const <String>['notes'])),
     );
