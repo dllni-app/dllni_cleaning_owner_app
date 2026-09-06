@@ -4,6 +4,7 @@ import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../core/widgets/cancel_order_dialog.dart';
 import '../../../data/models/fetch_orders_usecase_model.dart';
@@ -77,8 +78,6 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
             ? '${widget.order.propertyDetails?.guestCount ?? '-'}'
             : widget.order.estimatedSqm ?? '-',
       ),
-      // MapEntry('سعر الخدمة : ', _formatPrice(widget.order.basePrice)),
-      // MapEntry('سعر التوصيل : ', _formatPrice(widget.order.travelFee)),
       MapEntry('صافي الربح', _netProfit.formatMoney()),
     ];
   }
@@ -134,13 +133,13 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(height: 10),
+        const SizedBox(height: 10),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             IconButton(
               onPressed: () => context.pop(),
-              icon: Icon(Icons.arrow_back, color: Colors.black),
+              icon: const Icon(Icons.arrow_back, color: Colors.black),
             ),
             Expanded(
               child: AppText.headlineMedium(
@@ -149,7 +148,6 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
               ),
             ),
             6.horizontalSpace,
-
             isSameDate(widget.order.createdAt, widget.order.scheduledDate)
                 ? Container(
                     padding: const EdgeInsetsDirectional.symmetric(
@@ -175,34 +173,34 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                       ],
                     ),
                   )
-                : SizedBox(),
+                : const SizedBox(),
           ],
         ),
-        Divider(color: Colors.grey),
+        const Divider(color: Colors.grey),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  SizedBox(height: 14),
+                  const SizedBox(height: 14),
                   if (_isMultiWorkerOrder) ...[
                     _buildMultiWorkerNotice(),
-                    SizedBox(height: 14),
+                    const SizedBox(height: 14),
                   ],
                   DottedBorder(
                     options: RoundedRectDottedBorderOptions(
-                      radius: Radius.circular(10),
+                      radius: const Radius.circular(10),
                       color: context.primaryContainer,
                       strokeWidth: 2,
-                      dashPattern: [8, 4],
+                      dashPattern: const [8, 4],
                     ),
                     child: Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(8),
                         color: context.primaryContainer.withAlpha(31),
                       ),
-                      padding: EdgeInsetsDirectional.symmetric(
+                      padding: const EdgeInsetsDirectional.symmetric(
                         horizontal: 10,
                         vertical: 16,
                       ),
@@ -221,7 +219,7 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                                         fontWeight: FontWeight.w700,
                                         textAlign: TextAlign.center,
                                       ),
-                                      SizedBox(height: 8),
+                                      const SizedBox(height: 8),
                                       AppText.labelSmall(
                                         row.value,
                                         color: context.primary,
@@ -237,33 +235,105 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                       ),
                     ),
                   ),
-                  SizedBox(height: 14),
+                  const SizedBox(height: 14),
                   OrderInfoCard(order: widget.order),
-                  SizedBox(height: 14),
+                  const SizedBox(height: 14),
                   EstateInfoCard(order: widget.order),
-                  SizedBox(height: 14),
+                  const SizedBox(height: 14),
                   _buildServicesCard(context),
-                  // SizedBox(height: 14),
                   _buildOrderAddressCard(context),
-                  SizedBox(height: 14),
+                  if (_shouldShowCustomerContact) ...[
+                    const SizedBox(height: 14),
+                    _buildCustomerContactCard(context),
+                  ],
+                  const SizedBox(height: 14),
                   WorkerTeamStatusCard(order: widget.order),
                   if (OrderLifecyclePolicy.isAcceptedWaiting(widget.order))
-                    SizedBox(height: 14),
+                    const SizedBox(height: 14),
                   if (_shouldShowAssignedRooms)
                     WorkerRoomAssignmentsCard(order: widget.order),
-                  SizedBox(height: 14),
+                  const SizedBox(height: 14),
                   PaymentInfoCard(order: widget.order),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   if (canAcceptReject) _buildAcceptRejectActions(context),
                   if (canStartTravel)
                     _buildStartTravelActions(context, canCancel),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
           ),
         ),
       ],
+    );
+  }
+
+  bool get _shouldShowCustomerContact {
+    final phone = widget.order.customer?.phone?.trim();
+    return OrderLifecyclePolicy.hasCurrentWorkerAccepted(widget.order) &&
+        phone != null &&
+        phone.isNotEmpty;
+  }
+
+  Widget _buildCustomerContactCard(BuildContext context) {
+    final phone = widget.order.customer!.phone!.trim();
+
+    return Container(
+      width: context.width,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xffF4F5F7),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppText.labelMedium(
+            'التواصل مع العميل',
+            fontWeight: FontWeight.w600,
+          ),
+          const SizedBox(height: 6),
+          AppText.bodySmall(
+            'تظهر وسائل التواصل بعد قبولك للمهمة.',
+            color: const Color(0xff6B7280),
+            textAlign: TextAlign.start,
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: () => _launchContact('tel', phone),
+                  icon: const Icon(Icons.phone_outlined),
+                  label: const Text('اتصال'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _launchContact('sms', phone),
+                  icon: const Icon(Icons.sms_outlined),
+                  label: const Text('رسالة SMS'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _launchContact(String scheme, String phone) async {
+    final uri = Uri(scheme: scheme, path: phone);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+      return;
+    }
+
+    AppToast.showErrorGlobal(
+      scheme == 'tel'
+          ? 'تعذر فتح تطبيق الاتصال.'
+          : 'تعذر فتح تطبيق الرسائل.',
     );
   }
 
@@ -274,18 +344,18 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
 
     return Container(
       width: context.width,
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Color(0xffF4F5F7),
+        color: const Color(0xffF4F5F7),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           AppText.labelMedium('الخدمات المطلوبة', fontWeight: FontWeight.w400),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Divider(color: Colors.black.withAlpha(42)),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           if (!hasItems)
             AppText.bodySmall(
               'لا توجد خدمات إضافية',
@@ -311,7 +381,7 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
       child: Row(
         children: [
           Icon(Icons.check_circle_outline, size: 18, color: context.primary),
-          SizedBox(width: 6),
+          const SizedBox(width: 6),
           Expanded(
             child: AppText.labelMedium(
               (name ?? '').trim().isEmpty ? 'خدمة' : name!,
@@ -347,18 +417,18 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
 
     return Container(
       width: context.width,
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Color(0xffF4F5F7),
+        color: const Color(0xffF4F5F7),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           AppText.labelMedium('عنوان العقار', fontWeight: FontWeight.w400),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Divider(color: Colors.black.withAlpha(42)),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Row(
             children: [
               Icon(
@@ -366,7 +436,7 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                 color: context.secondary,
                 size: 18,
               ),
-              SizedBox(width: 6),
+              const SizedBox(width: 6),
               Expanded(
                 child: AppText.labelMedium(
                   address,
@@ -408,7 +478,7 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                   borderRadius: BorderRadius.circular(8),
                   color: context.primary,
                 ),
-                padding: EdgeInsetsDirectional.symmetric(
+                padding: const EdgeInsetsDirectional.symmetric(
                   horizontal: 12,
                   vertical: 14,
                 ),
@@ -432,7 +502,7 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
             );
           },
         ),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         BlocBuilder<OrdersBloc, OrdersState>(
           bloc: widget.bloc,
           builder: (context, state) {
@@ -461,7 +531,7 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                   color: context.error.withAlpha(20),
                   border: Border.all(color: context.error),
                 ),
-                padding: EdgeInsetsDirectional.symmetric(
+                padding: const EdgeInsetsDirectional.symmetric(
                   horizontal: 6,
                   vertical: 14,
                 ),
@@ -526,7 +596,7 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                   borderRadius: BorderRadius.circular(8),
                   color: context.primary,
                 ),
-                padding: EdgeInsetsDirectional.symmetric(
+                padding: const EdgeInsetsDirectional.symmetric(
                   horizontal: 12,
                   vertical: 14,
                 ),
@@ -549,7 +619,7 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
             );
           },
         ),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         InkWell(
           onTap: canCancel
               ? () {
@@ -569,7 +639,7 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
               color: context.error.withAlpha(20),
               border: Border.all(color: context.error),
             ),
-            padding: EdgeInsetsDirectional.symmetric(
+            padding: const EdgeInsetsDirectional.symmetric(
               horizontal: 6,
               vertical: 14,
             ),
@@ -586,15 +656,12 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
 }
 
 bool isSameDate(String? date1, String? date2) {
-  // إذا كانت إحدى القيمتين (أو كلتاهما) null، نعتبرهما غير متساويتين
   if (date1 == null || date2 == null) {
     return false;
   }
 
-  // تحويل النصوص إلى كائنات DateTime
-  DateTime d1 = DateTime.parse(date1);
-  DateTime d2 = DateTime.parse(date2);
+  final d1 = DateTime.parse(date1);
+  final d2 = DateTime.parse(date2);
 
-  // مقارنة الأجزاء الأساسية وإرجاع النتيجة كـ bool
   return d1.year == d2.year && d1.month == d2.month && d1.day == d2.day;
 }
