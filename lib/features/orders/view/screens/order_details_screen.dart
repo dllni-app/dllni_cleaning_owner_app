@@ -60,7 +60,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 
   bool get _canShowMissionBody {
     final status = (_order.status ?? '').trim().toLowerCase();
-    return status == CleaningBookingStatus.inProgress ||
+    return status == CleaningBookingStatus.awaitingWorkerStartConfirmation ||
+        status == CleaningBookingStatus.inProgress ||
         status == CleaningBookingStatus.timeExtensionRequested ||
         status == CleaningBookingStatus.awaitingCustomerCompletion ||
         status == CleaningBookingStatus.underDispute;
