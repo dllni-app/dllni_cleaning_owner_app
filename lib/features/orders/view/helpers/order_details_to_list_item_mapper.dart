@@ -40,6 +40,24 @@ class OrderDetailsToListItemMapper {
           .toList(growable: false);
     }
 
+    if ((details.materials?.isNotEmpty ?? false) == false &&
+        (fallback?.materials?.isNotEmpty ?? false)) {
+      json['materials'] = fallback!.materials!
+          .map((material) => material.toJson())
+          .toList(growable: false);
+    }
+
+    if ((details.specialServices?.isNotEmpty ?? false) == false &&
+        (fallback?.specialServices?.isNotEmpty ?? false)) {
+      json['specialServices'] = fallback!.specialServices!
+          .map((service) => service.toJson())
+          .toList(growable: false);
+    }
+
+    if (details.openTime == null && fallback?.openTime != null) {
+      json['openTime'] = fallback!.openTime!.toJson();
+    }
+
     final worker = details.worker;
     if (worker != null) {
       json['worker'] = <String, dynamic>{
