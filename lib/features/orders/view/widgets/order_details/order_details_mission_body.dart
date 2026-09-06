@@ -14,6 +14,7 @@ import '../../../domain/usecases/accept_extension_usecase_use_case.dart';
 import '../../../domain/usecases/complete_order_usecase_use_case.dart';
 import '../../../domain/usecases/fetch_order_details_usecase_use_case.dart';
 import '../../../domain/usecases/reject_extension_usecase_use_case.dart';
+import '../../../domain/usecases/start_work_use_case.dart';
 import '../../helpers/order_lifecycle_policy.dart';
 import '../../helpers/order_mission_task_mapper.dart';
 import '../../helpers/order_work_timer_helper.dart';
@@ -105,6 +106,9 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
 
   OrderDetailsUiState get _uiState =>
       OrderLifecyclePolicy.detailsUiStateFor(widget.order);
+
+  bool get _isAwaitingWorkerStartConfirmation =>
+      OrderLifecyclePolicy.isAwaitingWorkerStartConfirmation(widget.order);
 
   List<MissionTaskItem> get _tasks =>
       OrderMissionTaskMapper.build(order: widget.order);
@@ -414,6 +418,9 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
   }
 
   List<Color> get _timerGradientColors {
+    if (_isAwaitingWorkerStartConfirmation) {
+      return const <Color>[Color(0xff0F766E), Color(0xff14B8A6)];
+    }
     if (_uiState.isWaitingCustomer) {
       return const <Color>[Color(0xff1E2A78), Color(0xff283593)];
     }
@@ -433,6 +440,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
   }
 
   String get _missionStatusText {
+    if (_isAwaitingWorkerStartConfirmation) return 'جاهز لبدء العمل';
     if (_uiState.isWaitingCustomer) return 'بانتظار تأكيد العميل';
     if (_uiState.isExtensionPending) return 'طلب تمديد وقت';
     if (_uiState.isDispute) return 'الطلب قيد المراجعة';
@@ -443,6 +451,9 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
   }
 
   String get _timerTitleText {
+    if (_isAwaitingWorkerStartConfirmation) {
+      return 'تم تأكيد رمز الأمان — ابدأ العمل من قائمة المهام';
+    }
     if (_uiState.isWaitingCustomer) return 'تم إرسال طلب إنهاء العمل للعميل';
     if (_uiState.isExtensionPending) return 'بانتظار ردك على طلب التمديد';
     if (_uiState.isDispute) return 'تم إيقاف إجراءات الطلب مؤقتاً';
@@ -455,6 +466,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
   }
 
   String get _timerValueText {
+    if (_isAwaitingWorkerStartConfirmation) return 'جاهز';
     if (_uiState.isWaitingCustomer) return 'بانتظار تأكيد العميل';
     if (_uiState.isExtensionPending) return 'بانتظار قبول أو رفض التمديد';
     if (_uiState.isDispute) return 'قيد المراجعة';
@@ -465,6 +477,9 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
   }
 
   String? get _timerHelperText {
+    if (_isAwaitingWorkerStartConfirmation) {
+      return 'راجع قائمة المهام ثم اضغط بدء العمل. سيبدأ احتساب وقت التنفيذ بعد التأكيد.';
+    }
     if (_uiState.isWaitingCustomer) {
       return 'تم قفل قائمة المهام بعد إرسال طلب الإنهاء.';
     }
@@ -483,6 +498,9 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
   String get _taskListHintText {
     if (_tasks.isEmpty && _uiState.isActiveWork) {
       return 'لا توجد مهام محددة من السيرفر. يمكنك إرسال طلب الإنهاء عند اكتمال العمل.';
+    }
+    if (_isAwaitingWorkerStartConfirmation) {
+      return 'راجع المهام المطلوبة. سيتم تفعيل تحديدها بعد الضغط على بدء العمل.';
     }
     if (_isChecklistLocked) {
       return 'قائمة المهام مقفلة لأن الطلب ليس في مرحلة التنفيذ.';
@@ -626,6 +644,62 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     );
   }
 
+  Widget _buildStartWorkCard() {
+    if (!_isAwaitingWorkerStartConfirmation) {
+      return const SizedBox.shrink();
+    }
+
+    return BlocBuilder<OrdersBloc, OrdersState>(
+      bloc: widget.bloc,
+      builder: (context, state) {
+        final loading = state.startWorkStatus == BlocStatus.loading;
+        final orderId = widget.order.id;
+
+        return Container(
+          width: context.width,
+          margin: const EdgeInsets.only(bottom: 14),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xffECFDF5),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xffA7F3D0)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AppText.titleMedium(
+                'تم تأكيد رمز الأمان',
+                color: const Color(0xff047857),
+                fontWeight: FontWeight.bold,
+              ),
+              const SizedBox(height: 6),
+              AppText.bodySmall(
+                'راجع قائمة المهام أدناه، ثم اضغط بدء العمل لبدء التنفيذ واحتساب الوقت.',
+                color: const Color(0xff475569),
+              ),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: loading || orderId == null
+                    ? null
+                    : () => widget.bloc.add(
+                          StartWorkEvent(params: StartWorkParams(id: orderId)),
+                        ),
+                icon: loading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.play_arrow_rounded),
+                label: Text(loading ? 'جاري بدء العمل...' : 'بدء العمل'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildStateNotice() {
     String? title;
     String? body;
@@ -713,6 +787,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    _buildStartWorkCard(),
                     MissionTimerCard(
                       serviceDate: _serviceDate(),
                       statusText: _missionStatusText,
