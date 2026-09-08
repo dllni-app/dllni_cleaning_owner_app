@@ -374,10 +374,14 @@ class WorkerBookingSessionModel {
 
 class WorkerBookingScheduleModel {
   final String mode;
+  final int? bookingDaysCount;
   final int daysCount;
+  final int? mySessionsCount;
   final int completedDaysCount;
+  final int? myCompletedSessionsCount;
   final int cancelledDaysCount;
   final int remainingDaysCount;
+  final int? myRemainingSessionsCount;
   final double totalHours;
   final DateTime? firstDate;
   final DateTime? lastDate;
@@ -386,10 +390,14 @@ class WorkerBookingScheduleModel {
 
   const WorkerBookingScheduleModel({
     required this.mode,
+    this.bookingDaysCount,
     required this.daysCount,
+    this.mySessionsCount,
     required this.completedDaysCount,
+    this.myCompletedSessionsCount,
     required this.cancelledDaysCount,
     required this.remainingDaysCount,
+    this.myRemainingSessionsCount,
     required this.totalHours,
     this.firstDate,
     this.lastDate,
@@ -411,17 +419,32 @@ class WorkerBookingScheduleModel {
       mode:
           _string(json['mode']) ??
           (sessions.length > 1 ? 'multi_day' : 'single_day'),
+      bookingDaysCount: _int(
+        json['bookingDaysCount'] ??
+            json['booking_days_count'] ??
+            json['bookingSessionsCount'] ??
+            json['booking_sessions_count'],
+      ),
       daysCount:
           _int(json['daysCount'] ?? json['days_count']) ?? sessions.length,
+      mySessionsCount: _int(
+        json['mySessionsCount'] ?? json['my_sessions_count'],
+      ),
       completedDaysCount:
           _int(json['completedDaysCount'] ?? json['completed_days_count']) ??
           sessions.where((item) => item.isCompleted).length,
+      myCompletedSessionsCount: _int(
+        json['myCompletedSessionsCount'] ?? json['my_completed_sessions_count'],
+      ),
       cancelledDaysCount:
           _int(json['cancelledDaysCount'] ?? json['cancelled_days_count']) ??
           sessions.where((item) => item.isCancelled).length,
       remainingDaysCount:
           _int(json['remainingDaysCount'] ?? json['remaining_days_count']) ??
           sessions.where((item) => !item.isTerminal).length,
+      myRemainingSessionsCount: _int(
+        json['myRemainingSessionsCount'] ?? json['my_remaining_sessions_count'],
+      ),
       totalHours:
           _double(json['totalHours'] ?? json['total_hours']) ??
           sessions
@@ -440,7 +463,8 @@ class WorkerBookingScheduleModel {
     );
   }
 
-  bool get isMultiDay => mode == 'multi_day' || sessions.length > 1;
+  bool get isMultiDay =>
+      (bookingDaysCount ?? 0) > 1 || mode == 'multi_day' || sessions.length > 1;
 
   WorkerBookingSessionModel? sessionById(int? sessionId) {
     if (sessionId == null) return null;

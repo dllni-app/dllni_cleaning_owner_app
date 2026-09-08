@@ -62,9 +62,12 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
   void didUpdateWidget(covariant MultiDayOrderDetailsBody oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.initialSchedule != widget.initialSchedule) {
-      _schedule = widget.initialSchedule;
-      if (_schedule.sessionById(_selectedSessionId) == null) {
-        _selectedSessionId = _resolveInitialSessionId();
+      final shouldStopTracking = _trackedSessionWasRemoved(
+        widget.initialSchedule,
+      );
+      _applySchedule(widget.initialSchedule);
+      if (shouldStopTracking) {
+        unawaited(WorkerLocationTracker.instance.stop());
       }
     }
   }
@@ -86,6 +89,37 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     return _schedule.sessions.isEmpty ? null : _schedule.sessions.last.id;
   }
 
+  bool _trackedSessionWasRemoved(WorkerBookingScheduleModel schedule) {
+    final tracker = WorkerLocationTracker.instance;
+    final trackedSessionId = tracker.activeSessionId;
+
+    return tracker.activeBookingId == _bookingId &&
+        trackedSessionId != null &&
+        schedule.sessionById(trackedSessionId) == null;
+  }
+
+  void _applySchedule(WorkerBookingScheduleModel schedule) {
+    final selectedRemoved =
+        _selectedSessionId != null &&
+        schedule.sessionById(_selectedSessionId) == null;
+    final securityCodeSessionId = _securityCode?.sessionId;
+    final securityCodeRemoved =
+        securityCodeSessionId != null &&
+        schedule.sessionById(securityCodeSessionId) == null;
+
+    _schedule = schedule;
+
+    if (schedule.sessions.isEmpty) {
+      _selectedSessionId = null;
+    } else if (selectedRemoved || _selectedSessionId == null) {
+      _selectedSessionId = _resolveInitialSessionId();
+    }
+
+    if (selectedRemoved || securityCodeRemoved || schedule.sessions.isEmpty) {
+      _securityCode = null;
+    }
+  }
+
   Future<void> _refresh() async {
     final bookingId = _bookingId;
     if (bookingId == null) return;
@@ -94,12 +128,16 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
           .fetchBookingSchedule(bookingId);
       final schedule = result.schedule;
       if (!mounted || schedule == null) return;
+
+      final shouldStopTracking = _trackedSessionWasRemoved(schedule);
+      if (shouldStopTracking) {
+        await WorkerLocationTracker.instance.stop();
+        if (!mounted) return;
+      }
+
       setState(() {
-        _schedule = schedule;
+        _applySchedule(schedule);
         _error = null;
-        if (_schedule.sessionById(_selectedSessionId) == null) {
-          _selectedSessionId = _resolveInitialSessionId();
-        }
       });
       widget.onScheduleChanged?.call(schedule);
     } catch (_) {
@@ -773,7 +811,8 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
                 if (session == null)
                   const _InfoBanner(
                     icon: Icons.event_busy,
-                    text: 'لا توجد جلسة متاحة.',
+                    text:
+                        'لم تعد لديك جلسات متاحة في هذا الطلب. قد يكون تم تغيير تعيينك لأحد أيام المناسبة.',
                   )
                 else
                   _sessionCard(session),
