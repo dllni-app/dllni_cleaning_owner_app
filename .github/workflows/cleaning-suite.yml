@@ -5,6 +5,8 @@ on:
     branches:
       - feature/cleaning-suite-main
       - feature/cleaning-suite-dev
+      - feature/cleaning-suite-agent-a-main-closeout
+      - feature/cleaning-suite-agent-a-dev-closeout
     paths:
       - 'lib/core/di/injection.dart'
       - 'lib/core/location/location_reporter.dart'
