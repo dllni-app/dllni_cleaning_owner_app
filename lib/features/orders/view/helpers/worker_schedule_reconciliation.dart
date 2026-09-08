@@ -21,11 +21,14 @@ WorkerScheduleReconciliationResult reconcileWorkerSchedule({
   required int? trackedBookingId,
   required int? trackedSessionId,
 }) {
-  final selectedWasRemoved = currentSelectedSessionId != null &&
+  final selectedWasRemoved =
+      currentSelectedSessionId != null &&
       schedule.sessionById(currentSelectedSessionId) == null;
-  final securityCodeWasRemoved = securityCodeSessionId != null &&
+  final securityCodeWasRemoved =
+      securityCodeSessionId != null &&
       schedule.sessionById(securityCodeSessionId) == null;
-  final trackedSessionWasRemoved = trackedBookingId == bookingId &&
+  final trackedSessionWasRemoved =
+      trackedBookingId == bookingId &&
       trackedSessionId != null &&
       schedule.sessionById(trackedSessionId) == null;
 
@@ -35,7 +38,8 @@ WorkerScheduleReconciliationResult reconcileWorkerSchedule({
       currentSelectedSessionId,
       preferredSessionId,
     ),
-    clearSecurityCode: selectedWasRemoved ||
+    clearSecurityCode:
+        selectedWasRemoved ||
         securityCodeWasRemoved ||
         schedule.sessions.isEmpty,
     stopLocationTracking: trackedSessionWasRemoved,
