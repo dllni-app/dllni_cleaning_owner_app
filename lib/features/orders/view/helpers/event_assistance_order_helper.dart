@@ -85,9 +85,12 @@ class EventAssistanceOrderHelper {
     double? totalHours,
     double? estimatedHours,
   }) {
-    if (propertyHours != null && propertyHours > 0) return propertyHours;
+    // Worker-specific assignment/offer hours must win over the booking-wide
+    // duration. The backend divides the order duration by the required worker
+    // count before returning this value to the cleaning owner application.
     if (assignmentHours != null && assignmentHours > 0) return assignmentHours;
     if (totalHours != null && totalHours > 0) return totalHours;
+    if (propertyHours != null && propertyHours > 0) return propertyHours;
     if (estimatedHours != null && estimatedHours > 0) return estimatedHours;
     return null;
   }
