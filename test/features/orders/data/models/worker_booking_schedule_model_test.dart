@@ -128,27 +128,30 @@ void main() {
     expect(result.schedule?.isMultiDay, isTrue);
   });
 
-  test('keeps a released-only multi-day refetch as an empty multi-day schedule', () {
-    final result = workerMultiDayBookingEnvelopeFromJson({
-      'data': {
-        'id': 501,
-        'schedule': {
-          'bookingDaysCount': 3,
-          'daysCount': 0,
-          'mySessionsCount': 0,
-          'myCompletedSessionsCount': 0,
-          'myRemainingSessionsCount': 0,
-          'sessions': <Map<String, dynamic>>[],
-          'nextSession': null,
+  test(
+    'keeps a released-only multi-day refetch as an empty multi-day schedule',
+    () {
+      final result = workerMultiDayBookingEnvelopeFromJson({
+        'data': {
+          'id': 501,
+          'schedule': {
+            'bookingDaysCount': 3,
+            'daysCount': 0,
+            'mySessionsCount': 0,
+            'myCompletedSessionsCount': 0,
+            'myRemainingSessionsCount': 0,
+            'sessions': <Map<String, dynamic>>[],
+            'nextSession': null,
+          },
         },
-      },
-    });
+      });
 
-    expect(result.schedule?.bookingDaysCount, 3);
-    expect(result.schedule?.sessions, isEmpty);
-    expect(result.schedule?.nextSession, isNull);
-    expect(result.schedule?.isMultiDay, isTrue);
-  });
+      expect(result.schedule?.bookingDaysCount, 3);
+      expect(result.schedule?.sessions, isEmpty);
+      expect(result.schedule?.nextSession, isNull);
+      expect(result.schedule?.isMultiDay, isTrue);
+    },
+  );
 
   test('keeps compatibility with legacy myAssignment shape', () {
     final result = workerMultiDayBookingEnvelopeFromJson({

@@ -434,8 +434,7 @@ class WorkerBookingScheduleModel {
           _int(json['completedDaysCount'] ?? json['completed_days_count']) ??
           sessions.where((item) => item.isCompleted).length,
       myCompletedSessionsCount: _int(
-        json['myCompletedSessionsCount'] ??
-            json['my_completed_sessions_count'],
+        json['myCompletedSessionsCount'] ?? json['my_completed_sessions_count'],
       ),
       cancelledDaysCount:
           _int(json['cancelledDaysCount'] ?? json['cancelled_days_count']) ??
@@ -444,8 +443,7 @@ class WorkerBookingScheduleModel {
           _int(json['remainingDaysCount'] ?? json['remaining_days_count']) ??
           sessions.where((item) => !item.isTerminal).length,
       myRemainingSessionsCount: _int(
-        json['myRemainingSessionsCount'] ??
-            json['my_remaining_sessions_count'],
+        json['myRemainingSessionsCount'] ?? json['my_remaining_sessions_count'],
       ),
       totalHours:
           _double(json['totalHours'] ?? json['total_hours']) ??
