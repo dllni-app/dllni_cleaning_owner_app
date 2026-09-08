@@ -7,6 +7,7 @@ import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_arabic_time_format
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/worker_booking_schedule_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/source/worker_session_remote_data_source.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/worker_schedule_reconciliation.dart';
 import 'package:flutter/material.dart';
 
 class MultiDayOrderDetailsBody extends StatefulWidget {
@@ -62,9 +63,10 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
   void didUpdateWidget(covariant MultiDayOrderDetailsBody oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.initialSchedule != widget.initialSchedule) {
-      _schedule = widget.initialSchedule;
-      if (_schedule.sessionById(_selectedSessionId) == null) {
-        _selectedSessionId = _resolveInitialSessionId();
+      final reconciliation = _reconcileSchedule(widget.initialSchedule);
+      _applySchedule(widget.initialSchedule, reconciliation);
+      if (reconciliation.stopLocationTracking) {
+        unawaited(WorkerLocationTracker.instance.stop());
       }
     }
   }
@@ -86,6 +88,32 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     return _schedule.sessions.isEmpty ? null : _schedule.sessions.last.id;
   }
 
+  WorkerScheduleReconciliationResult _reconcileSchedule(
+    WorkerBookingScheduleModel schedule,
+  ) {
+    final tracker = WorkerLocationTracker.instance;
+    return reconcileWorkerSchedule(
+      schedule: schedule,
+      currentSelectedSessionId: _selectedSessionId,
+      preferredSessionId: widget.initialSelectedSessionId,
+      securityCodeSessionId: _securityCode?.sessionId,
+      bookingId: _bookingId,
+      trackedBookingId: tracker.activeBookingId,
+      trackedSessionId: tracker.activeSessionId,
+    );
+  }
+
+  void _applySchedule(
+    WorkerBookingScheduleModel schedule,
+    WorkerScheduleReconciliationResult reconciliation,
+  ) {
+    _schedule = schedule;
+    _selectedSessionId = reconciliation.selectedSessionId;
+    if (reconciliation.clearSecurityCode) {
+      _securityCode = null;
+    }
+  }
+
   Future<void> _refresh() async {
     final bookingId = _bookingId;
     if (bookingId == null) return;
@@ -94,12 +122,16 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
           .fetchBookingSchedule(bookingId);
       final schedule = result.schedule;
       if (!mounted || schedule == null) return;
+
+      final reconciliation = _reconcileSchedule(schedule);
+      if (reconciliation.stopLocationTracking) {
+        await WorkerLocationTracker.instance.stop();
+        if (!mounted) return;
+      }
+
       setState(() {
-        _schedule = schedule;
+        _applySchedule(schedule, reconciliation);
         _error = null;
-        if (_schedule.sessionById(_selectedSessionId) == null) {
-          _selectedSessionId = _resolveInitialSessionId();
-        }
       });
       widget.onScheduleChanged?.call(schedule);
     } catch (_) {
@@ -776,7 +808,8 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
                 if (session == null)
                   const _InfoBanner(
                     icon: Icons.event_busy,
-                    text: 'لا توجد جلسة متاحة.',
+                    text:
+                        'لم تعد لديك جلسات متاحة في هذا الطلب. قد يكون تم تغيير تعيينك لأحد أيام المناسبة.',
                   )
                 else
                   _sessionCard(session),

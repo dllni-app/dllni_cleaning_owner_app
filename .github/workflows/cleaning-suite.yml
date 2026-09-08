@@ -5,20 +5,27 @@ on:
   push:
     branches:
       - feature/cleaning-suite-dev
+      - feature/cleaning-suite-agent-a-dev-closeout
     paths:
       - 'lib/features/orders/data/models/worker_booking_schedule_model.dart'
       - 'lib/features/orders/data/source/worker_session_remote_data_source.dart'
+      - 'lib/features/orders/view/helpers/worker_schedule_reconciliation.dart'
       - 'lib/features/orders/view/screens/order_details_screen.dart'
       - 'lib/features/orders/view/widgets/accept_order_bottom_sheet.dart'
+      - 'lib/features/orders/view/widgets/order_details/multi_day_order_details_body.dart'
       - 'test/features/orders/data/models/worker_booking_schedule_model_test.dart'
+      - 'test/features/orders/view/helpers/worker_schedule_reconciliation_test.dart'
       - '.github/workflows/cleaning-suite.yml'
   pull_request:
     paths:
       - 'lib/features/orders/data/models/worker_booking_schedule_model.dart'
       - 'lib/features/orders/data/source/worker_session_remote_data_source.dart'
+      - 'lib/features/orders/view/helpers/worker_schedule_reconciliation.dart'
       - 'lib/features/orders/view/screens/order_details_screen.dart'
       - 'lib/features/orders/view/widgets/accept_order_bottom_sheet.dart'
+      - 'lib/features/orders/view/widgets/order_details/multi_day_order_details_body.dart'
       - 'test/features/orders/data/models/worker_booking_schedule_model_test.dart'
+      - 'test/features/orders/view/helpers/worker_schedule_reconciliation_test.dart'
       - '.github/workflows/cleaning-suite.yml'
 
 permissions:
@@ -47,19 +54,25 @@ jobs:
           dart format --output=none --set-exit-if-changed \
             lib/features/orders/data/models/worker_booking_schedule_model.dart \
             lib/features/orders/data/source/worker_session_remote_data_source.dart \
+            lib/features/orders/view/helpers/worker_schedule_reconciliation.dart \
             lib/features/orders/view/screens/order_details_screen.dart \
             lib/features/orders/view/widgets/accept_order_bottom_sheet.dart \
-            test/features/orders/data/models/worker_booking_schedule_model_test.dart
+            lib/features/orders/view/widgets/order_details/multi_day_order_details_body.dart \
+            test/features/orders/data/models/worker_booking_schedule_model_test.dart \
+            test/features/orders/view/helpers/worker_schedule_reconciliation_test.dart
 
-      - name: Analyze multi-session sources
+      - name: Analyze session lifecycle files
         run: |
-          flutter analyze \
+          flutter analyze --no-pub \
             lib/features/orders/data/models/worker_booking_schedule_model.dart \
             lib/features/orders/data/source/worker_session_remote_data_source.dart \
+            lib/features/orders/view/helpers/worker_schedule_reconciliation.dart \
             lib/features/orders/view/screens/order_details_screen.dart \
-            lib/features/orders/view/widgets/accept_order_bottom_sheet.dart
+            lib/features/orders/view/widgets/accept_order_bottom_sheet.dart \
+            lib/features/orders/view/widgets/order_details/multi_day_order_details_body.dart
 
-      - name: Run multi-session model tests
+      - name: Run session schedule tests
         run: |
-          flutter test \
-            test/features/orders/data/models/worker_booking_schedule_model_test.dart
+          flutter test --no-pub \
+            test/features/orders/data/models/worker_booking_schedule_model_test.dart \
+            test/features/orders/view/helpers/worker_schedule_reconciliation_test.dart
