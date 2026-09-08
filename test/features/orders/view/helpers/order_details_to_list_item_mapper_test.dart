@@ -53,4 +53,69 @@ void main() {
       expect(mapped.openTime?.isOpenTime, isTrue);
     },
   );
+
+  test(
+    'completion refresh keeps materials and special services while replacing open-time final state',
+    () {
+      final fallback = fetchOrdersUsecaseModelFromJson(<String, dynamic>{
+        'data': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 88,
+            'status': 'in_progress',
+            'materials': <Map<String, dynamic>>[
+              <String, dynamic>{
+                'id': 10,
+                'name': 'منظف الأرضيات',
+                'quantity': 1.5,
+                'unitLabel': 'لتر',
+              },
+            ],
+            'specialServices': <Map<String, dynamic>>[
+              <String, dynamic>{
+                'id': 11,
+                'name': 'تنظيف السجاد',
+                'quantity': 2,
+                'dirtinessLabel': 'شديد',
+              },
+            ],
+            'openTime': <String, dynamic>{
+              'isOpenTime': true,
+              'requestedWorkerCount': 2,
+              'workStartedAt': '2026-09-07T08:00:00Z',
+              'isFinalized': false,
+            },
+          },
+        ],
+      }).data!.single;
+
+      final details = fetchOrderDetailsUsecaseModelFromJson(<String, dynamic>{
+        'data': <String, dynamic>{
+          'id': 88,
+          'status': 'awaiting_customer_completion',
+          'openTime': <String, dynamic>{
+            'isOpenTime': true,
+            'requestedWorkerCount': 2,
+            'workStartedAt': '2026-09-07T08:00:00Z',
+            'workFinishedAt': '2026-09-07T09:15:00Z',
+            'actualDurationMinutes': 75,
+            'billableDurationMinutes': 90,
+            'finalAmount': 300,
+            'isFinalized': true,
+          },
+        },
+      }).data!;
+
+      final mapped = OrderDetailsToListItemMapper.fromDetails(
+        details,
+        fallback: fallback,
+      );
+
+      expect(mapped.materials?.single.name, 'منظف الأرضيات');
+      expect(mapped.specialServices?.single.name, 'تنظيف السجاد');
+      expect(mapped.openTime?.isFinalized, isTrue);
+      expect(mapped.openTime?.actualDurationMinutes, 75);
+      expect(mapped.openTime?.billableDurationMinutes, 90);
+      expect(mapped.openTime?.finalAmount, 300);
+    },
+  );
 }
