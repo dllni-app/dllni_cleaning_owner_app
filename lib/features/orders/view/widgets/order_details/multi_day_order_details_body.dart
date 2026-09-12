@@ -288,6 +288,56 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     });
   }
 
+  Future<void> _decideOpenTimeExtension(String decision) async {
+    final session = _activeSession;
+    final extensionId = session?.openTime?.pendingExtension?.id;
+    if (session == null || extensionId == null) return;
+    String? reason;
+    if (decision == 'rejected') {
+      reason = await _askText(
+        title: 'رفض تمديد الجلسة',
+        hint: 'سبب الرفض',
+        isRequired: true,
+        maxLength: 2000,
+      );
+      if (reason == null || reason.trim().isEmpty) return;
+    }
+
+    await _runAction(() async {
+      await getIt<WorkerSessionRemoteDataSource>().decideOpenTimeExtension(
+        extensionId: extensionId,
+        decision: decision,
+        reason: reason,
+      );
+    });
+  }
+
+  Future<void> _decideOpenTimeEnd(String decision) async {
+    final bookingId = _bookingId;
+    final session = _activeSession;
+    final sessionId = session?.id;
+    if (bookingId == null || sessionId == null) return;
+    String? reason;
+    if (decision == 'rejected') {
+      reason = await _askText(
+        title: 'رفض إنهاء الجلسة',
+        hint: 'سبب الرفض',
+        isRequired: true,
+        maxLength: 2000,
+      );
+      if (reason == null || reason.trim().isEmpty) return;
+    }
+
+    await _runAction(() async {
+      await getIt<WorkerSessionRemoteDataSource>().decideOpenTimeEnd(
+        bookingId: bookingId,
+        sessionId: sessionId,
+        decision: decision,
+        reason: reason,
+      );
+    });
+  }
+
   Future<void> _cancelSession() async {
     final bookingId = _bookingId;
     final session = _activeSession;
@@ -431,6 +481,13 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
   }
 
   Duration? _remaining(WorkerBookingSessionModel session) {
+    final openTimeCeiling = DateTime.tryParse(
+      session.openTime?.ceilingEndsAt ?? '',
+    );
+    if (openTimeCeiling != null) {
+      final remaining = openTimeCeiling.difference(_now);
+      return remaining.isNegative ? Duration.zero : remaining;
+    }
     final started = DateTime.tryParse(session.workStartedAt ?? '');
     if (started == null || session.hours <= 0) return null;
     final end = started.add(Duration(minutes: (session.hours * 60).round()));
@@ -567,6 +624,13 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
               fontWeight: FontWeight.w700,
             ),
           ],
+          if (session.openTime?.liveAmount != null) ...[
+            const SizedBox(height: 5),
+            AppText.bodySmall(
+              'المبلغ الجاري: ${_money(session.openTime!.liveAmount!)} ${session.pricing?.currency ?? assignment?.currency ?? 'SYP'}',
+              fontWeight: FontWeight.w700,
+            ),
+          ],
           if (remaining != null && session.isInProgress) ...[
             const SizedBox(height: 14),
             Container(
@@ -677,6 +741,28 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
       return const _InfoBanner(
         icon: Icons.more_time,
         text: 'يوجد طلب تمديد مرتبط بهذه الجلسة. تعامل معه من إشعار التمديد.',
+      );
+    }
+    if (session.openTime?.pendingExtension?.status == 'pending') {
+      final minutes = session.openTime?.pendingExtension?.requestedMinutes ?? 0;
+      return _OpenTimeDecisionPanel(
+        icon: Icons.more_time,
+        title: 'طلب تمديد الوقت المفتوح',
+        message: 'طلب العميل تمديد هذه الجلسة $minutes دقيقة.',
+        busy: _busy,
+        onAccept: () => _decideOpenTimeExtension('accepted'),
+        onReject: () => _decideOpenTimeExtension('rejected'),
+      );
+    }
+    if (session.openTime?.endStatus == 'pending' ||
+        session.canDecideOpenTimeEnd) {
+      return _OpenTimeDecisionPanel(
+        icon: Icons.stop_circle_outlined,
+        title: 'طلب إنهاء الوقت المفتوح',
+        message: 'يريد العميل إنهاء هذه الجلسة الآن.',
+        busy: _busy,
+        onAccept: () => _decideOpenTimeEnd('accepted'),
+        onReject: () => _decideOpenTimeEnd('rejected'),
       );
     }
 
@@ -848,6 +934,85 @@ class _InfoBanner extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(child: Text(text)),
         ],
+      ),
+    );
+  }
+}
+
+class _OpenTimeDecisionPanel extends StatelessWidget {
+  const _OpenTimeDecisionPanel({
+    required this.icon,
+    required this.title,
+    required this.message,
+    required this.busy,
+    required this.onAccept,
+    required this.onReject,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+  final bool busy;
+  final VoidCallback onAccept;
+  final VoidCallback onReject;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      container: true,
+      label: title,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xffFFFBEB),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xffF59E0B)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, color: const Color(0xff92400E)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(message),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                    ),
+                    onPressed: busy ? null : onReject,
+                    child: const Text('رفض'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                    ),
+                    onPressed: busy ? null : onAccept,
+                    child: const Text('قبول'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

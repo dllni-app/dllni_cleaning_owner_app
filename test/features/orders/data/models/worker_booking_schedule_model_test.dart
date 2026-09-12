@@ -207,4 +207,57 @@ void main() {
     expect(result.session?.isInProgress, isTrue);
     expect(result.session?.workStartedAt, isNotNull);
   });
+
+  test(
+    'parses the authoritative meter and decisions for an open-time session',
+    () {
+      final result = workerMultiDayBookingEnvelopeFromJson({
+        'data': {
+          'id': 610,
+          'schedule': {
+            'mode': 'multi_day',
+            'daysCount': 2,
+            'sessions': [
+              {
+                'id': 1601,
+                'sequence': 1,
+                'sessionType': 'open_time',
+                'date': '2026-09-12',
+                'time': '09:00',
+                'hours': 4,
+                'status': 'in_progress',
+                'canComplete': false,
+                'canDecideOpenTimeEnd': true,
+                'openTime': {
+                  'isOpenTime': true,
+                  'serverNow': '2026-09-12T10:00:00+03:00',
+                  'ceilingEndsAt': '2026-09-12T13:00:00+03:00',
+                  'expectedMaxMinutes': 240,
+                  'hardMaxMinutes': 480,
+                  'remainingMinutes': 180,
+                  'liveAmount': 300,
+                  'liveBillableMinutes': 60,
+                  'endStatus': 'pending',
+                  'pendingExtension': {
+                    'id': 77,
+                    'requestedMinutes': 30,
+                    'status': 'pending',
+                  },
+                },
+              },
+            ],
+          },
+        },
+      });
+
+      final session = result.schedule?.sessions.single;
+      expect(session?.isOpenTime, isTrue);
+      expect(session?.sessionType, 'open_time');
+      expect(session?.canComplete, isFalse);
+      expect(session?.canDecideOpenTimeEnd, isTrue);
+      expect(session?.openTime?.remainingMinutes, 180);
+      expect(session?.openTime?.liveAmount, 300);
+      expect(session?.openTime?.pendingExtension?.id, 77);
+    },
+  );
 }

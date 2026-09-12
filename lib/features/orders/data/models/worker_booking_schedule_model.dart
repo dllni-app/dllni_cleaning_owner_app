@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'cleaning_booking_operational_details.dart';
+
 Map<String, dynamic> _map(dynamic value) {
   if (value is Map<String, dynamic>) return value;
   if (value is Map) {
@@ -228,6 +230,7 @@ class WorkerSessionFinancialModel {
 class WorkerBookingSessionModel {
   final int? id;
   final int sequence;
+  final String? sessionType;
   final DateTime? date;
   final String? time;
   final double hours;
@@ -240,6 +243,7 @@ class WorkerBookingSessionModel {
   final bool canStartWork;
   final bool canComplete;
   final bool canExtend;
+  final bool canDecideOpenTimeEnd;
   final bool canCancel;
   final String? startedTravelAt;
   final String? arrivedAt;
@@ -253,10 +257,12 @@ class WorkerBookingSessionModel {
   final WorkerSessionAssignmentModel? workerAssignmentState;
   final List<WorkerSessionAssignmentModel> workerAssignments;
   final WorkerSessionFinancialModel? financial;
+  final CleaningOpenTimeDetails? openTime;
 
   const WorkerBookingSessionModel({
     this.id,
     required this.sequence,
+    this.sessionType,
     this.date,
     this.time,
     required this.hours,
@@ -269,6 +275,7 @@ class WorkerBookingSessionModel {
     required this.canStartWork,
     required this.canComplete,
     required this.canExtend,
+    this.canDecideOpenTimeEnd = false,
     required this.canCancel,
     this.startedTravelAt,
     this.arrivedAt,
@@ -282,6 +289,7 @@ class WorkerBookingSessionModel {
     this.workerAssignmentState,
     this.workerAssignments = const <WorkerSessionAssignmentModel>[],
     this.financial,
+    this.openTime,
   });
 
   factory WorkerBookingSessionModel.fromJson(Map<String, dynamic> json) {
@@ -298,6 +306,7 @@ class WorkerBookingSessionModel {
     return WorkerBookingSessionModel(
       id: _int(json['id']),
       sequence: _int(json['sequence']) ?? 1,
+      sessionType: _string(json['sessionType'] ?? json['session_type']),
       date: DateTime.tryParse(_string(json['date']) ?? ''),
       time: _string(json['time']),
       hours:
@@ -318,6 +327,11 @@ class WorkerBookingSessionModel {
           _bool(json['canStartWork'] ?? json['can_start_work']) ?? false,
       canComplete: _bool(json['canComplete'] ?? json['can_complete']) ?? false,
       canExtend: _bool(json['canExtend'] ?? json['can_extend']) ?? false,
+      canDecideOpenTimeEnd:
+          _bool(
+            json['canDecideOpenTimeEnd'] ?? json['can_decide_open_time_end'],
+          ) ??
+          false,
       canCancel: _bool(json['canCancel'] ?? json['can_cancel']) ?? false,
       startedTravelAt: _string(
         json['startedTravelAt'] ?? json['started_travel_at'],
@@ -354,11 +368,17 @@ class WorkerBookingSessionModel {
       financial: financialRaw is Map
           ? WorkerSessionFinancialModel.fromJson(_map(financialRaw))
           : null,
+      openTime: (json['openTime'] ?? json['open_time']) is Map
+          ? CleaningOpenTimeDetails.fromJson(
+              _map(json['openTime'] ?? json['open_time']),
+            )
+          : null,
     );
   }
 
   WorkerSessionAssignmentModel? get assignment => workerAssignmentState;
   bool get canStart => canStartTravel;
+  bool get isOpenTime => sessionType == 'open_time' || openTime != null;
   bool get isCompleted => status == 'completed';
   bool get isCancelled => status == 'cancelled';
   bool get isTerminal =>

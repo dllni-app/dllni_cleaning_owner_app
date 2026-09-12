@@ -3,6 +3,7 @@ import 'package:common_package/helpers/dio_network.dart';
 import 'package:injectable/injectable.dart';
 
 import '../models/worker_booking_schedule_model.dart';
+import '../models/cleaning_booking_operational_details.dart';
 
 Map<String, dynamic> _map(dynamic value) {
   if (value is Map<String, dynamic>) return value;
@@ -217,6 +218,56 @@ class WorkerSessionRemoteDataSource with HandlingApiManager {
   }) {
     return _post(
       '/api/v1/cleaning-bookings/$bookingId/sessions/$sessionId/start-work',
+    );
+  }
+
+  Future<CleaningOpenTimeDetails> fetchOpenTimeMeter({
+    required int bookingId,
+    required int sessionId,
+  }) {
+    return wrapHandlingApi(
+      tryCall: () => dioNetwork.getData(
+        endPoint:
+            '/api/v1/cleaning-bookings/$bookingId/sessions/$sessionId/open-time/meter',
+      ),
+      jsonConvert: cleaningOpenTimeEnvelopeFromJson,
+    );
+  }
+
+  Future<CleaningOpenTimeDetails> decideOpenTimeExtension({
+    required int extensionId,
+    required String decision,
+    String? reason,
+  }) {
+    return wrapHandlingApi(
+      tryCall: () => dioNetwork.postData(
+        endPoint:
+            '/api/v1/cleaning-bookings/open-time/extensions/$extensionId/decision',
+        data: <String, dynamic>{
+          'decision': decision,
+          if (reason?.trim().isNotEmpty == true) 'reason': reason!.trim(),
+        },
+      ),
+      jsonConvert: cleaningOpenTimeEnvelopeFromJson,
+    );
+  }
+
+  Future<CleaningOpenTimeDetails> decideOpenTimeEnd({
+    required int bookingId,
+    required int sessionId,
+    required String decision,
+    String? reason,
+  }) {
+    return wrapHandlingApi(
+      tryCall: () => dioNetwork.postData(
+        endPoint:
+            '/api/v1/cleaning-bookings/$bookingId/sessions/$sessionId/open-time/end/decision',
+        data: <String, dynamic>{
+          'decision': decision,
+          if (reason?.trim().isNotEmpty == true) 'reason': reason!.trim(),
+        },
+      ),
+      jsonConvert: cleaningOpenTimeEnvelopeFromJson,
     );
   }
 

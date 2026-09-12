@@ -195,8 +195,11 @@ extension FetchOrdersWorkerStatusX on FetchOrdersUsecaseModelDataItem {
     if (normalizedGlobal != CleaningBookingStatus.pending) return workerStatus;
 
     if (workerStatus == CleaningWorkerOrderStatus.accepted ||
-        workerStatus == CleaningWorkerOrderStatus.acceptedWaitingForOrderStart) {
-      return CleaningWorkerOrderStatus.acceptedWaitingTeam;
+        workerStatus ==
+            CleaningWorkerOrderStatus.acceptedWaitingForOrderStart) {
+      return workerAcceptance?.isFulfilled == true
+          ? CleaningWorkerOrderStatus.acceptedWaitingForOrderStart
+          : CleaningWorkerOrderStatus.acceptedWaitingTeam;
     }
 
     return workerStatus;

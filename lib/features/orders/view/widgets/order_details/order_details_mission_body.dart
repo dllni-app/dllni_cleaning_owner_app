@@ -21,6 +21,7 @@ import '../../helpers/order_work_timer_helper.dart';
 import 'mission/completion_message_sheet.dart';
 import 'mission/mission_finish_button.dart';
 import 'mission/mission_operational_details_cards.dart';
+import 'mission/mission_operational_actions_card.dart';
 import 'mission/mission_payment_summary_card.dart';
 import 'mission/mission_services_info_card.dart';
 import 'mission/mission_support_button.dart';
@@ -793,6 +794,15 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                       MissionOpenTimeInfoCard(
                         openTime: widget.order.openTime!,
                         presentation: _openTimePresentation,
+                      ),
+                      14.verticalSpace,
+                    ],
+                    if (!_uiState.isDispute && !_uiState.isFinal) ...[
+                      MissionOperationalActionsCard(
+                        bookingId: widget.order.id ?? 0,
+                        openTime: widget.order.openTime,
+                        materialKit: widget.order.materialKit,
+                        services: widget.order.specialServices ?? const [],
                       ),
                       14.verticalSpace,
                     ],

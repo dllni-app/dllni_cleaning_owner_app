@@ -187,6 +187,7 @@ class FetchOrderDetailsUsecaseModelData {
   final List<Service>? services;
   final List<Addon>? addons;
   final List<CleaningBookingMaterialLine>? materials;
+  final CleaningMaterialKitDetails? materialKit;
   final List<CleaningSpecialServiceLine>? specialServices;
   final CleaningOpenTimeDetails? openTime;
   final FetchOrderDetailsUsecaseModelDataBillingPolicy? billingPolicy;
@@ -244,6 +245,7 @@ class FetchOrderDetailsUsecaseModelData {
     this.services,
     this.addons,
     this.materials,
+    this.materialKit,
     this.specialServices,
     this.openTime,
     this.billingPolicy,
@@ -402,6 +404,11 @@ class FetchOrderDetailsUsecaseModelData {
       materials: _toMapList(
         m['materials'],
       ).map(CleaningBookingMaterialLine.fromJson).toList(growable: false),
+      materialKit: (m['materialKit'] ?? m['material_kit']) is Map
+          ? CleaningMaterialKitDetails.fromJson(
+              _toMap(m['materialKit'] ?? m['material_kit']),
+            )
+          : null,
       specialServices: _toMapList(
         m['specialServices'] ?? m['special_services'],
       ).map(CleaningSpecialServiceLine.fromJson).toList(growable: false),
@@ -489,6 +496,14 @@ class FetchOrderDetailsUsecaseModelData {
       'services': services?.map((e) => e.toJson()).toList(growable: false),
       'addons': addons?.map((e) => e.toJson()).toList(growable: false),
       'materials': materials?.map((e) => e.toJson()).toList(growable: false),
+      'materialKit': materialKit == null
+          ? null
+          : <String, dynamic>{
+              'status': materialKit!.status,
+              'preparedAt': materialKit!.preparedAt,
+              'receivedAt': materialKit!.receivedAt,
+              'receivedByWorkerId': materialKit!.receivedByWorkerId,
+            },
       'specialServices': specialServices
           ?.map((e) => e.toJson())
           .toList(growable: false),

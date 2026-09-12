@@ -67,7 +67,7 @@ void main() {
           'data': <String, dynamic>{
             'cleaning_booking': <String, dynamic>{'id': 94},
           },
-        ),
+        }),
         94,
       );
       expect(
@@ -94,7 +94,7 @@ void main() {
               'status': CleaningBookingStatus.awaitingStartVerification,
             },
           },
-        ),
+        }),
         CleaningBookingStatus.awaitingStartVerification,
       );
     });
