@@ -12,6 +12,7 @@ class LocationReporter {
 
   static Future<void> postLocation({
     required int bookingId,
+    int? sessionId,
     required double latitude,
     required double longitude,
   }) async {
@@ -34,8 +35,11 @@ class LocationReporter {
           },
         ),
       );
+      final endpoint = sessionId != null && sessionId > 0
+          ? '/api/v1/cleaning-bookings/$bookingId/sessions/$sessionId/location'
+          : '/api/v1/cleaning-bookings/$bookingId/location';
       final response = await dio.post(
-        '/api/v1/cleaning-bookings/$bookingId/location',
+        endpoint,
         data: <String, double>{'latitude': latitude, 'longitude': longitude},
       );
 
@@ -45,14 +49,13 @@ class LocationReporter {
       if (ignored) {
         log(
           'Cleaning location report ignored by lifecycle policy '
-          '(bookingId=$bookingId, statusCode=${response.statusCode}).',
+          '(bookingId=$bookingId, sessionId=$sessionId, statusCode=${response.statusCode}).',
         );
       }
     } catch (error, stackTrace) {
-      // Keep the tracker alive, but retain enough diagnostics to investigate
-      // permission, authentication, connectivity, and lifecycle failures.
       log(
-        'Cleaning location report failed (bookingId=$bookingId): $error',
+        'Cleaning location report failed '
+        '(bookingId=$bookingId, sessionId=$sessionId): $error',
         stackTrace: stackTrace,
       );
     }

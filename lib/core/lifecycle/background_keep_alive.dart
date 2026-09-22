@@ -13,6 +13,7 @@ class BackgroundKeepAlive {
 
   static const int _serviceId = 6201;
   static const String activeBookingIdKey = 'active_booking_id';
+  static const String activeSessionIdKey = 'active_session_id';
   static bool _initialized = false;
 
   Future<void> initialize() async {
@@ -21,8 +22,6 @@ class BackgroundKeepAlive {
     FlutterForegroundTask.initCommunicationPort();
     FlutterForegroundTask.init(
       androidNotificationOptions: AndroidNotificationOptions(
-        // New channel id so quieter settings apply on existing installs
-        // (Android locks channel importance/sound after first creation).
         channelId: 'owner_background_updates_quiet',
         channelName: 'تحديث الموقع',
         channelDescription: 'إشعار هادئ أثناء مشاركة الموقع مع العميل.',
@@ -50,7 +49,7 @@ class BackgroundKeepAlive {
     _initialized = true;
   }
 
-  Future<void> startForBooking(int bookingId) async {
+  Future<void> startForBooking(int bookingId, {int? sessionId}) async {
     if (!Platform.isAndroid || bookingId <= 0) return;
     await initialize();
     if (!_hasToken()) {
@@ -62,6 +61,14 @@ class BackgroundKeepAlive {
       key: activeBookingIdKey,
       value: bookingId,
     );
+    if (sessionId != null && sessionId > 0) {
+      await FlutterForegroundTask.saveData(
+        key: activeSessionIdKey,
+        value: sessionId,
+      );
+    } else {
+      await FlutterForegroundTask.removeData(key: activeSessionIdKey);
+    }
 
     final notificationPermission =
         await FlutterForegroundTask.checkNotificationPermission();
@@ -114,15 +121,15 @@ class BackgroundKeepAlive {
     final bookingId = await FlutterForegroundTask.getData<int>(
       key: activeBookingIdKey,
     );
-    if (bookingId == null || bookingId <= 0) {
-      return;
-    }
-    await startForBooking(bookingId);
+    if (bookingId == null || bookingId <= 0) return;
+    final sessionId = await _readPositiveInt(activeSessionIdKey);
+    await startForBooking(bookingId, sessionId: sessionId);
   }
 
   Future<void> stop() async {
     if (!Platform.isAndroid || !_initialized) return;
     await FlutterForegroundTask.removeData(key: activeBookingIdKey);
+    await FlutterForegroundTask.removeData(key: activeSessionIdKey);
     if (!await FlutterForegroundTask.isRunningService) return;
 
     final result = await FlutterForegroundTask.stopService();
@@ -133,6 +140,14 @@ class BackgroundKeepAlive {
         name: 'BackgroundKeepAlive',
       );
     }
+  }
+
+  Future<int?> _readPositiveInt(String key) async {
+    final direct = await FlutterForegroundTask.getData<int>(key: key);
+    if (direct != null && direct > 0) return direct;
+    final raw = await FlutterForegroundTask.getData<String>(key: key);
+    final parsed = int.tryParse(raw?.trim() ?? '');
+    return parsed != null && parsed > 0 ? parsed : null;
   }
 
   bool _hasToken() {
@@ -176,8 +191,13 @@ class _BackgroundKeepAliveTaskHandler extends TaskHandler {
 
   Future<void> _tryReportLocation() async {
     try {
-      final bookingId = await _readActiveBookingId();
+      final bookingId = await _readPositiveInt(
+        BackgroundKeepAlive.activeBookingIdKey,
+      );
       if (bookingId == null) return;
+      final sessionId = await _readPositiveInt(
+        BackgroundKeepAlive.activeSessionIdKey,
+      );
 
       final permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied ||
@@ -194,23 +214,19 @@ class _BackgroundKeepAliveTaskHandler extends TaskHandler {
       );
       await LocationReporter.postLocation(
         bookingId: bookingId,
+        sessionId: sessionId,
         latitude: pos.latitude,
         longitude: pos.longitude,
       );
     } catch (_) {}
   }
 
-  Future<int?> _readActiveBookingId() async {
-    final direct = await FlutterForegroundTask.getData<int>(
-      key: BackgroundKeepAlive.activeBookingIdKey,
-    );
+  Future<int?> _readPositiveInt(String key) async {
+    final direct = await FlutterForegroundTask.getData<int>(key: key);
     if (direct != null && direct > 0) return direct;
 
-    final asString = await FlutterForegroundTask.getData<String>(
-      key: BackgroundKeepAlive.activeBookingIdKey,
-    );
-    if (asString == null) return null;
-    final parsed = int.tryParse(asString.trim());
+    final asString = await FlutterForegroundTask.getData<String>(key: key);
+    final parsed = int.tryParse(asString?.trim() ?? '');
     if (parsed == null || parsed <= 0) return null;
     return parsed;
   }

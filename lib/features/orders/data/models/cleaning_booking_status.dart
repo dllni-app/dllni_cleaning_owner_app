@@ -8,6 +8,7 @@ abstract class CleaningBookingStatus {
   static const awaitingCustomerCompletion = 'awaiting_customer_completion';
   static const timeExtensionRequested = 'time_extension_requested';
   static const underDispute = 'under_dispute';
+  static const partiallyCompleted = 'partially_completed';
   static const completed = 'completed';
   static const cancelled = 'cancelled';
 
@@ -15,34 +16,26 @@ abstract class CleaningBookingStatus {
     switch (status) {
       case pending:
         return 'قيد الانتظار';
-
       case workerAssigned:
         return 'تم تعيين العامل';
-
       case awaitingStartVerification:
         return 'بانتظار التحقق من بدء الخدمة';
-
       case awaitingWorkerStartConfirmation:
         return 'بانتظار تأكيد العامل لبدء الخدمة';
-
       case inProgress:
         return 'قيد التنفيذ';
-
       case awaitingCustomerCompletion:
         return 'بانتظار تأكيد العميل لإتمام الخدمة';
-
       case timeExtensionRequested:
         return 'تم طلب تمديد الوقت';
-
       case underDispute:
         return 'قيد المراجعة';
-
+      case partiallyCompleted:
+        return 'مكتمل جزئياً';
       case completed:
         return 'مكتمل';
-
       case cancelled:
         return 'ملغي';
-
       default:
         return status;
     }

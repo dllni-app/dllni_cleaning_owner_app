@@ -55,10 +55,13 @@ void main() {
       ).getBody();
 
       expect(body, <String, dynamic>{
-        'emergency_type': 'severe_conflict',
-        'message': 'Need urgent help',
-        'lat': 33.5138,
-        'lng': 36.2765,
+        'kind': 'emergency',
+        'bookingId': 101,
+        'bookingType': 'cleaning_booking',
+        'emergencyType': 'severe_conflict',
+        'description': 'Need urgent help',
+        'latitude': 33.5138,
+        'longitude': 36.2765,
       });
     });
 

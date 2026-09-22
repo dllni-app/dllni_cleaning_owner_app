@@ -1,6 +1,9 @@
 import 'package:common_package/common_package.dart';
-import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
+import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_arabic_time_formatter.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/data/models/worker_booking_schedule_model.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/data/source/worker_session_remote_data_source.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
@@ -10,14 +13,135 @@ import '../../../../generated/assets.dart';
 import '../../../orders/data/models/fetch_orders_usecase_model.dart';
 import '../../../orders/view/screens/order_details_screen.dart';
 
-class CalenderOrderCard extends StatelessWidget {
+class CalenderOrderCard extends StatefulWidget {
   const CalenderOrderCard({super.key, required this.date, required this.index});
 
   final FetchOrdersUsecaseModelDataItem date;
   final int index;
 
   @override
+  State<CalenderOrderCard> createState() => _CalenderOrderCardState();
+}
+
+class _CalenderOrderCardState extends State<CalenderOrderCard> {
+  WorkerBookingScheduleModel? _schedule;
+
+  bool get _isEventAssistance =>
+      widget.date.propertyType?.trim().toLowerCase() == 'event_assistance';
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isEventAssistance && widget.date.id != null) {
+      _fetchSchedule();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant CalenderOrderCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.date.id != widget.date.id) {
+      _schedule = null;
+      if (_isEventAssistance && widget.date.id != null) {
+        _fetchSchedule();
+      }
+    }
+  }
+
+  Future<void> _fetchSchedule() async {
+    final bookingId = widget.date.id;
+    if (bookingId == null) return;
+    try {
+      final result = await getIt<WorkerSessionRemoteDataSource>()
+          .fetchBookingSchedule(bookingId);
+      if (!mounted) return;
+      setState(() => _schedule = result.schedule);
+    } catch (_) {
+      // Keep the legacy occurrence available if schedule loading fails.
+    }
+  }
+
+  List<WorkerBookingSessionModel> _selectedSessions(BuildContext context) {
+    final schedule = _schedule;
+    if (schedule == null || !schedule.isMultiDay) {
+      return const <WorkerBookingSessionModel>[];
+    }
+
+    final selectedDate = context
+        .read<OrdersBloc>()
+        .lastAppliedOrdersListFilter
+        .scheduledDate;
+    if (selectedDate != null && selectedDate.isNotEmpty) {
+      final matches = schedule.sessions
+          .where((session) => _dateApi(session.date) == selectedDate)
+          .toList(growable: false);
+      if (matches.isNotEmpty) return matches;
+    }
+
+    final next = schedule.nextSession;
+    if (next != null) {
+      return <WorkerBookingSessionModel>[schedule.sessionById(next.id) ?? next];
+    }
+    if (schedule.sessions.isEmpty) return const <WorkerBookingSessionModel>[];
+    return <WorkerBookingSessionModel>[schedule.sessions.first];
+  }
+
+  String _dateApi(DateTime? date) {
+    if (date == null) return '';
+    return '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  String _sessionHours(double value) =>
+      value % 1 == 0 ? value.toStringAsFixed(0) : value.toStringAsFixed(1);
+
+  String _money(num value) =>
+      value % 1 == 0 ? value.toStringAsFixed(0) : value.toStringAsFixed(2);
+
+  @override
   Widget build(BuildContext context) {
+    final order = widget.date;
+    final schedule = _schedule;
+    final sessions = _selectedSessions(context);
+
+    if (sessions.isEmpty) {
+      return _buildOccurrence(
+        context,
+        order: order,
+        session: null,
+        schedule: schedule,
+      );
+    }
+
+    return Column(
+      children: [
+        for (var index = 0; index < sessions.length; index++) ...[
+          if (index > 0) SizedBox(height: 12.h),
+          _buildOccurrence(
+            context,
+            order: order,
+            session: sessions[index],
+            schedule: schedule,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildOccurrence(
+    BuildContext context, {
+    required FetchOrdersUsecaseModelDataItem order,
+    required WorkerBookingSessionModel? session,
+    required WorkerBookingScheduleModel? schedule,
+  }) {
+    final displayTime = session?.time ?? order.scheduledTime;
+    final displayDate = session == null
+        ? order.scheduledDate
+        : _dateApi(session.date);
+    final workerAmount =
+        session?.workerAssignmentState?.workerAmount ??
+        session?.workerAssignmentState?.netAmount;
+    final displayedProfit = workerAmount ?? order.workerNetProfit;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -25,7 +149,7 @@ class CalenderOrderCard extends StatelessWidget {
           width: 52.w,
           child: AppText.labelMedium(
             CleaningArabicTimeFormatter.formatScheduledTime(
-              date.scheduledTime,
+              displayTime,
               emptyValue: '',
             ),
             scrollText: true,
@@ -39,9 +163,10 @@ class CalenderOrderCard extends StatelessWidget {
                 '/orderdetails',
                 arguments: OrderDetailsScreenParams(
                   bloc: context.read<OrdersBloc>(),
-                  index: index,
-                  order: date,
+                  index: widget.index,
+                  order: order,
                   isNewOrder: false,
+                  selectedSessionId: session?.id,
                 ),
               );
             },
@@ -60,9 +185,31 @@ class CalenderOrderCard extends StatelessWidget {
                       padding: EdgeInsetsDirectional.symmetric(
                         horizontal: 10.w,
                       ),
-                      child: AppText.labelLarge(
-                        date.locationName ?? '',
-                        fontWeight: FontWeight.w400,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: AppText.labelLarge(
+                              order.locationName ?? '',
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                          if (schedule?.isMultiDay == true && session != null)
+                            Container(
+                              padding: EdgeInsetsDirectional.symmetric(
+                                horizontal: 8.w,
+                                vertical: 4.h,
+                              ),
+                              decoration: BoxDecoration(
+                                color: context.primary.withAlpha(18),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: AppText.labelSmall(
+                                'الجلسة ${session.sequence}/${schedule!.daysCount}',
+                                color: context.primary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                     SizedBox(height: 12.h),
@@ -72,24 +219,35 @@ class CalenderOrderCard extends StatelessWidget {
                       Assets.images.orderCardCalender.path,
                       'جدولة الحجز',
                       CleaningArabicTimeFormatter.formatCalendarIsoDate(
-                        date.scheduledDate,
+                        displayDate,
                         emptyValue: '',
                       ),
                     ),
+                    if (session != null) ...[
+                      SizedBox(height: 12.h),
+                      dataRow(
+                        Assets.images.orderCardAlarm.path,
+                        'مدة الجلسة',
+                        '${CleaningArabicTimeFormatter.toArabicDigits(_sessionHours(session.hours))} ساعة',
+                      ),
+                    ],
                     SizedBox(height: 12.h),
                     dataRow(
                       Assets.images.orderCardBuilding.path,
                       'نوع العقار',
-                      _propertyTypeInArabic(date.propertyType),
+                      _propertyTypeInArabic(order.propertyType),
                     ),
-                    SizedBox(height: 12.h),
-                    dataRow(
-                      Assets.images.orderCardAlarm.path,
-                      'المساحة التقديرية',
-                      date.estimatedSqm == null || date.estimatedSqm!.isEmpty
-                          ? ''
-                          : '${CleaningArabicTimeFormatter.toArabicDigits(date.estimatedSqm!)} متر مربع',
-                    ),
+                    if (session == null) ...[
+                      SizedBox(height: 12.h),
+                      dataRow(
+                        Assets.images.orderCardAlarm.path,
+                        'المساحة التقديرية',
+                        order.estimatedSqm == null ||
+                                order.estimatedSqm!.isEmpty
+                            ? ''
+                            : '${CleaningArabicTimeFormatter.toArabicDigits(order.estimatedSqm!)} متر مربع',
+                      ),
+                    ],
                     SizedBox(height: 12.h),
                     Divider(height: 1, color: context.surface),
                     SizedBox(height: 12.h),
@@ -100,11 +258,11 @@ class CalenderOrderCard extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          date.customer?.phone == null
+                          order.customer?.phone == null
                               ? const SizedBox.shrink()
                               : InkWell(
                                   onTap: () async {
-                                    callPhone(date.customer!.phone!);
+                                    callPhone(order.customer!.phone!);
                                   },
                                   child: CircleAvatar(
                                     radius: 15.r,
@@ -117,7 +275,7 @@ class CalenderOrderCard extends StatelessWidget {
                                   ),
                                 ),
                           AppText.titleSmall(
-                            '${CleaningArabicTimeFormatter.toArabicDigits(date.workerNetProfit.toString())} ل.س',
+                            '${CleaningArabicTimeFormatter.toArabicDigits(_money(displayedProfit))} ل.س',
                             color: context.primaryContainer,
                           ),
                         ],
@@ -157,7 +315,6 @@ class CalenderOrderCard extends StatelessWidget {
 
   Future<void> callPhone(String phoneNumber) async {
     final Uri url = Uri(scheme: 'tel', path: phoneNumber);
-
     if (await canLaunchUrl(url)) {
       await launchUrl(url);
     } else {
