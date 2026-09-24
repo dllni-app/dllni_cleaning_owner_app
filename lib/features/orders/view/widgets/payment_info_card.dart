@@ -2,6 +2,8 @@ import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
+import '../../../../core/theme/worker_app_colors.dart';
+
 import '../../data/models/fetch_orders_usecase_model.dart';
 import 'worker_payment_summary.dart';
 
@@ -22,8 +24,9 @@ class PaymentInfoCard extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(16.r),
       decoration: BoxDecoration(
-        color: const Color(0xffF4F5F7),
-        borderRadius: BorderRadius.circular(20.r),
+        color: WorkerAppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: WorkerAppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

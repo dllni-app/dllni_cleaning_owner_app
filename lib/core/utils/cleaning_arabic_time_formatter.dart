@@ -43,6 +43,7 @@ class CleaningArabicTimeFormatter {
 
   static const String _westernDigits = '0123456789';
   static const String _easternDigits = '٠١٢٣٤٥٦٧٨٩';
+  static const String _persianDigits = '۰۱۲۳۴۵۶۷۸۹';
 
   static String arabicWeekdayName(DateTime date) {
     return _arabicWeekdayNames[date.weekday - 1];
@@ -56,7 +57,18 @@ class CleaningArabicTimeFormatter {
     return _arabicMonthNames[date.month - 1];
   }
 
-  /// Converts Western digits in [input] to Eastern Arabic digits (display only).
+  /// Normalizes any Arabic/Persian numeric glyphs to Western 0-9 for UI.
+  static String toWesternDigits(String input) {
+    final buffer = StringBuffer();
+    for (final codeUnit in input.codeUnits) {
+      final char = String.fromCharCode(codeUnit);
+      var index = _easternDigits.indexOf(char);
+      if (index < 0) index = _persianDigits.indexOf(char);
+      buffer.write(index >= 0 ? _westernDigits[index] : char);
+    }
+    return buffer.toString();
+  }
+
   static String toArabicDigits(String input) {
     final buffer = StringBuffer();
     for (final codeUnit in input.codeUnits) {
@@ -78,7 +90,8 @@ class CleaningArabicTimeFormatter {
     DateTime? startOfWeek,
     DateTime? endOfWeek,
   }) {
-    final start = startOfWeek ??
+    final start =
+        startOfWeek ??
         focusedDay.subtract(
           Duration(days: focusedDay.weekday % DateTime.daysPerWeek),
         );
@@ -90,9 +103,7 @@ class CleaningArabicTimeFormatter {
 
   /// Selected-date header, e.g. `١٩ يوليو ٢٠٢٦`.
   static String formatCalendarSelectedDate(DateTime date) {
-    return toArabicDigits(
-      '${date.day} ${arabicMonthName(date)} ${date.year}',
-    );
+    return toArabicDigits('${date.day} ${arabicMonthName(date)} ${date.year}');
   }
 
   /// Display-only `yyyy-MM-dd` with Eastern digits (API value stays Western).
@@ -149,10 +160,7 @@ class CleaningArabicTimeFormatter {
         .trim();
   }
 
-  static String format(
-    DateTime dateTime, {
-    String pattern = 'hh:mm a',
-  }) {
+  static String format(DateTime dateTime, {String pattern = 'hh:mm a'}) {
     return replaceAmPmWithArabic(DateFormat(pattern, 'en').format(dateTime));
   }
 

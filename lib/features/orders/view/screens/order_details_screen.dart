@@ -18,6 +18,8 @@ import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/order_det
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/order_details/order_details_body.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/order_details/order_details_mission_body.dart';
 import 'package:flutter/material.dart';
+
+import '../../../../core/theme/worker_app_colors.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../controllers/order_details_lifecycle_poller.dart';
@@ -598,6 +600,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         _onBlocStateChanged(state, previous);
       },
       child: Scaffold(
+        backgroundColor: WorkerAppColors.canvas,
         body: SafeArea(
           child: BlocBuilder<OrdersBloc, OrdersState>(
             bloc: widget.params.bloc,

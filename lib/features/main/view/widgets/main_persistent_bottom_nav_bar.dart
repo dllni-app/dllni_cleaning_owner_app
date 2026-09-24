@@ -1,8 +1,7 @@
-import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 
-import '../../../../generated/assets.dart';
+import '../../../../core/theme/worker_app_colors.dart';
 
 class MainPersistentBottomNavBar extends StatelessWidget {
   const MainPersistentBottomNavBar({
@@ -16,8 +15,6 @@ class MainPersistentBottomNavBar extends StatelessWidget {
   final ValueChanged<int> onItemSelected;
   final VoidCallback onSupportTap;
 
-  static const _inactiveColor = Color(0xff526D6B);
-
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -25,136 +22,125 @@ class MainPersistentBottomNavBar extends StatelessWidget {
       builder: (context, _) {
         final selectedIndex = controller.index;
         return Container(
-          height: 84,
-          decoration: BoxDecoration(
-            color: context.onPrimary,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(24),
-              topRight: Radius.circular(24),
+          color: WorkerAppColors.canvas,
+          padding: const EdgeInsetsDirectional.fromSTEB(14, 8, 14, 12),
+          child: Container(
+            height: 70,
+            padding: const EdgeInsetsDirectional.all(5),
+            decoration: BoxDecoration(
+              color: WorkerAppColors.surface,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: WorkerAppColors.border),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x120F172A),
+                  blurRadius: 18,
+                  offset: Offset(0, 5),
+                ),
+              ],
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(27),
-                offset: const Offset(0, -2),
-                blurRadius: 12,
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              _buildTabItem(
-                context: context,
-                tabIndex: 0,
-                selectedIndex: selectedIndex,
-                iconPath: Assets.images.navBarHome.path,
-                title: 'الرئيسية',
-                onTap: () => onItemSelected(0),
-              ),
-              _buildTabItem(
-                context: context,
-                tabIndex: 1,
-                selectedIndex: selectedIndex,
-                iconPath: Assets.images.navBarCalender.path,
-                title: 'تقويمي',
-                onTap: () => onItemSelected(1),
-              ),
-              _buildSupportItem(context),
-              _buildTabItem(
-                context: context,
-                tabIndex: 2,
-                selectedIndex: selectedIndex,
-                iconPath: Assets.images.navBarOrders.path,
-                title: 'الطلبات',
-                onTap: () => onItemSelected(2),
-              ),
-              _buildTabItem(
-                context: context,
-                tabIndex: 3,
-                selectedIndex: selectedIndex,
-                iconPath: Assets.images.navBarMore.path,
-                title: 'المزيد',
-                onTap: () => onItemSelected(3),
-              ),
-            ],
+            child: Row(
+              children: [
+                _NavItem(
+                  label: 'الرئيسية',
+                  icon: Icons.home_rounded,
+                  selected: selectedIndex == 0,
+                  onTap: () => onItemSelected(0),
+                ),
+                _NavItem(
+                  label: 'تقويمي',
+                  icon: Icons.calendar_month_rounded,
+                  selected: selectedIndex == 1,
+                  onTap: () => onItemSelected(1),
+                ),
+                _NavItem(
+                  label: 'الدعم',
+                  icon: Icons.headset_mic_rounded,
+                  selected: false,
+                  danger: true,
+                  onTap: onSupportTap,
+                ),
+                _NavItem(
+                  label: 'الطلبات',
+                  icon: Icons.assignment_rounded,
+                  selected: selectedIndex == 2,
+                  onTap: () => onItemSelected(2),
+                ),
+                _NavItem(
+                  label: 'المزيد',
+                  icon: Icons.person_rounded,
+                  selected: selectedIndex == 3,
+                  onTap: () => onItemSelected(3),
+                ),
+              ],
+            ),
           ),
         );
       },
     );
   }
+}
 
-  Widget _buildSupportItem(BuildContext context) {
-    return Expanded(
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          splashColor: Colors.transparent,
-          highlightColor: Colors.transparent,
-          onTap: onSupportTap,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: context.error.withAlpha(38),
-                child: Icon(
-                  Icons.support_agent_rounded,
-                  color: context.error,
-                  size: 28,
-                ),
-              ),
-              const SizedBox(height: 6),
-              AppText.labelMedium(
-                'الدعم',
-                fontWeight: FontWeight.w300,
-                color: context.error,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+class _NavItem extends StatelessWidget {
+  const _NavItem({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+    this.danger = false,
+  });
 
-  Widget _buildTabItem({
-    required BuildContext context,
-    required int tabIndex,
-    required int selectedIndex,
-    required String iconPath,
-    required String title,
-    required VoidCallback onTap,
-  }) {
-    final isSelected = selectedIndex == tabIndex;
-    final iconColor = isSelected ? context.primaryContainer : _inactiveColor;
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final bool danger;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final foreground = danger
+        ? WorkerAppColors.danger
+        : selected
+        ? WorkerAppColors.brandPrimary
+        : WorkerAppColors.textSecondary;
+    final background = danger
+        ? WorkerAppColors.dangerSoft
+        : selected
+        ? WorkerAppColors.brandPrimarySoft
+        : Colors.transparent;
 
     return Expanded(
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          splashColor: Colors.transparent,
-          highlightColor: Colors.transparent,
-          onTap: onTap,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: isSelected
-                    ? context.primaryContainer.withAlpha(63)
-                    : Colors.transparent,
-                child: AppImage.asset(
-                  iconPath,
-                  color: iconColor,
-                  width: 28,
-                  height: 28,
-                ),
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label: label,
+        child: Material(
+          color: background,
+          borderRadius: BorderRadius.circular(17),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(17),
+            child: Padding(
+              padding: const EdgeInsetsDirectional.symmetric(vertical: 7),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icon, color: foreground, size: 21),
+                  const SizedBox(height: 3),
+                  Text(
+                    label,
+                    maxLines: 1,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: foreground,
+                      fontWeight: selected || danger
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 6),
-              AppText.labelMedium(
-                title,
-                fontWeight: FontWeight.w300,
-                color: iconColor,
-              ),
-            ],
+            ),
           ),
         ),
       ),

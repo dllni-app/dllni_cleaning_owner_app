@@ -1,11 +1,10 @@
 import 'package:common_package/common_package.dart';
-import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-import 'package:shimmer/shimmer.dart';
 
-import '../../../../generated/assets.dart';
+import '../../../../core/theme/worker_app_colors.dart';
+import '../../../../core/widgets/worker_surface_card.dart';
+import '../../../orders/data/models/cleaning_booking_status.dart';
 import '../manager/bloc/home_bloc.dart';
 
 class StatisticsRow extends StatelessWidget {
@@ -20,120 +19,99 @@ class StatisticsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    List<Color> colors = [
-      Color(0xff2C3997),
-      Color(0xffEF6221),
-      Color(0xff00BA10),
-    ];
-    List<String> titles = ['إجمالي الطلبات', 'طلبات مؤكدة', 'طلبات مكتملة'];
-    List<String> images = [
-      Assets.images.homeNewOrdersIcon.path,
-      Assets.images.homeConfirmedOrdersIcon.path,
-      Assets.images.homeCompletedOrdersIcon.path,
-    ];
-    List<String> statuses = [
-      CleaningBookingStatus.workerAssigned,
-      CleaningBookingStatus.completed,
-    ];
+    return BlocBuilder<HomeBloc, HomeState>(
+      builder: (context, state) {
+        final model = state.homePageUsecase;
+        final loading =
+            state.homePageUsecaseStatus == null ||
+            state.homePageUsecaseStatus == BlocStatus.loading ||
+            state.homePageUsecaseStatus == BlocStatus.init;
 
-    return Row(
-      spacing: 24.w,
-      children: List.generate(3, (i) {
-        return Expanded(
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12.r),
-            onTap: i == 0
-                ? onStatisticsTap
-                : () => onStatusTap(statuses[i - 1]),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12.r),
-                border: Border(
-                  bottom: BorderSide(color: colors[i], width: 2.w),
-                ),
-                color: context.onPrimary,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withAlpha(63),
-                    offset: Offset(0, 2.h),
-                    blurRadius: 4.r,
-                  ),
-                ],
-              ),
-              padding: EdgeInsetsDirectional.symmetric(vertical: 14.h),
-              child: Column(
-                children: [
-                  CircleAvatar(
-                    radius: 15.r,
-                    backgroundColor: colors[i].withAlpha(51),
-                    child: AppImage.asset(
-                      images[i],
-                      size: 15.r,
-                      color: colors[i],
-                    ),
-                  ),
-                  14.verticalSpace,
-                  BlocBuilder<HomeBloc, HomeState>(
-                    builder: (context, state) {
-                      switch (state.homePageUsecaseStatus) {
-                        case null:
-                          return Shimmer.fromColors(
-                            baseColor: context.onPrimary,
-                            highlightColor: context.primary,
-                            child: Container(
-                              color: context.surface,
-                              height: 20.h,
-                              width: 20.w,
-                            ),
-                          );
-                        case BlocStatus.failed:
-                          return CircleAvatar(
-                            radius: 15.r,
-                            backgroundColor: context.surface,
-                            child: AppText.labelMedium('0'),
-                          );
-                        case BlocStatus.success:
-                          final value = i == 0
-                              ? state.homePageUsecase!.totalBookings
-                              : i == 1
-                              ? state.homePageUsecase!.confirmedCount
-                              : state.homePageUsecase!.completedCount;
-                          return AppText.labelLarge('${value ?? 0}');
-                        case BlocStatus.loading:
-                          return Shimmer.fromColors(
-                            baseColor: context.onPrimary,
-                            highlightColor: context.primary,
-                            child: Container(
-                              color: context.surface,
-                              height: 20.h,
-                              width: 20.w,
-                            ),
-                          );
-                        case BlocStatus.init:
-                          return Shimmer.fromColors(
-                            baseColor: context.onPrimary,
-                            highlightColor: context.primary,
-                            child: Container(
-                              color: context.surface,
-                              height: 20.h,
-                              width: 20.w,
-                            ),
-                          );
-                      }
-                    },
-                  ),
-                  14.verticalSpace,
-                  AppText.labelMedium(
-                    titles[i],
-                    fontWeight: FontWeight.w500,
-                    textAlign: TextAlign.center,
-                  ),
-                ],
+        return Row(
+          children: [
+            Expanded(
+              child: _StatCard(
+                label: 'الإيرادات',
+                value: loading ? '—' : '${model?.totalEarnings ?? 0}',
+                icon: Icons.account_balance_wallet_outlined,
+                color: WorkerAppColors.brandPrimary,
+                onTap: onStatisticsTap,
               ),
             ),
-          ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _StatCard(
+                label: 'المؤكدة',
+                value: loading ? '—' : '${model?.confirmedCount ?? 0}',
+                icon: Icons.event_available_rounded,
+                color: WorkerAppColors.info,
+                onTap: () => onStatusTap(CleaningBookingStatus.workerAssigned),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _StatCard(
+                label: 'المكتملة',
+                value: loading ? '—' : '${model?.completedCount ?? 0}',
+                icon: Icons.task_alt_rounded,
+                color: WorkerAppColors.success,
+                onTap: () => onStatusTap(CleaningBookingStatus.completed),
+              ),
+            ),
+          ],
         );
-      }),
+      },
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  const _StatCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return WorkerSurfaceCard(
+      onTap: onTap,
+      radius: WorkerAppRadius.md,
+      padding: const EdgeInsetsDirectional.symmetric(
+        horizontal: 8,
+        vertical: 12,
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 21),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              color: WorkerAppColors.textPrimary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            maxLines: 1,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: WorkerAppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -2,9 +2,8 @@ import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/extentions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:shimmer/shimmer.dart';
 
-import '../../../../generated/assets.dart';
+import '../../../../core/theme/worker_app_colors.dart';
 import '../manager/bloc/home_bloc.dart';
 
 class TodayOverviewCard extends StatelessWidget {
@@ -12,164 +11,203 @@ class TodayOverviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: LinearGradient(
-          colors: [context.primary, context.primary.withAlpha(127)],
-          stops: [.8, 1],
-          begin: AlignmentGeometry.bottomLeft,
-          end: AlignmentGeometry.topRight,
-        ),
-      ),
-      width: context.width,
-      padding: EdgeInsetsDirectional.symmetric(horizontal: 16, vertical: 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return BlocBuilder<HomeBloc, HomeState>(
+      builder: (context, state) {
+        final model = state.homePageUsecase;
+        final isLoading =
+            state.homePageUsecaseStatus == null ||
+            state.homePageUsecaseStatus == BlocStatus.loading ||
+            state.homePageUsecaseStatus == BlocStatus.init;
+        final isFailed = state.homePageUsecaseStatus == BlocStatus.failed;
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsetsDirectional.all(18),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(WorkerAppRadius.lg),
+            gradient: const LinearGradient(
+              begin: AlignmentDirectional.bottomStart,
+              end: AlignmentDirectional.topEnd,
+              colors: [
+                WorkerAppColors.brandPrimary,
+                WorkerAppColors.brandPrimaryStrong,
+                Color(0xFF3652B4),
+              ],
+              stops: [0, .72, 1],
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AppText.labelLarge(
-                      'إجمالي الايرادات',
-                      color: context.onPrimary,
-                      fontWeight: FontWeight.w400,
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsetsDirectional.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
                     ),
-                    SizedBox(height: 14),
-                    BlocBuilder<HomeBloc, HomeState>(
-                      builder: (context, state) {
-                        switch (state.homePageUsecaseStatus) {
-                          case null:
-                            return Shimmer.fromColors(
-                              baseColor: context.onPrimary,
-                              highlightColor: context.primary,
-                              child: Container(
-                                color: context.surface,
-                                height: 10,
-                                width: 100,
-                              ),
-                            );
-                          case BlocStatus.failed:
-                            return AppText.labelMedium(
-                              ErrorMessageFormatter.format(state.errorMessage),
-                              color: context.error,
-                            );
-                          case BlocStatus.success:
-                            return Row(
-                              crossAxisAlignment: CrossAxisAlignment.baseline,
-                              textBaseline: TextBaseline.alphabetic,
-                              children: [
-                                AppText.displaySmall(
-                                  state.homePageUsecase?.totalEarnings.formatMoney(currency: '') ?? '0 ل.س',
-                                  color: context.onPrimary,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                SizedBox(width: 14),
-                                AppText.labelLarge(
-                                  'ل.س',
-                                  color: context.primaryContainer,
-                                  fontWeight: FontWeight.w400,
-                                ),
-                              ],
-                            );
-                          case BlocStatus.loading:
-                            return Shimmer.fromColors(
-                              baseColor: context.onPrimary,
-                              highlightColor: context.primary,
-                              child: Container(
-                                color: context.surface,
-                                height: 10,
-                                width: 100,
-                              ),
-                            );
-                          case BlocStatus.init:
-                            return Shimmer.fromColors(
-                              baseColor: context.onPrimary,
-                              highlightColor: context.primary,
-                              child: Container(
-                                color: context.surface,
-                                height: 10,
-                                width: 100,
-                              ),
-                            );
-                        }
-                      },
+                    decoration: BoxDecoration(
+                      color: Colors.white.withAlpha(24),
+                      borderRadius: BorderRadius.circular(999),
                     ),
-                    AppImage.asset(Assets.images.homeChart.path),
-                  ],
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.insights_rounded,
+                          size: 15,
+                          color: Colors.white,
+                        ),
+                        SizedBox(width: 6),
+                        Text(
+                          'ملخص اليوم',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Spacer(),
+                  const Icon(
+                    Icons.cleaning_services_rounded,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'إجمالي الإيرادات',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xFFE8EBFF),
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-              AppImage.asset(Assets.images.homeEarningIcon.path, size: 60),
+              const SizedBox(height: 4),
+              if (isLoading)
+                const SizedBox(
+                  width: 26,
+                  height: 26,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: Colors.white,
+                  ),
+                )
+              else if (isFailed)
+                Text(
+                  ErrorMessageFormatter.format(
+                    state.errorMessage,
+                    fallback: 'تعذر تحميل ملخص اليوم',
+                  ),
+                  style: const TextStyle(color: Colors.white),
+                )
+              else
+                Text(
+                  '${model?.totalEarnings.formatMoney(currency: '') ?? '0'} ل.س',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  _MiniMetric(
+                    label: 'إجمالي الطلبات',
+                    value: '${model?.totalBookings ?? 0}',
+                  ),
+                  const SizedBox(width: 8),
+                  _MiniMetric(
+                    label: 'المؤكدة',
+                    value: '${model?.confirmedCount ?? 0}',
+                  ),
+                  const SizedBox(width: 8),
+                  _MiniMetric(
+                    label: 'المكتملة',
+                    value: '${model?.completedCount ?? 0}',
+                  ),
+                ],
+              ),
+              if (state.homePageUsecaseStatus == BlocStatus.success &&
+                  model?.blocksNewRequests == true) ...[
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsetsDirectional.all(11),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(238),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.info_outline_rounded,
+                        color: WorkerAppColors.danger,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          model!.eligibilityMessageAr,
+                          textAlign: TextAlign.start,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: WorkerAppColors.textPrimary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
-          BlocBuilder<HomeBloc, HomeState>(
-            buildWhen: (previous, current) =>
-                previous.homePageUsecase?.blocksNewRequests !=
-                    current.homePageUsecase?.blocksNewRequests ||
-                previous.homePageUsecase?.eligibilityMessageAr !=
-                    current.homePageUsecase?.eligibilityMessageAr ||
-                previous.homePageUsecaseStatus != current.homePageUsecaseStatus,
-            builder: (context, state) {
-              final model = state.homePageUsecase;
-              if (state.homePageUsecaseStatus != BlocStatus.success ||
-                  model?.blocksNewRequests != true) {
-                return const SizedBox.shrink();
-              }
+        );
+      },
+    );
+  }
+}
 
-              final isAdminSuspended =
-                  model?.dispatchEligibility?.isAdminSuspended == true;
+class _MiniMetric extends StatelessWidget {
+  const _MiniMetric({required this.label, required this.value});
 
-              return Container(
-                width: double.infinity,
-                margin: const EdgeInsetsDirectional.only(top: 12),
-                padding: const EdgeInsetsDirectional.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(235),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      isAdminSuspended
-                          ? Icons.block_rounded
-                          : Icons.info_outline_rounded,
-                      color: context.error,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          AppText.labelLarge(
-                            isAdminSuspended
-                                ? 'تم إيقاف حسابك من قبل الإدارة'
-                                : 'ملاحظة على استقبال الطلبات',
-                            color: context.error,
-                            fontWeight: FontWeight.w700,
-                            textAlign: TextAlign.start,
-                          ),
-                          const SizedBox(height: 4),
-                          AppText.bodySmall(
-                            model!.eligibilityMessageAr,
-                            color: const Color(0xff374151),
-                            textAlign: TextAlign.start,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ],
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsetsDirectional.symmetric(
+          horizontal: 8,
+          vertical: 8,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white.withAlpha(18),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              maxLines: 1,
+              style: const TextStyle(color: Color(0xFFDCE2FF), fontSize: 9),
+            ),
+          ],
+        ),
       ),
     );
   }

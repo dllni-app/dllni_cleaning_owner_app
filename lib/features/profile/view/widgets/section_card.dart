@@ -1,6 +1,7 @@
-import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
+
+import '../../../../core/theme/worker_app_colors.dart';
+import '../../../../core/widgets/worker_surface_card.dart';
 
 class SectionCard extends StatelessWidget {
   const SectionCard({
@@ -19,26 +20,29 @@ class SectionCard extends StatelessWidget {
   final IconData image;
   final String title;
   final String subtitle;
-  final Function() onTap;
+  final VoidCallback onTap;
   final Widget? titleTrailing;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return WorkerSurfaceCard(
       onTap: onTap,
-      splashColor: Colors.transparent,
-      highlightColor: Colors.transparent,
+      shadow: false,
+      radius: WorkerAppRadius.lg,
+      padding: const EdgeInsetsDirectional.all(14),
       child: Row(
         children: [
           Container(
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(14),
               color: containerColor,
             ),
-            padding: EdgeInsetsDirectional.all(8),
-            child: Icon(image, size: 25.sp, color: imageColor),
+            alignment: Alignment.center,
+            child: Icon(image, size: 22, color: imageColor),
           ),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -46,30 +50,39 @@ class SectionCard extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: AppText.bodyMedium(
+                      child: Text(
                         title,
-                        fontWeight: FontWeight.bold,
-                        textAlign: TextAlign.start
+                        textAlign: TextAlign.start,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: WorkerAppColors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                     if (titleTrailing != null) ...[
-                      SizedBox(width: 8.w),
+                      const SizedBox(width: 8),
                       titleTrailing!,
                     ],
                   ],
                 ),
-                SizedBox(height: 4),
-                AppText.labelLarge(
+                const SizedBox(height: 4),
+                Text(
                   subtitle,
-                  fontWeight: FontWeight.w400,
-                  color: Color(0xff6B7280),
                   textAlign: TextAlign.start,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: WorkerAppColors.textSecondary,
+                    height: 1.45,
+                  ),
                 ),
               ],
             ),
           ),
-          SizedBox(width: 12),
-          Icon(Icons.arrow_forward_ios),
+          const SizedBox(width: 10),
+          const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: 16,
+            color: WorkerAppColors.brandPrimary,
+          ),
         ],
       ),
     );

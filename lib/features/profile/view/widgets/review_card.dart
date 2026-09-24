@@ -1,8 +1,9 @@
-import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/data/models/fetch_worker_reviews_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating/flutter_rating.dart';
-import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
+
+import '../../../../core/theme/worker_app_colors.dart';
+import '../../../../core/widgets/worker_surface_card.dart';
 
 class ReviewCard extends StatelessWidget {
   const ReviewCard({super.key, required this.review});
@@ -11,53 +12,52 @@ class ReviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16.r),
-        color: context.onPrimary,
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xff303030).withAlpha(60),
-            offset: const Offset(0, 2),
-            blurRadius: 16,
-          ),
-        ],
-      ),
-      padding: EdgeInsetsDirectional.symmetric(horizontal: 16.w, vertical: 16.h),
+    return WorkerSurfaceCard(
+      shadow: false,
+      padding: const EdgeInsetsDirectional.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: 18.r,
-                backgroundColor: context.primary.withAlpha(30),
-                child: Icon(
-                  Icons.person_outline,
-                  color: context.primary,
-                  size: 20.sp,
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: WorkerAppColors.brandPrimarySoft,
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.person_outline_rounded,
+                  color: WorkerAppColors.brandPrimary,
+                  size: 21,
                 ),
               ),
-              SizedBox(width: 10.w),
+              const SizedBox(width: 10),
               Expanded(
-                child: AppText.bodyMedium(
+                child: Text(
                   review.customerName ?? '-',
-                  fontWeight: FontWeight.bold,
                   textAlign: TextAlign.start,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
                 ),
               ),
-              AppText.labelMedium(
+              Text(
                 _formatDate(review.createdAt),
-                color: const Color(0xff9CA3AF),
-                textAlign: TextAlign.end,
+                textDirection: TextDirection.ltr,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: WorkerAppColors.textTertiary,
+                ),
               ),
             ],
           ),
-          SizedBox(height: 10.h),
+          const SizedBox(height: 10),
           StarRating(
             rating: review.rating ?? 0,
-            color: const Color(0xffFAE13D),
-            size: 18.sp,
+            color: const Color(0xFFFBBF24),
+            size: 18,
             allowHalfRating: true,
             filledIcon: Icons.star_rate_rounded,
             halfFilledIcon: Icons.star_half_rounded,
@@ -65,12 +65,14 @@ class ReviewCard extends StatelessWidget {
             starCount: 5,
           ),
           if ((review.comment ?? '').trim().isNotEmpty) ...[
-            SizedBox(height: 10.h),
-            AppText.labelLarge(
+            const SizedBox(height: 10),
+            Text(
               review.comment!,
-              fontWeight: FontWeight.w400,
-              color: const Color(0xff6B7280),
               textAlign: TextAlign.start,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: WorkerAppColors.textSecondary,
+                height: 1.55,
+              ),
             ),
           ],
         ],

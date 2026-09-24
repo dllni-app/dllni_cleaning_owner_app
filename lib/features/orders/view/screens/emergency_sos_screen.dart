@@ -3,6 +3,8 @@ import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/sos_alert_models.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/create_cleaning_booking_sos_use_case.dart';
 import 'package:flutter/material.dart';
+
+import '../../../../core/theme/worker_app_colors.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -187,6 +189,7 @@ class _EmergencySosScreenState extends State<EmergencySosScreen> {
     final submitted = _submittedAlert;
 
     return Scaffold(
+      backgroundColor: WorkerAppColors.canvas,
       body: SafeArea(
         child: Column(
           children: [

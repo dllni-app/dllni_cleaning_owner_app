@@ -3,6 +3,9 @@ import 'package:dllni_cleaninig_owner_app/features/profile/data/models/fetch_dep
 import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/fetch_worker_profile_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/manager/bloc/profile_bloc.dart';
 import 'package:flutter/material.dart';
+
+import '../../../../core/widgets/worker_screen_header.dart';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
@@ -89,47 +92,18 @@ class _WalletScreenState extends State<WalletScreen> {
     final profileBloc = context.read<ProfileBloc>();
     profileBloc.add(FetchDepositAccountEvent());
     profileBloc.add(
-      FetchWorkerProfileUsecaseEvent(
-        params: FetchWorkerProfileUsecaseParams(),
-      ),
+      FetchWorkerProfileUsecaseEvent(params: FetchWorkerProfileUsecaseParams()),
     );
     await Future<void>.delayed(const Duration(milliseconds: 350));
   }
 
   Widget _appBar() {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(24.r),
-          bottomRight: Radius.circular(24.r),
-        ),
-        border: Border(
-          bottom: BorderSide(color: context.primaryContainer, width: 2),
-        ),
-      ),
-      padding: EdgeInsetsDirectional.symmetric(
-        horizontal: 22.w,
-        vertical: 16.h,
-      ),
-      child: Row(
-        children: [
-          InkWell(
-            onTap: () => Navigator.of(context).pop(),
-            child: Icon(
-              Icons.arrow_back_ios_new,
-              color: context.primaryContainer,
-            ),
-          ),
-          10.horizontalSpace,
-          _text(
-            'احصائياتي',
-            size: 26,
-            color: context.primaryContainer,
-            weight: FontWeight.w700,
-          ),
-        ],
+    return WorkerScreenHeader(
+      title: '\u0625\u062d\u0635\u0627\u0626\u064a\u0627\u062a\u064a',
+      leading: WorkerHeaderAction(
+        icon: Icons.arrow_back_rounded,
+        semanticLabel: '\u0631\u062c\u0648\u0639',
+        onTap: () => Navigator.of(context).pop(),
       ),
     );
   }

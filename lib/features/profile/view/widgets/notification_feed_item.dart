@@ -2,6 +2,8 @@ import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../../core/theme/worker_app_colors.dart';
+
 import '../../data/models/fetch_notifications_model.dart';
 
 class NotificationFeedItem extends StatelessWidget {
@@ -37,16 +39,16 @@ class NotificationFeedItem extends StatelessWidget {
 
   Color notificationStatusColor() {
     if (_isUnavailable) {
-      return const Color(0xff9CA3AF);
+      return WorkerAppColors.textTertiary;
     }
 
     switch (_normalizedCategory(notification)) {
       case 'orders':
-        return const Color(0xff10B981);
+        return WorkerAppColors.success;
       case 'system':
-        return const Color(0xff6B7280);
+        return WorkerAppColors.info;
       default:
-        return const Color(0xff6366F1);
+        return WorkerAppColors.brandPrimary;
     }
   }
 
@@ -107,11 +109,8 @@ class NotificationFeedItem extends StatelessWidget {
         width: 30,
         height: 30,
         fit: BoxFit.contain,
-        placeholderBuilder: (_) => Icon(
-          notificationStatusIcon(),
-          color: statusColor,
-          size: 18,
-        ),
+        placeholderBuilder: (_) =>
+            Icon(notificationStatusIcon(), color: statusColor, size: 18),
       );
     } else {
       child = Image.network(
@@ -119,11 +118,8 @@ class NotificationFeedItem extends StatelessWidget {
         width: 30,
         height: 30,
         fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) => Icon(
-          notificationStatusIcon(),
-          color: statusColor,
-          size: 18,
-        ),
+        errorBuilder: (context, error, stackTrace) =>
+            Icon(notificationStatusIcon(), color: statusColor, size: 18),
       );
     }
     return child;
@@ -140,13 +136,18 @@ class NotificationFeedItem extends StatelessWidget {
         : (notification.body ?? '');
 
     return Container(
-      color: context.onPrimary,
+      decoration: BoxDecoration(
+        color: isUnread
+            ? WorkerAppColors.brandPrimarySoft.withAlpha(90)
+            : WorkerAppColors.surface,
+        border: Border(bottom: BorderSide(color: WorkerAppColors.border)),
+      ),
       child: Stack(
         children: [
           if (notification.showTrailingAccent)
             Align(
               alignment: AlignmentDirectional.centerStart,
-              child: Container(width: 3, color: context.primaryContainer),
+              child: Container(width: 3, color: WorkerAppColors.brandPrimary),
             ),
           Padding(
             padding: const EdgeInsetsDirectional.symmetric(
@@ -171,7 +172,7 @@ class NotificationFeedItem extends StatelessWidget {
                               height: 6,
                               margin: const EdgeInsetsDirectional.only(top: 7),
                               decoration: BoxDecoration(
-                                color: context.primaryContainer,
+                                color: WorkerAppColors.brandPrimary,
                                 shape: BoxShape.circle,
                               ),
                             ),

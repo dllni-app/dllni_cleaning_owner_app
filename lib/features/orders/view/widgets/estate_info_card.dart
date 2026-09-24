@@ -2,6 +2,8 @@ import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
+import '../../../../core/theme/worker_app_colors.dart';
+
 import '../../data/models/fetch_orders_usecase_model.dart';
 import '../helpers/cleaning_enum_translations.dart';
 import '../helpers/event_assistance_order_helper.dart';
@@ -80,8 +82,9 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
     return Container(
       padding: EdgeInsets.all(16.r),
       decoration: BoxDecoration(
-        color: Color(0xffF4F5F7),
-        borderRadius: BorderRadius.circular(20.r),
+        color: WorkerAppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: WorkerAppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -103,7 +106,11 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
             children: [
               Row(
                 children: [
-                  Icon(Icons.apartment, color: context.secondary, size: 18.sp),
+                  Icon(
+                    Icons.apartment,
+                    color: WorkerAppColors.brandPrimary,
+                    size: 18.sp,
+                  ),
                   6.horizontalSpace,
                   AppText.labelMedium(
                     _isEventAssistance ? 'نوع المناسبة' : 'نوع العقار',
@@ -134,7 +141,7 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
                   children: [
                     Icon(
                       Icons.cleaning_services_outlined,
-                      color: context.secondary,
+                      color: WorkerAppColors.brandPrimary,
                       size: 18.sp,
                     ),
                     6.horizontalSpace,
@@ -160,7 +167,7 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
                   children: [
                     Icon(
                       Icons.map_outlined,
-                      color: context.secondary,
+                      color: WorkerAppColors.brandPrimary,
                       size: 18.sp,
                     ),
                     6.horizontalSpace,
@@ -185,7 +192,7 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
                 children: [
                   Icon(
                     Icons.location_on_outlined,
-                    color: context.secondary,
+                    color: WorkerAppColors.brandPrimary,
                     size: 18.sp,
                   ),
                   6.horizontalSpace,
@@ -216,7 +223,7 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
                 children: [
                   Icon(
                     _isEventAssistance ? Icons.schedule : Icons.square_foot,
-                    color: context.secondary,
+                    color: WorkerAppColors.brandPrimary,
                     size: 18.sp,
                   ),
                   6.horizontalSpace,
@@ -262,14 +269,14 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       decoration: BoxDecoration(
-        color: Color(0xFFE2E5EE),
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: Colors.black),
+        color: WorkerAppColors.brandPrimarySoft,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: WorkerAppColors.border),
       ),
       child: AppText.labelMedium(
         text,
         fontWeight: FontWeight.w300,
-        color: context.secondary,
+        color: WorkerAppColors.brandPrimary,
       ),
     );
   }

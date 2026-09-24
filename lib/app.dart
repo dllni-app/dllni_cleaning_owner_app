@@ -8,6 +8,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:toastification/toastification.dart';
 import 'core/lifecycle/background_keep_alive.dart';
+import 'core/theme/worker_app_theme.dart';
 import 'core/location/worker_location_tracker.dart';
 import 'core/routes/app_router.dart';
 import 'features/auth/view/screens/login_screen.dart';
@@ -86,22 +87,7 @@ class _AppState extends State<App> {
             child: child ?? const SizedBox.shrink(),
           );
         },
-        theme: ThemeData(
-          fontFamily: 'cairo',
-          colorScheme: ColorScheme(
-            brightness: Brightness.light,
-            primary: Color(0xff1E2A7B),
-            onPrimary: Colors.white,
-            secondary: Color(0xff6C63FF),
-            onSecondary: Colors.white,
-            error: Color(0xffD92341),
-            onError: Colors.white,
-            surface: Color(0xffF0F0F0),
-            onSurface: Colors.black,
-            primaryContainer: Color(0xff2EC4B6),
-            onPrimaryContainer: Colors.white,
-          ),
-        ),
+        theme: WorkerAppTheme.light(),
       ),
     );
   }

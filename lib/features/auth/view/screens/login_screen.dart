@@ -4,11 +4,11 @@ import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_worker_extension_prompts.dart';
 import 'package:dllni_cleaninig_owner_app/features/auth/domain/usecases/login_usecase_use_case.dart';
 import 'package:flutter/material.dart';
+
+import '../../../../core/theme/worker_app_colors.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-import 'package:intl_phone_number_input/intl_phone_number_input.dart';
 import '../../../../core/di/injection.dart';
-import '../../../../core/widgets/app_phone_number_field.dart';
 import '../../../../core/widgets/legal_links_launcher.dart';
 import '../../../../core/widgets/phone_number_widget/my_phone_number_field_widget.dart';
 import '../../../../core/widgets/worker_technical_support_call_button.dart';
@@ -25,7 +25,6 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _phoneFieldKey = GlobalKey<AppPhoneNumberFieldState>();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
@@ -91,7 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
           }
         },
         child: Scaffold(
-          backgroundColor: Color(0xffF0F0F0),
+          backgroundColor: WorkerAppColors.canvas,
           body: SafeArea(
             child: SingleChildScrollView(
               padding: EdgeInsetsDirectional.symmetric(horizontal: 20),
@@ -106,7 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       height: 80,
                       padding: EdgeInsetsDirectional.all(15.r),
                       decoration: BoxDecoration(
-                        color: Color(0xff1E2A78),
+                        color: WorkerAppColors.brandPrimary,
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: AppImage.asset(Assets.images.loginIcon.path),
@@ -114,20 +113,20 @@ class _LoginScreenState extends State<LoginScreen> {
                     SizedBox(height: 24),
                     AppText.headlineLarge(
                       'مرحباً بعودتك',
-                      color: Color(0xff1E2A78),
+                      color: WorkerAppColors.brandPrimary,
                       fontWeight: FontWeight.bold,
                       textAlign: TextAlign.center,
                     ),
                     SizedBox(height: 8),
                     AppText.bodyMedium(
                       'قم بتسجيل الدخول لإدارة متجرك',
-                      color: Colors.grey.shade600,
+                      color: WorkerAppColors.textSecondary,
                       textAlign: TextAlign.center,
                     ),
                     SizedBox(height: 32),
                     Container(
                       decoration: BoxDecoration(
-                        color: context.onPrimary,
+                        color: WorkerAppColors.surface,
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [
                           BoxShadow(
@@ -232,7 +231,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(14),
                                     borderSide: BorderSide(
-                                      color: context.secondary,
+                                      color: WorkerAppColors.brandPrimary,
                                     ),
                                   ),
                                   errorBorder: OutlineInputBorder(
@@ -265,7 +264,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 child: Container(
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(16),
-                                    color: Color(0xff1E2A78),
+                                    color: WorkerAppColors.brandPrimary,
                                   ),
                                   padding: EdgeInsetsDirectional.symmetric(
                                     vertical: 16,
@@ -275,13 +274,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                     children: [
                                       AppText.bodyLarge(
                                         'تسجيل الدخول',
-                                        color: context.onPrimary,
+                                        color: WorkerAppColors.surface,
                                         fontWeight: FontWeight.bold,
                                       ),
                                       8.horizontalSpace,
                                       Icon(
                                         Icons.arrow_forward,
-                                        color: context.onPrimary,
+                                        color: WorkerAppColors.surface,
                                         size: 20,
                                       ),
                                     ],
@@ -296,7 +295,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     SizedBox(height: 24),
                     AppText.labelMedium(
                       'هل تواجه مشكلة في تسجيل الدخول؟',
-                      color: Colors.grey.shade600,
+                      color: WorkerAppColors.textSecondary,
                       textAlign: TextAlign.center,
                     ),
                     SizedBox(height: 8),
@@ -313,13 +312,13 @@ class _LoginScreenState extends State<LoginScreen> {
                           children: [
                             Icon(
                               Icons.headset_mic_outlined,
-                              color: context.secondary,
+                              color: WorkerAppColors.brandPrimary,
                               size: 18,
                             ),
                             SizedBox(width: 6),
                             AppText.bodyMedium(
                               'تواصل مع الدعم الفني',
-                              color: context.secondary,
+                              color: WorkerAppColors.brandPrimary,
                               fontWeight: FontWeight.bold,
                             ),
                           ],
@@ -329,7 +328,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     SizedBox(height: 24),
                     AppText.labelSmall(
                       '© 2026 تطبيق تاجر. جميع الحقوق محفوظة',
-                      color: Colors.grey.shade500,
+                      color: WorkerAppColors.textTertiary,
                       textAlign: TextAlign.center,
                     ),
                     SizedBox(height: 16),
@@ -347,7 +346,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           child: AppText.labelSmall(
                             'الشروط والأحكام',
-                            color: context.secondary,
+                            color: WorkerAppColors.brandPrimary,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -375,7 +374,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           child: AppText.labelSmall(
                             'سياسة الخصوصية',
-                            color: context.secondary,
+                            color: WorkerAppColors.brandPrimary,
                             fontWeight: FontWeight.w500,
                           ),
                         ),

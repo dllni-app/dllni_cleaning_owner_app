@@ -9,6 +9,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/theme/worker_app_colors.dart';
+
 import '../../../../generated/assets.dart';
 import '../../../orders/data/models/fetch_orders_usecase_model.dart';
 import '../../../orders/view/screens/order_details_screen.dart';
@@ -173,8 +175,9 @@ class _CalenderOrderCardState extends State<CalenderOrderCard> {
             borderRadius: BorderRadius.circular(16.r),
             child: Container(
               decoration: BoxDecoration(
-                color: context.onPrimary,
-                borderRadius: BorderRadius.circular(16.r),
+                color: WorkerAppColors.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: WorkerAppColors.border),
               ),
               child: Padding(
                 padding: EdgeInsetsDirectional.symmetric(vertical: 16.h),
@@ -200,12 +203,12 @@ class _CalenderOrderCardState extends State<CalenderOrderCard> {
                                 vertical: 4.h,
                               ),
                               decoration: BoxDecoration(
-                                color: context.primary.withAlpha(18),
+                                color: WorkerAppColors.brandPrimarySoft,
                                 borderRadius: BorderRadius.circular(999),
                               ),
                               child: AppText.labelSmall(
                                 'الجلسة ${session.sequence}/${schedule!.daysCount}',
-                                color: context.primary,
+                                color: WorkerAppColors.brandPrimary,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -213,14 +216,16 @@ class _CalenderOrderCardState extends State<CalenderOrderCard> {
                       ),
                     ),
                     SizedBox(height: 12.h),
-                    Divider(height: 1, color: context.surface),
+                    Divider(height: 1, color: WorkerAppColors.border),
                     SizedBox(height: 12.h),
                     dataRow(
                       Assets.images.orderCardCalender.path,
                       'جدولة الحجز',
-                      CleaningArabicTimeFormatter.formatCalendarIsoDate(
-                        displayDate,
-                        emptyValue: '',
+                      CleaningArabicTimeFormatter.toWesternDigits(
+                        CleaningArabicTimeFormatter.formatCalendarIsoDate(
+                          displayDate,
+                          emptyValue: '',
+                        ),
                       ),
                     ),
                     if (session != null) ...[
@@ -228,7 +233,7 @@ class _CalenderOrderCardState extends State<CalenderOrderCard> {
                       dataRow(
                         Assets.images.orderCardAlarm.path,
                         'مدة الجلسة',
-                        '${CleaningArabicTimeFormatter.toArabicDigits(_sessionHours(session.hours))} ساعة',
+                        '${CleaningArabicTimeFormatter.toWesternDigits(_sessionHours(session.hours))} ساعة',
                       ),
                     ],
                     SizedBox(height: 12.h),
@@ -245,11 +250,11 @@ class _CalenderOrderCardState extends State<CalenderOrderCard> {
                         order.estimatedSqm == null ||
                                 order.estimatedSqm!.isEmpty
                             ? ''
-                            : '${CleaningArabicTimeFormatter.toArabicDigits(order.estimatedSqm!)} متر مربع',
+                            : '${CleaningArabicTimeFormatter.toWesternDigits(order.estimatedSqm!)} متر مربع',
                       ),
                     ],
                     SizedBox(height: 12.h),
-                    Divider(height: 1, color: context.surface),
+                    Divider(height: 1, color: WorkerAppColors.border),
                     SizedBox(height: 12.h),
                     Padding(
                       padding: EdgeInsetsDirectional.symmetric(
@@ -266,17 +271,18 @@ class _CalenderOrderCardState extends State<CalenderOrderCard> {
                                   },
                                   child: CircleAvatar(
                                     radius: 15.r,
-                                    backgroundColor: context.primaryContainer,
+                                    backgroundColor:
+                                        WorkerAppColors.brandPrimarySoft,
                                     child: Icon(
                                       Icons.phone_outlined,
-                                      color: context.onPrimaryContainer,
+                                      color: WorkerAppColors.brandPrimary,
                                       size: 15.sp,
                                     ),
                                   ),
                                 ),
                           AppText.titleSmall(
-                            '${CleaningArabicTimeFormatter.toArabicDigits(_money(displayedProfit))} ل.س',
-                            color: context.primaryContainer,
+                            '${CleaningArabicTimeFormatter.toWesternDigits(_money(displayedProfit))} ل.س',
+                            color: WorkerAppColors.success,
                           ),
                         ],
                       ),

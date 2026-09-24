@@ -4,6 +4,8 @@ import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/fetch
 import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/update_dispute_use_case.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
+
+import '../../../../core/theme/worker_app_colors.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../generated/assets.dart';
@@ -16,7 +18,8 @@ class TransactionDetailsScreen extends StatefulWidget {
   final TransactionDetailsScreenParam params;
 
   @override
-  State<TransactionDetailsScreen> createState() => _TransactionDetailsScreenState();
+  State<TransactionDetailsScreen> createState() =>
+      _TransactionDetailsScreenState();
 }
 
 class _TransactionDetailsScreenState extends State<TransactionDetailsScreen> {
@@ -48,9 +51,15 @@ class _TransactionDetailsScreenState extends State<TransactionDetailsScreen> {
   Widget build(BuildContext context) {
     return BlocProvider<ProfileBloc>(
       lazy: false,
-      create: (context) => getIt<ProfileBloc>()..add(FetchDisputeDetailsUsecaseEvent(params: FetchDisputeDetailsUsecaseParams(id: widget.params.id))),
+      create: (context) => getIt<ProfileBloc>()
+        ..add(
+          FetchDisputeDetailsUsecaseEvent(
+            params: FetchDisputeDetailsUsecaseParams(id: widget.params.id),
+          ),
+        ),
       child: BlocListener<ProfileBloc, ProfileState>(
-        listenWhen: (previous, current) => previous.updateDisputeStatus != current.updateDisputeStatus,
+        listenWhen: (previous, current) =>
+            previous.updateDisputeStatus != current.updateDisputeStatus,
         listener: (context, state) {
           if (state.updateDisputeStatus == BlocStatus.success) {
             Loading.close();
@@ -62,6 +71,7 @@ class _TransactionDetailsScreenState extends State<TransactionDetailsScreen> {
           }
         },
         child: Scaffold(
+          backgroundColor: WorkerAppColors.canvas,
           body: SafeArea(
             child: Padding(
               padding: EdgeInsetsDirectional.symmetric(horizontal: 24),
@@ -76,7 +86,10 @@ class _TransactionDetailsScreenState extends State<TransactionDetailsScreen> {
                             onTap: () {
                               context.pop();
                             },
-                            child: Icon(Icons.arrow_back_ios_new, color: context.primary),
+                            child: Icon(
+                              Icons.arrow_back_ios_new,
+                              color: context.primary,
+                            ),
                           ),
                           SizedBox(width: 12),
                           Expanded(
@@ -106,26 +119,50 @@ class _TransactionDetailsScreenState extends State<TransactionDetailsScreen> {
                                         dashPattern: [8, 4],
                                       ),
                                       child: Container(
-                                        decoration: BoxDecoration(color: context.primary.withAlpha(14), borderRadius: BorderRadius.circular(24)),
+                                        decoration: BoxDecoration(
+                                          color: context.primary.withAlpha(14),
+                                          borderRadius: BorderRadius.circular(
+                                            24,
+                                          ),
+                                        ),
                                         width: context.width,
                                         height: 200,
-                                        padding: EdgeInsetsDirectional.symmetric(horizontal: 15, vertical: 8),
+                                        padding:
+                                            EdgeInsetsDirectional.symmetric(
+                                              horizontal: 15,
+                                              vertical: 8,
+                                            ),
                                         child: Column(
                                           children: [
-                                            AppText.bodyLarge('محتوى الشكوى', color: context.primary),
+                                            AppText.bodyLarge(
+                                              'محتوى الشكوى',
+                                              color: context.primary,
+                                            ),
                                             SizedBox(height: 20),
                                             Expanded(
-                                              child: state.disputeDetailsUsecaseStatus == BlocStatus.success
+                                              child:
+                                                  state.disputeDetailsUsecaseStatus ==
+                                                      BlocStatus.success
                                                   ? SingleChildScrollView(
                                                       child: Column(
                                                         children: List.generate(
-                                                          state.disputeDetailsUsecase!.data!.messages!.length,
-                                                          (i) =>
-                                                              AppText.labelLarge('${i + 1}-${state.disputeDetailsUsecase!.data!.messages![i].body!}'),
+                                                          state
+                                                              .disputeDetailsUsecase!
+                                                              .data!
+                                                              .messages!
+                                                              .length,
+                                                          (
+                                                            i,
+                                                          ) => AppText.labelLarge(
+                                                            '${i + 1}-${state.disputeDetailsUsecase!.data!.messages![i].body!}',
+                                                          ),
                                                         ),
                                                       ),
                                                     )
-                                                  : Center(child: CircularProgressIndicator.adaptive()),
+                                                  : Center(
+                                                      child:
+                                                          CircularProgressIndicator.adaptive(),
+                                                    ),
                                             ),
                                           ],
                                         ),
@@ -134,8 +171,13 @@ class _TransactionDetailsScreenState extends State<TransactionDetailsScreen> {
                                     SizedBox(
                                       width: context.width,
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [AppImage.asset(Assets.images.disputeIcon.path)],
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          AppImage.asset(
+                                            Assets.images.disputeIcon.path,
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],
@@ -146,12 +188,19 @@ class _TransactionDetailsScreenState extends State<TransactionDetailsScreen> {
                                   label: 'الحل',
                                   value: _selectedResolution,
                                   options: _resolutionOptions,
-                                  onChanged: (val) => setState(() => _selectedResolution = val),
+                                  onChanged: (val) =>
+                                      setState(() => _selectedResolution = val),
                                 ),
                                 SizedBox(height: 16),
                                 Container(
-                                  decoration: BoxDecoration(color: context.primary.withAlpha(14), borderRadius: BorderRadius.circular(24)),
-                                  padding: EdgeInsetsDirectional.symmetric(horizontal: 15, vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: context.primary.withAlpha(14),
+                                    borderRadius: BorderRadius.circular(24),
+                                  ),
+                                  padding: EdgeInsetsDirectional.symmetric(
+                                    horizontal: 15,
+                                    vertical: 12,
+                                  ),
                                   child: TextFormField(
                                     controller: responseController,
                                     maxLines: null,
@@ -162,9 +211,15 @@ class _TransactionDetailsScreenState extends State<TransactionDetailsScreen> {
                                       hintTextDirection: TextDirection.rtl,
                                       border: InputBorder.none,
                                       contentPadding: EdgeInsets.zero,
-                                      hintStyle: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                                      hintStyle: TextStyle(
+                                        color: Colors.grey.shade600,
+                                        fontSize: 14,
+                                      ),
                                     ),
-                                    style: TextStyle(fontSize: 14, color: Colors.black87),
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.black87,
+                                    ),
                                   ),
                                 ),
                                 SizedBox(height: 20),
@@ -176,8 +231,10 @@ class _TransactionDetailsScreenState extends State<TransactionDetailsScreen> {
                                       openMessageField = true;
                                     });
                                   } else {
-                                    if (state.disputeDetailsUsecaseStatus == BlocStatus.success) {
-                                      final data = state.disputeDetailsUsecase!.data!;
+                                    if (state.disputeDetailsUsecaseStatus ==
+                                        BlocStatus.success) {
+                                      final data =
+                                          state.disputeDetailsUsecase!.data!;
                                       context.read<ProfileBloc>().add(
                                         UpdateDisputeEvent(
                                           params: UpdateDisputeParams(
@@ -187,7 +244,9 @@ class _TransactionDetailsScreenState extends State<TransactionDetailsScreen> {
                                             ticketNumber: data.ticketNumber!,
                                             category: data.category!,
                                             status: data.status!,
-                                            resolution: _selectedResolution ?? data.resolution!,
+                                            resolution:
+                                                _selectedResolution ??
+                                                data.resolution!,
                                           ),
                                         ),
                                       );
@@ -196,11 +255,19 @@ class _TransactionDetailsScreenState extends State<TransactionDetailsScreen> {
                                 },
                                 borderRadius: BorderRadius.circular(8),
                                 child: Container(
-                                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), color: context.primary),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(8),
+                                    color: context.primary,
+                                  ),
                                   width: context.width,
-                                  padding: EdgeInsetsDirectional.symmetric(horizontal: 12, vertical: 12),
+                                  padding: EdgeInsetsDirectional.symmetric(
+                                    horizontal: 12,
+                                    vertical: 12,
+                                  ),
                                   child: AppText.labelLarge(
-                                    openMessageField ? 'إرسال الرد' : 'الرد على الشكوى',
+                                    openMessageField
+                                        ? 'إرسال الرد'
+                                        : 'الرد على الشكوى',
                                     color: context.onPrimary,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -239,11 +306,17 @@ class _TransactionDetailsScreenState extends State<TransactionDetailsScreen> {
           decoration: InputDecoration(
             filled: true,
             fillColor: context.primary.withAlpha(14),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
             contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           ),
           items: options.entries.map((e) {
-            return DropdownMenuItem<String>(value: e.key, child: AppText.labelMedium(e.value));
+            return DropdownMenuItem<String>(
+              value: e.key,
+              child: AppText.labelMedium(e.value),
+            );
           }).toList(),
           onChanged: onChanged,
         ),
@@ -257,5 +330,9 @@ class TransactionDetailsScreenParam {
   final String title;
   final bool isOpen;
 
-  TransactionDetailsScreenParam({required this.id, required this.title, required this.isOpen});
+  TransactionDetailsScreenParam({
+    required this.id,
+    required this.title,
+    required this.isOpen,
+  });
 }
