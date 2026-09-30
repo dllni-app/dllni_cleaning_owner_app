@@ -3,49 +3,48 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('OrderWorkTimerHelper', () {
-    test('uses scheduled time when work starts before service time', () {
-      final session = OrderWorkTimerHelper.resolve(
-        scheduledDate: '2026-07-01',
-        scheduledTime: '09:00:00',
-        workStartedAt: '2026-07-01T08:30:00',
-        arrivedAt: null,
+    test('starts the original timer from the current work session time', () {
+      final duration = OrderWorkTimerHelper.originalBookingDuration(
         totalHours: 1.5,
         estimatedHours: null,
-        timeWarnings: const <dynamic>[],
+      );
+      expect(duration, const Duration(minutes: 90));
+
+      final startedAt = DateTime(2026, 7, 1, 9);
+      final session = OrderWorkTimerHelper.startOriginalSession(
+        now: startedAt,
+        maxDuration: duration!,
       );
 
-      expect(session, isNotNull);
-      expect(session!.startedAt, DateTime(2026, 7, 1, 9));
-      expect(session.duration, const Duration(minutes: 90));
-      expect(session.expectedFinishAt, DateTime(2026, 7, 1, 10, 30));
-      expect(session.isOvertime, isFalse);
+      expect(session.sessionStart, startedAt);
+      expect(session.maxDuration, const Duration(minutes: 90));
+      expect(session.isExtension, isFalse);
+      expect(session.isFinishedAt(DateTime(2026, 7, 1, 10, 29)), isFalse);
+      expect(session.isFinishedAt(DateTime(2026, 7, 1, 10, 30)), isTrue);
     });
 
-    test('uses actual work start when worker starts after scheduled time', () {
-      final session = OrderWorkTimerHelper.resolve(
-        scheduledDate: '2026-07-01',
-        scheduledTime: '09:00:00',
-        workStartedAt: '2026-07-01T09:05:00',
-        arrivedAt: null,
-        totalHours: 1.5,
-        estimatedHours: null,
-        timeWarnings: const <dynamic>[],
+    test('prefers worker assignment hours over booking estimates', () {
+      expect(
+        OrderWorkTimerHelper.resolveWorkerHours(
+          assignmentHours: 2,
+          totalHours: 1.5,
+          estimatedHours: 3,
+        ),
+        2,
       );
-
-      expect(session, isNotNull);
-      expect(session!.startedAt, DateTime(2026, 7, 1, 9, 5));
-      expect(session.expectedFinishAt, DateTime(2026, 7, 1, 10, 35));
+      expect(
+        OrderWorkTimerHelper.originalBookingDuration(
+          assignmentHours: 2,
+          totalHours: 1.5,
+          estimatedHours: 3,
+        ),
+        const Duration(hours: 2),
+      );
     });
 
     test('accepted overtime starts a new timer session with approved minutes', () {
-      final session = OrderWorkTimerHelper.resolve(
-        scheduledDate: '2026-07-01',
-        scheduledTime: '09:00:00',
-        workStartedAt: '2026-07-01T09:00:00',
-        arrivedAt: null,
-        totalHours: 1.5,
-        estimatedHours: null,
-        timeWarnings: const <dynamic>[
+      final seed = OrderWorkTimerHelper.latestAcceptedExtensionSeed(
+        const <dynamic>[
           <String, dynamic>{
             'id': 7,
             'worker_response': 'accepted',
@@ -55,23 +54,24 @@ void main() {
         ],
       );
 
-      expect(session, isNotNull);
-      expect(session!.isOvertime, isTrue);
-      expect(session.startedAt, DateTime(2026, 7, 1, 10, 31));
-      expect(session.duration, const Duration(minutes: 45));
-      expect(session.expectedFinishAt, DateTime(2026, 7, 1, 11, 16));
-      expect(session.sessionKey, contains('extension:7'));
+      expect(seed, isNotNull);
+      expect(seed!.id, 7);
+      expect(seed.minutes, 45);
+
+      final startedAt = DateTime(2026, 7, 1, 10, 31);
+      final session = OrderWorkTimerHelper.startExtensionSession(
+        now: startedAt,
+        seed: seed,
+      );
+      expect(session.isExtension, isTrue);
+      expect(session.sessionStart, startedAt);
+      expect(session.maxDuration, const Duration(minutes: 45));
+      expect(session.sessionKey, 'extension:7:45');
     });
 
     test('uses latest accepted overtime warning when several exist', () {
-      final session = OrderWorkTimerHelper.resolve(
-        scheduledDate: '2026-07-01',
-        scheduledTime: '09:00:00',
-        workStartedAt: '2026-07-01T09:00:00',
-        arrivedAt: null,
-        totalHours: 1.5,
-        estimatedHours: null,
-        timeWarnings: const <dynamic>[
+      final seed = OrderWorkTimerHelper.latestAcceptedExtensionSeed(
+        const <dynamic>[
           <String, dynamic>{
             'id': 7,
             'worker_response': 'accepted',
@@ -87,10 +87,10 @@ void main() {
         ],
       );
 
-      expect(session, isNotNull);
-      expect(session!.sessionKey, contains('extension:8'));
-      expect(session.duration, const Duration(minutes: 60));
-      expect(session.expectedFinishAt, DateTime(2026, 7, 1, 12, 10));
+      expect(seed, isNotNull);
+      expect(seed!.id, 8);
+      expect(seed.minutes, 60);
+      expect(seed.sessionKey, 'extension:8:60');
     });
   });
 }
