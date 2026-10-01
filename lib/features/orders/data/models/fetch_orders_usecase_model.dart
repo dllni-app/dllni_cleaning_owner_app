@@ -690,9 +690,20 @@ class FetchOrdersUsecaseModelDataItem {
 
     final statusNorm = (status ?? '').toLowerCase();
     if (statusNorm != CleaningBookingStatus.pending) return false;
+
     final acceptance = workerAcceptance;
-    if (acceptance == null) return isMultiWorkerTeam;
-    return acceptance.isFulfilled != true;
+    if (acceptance != null) return acceptance.isFulfilled != true;
+
+    final pendingCount = pendingWorkersCount;
+    if (pendingCount != null) return pendingCount > 0;
+
+    final requiredCount = requiredWorkersCount;
+    final acceptedCount = acceptedWorkersCount;
+    if (requiredCount != null && acceptedCount != null) {
+      return acceptedCount < requiredCount;
+    }
+
+    return isMultiWorkerTeam;
   }
 
   List<CleaningRoomAssignmentModel> get myAssignedRooms {

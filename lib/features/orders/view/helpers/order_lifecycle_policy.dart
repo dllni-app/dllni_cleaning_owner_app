@@ -95,7 +95,9 @@ class OrderLifecyclePolicy {
     FetchOrdersUsecaseModelDataItem order,
   ) {
     final assignment = order.myAssignment;
-    return isWorkerRejectedOrClosedAssignmentStatusValue(order.workerOrderStatus) ||
+    return isWorkerRejectedOrClosedAssignmentStatusValue(
+          order.workerOrderStatus,
+        ) ||
         isWorkerRejectedOrClosedAssignmentStatusValue(assignment?.status);
   }
 
@@ -208,7 +210,28 @@ class OrderLifecyclePolicy {
   static bool showFollowOnly(FetchOrdersUsecaseModelDataItem order) =>
       !canAcceptReject(order) && !canStartTravel(order);
 
+  static bool _isTeamFulfilled(FetchOrdersUsecaseModelDataItem order) {
+    final acceptance = order.workerAcceptance;
+    if (acceptance?.isFulfilled == true) return true;
+
+    final required =
+        order.requiredWorkersCount ??
+        acceptance?.required ??
+        order.numberOfWorkers;
+    final accepted = order.acceptedWorkersCount ?? acceptance?.accepted;
+    return required != null &&
+        required > 0 &&
+        accepted != null &&
+        accepted >= required;
+  }
+
   static String teamStateTitle(FetchOrdersUsecaseModelDataItem order) {
+    if (isPending(order) &&
+        hasCurrentWorkerAccepted(order) &&
+        _isTeamFulfilled(order)) {
+      return 'بانتظار بدء الطلب';
+    }
+
     switch (order.effectiveWorkerStatus) {
       case CleaningWorkerOrderStatus.accepted:
       case CleaningWorkerOrderStatus.acceptedWaitingTeam:
@@ -229,6 +252,12 @@ class OrderLifecyclePolicy {
   }
 
   static String? teamStateDescription(FetchOrdersUsecaseModelDataItem order) {
+    if (isPending(order) &&
+        hasCurrentWorkerAccepted(order) &&
+        _isTeamFulfilled(order)) {
+      return 'اكتمل الفريق. سيتم بدء خطوات الوصول والتحقق عند موعد الطلب.';
+    }
+
     final accepted =
         order.acceptedWorkersCount ?? order.workerAcceptance?.accepted ?? 0;
     final required =
@@ -413,8 +442,7 @@ class OrderLifecyclePolicy {
     required OrdersState state,
     required int orderIndex,
     required BlocStatus? actionStatus,
-  }) =>
-      actionStatus == BlocStatus.loading && state.selectedIndex == orderIndex;
+  }) => actionStatus == BlocStatus.loading && state.selectedIndex == orderIndex;
 
   static String statusLabel(FetchOrdersUsecaseModelDataItem order) {
     if (isAcceptedWaiting(order)) return acceptedWaitingLabel(order);
