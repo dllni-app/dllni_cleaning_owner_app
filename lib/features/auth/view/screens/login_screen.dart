@@ -99,18 +99,23 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    SizedBox(height: 64),
-                    Container(
-                      width: 80,
-                      height: 80,
-                      padding: EdgeInsetsDirectional.all(15.r),
-                      decoration: BoxDecoration(
-                        color: WorkerAppColors.brandPrimary,
-                        borderRadius: BorderRadius.circular(16),
+                    SizedBox(height: 32),
+                    SizedBox(
+                      width: 120,
+                      height: 88,
+                      child: AppImage.asset(
+                        Assets.images.appLogo.path,
+                        fit: BoxFit.contain,
                       ),
-                      child: AppImage.asset(Assets.images.loginIcon.path),
                     ),
-                    SizedBox(height: 24),
+                    SizedBox(height: 6),
+                    AppText.headlineMedium(
+                      'ع الندهة',
+                      color: WorkerAppColors.brandPrimary,
+                      fontWeight: FontWeight.w900,
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: 18),
                     AppText.headlineLarge(
                       'مرحباً بعودتك',
                       color: WorkerAppColors.brandPrimary,
@@ -119,7 +124,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     SizedBox(height: 8),
                     AppText.bodyMedium(
-                      'قم بتسجيل الدخول لإدارة متجرك',
+                      'سجّل الدخول لإدارة طلبات وخدمات التنظيف',
                       color: WorkerAppColors.textSecondary,
                       textAlign: TextAlign.center,
                     ),
@@ -163,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           SizedBox(height: 8),
                           MyPhoneNumberField(
                             internationalPhoneValue: phoneValue,
-                            hintText: 'رقم الجوال',
+                            hintText: '9XXXXXXXX',
                             isMargin: false,
                             textInputAction: TextInputAction.next,
                             focusNode: phoneFocusNode,
@@ -327,7 +332,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     SizedBox(height: 24),
                     AppText.labelSmall(
-                      '© 2026 تطبيق تاجر. جميع الحقوق محفوظة',
+                      '© 2026 تطبيق ع الندهة. جميع الحقوق محفوظة',
                       color: WorkerAppColors.textTertiary,
                       textAlign: TextAlign.center,
                     ),
