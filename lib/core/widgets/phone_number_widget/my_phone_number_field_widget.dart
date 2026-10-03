@@ -170,7 +170,8 @@ class MyPhoneNumberField extends StatelessWidget {
               ),
             ),
           ),
-          showDropdownIcon: true,
+          // Auth in Alnadha is Syria-only: show +963 as a fixed prefix.
+          showDropdownIcon: false,
           focusNode: focusNode,
           controller: controller,
           // عند تغيير الرقم من المستخدم

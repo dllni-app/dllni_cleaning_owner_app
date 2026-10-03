@@ -2,6 +2,8 @@ import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/update_worker_profile_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/manager/bloc/profile_bloc.dart';
 import 'package:flutter/material.dart';
+
+import '../../../../core/widgets/worker_screen_header.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
@@ -171,10 +173,13 @@ class _MissionStartLocationScreenState
     );
     if (!mounted) return;
 
-    final locationStatus =
-        profileBloc.state.updateWorkerProfile?.data?.homeLocationStatus
-            ?.trim()
-            .toLowerCase();
+    final locationStatus = profileBloc
+        .state
+        .updateWorkerProfile
+        ?.data
+        ?.homeLocationStatus
+        ?.trim()
+        .toLowerCase();
     final isPendingApproval = locationStatus == 'pending';
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -329,38 +334,13 @@ class _MissionStartLocationScreenState
   }
 
   Widget _buildAppBar(BuildContext context) {
-    return Container(
-      width: context.width,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(24.r),
-          bottomRight: Radius.circular(24.r),
-        ),
-        border: Border(
-          bottom: BorderSide(color: context.primaryContainer, width: 2),
-        ),
-      ),
-      padding: EdgeInsetsDirectional.symmetric(
-        horizontal: 22.w,
-        vertical: 16.h,
-      ),
-      child: Row(
-        children: [
-          InkWell(
-            onTap: () => Navigator.of(context).pop(false),
-            child: Icon(
-              Icons.arrow_back_ios_new,
-              color: context.primaryContainer,
-            ),
-          ),
-          10.horizontalSpace,
-          AppText.headlineLarge(
-            'موقع بدء المهمة',
-            color: context.primaryContainer,
-            fontWeight: FontWeight.w700,
-          ),
-        ],
+    return WorkerScreenHeader(
+      title:
+          '\u0645\u0648\u0642\u0639 \u0628\u062f\u0621 \u0627\u0644\u0645\u0647\u0645\u0629',
+      leading: WorkerHeaderAction(
+        icon: Icons.arrow_back_rounded,
+        semanticLabel: '\u0631\u062c\u0648\u0639',
+        onTap: () => Navigator.of(context).pop(false),
       ),
     );
   }

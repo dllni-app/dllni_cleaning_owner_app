@@ -189,10 +189,12 @@ class CleaningRealtimeContract {
     final trackingMap = _asStringMap(unwrapped['tracking']);
     final bookingMap = _asStringMap(unwrapped['booking']);
     final cleaningOrderMap = _nestedBookingMap(unwrapped);
+    final cleaningBookingMap = _cleaningBookingMap(unwrapped);
     final raw =
         trackingMap['status'] ??
         bookingMap['status'] ??
         cleaningOrderMap['status'] ??
+        cleaningBookingMap['status'] ??
         unwrapped['status'];
     if (raw == null) return null;
     final normalized = raw.toString().trim().toLowerCase();
@@ -275,12 +277,16 @@ class CleaningRealtimeContract {
   static int? extractBookingId(Map<String, dynamic> payload) {
     final unwrapped = unwrapPayload(payload);
     final trackingMap = _asStringMap(unwrapped['tracking']);
+    final teamMap = _asStringMap(unwrapped['team']);
     final cleaningOrderMap = _nestedBookingMap(unwrapped);
+    final cleaningBookingMap = _cleaningBookingMap(unwrapped);
     final orderMap = _asStringMap(unwrapped['order']);
     final bookingMap = _asStringMap(unwrapped['booking']);
 
     return _extractIdFromMap(trackingMap) ??
+        _extractIdFromMap(teamMap) ??
         _extractIdFromMap(cleaningOrderMap) ??
+        _extractIdFromMap(cleaningBookingMap) ??
         _extractIdFromMap(orderMap) ??
         _extractIdFromMap(bookingMap) ??
         _extractIdFromMap(unwrapped) ??
@@ -298,16 +304,17 @@ class CleaningRealtimeContract {
   }
 
   static Map<String, dynamic> _nestedBookingMap(Map<String, dynamic> payload) {
-    final cleaningBooking = _asStringMap(payload['cleaningBooking']);
-    if (cleaningBooking.isNotEmpty) return cleaningBooking;
-
-    final cleaningBookingSnake = _asStringMap(payload['cleaning_booking']);
-    if (cleaningBookingSnake.isNotEmpty) return cleaningBookingSnake;
-
     final cleaningOrder = _asStringMap(payload['cleaningOrder']);
     if (cleaningOrder.isNotEmpty) return cleaningOrder;
-
     return _asStringMap(payload['cleaning_order']);
+  }
+
+  static Map<String, dynamic> _cleaningBookingMap(
+    Map<String, dynamic> payload,
+  ) {
+    final cleaningBooking = _asStringMap(payload['cleaningBooking']);
+    if (cleaningBooking.isNotEmpty) return cleaningBooking;
+    return _asStringMap(payload['cleaning_booking']);
   }
 
   static int? _extractIdFromMap(Map<String, dynamic> map) {

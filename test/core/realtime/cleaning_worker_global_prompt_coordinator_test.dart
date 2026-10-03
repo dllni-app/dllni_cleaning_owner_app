@@ -13,6 +13,17 @@ import 'package:pusher_channels_flutter/pusher_channels_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  const currentWorkerId = 99;
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'user': jsonEncode(<String, dynamic>{
+        'data': <String, dynamic>{'id': currentWorkerId},
+      }),
+    });
+    await SharedPreferencesHelper.init();
+  });
+
   group('CleaningWorkerGlobalPromptCoordinator', () {
     test(
       'ServiceExtensionRequested opens extension prompt only once per warning id',
@@ -272,6 +283,7 @@ void main() {
                       FetchOrdersUsecaseModelDataItem(
                         id: 321,
                         status: CleaningBookingStatus.pending,
+                        preferredWorkerId: currentWorkerId,
                       ),
                     ],
                 pendingOrderPromptPresenter: (prompt) async {

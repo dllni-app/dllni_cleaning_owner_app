@@ -18,8 +18,9 @@ import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/accept_or
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/extension_request_action_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../theme/worker_app_colors.dart';
 import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_arabic_time_formatter.dart';
-import 'package:injectable/injectable.dart';
 
 class OrderCard extends StatelessWidget {
   const OrderCard({
@@ -33,9 +34,6 @@ class OrderCard extends StatelessWidget {
   final OrdersBloc bloc;
   final int index;
 
-  bool get _isEventAssistance =>
-      EventAssistanceOrderHelper.isEventAssistance(data.propertyType);
-
   String _serviceName() {
     return EventAssistanceOrderHelper.serviceTitle(
       propertyType: data.propertyType,
@@ -47,30 +45,32 @@ class OrderCard extends StatelessWidget {
 
   Color _statusColor(BuildContext context) {
     if (OrderLifecyclePolicy.isAcceptedWaiting(data)) {
-      return const Color(0xff0EA5E9);
+      return WorkerAppColors.info;
     }
     final status = data.status;
-    if (status == CleaningBookingStatus.pending) return const Color(0xff1E2A78);
+    if (status == CleaningBookingStatus.pending) {
+      return WorkerAppColors.brandPrimary;
+    }
     if (status == CleaningBookingStatus.workerAssigned) {
-      return const Color(0xff0EA5E9);
+      return WorkerAppColors.info;
     }
     if (status == CleaningBookingStatus.awaitingStartVerification) {
-      return const Color(0xffF59E0B);
+      return WorkerAppColors.warning;
     }
     if (status == CleaningBookingStatus.awaitingWorkerStartConfirmation) {
-      return const Color(0xff059669);
+      return WorkerAppColors.success;
     }
     if (status == CleaningBookingStatus.inProgress ||
         status == CleaningBookingStatus.timeExtensionRequested) {
       return context.primaryContainer;
     }
     if (status == CleaningBookingStatus.awaitingCustomerCompletion) {
-      return const Color(0xff6366F1);
+      return WorkerAppColors.secondary;
     }
     if (status == CleaningBookingStatus.completed) {
-      return const Color(0xff10B981);
+      return WorkerAppColors.success;
     }
-    return const Color(0xff64748B);
+    return WorkerAppColors.textSecondary;
   }
 
   bool get _isDedicatedToMe =>
@@ -98,13 +98,13 @@ class OrderCard extends StatelessWidget {
         vertical: 10,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xffE0F2FE),
+        color: WorkerAppColors.infoSoft,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xff7DD3FC)),
+        border: Border.all(color: WorkerAppColors.info.withAlpha(90)),
       ),
       child: AppText.labelMedium(
         message, // الآن نحن متأكدون أنها ليست null
-        color: const Color(0xff075985),
+        color: WorkerAppColors.info,
         fontWeight: FontWeight.w700,
         textAlign: TextAlign.start,
       ),
@@ -349,7 +349,7 @@ class OrderCard extends StatelessWidget {
         vertical: 10,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xffF3F4F6),
+        color: WorkerAppColors.surfaceSubtle,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -368,7 +368,7 @@ class OrderCard extends StatelessWidget {
               ],
             ),
           ),
-          Icon(icon, color: context.primaryContainer, size: 18),
+          Icon(icon, color: WorkerAppColors.brandPrimary, size: 18),
         ],
       ),
     );
@@ -393,12 +393,12 @@ class OrderCard extends StatelessWidget {
               14,
             ),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              color: WorkerAppColors.surface,
+              borderRadius: BorderRadius.circular(18),
               border: Border.all(
                 color: isDedicatedToMe
                     ? const Color(0xffEF4444).withAlpha(200)
-                    : const Color(0xffE5E7EB),
+                    : WorkerAppColors.border,
                 width: isDedicatedToMe ? 2 : 1,
               ),
               boxShadow: [
@@ -472,7 +472,7 @@ class OrderCard extends StatelessWidget {
                         const SizedBox(height: 4),
                         AppText.titleSmall(
                           data.totalPrice.formatMoney(),
-                          color: const Color(0xff1E2A78),
+                          color: WorkerAppColors.brandPrimary,
                           fontWeight: FontWeight.bold,
                         ),
                         const SizedBox(height: 4),

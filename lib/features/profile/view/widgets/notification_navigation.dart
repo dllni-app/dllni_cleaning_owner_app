@@ -52,6 +52,7 @@ Future<void> tryNavigateFromNotificationPayload(
     'order_id',
   ]);
   if (bookingId == null) return;
+  final sessionId = _intFromData(data, const ['sessionId', 'session_id']);
 
   final response = await getIt<FetchOrderDetailsUsecaseUseCase>()(
     FetchOrderDetailsUsecaseParams(id: bookingId),
@@ -59,9 +60,8 @@ Future<void> tryNavigateFromNotificationPayload(
   if (!context.mounted) return;
 
   response.fold(
-    (failure) => AppToast.showErrorGlobal(
-      ErrorMessageFormatter.format(failure.message),
-    ),
+    (failure) =>
+        AppToast.showErrorGlobal(ErrorMessageFormatter.format(failure.message)),
     (result) {
       final details = result.data;
       if (details == null || !context.mounted) return;
@@ -75,6 +75,7 @@ Future<void> tryNavigateFromNotificationPayload(
           isNewOrder: isNewOrder,
           bloc: getIt<OrdersBloc>(),
           index: 0,
+          selectedSessionId: sessionId,
         ),
       );
     },

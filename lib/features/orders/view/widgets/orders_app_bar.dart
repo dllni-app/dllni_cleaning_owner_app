@@ -1,23 +1,36 @@
-import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/worker_app_colors.dart';
+import '../../../../core/widgets/worker_screen_header.dart';
 
 class OrdersAppBar extends StatelessWidget {
-  const OrdersAppBar({super.key});
+  const OrdersAppBar({super.key, this.onRefresh});
+
+  final VoidCallback? onRefresh;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: context.onPrimary,
-        borderRadius: BorderRadius.only(bottomRight: Radius.circular(24), bottomLeft: Radius.circular(24)),
-        border: Border(bottom: BorderSide(color: context.primaryContainer, width: 5)),
-        boxShadow: [BoxShadow(color: Colors.black.withAlpha(27), offset: Offset(0, -2), blurRadius: 12, spreadRadius: 0)],
-      ),
-      width: context.width,
-      height: 80,
-      padding: EdgeInsetsDirectional.symmetric(horizontal: 24, vertical: 16),
-      child: AppText.headlineLarge('الطلبات', fontWeight: FontWeight.w700, textAlign: TextAlign.start),
+    return WorkerScreenHeader(
+      title: 'الطلبات',
+      subtitle: 'رتّب يومك حسب الإجراء المطلوب',
+      action: onRefresh == null
+          ? null
+          : Material(
+              color: WorkerAppColors.canvas,
+              borderRadius: BorderRadius.circular(13),
+              child: InkWell(
+                onTap: onRefresh,
+                borderRadius: BorderRadius.circular(13),
+                child: const SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: Icon(
+                    Icons.refresh_rounded,
+                    color: WorkerAppColors.brandPrimary,
+                  ),
+                ),
+              ),
+            ),
     );
   }
 }

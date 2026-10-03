@@ -34,6 +34,8 @@ import '../../domain/usecases/start_work_use_case.dart';
 import '../models/booking_price_adjustment_request_model.dart';
 import '../../domain/usecases/request_booking_price_adjustment_use_case.dart';
 import '../models/sos_alert_models.dart';
+import '../models/cleaning_booking_operational_details.dart';
+import '../models/cleaning_schedule_change_request_model.dart';
 import '../../domain/usecases/create_cleaning_booking_sos_use_case.dart';
 
 @lazySingleton
@@ -42,15 +44,22 @@ class OrdersRemoteDataSource with HandlingApiManager {
 
   OrdersRemoteDataSource({required this.dioNetwork});
 
-  Future<FetchOrdersUsecaseModel> fetchOrdersUsecase(FetchOrdersUsecaseParams params) {
+  Future<FetchOrdersUsecaseModel> fetchOrdersUsecase(
+    FetchOrdersUsecaseParams params,
+  ) {
     return wrapHandlingApi(
-      tryCall: () =>
-          dioNetwork.getData(endPoint: '/api/v1/cleaning-bookings', params: params.getParams(), data: params.getBody().isEmpty ? null : params.getBody()),
+      tryCall: () => dioNetwork.getData(
+        endPoint: '/api/v1/cleaning-bookings',
+        params: params.getParams(),
+        data: params.getBody().isEmpty ? null : params.getBody(),
+      ),
       jsonConvert: fetchOrdersUsecaseModelFromJson,
     );
   }
 
-  Future<FetchOrderDetailsUsecaseModel> fetchOrderDetailsUsecase(FetchOrderDetailsUsecaseParams params) {
+  Future<FetchOrderDetailsUsecaseModel> fetchOrderDetailsUsecase(
+    FetchOrderDetailsUsecaseParams params,
+  ) {
     return wrapHandlingApi(
       tryCall: () => dioNetwork.getData(
         endPoint: '/api/v1/cleaning-bookings/${params.id}',
@@ -61,36 +70,188 @@ class OrdersRemoteDataSource with HandlingApiManager {
     );
   }
 
-  Future<AcceptOrderUsecaseModel> acceptOrderUsecase(AcceptOrderUsecaseParams params) {
+  Future<CleaningOpenTimeDetails> fetchOpenTimeMeter(int bookingId) {
     return wrapHandlingApi(
-      tryCall: () => dioNetwork.postData(endPoint: '/api/v1/cleaning-bookings/${params.id}/accept', data: params.getBody(), params: params.getParams()),
+      tryCall: () => dioNetwork.getData(
+        endPoint: '/api/v1/cleaning-bookings/$bookingId/open-time/meter',
+      ),
+      jsonConvert: cleaningOpenTimeEnvelopeFromJson,
+    );
+  }
+
+  Future<List<CleaningScheduleChangeRequestModel>>
+  fetchPendingScheduleChangeRequests() {
+    return wrapHandlingApi(
+      tryCall: () => dioNetwork.getData(
+        endPoint: '/api/v1/cleaning/schedule-change-requests',
+      ),
+      jsonConvert: cleaningScheduleChangeRequestsEnvelopeFromJson,
+    );
+  }
+
+  Future<CleaningScheduleChangeRequestModel> decideScheduleChange({
+    required int changeRequestId,
+    required String decision,
+    String? reason,
+  }) {
+    return wrapHandlingApi(
+      tryCall: () => dioNetwork.postData(
+        endPoint:
+            '/api/v1/cleaning/schedule-change-requests/$changeRequestId/decision',
+        data: <String, dynamic>{
+          'decision': decision,
+          if (reason?.trim().isNotEmpty == true) 'reason': reason!.trim(),
+        },
+      ),
+      jsonConvert: cleaningScheduleChangeRequestEnvelopeFromJson,
+    );
+  }
+
+  Future<CleaningOpenTimeDetails> decideOpenTimeExtension({
+    required int extensionId,
+    required String decision,
+    String? reason,
+  }) {
+    final data = <String, dynamic>{'decision': decision};
+    if (reason?.trim().isNotEmpty == true) data['reason'] = reason!.trim();
+    return wrapHandlingApi(
+      tryCall: () => dioNetwork.postData(
+        endPoint:
+            '/api/v1/cleaning-bookings/open-time/extensions/$extensionId/decision',
+        data: data,
+      ),
+      jsonConvert: cleaningOpenTimeEnvelopeFromJson,
+    );
+  }
+
+  Future<CleaningOpenTimeDetails> decideOpenTimeEnd({
+    required int bookingId,
+    required String decision,
+    String? reason,
+  }) {
+    final data = <String, dynamic>{'decision': decision};
+    if (reason?.trim().isNotEmpty == true) data['reason'] = reason!.trim();
+    return wrapHandlingApi(
+      tryCall: () => dioNetwork.postData(
+        endPoint: '/api/v1/cleaning-bookings/$bookingId/open-time/end/decision',
+        data: data,
+      ),
+      jsonConvert: cleaningOpenTimeEnvelopeFromJson,
+    );
+  }
+
+  Future<CleaningOperationalActionResult> receiveMaterialKit(int bookingId) {
+    return _operationalPost(
+      '/api/v1/cleaning-bookings/$bookingId/materials/receive',
+    );
+  }
+
+  Future<CleaningOperationalActionResult> startSpecialService(int lineId) {
+    return _operationalPost(
+      '/api/v1/cleaning-booking-special-services/$lineId/start',
+    );
+  }
+
+  Future<CleaningOperationalActionResult> finishSpecialService({
+    required int lineId,
+    required String status,
+    String? reason,
+    List<String> afterImages = const <String>[],
+  }) {
+    return _operationalPost(
+      '/api/v1/cleaning-booking-special-services/$lineId/finish',
+      data: <String, dynamic>{
+        'status': status,
+        if (reason?.trim().isNotEmpty == true) 'reason': reason!.trim(),
+        if (afterImages.isNotEmpty) 'afterImages': afterImages,
+      },
+    );
+  }
+
+  Future<CleaningOperationalActionResult> acknowledgeEquipment(
+    int reservationId,
+  ) {
+    return _operationalPost(
+      '/api/v1/cleaning-equipment-reservations/$reservationId/acknowledge',
+    );
+  }
+
+  Future<CleaningOperationalActionResult> returnEquipment({
+    required int reservationId,
+    String? failureReason,
+  }) {
+    return _operationalPost(
+      '/api/v1/cleaning-equipment-reservations/$reservationId/return',
+      data: <String, dynamic>{
+        if (failureReason?.trim().isNotEmpty == true)
+          'failureReason': failureReason!.trim(),
+      },
+    );
+  }
+
+  Future<CleaningOperationalActionResult> _operationalPost(
+    String endpoint, {
+    Map<String, dynamic> data = const <String, dynamic>{},
+  }) {
+    return wrapHandlingApi(
+      tryCall: () => dioNetwork.postData(endPoint: endpoint, data: data),
+      jsonConvert: cleaningOperationalActionResultFromJson,
+    );
+  }
+
+  Future<AcceptOrderUsecaseModel> acceptOrderUsecase(
+    AcceptOrderUsecaseParams params,
+  ) {
+    return wrapHandlingApi(
+      tryCall: () => dioNetwork.postData(
+        endPoint: '/api/v1/cleaning-bookings/${params.id}/accept',
+        data: params.getBody(),
+        params: params.getParams(),
+      ),
       jsonConvert: acceptOrderUsecaseModelFromJson,
     );
   }
 
-  Future<StartTravelUsecaseModel> startTravelUsecase(StartTravelUsecaseParams params) {
+  Future<StartTravelUsecaseModel> startTravelUsecase(
+    StartTravelUsecaseParams params,
+  ) {
     return wrapHandlingApi(
-      tryCall: () => dioNetwork.postData(endPoint: '/api/v1/cleaning-bookings/${params.id}/start-travel', data: params.getBody(), params: params.getParams()),
+      tryCall: () => dioNetwork.postData(
+        endPoint: '/api/v1/cleaning-bookings/${params.id}/start-travel',
+        data: params.getBody(),
+        params: params.getParams(),
+      ),
       jsonConvert: startTravelUsecaseModelFromJson,
     );
   }
 
-  Future<CompleteOrderUsecaseModel> completeOrderUsecase(CompleteOrderUsecaseParams params) {
+  Future<CompleteOrderUsecaseModel> completeOrderUsecase(
+    CompleteOrderUsecaseParams params,
+  ) {
     return wrapHandlingApi(
-      tryCall: () =>
-          dioNetwork.postData(endPoint: '/api/v1/cleaning-bookings/${params.id}/complete', data: params.getBody(), params: params.getParams()),
+      tryCall: () => dioNetwork.postData(
+        endPoint: '/api/v1/cleaning-bookings/${params.id}/complete',
+        data: params.getBody(),
+        params: params.getParams(),
+      ),
       jsonConvert: completeOrderUsecaseModelFromJson,
     );
   }
 
   Future<CancelOrderModel> cancelOrder(CancelOrderParams params) {
     return wrapHandlingApi(
-      tryCall: () => dioNetwork.postData(endPoint: '/api/v1/cleaning-bookings/${params.id}/cancel', data: params.getBody(), params: params.getParams()),
+      tryCall: () => dioNetwork.postData(
+        endPoint: '/api/v1/cleaning-bookings/${params.id}/cancel',
+        data: params.getBody(),
+        params: params.getParams(),
+      ),
       jsonConvert: cancelOrderModelFromJson,
     );
   }
 
-  Future<FetchExtensionRequestsUsecasModel> fetchExtensionRequestsUsecas(FetchExtensionRequestsUsecasParams params) {
+  Future<FetchExtensionRequestsUsecasModel> fetchExtensionRequestsUsecas(
+    FetchExtensionRequestsUsecasParams params,
+  ) {
     return wrapHandlingApi(
       tryCall: () => dioNetwork.getData(
         endPoint: '/api/v1/cleaning-time-warnings',
@@ -101,44 +262,72 @@ class OrdersRemoteDataSource with HandlingApiManager {
     );
   }
 
-  Future<AcceptExtensionUsecaseModel> acceptExtensionUsecase(AcceptExtensionUsecaseParams params) {
+  Future<AcceptExtensionUsecaseModel> acceptExtensionUsecase(
+    AcceptExtensionUsecaseParams params,
+  ) {
     return wrapHandlingApi(
-      tryCall: () =>
-          dioNetwork.postData(endPoint: '/api/v1/cleaning-time-warnings/${params.id}/accept', data: params.getBody(), params: params.getParams()),
+      tryCall: () => dioNetwork.postData(
+        endPoint: '/api/v1/cleaning-time-warnings/${params.id}/accept',
+        data: params.getBody(),
+        params: params.getParams(),
+      ),
       jsonConvert: acceptExtensionUsecaseModelFromJson,
     );
   }
 
-  Future<RejectExtensionUsecaseModel> rejectExtensionUsecase(RejectExtensionUsecaseParams params) {
+  Future<RejectExtensionUsecaseModel> rejectExtensionUsecase(
+    RejectExtensionUsecaseParams params,
+  ) {
     return wrapHandlingApi(
-      tryCall: () =>
-          dioNetwork.postData(endPoint: '/api/v1/cleaning-time-warnings/${params.id}/reject', data: params.getBody(), params: params.getParams()),
+      tryCall: () => dioNetwork.postData(
+        endPoint: '/api/v1/cleaning-time-warnings/${params.id}/reject',
+        data: params.getBody(),
+        params: params.getParams(),
+      ),
       jsonConvert: rejectExtensionUsecaseModelFromJson,
     );
   }
 
-  Future<UpdateAvailabilityUsecaseModel> updateAvailabilityUsecase(UpdateAvailabilityUsecaseParams params) {
+  Future<UpdateAvailabilityUsecaseModel> updateAvailabilityUsecase(
+    UpdateAvailabilityUsecaseParams params,
+  ) {
     return wrapHandlingApi(
-      tryCall: () => dioNetwork.putData(endPoint: '/api/v1/workers/${params.id}', data: params.getBody(), params: params.getParams()),
+      tryCall: () => dioNetwork.putData(
+        endPoint: '/api/v1/workers/${params.id}',
+        data: params.getBody(),
+        params: params.getParams(),
+      ),
       jsonConvert: updateAvailabilityUsecaseModelFromJson,
     );
   }
 
-  Future<RejectOrderUsecaseModel> rejectOrderUsecase(RejectOrderUsecaseParams params) {
+  Future<RejectOrderUsecaseModel> rejectOrderUsecase(
+    RejectOrderUsecaseParams params,
+  ) {
     return wrapHandlingApi(
-      tryCall: () => dioNetwork.postData(endPoint: '/api/v1/cleaning-bookings/${params.id}/reject', data: params.getBody(), params: params.getParams()),
+      tryCall: () => dioNetwork.postData(
+        endPoint: '/api/v1/cleaning-bookings/${params.id}/reject',
+        data: params.getBody(),
+        params: params.getParams(),
+      ),
       jsonConvert: rejectOrderUsecaseModelFromJson,
     );
   }
 
   Future<ArriveModel> arrive(ArriveParams params) {
     return wrapHandlingApi(
-      tryCall: () => dioNetwork.postData(endPoint: '/api/v1/cleaning-bookings/${params.id}/arrive', data: params.getBody(), params: params.getParams()),
+      tryCall: () => dioNetwork.postData(
+        endPoint: '/api/v1/cleaning-bookings/${params.id}/arrive',
+        data: params.getBody(),
+        params: params.getParams(),
+      ),
       jsonConvert: arriveModelFromJson,
     );
   }
 
-  Future<BookingLocationOkModel> postBookingLocation(PostBookingLocationParams params) {
+  Future<BookingLocationOkModel> postBookingLocation(
+    PostBookingLocationParams params,
+  ) {
     return wrapHandlingApi(
       tryCall: () => dioNetwork.postData(
         endPoint: '/api/v1/cleaning-bookings/${params.id}/location',
@@ -176,7 +365,8 @@ class OrdersRemoteDataSource with HandlingApiManager {
   ) {
     return wrapHandlingApi(
       tryCall: () => dioNetwork.postData(
-        endPoint: '/api/v1/cleaning-bookings/${params.id}/price-adjustment-requests',
+        endPoint:
+            '/api/v1/cleaning-bookings/${params.id}/price-adjustment-requests',
         data: params.getBody(),
         params: params.getParams(),
       ),

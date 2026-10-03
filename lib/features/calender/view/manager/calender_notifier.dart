@@ -3,11 +3,14 @@ import 'package:flutter/material.dart';
 
 class CalenderNotifier {
   ValueNotifier<String> selectedDate = ValueNotifier<String>(
-    CleaningArabicTimeFormatter.formatCalendarSelectedDate(DateTime.now()),
+    CleaningArabicTimeFormatter.toWesternDigits(
+      CleaningArabicTimeFormatter.formatCalendarSelectedDate(DateTime.now()),
+    ),
   );
 
   changeSelectedDate(DateTime value) {
-    selectedDate.value =
-        CleaningArabicTimeFormatter.formatCalendarSelectedDate(value);
+    selectedDate.value = CleaningArabicTimeFormatter.toWesternDigits(
+      CleaningArabicTimeFormatter.formatCalendarSelectedDate(value),
+    );
   }
 }

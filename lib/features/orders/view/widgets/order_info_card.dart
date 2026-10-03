@@ -2,13 +2,13 @@ import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_arabic_time_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
+
+import '../../../../core/theme/worker_app_colors.dart';
 
 import '../../data/models/fetch_orders_usecase_model.dart';
 import '../helpers/cleaning_enum_translations.dart';
 import '../helpers/dedicated_order_helper.dart';
 import '../helpers/event_assistance_order_helper.dart';
-import '../helpers/order_lifecycle_policy.dart';
 
 class OrderInfoCard extends StatelessWidget {
   const OrderInfoCard({super.key, required this.order});
@@ -23,38 +23,18 @@ class OrderInfoCard extends StatelessWidget {
     return 'حجز تنظيف ${CleaningEnumTranslations.propertyType(order.propertyType)}';
   }
 
-  bool get _showCustomerContact {
-    final phone = order.customer?.phone?.trim();
-    return OrderLifecyclePolicy.hasCurrentWorkerAccepted(order) &&
-        phone != null &&
-        phone.isNotEmpty;
-  }
-
-  Future<void> _launchContact(String scheme, String phone) async {
-    final uri = Uri(scheme: scheme, path: phone);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-      return;
-    }
-
-    AppToast.showErrorGlobal(
-      scheme == 'tel'
-          ? 'تعذر فتح تطبيق الاتصال.'
-          : 'تعذر فتح تطبيق الرسائل.',
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final isDedicatedToMe =
-        DedicatedOrderHelper.isDedicatedToCurrentUser(order.preferredWorkerId);
-    final phone = order.customer?.phone?.trim();
+    final isDedicatedToMe = DedicatedOrderHelper.isDedicatedToCurrentUser(
+      order.preferredWorkerId,
+    );
 
     return Container(
       padding: EdgeInsets.all(16.r),
       decoration: BoxDecoration(
-        color: const Color(0xffF4F5F7),
-        borderRadius: BorderRadius.circular(20.r),
+        color: WorkerAppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: WorkerAppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -85,13 +65,13 @@ class OrderInfoCard extends StatelessWidget {
                     ),
                     6.horizontalSpace,
                     AppText.labelMedium(
-                      'طلب مخصص',
+                      "طلب مخصص",
                       fontWeight: FontWeight.w400,
                     ),
                   ],
                 ),
                 AppText.labelMedium(
-                  'طلب مخصص لك',
+                  "طلب مخصص لك",
                   color: const Color(0xffEF4444),
                   fontWeight: FontWeight.w600,
                 ),
@@ -104,10 +84,14 @@ class OrderInfoCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(Icons.tag, color: context.secondary, size: 18.sp),
+                  Icon(
+                    Icons.tag,
+                    color: WorkerAppColors.brandPrimary,
+                    size: 18.sp,
+                  ),
                   6.horizontalSpace,
                   AppText.labelMedium(
-                    'حالة الحجز',
+                    "حالة الحجز",
                     fontWeight: FontWeight.w400,
                   ),
                 ],
@@ -115,8 +99,8 @@ class OrderInfoCard extends StatelessWidget {
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
                 decoration: BoxDecoration(
-                  color: const Color(0xff00BA10).withAlpha(75),
-                  borderRadius: BorderRadius.circular(8.r),
+                  color: WorkerAppColors.successSoft,
+                  borderRadius: BorderRadius.circular(999),
                 ),
                 child: AppText.labelMedium(
                   order.statusNameValue,
@@ -133,12 +117,12 @@ class OrderInfoCard extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.calendar_today,
-                    color: context.secondary,
+                    color: WorkerAppColors.brandPrimary,
                     size: 18.sp,
                   ),
                   6.horizontalSpace,
                   AppText.labelMedium(
-                    'جدولة الحجز',
+                    "جدولة الحجز",
                     fontWeight: FontWeight.w300,
                   ),
                 ],
@@ -160,12 +144,12 @@ class OrderInfoCard extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.access_time,
-                    color: context.secondary,
+                    color: WorkerAppColors.brandPrimary,
                     size: 18.sp,
                   ),
                   6.horizontalSpace,
                   AppText.labelMedium(
-                    'موعد الخدمة',
+                    "موعد الخدمة",
                     fontWeight: FontWeight.w300,
                   ),
                 ],
@@ -179,35 +163,6 @@ class OrderInfoCard extends StatelessWidget {
               ),
             ],
           ),
-          if (_showCustomerContact && phone != null) ...[
-            14.verticalSpace,
-            Divider(color: Colors.black.withAlpha(42)),
-            12.verticalSpace,
-            AppText.labelMedium(
-              'التواصل مع العميل',
-              fontWeight: FontWeight.w600,
-            ),
-            10.verticalSpace,
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: () => _launchContact('tel', phone),
-                    icon: const Icon(Icons.phone_outlined),
-                    label: const Text('اتصال'),
-                  ),
-                ),
-                10.horizontalSpace,
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _launchContact('sms', phone),
-                    icon: const Icon(Icons.sms_outlined),
-                    label: const Text('رسالة SMS'),
-                  ),
-                ),
-              ],
-            ),
-          ],
         ],
       ),
     );

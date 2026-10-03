@@ -1,5 +1,8 @@
 import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
+
+import '../../../../core/theme/worker_app_colors.dart';
+import '../../../../core/widgets/worker_screen_header.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../data/models/fetch_notifications_model.dart';
@@ -124,9 +127,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         final action = state.notificationActionError;
         if (action != null && action.isNotEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(ErrorMessageFormatter.format(action)),
-            ),
+            SnackBar(content: Text(ErrorMessageFormatter.format(action))),
           );
           return;
         }
@@ -140,7 +141,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         );
       },
       child: Scaffold(
-        backgroundColor: const Color(0xffF9FAFB),
+        backgroundColor: WorkerAppColors.canvas,
         body: SafeArea(
           child: Column(
             children: [
@@ -207,13 +208,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             for (final section in sections)
                               if (groups[section]!.isNotEmpty) ...[
                                 Padding(
-                                  padding:
-                                      const EdgeInsetsDirectional.fromSTEB(
-                                        16,
-                                        10,
-                                        16,
-                                        8,
-                                      ),
+                                  padding: const EdgeInsetsDirectional.fromSTEB(
+                                    16,
+                                    10,
+                                    16,
+                                    8,
+                                  ),
                                   child: AppText.labelLarge(
                                     section,
                                     color: const Color(0xff9CA3AF),
@@ -225,9 +225,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                   color: context.onPrimary,
                                   child: Column(
                                     children: [
-                                      for (var i = 0;
-                                          i < groups[section]!.length;
-                                          i++) ...[
+                                      for (
+                                        var i = 0;
+                                        i < groups[section]!.length;
+                                        i++
+                                      ) ...[
                                         Dismissible(
                                           key: ValueKey(
                                             '${section}_${i}_${groups[section]![i].id ?? ''}',
@@ -235,26 +237,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                           direction:
                                               DismissDirection.endToStart,
                                           background: Container(
-                                            alignment: AlignmentDirectional
-                                                .centerEnd,
+                                            alignment:
+                                                AlignmentDirectional.centerEnd,
                                             color: const Color(0xffEF4444),
                                             padding:
-                                                const EdgeInsetsDirectional
-                                                    .only(end: 20),
+                                                const EdgeInsetsDirectional.only(
+                                                  end: 20,
+                                                ),
                                             child: const Icon(
                                               Icons.delete_outline,
                                               color: Colors.white,
                                             ),
                                           ),
                                           onDismissed: (_) {
-                                            final id =
-                                                groups[section]![i].id;
-                                            if (id != null &&
-                                                id.isNotEmpty) {
+                                            final id = groups[section]![i].id;
+                                            if (id != null && id.isNotEmpty) {
                                               profileBloc.add(
-                                                DeleteNotificationEvent(
-                                                  id: id,
-                                                ),
+                                                DeleteNotificationEvent(id: id),
                                               );
                                             }
                                           },
@@ -290,8 +289,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                             ),
                                           ),
                                         ),
-                                        if (i !=
-                                            groups[section]!.length - 1)
+                                        if (i != groups[section]!.length - 1)
                                           const Divider(
                                             height: 1,
                                             thickness: 1,
@@ -335,72 +333,23 @@ class _NotificationsAppBar extends StatelessWidget {
   final bool showDeleteAll;
   final VoidCallback? onDeleteAll;
 
-  const _NotificationsAppBar({
-    this.showDeleteAll = false,
-    this.onDeleteAll,
-  });
+  const _NotificationsAppBar({this.showDeleteAll = false, this.onDeleteAll});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 70,
-      width: context.width,
-      decoration: BoxDecoration(
-        color: context.onPrimary,
-        border: Border(
-          bottom: BorderSide(color: context.primaryContainer, width: 2),
-        ),
-        borderRadius: const BorderRadius.only(
-          bottomRight: Radius.circular(20),
-          bottomLeft: Radius.circular(20),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(14),
-            offset: const Offset(0, 3),
-            blurRadius: 8,
-          ),
-        ],
+    return WorkerScreenHeader(
+      title: '\u0627\u0644\u0625\u0634\u0639\u0627\u0631\u0627\u062a',
+      leading: WorkerHeaderAction(
+        icon: Icons.arrow_back_rounded,
+        semanticLabel: '\u0631\u062c\u0648\u0639',
+        onTap: () => Navigator.maybePop(context),
       ),
-      padding: const EdgeInsetsDirectional.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () => context.pop(),
-            child: Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: context.onPrimary,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xffE5E7EB)),
-              ),
-              child: Icon(Icons.arrow_back, color: context.primary),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: AppText.titleLarge(
-              'الإشعارات',
-              color: context.primary,
-              fontWeight: FontWeight.w700,
-              textAlign: TextAlign.start,
-            ),
-          ),
-          if (showDeleteAll)
-            TextButton(
+      action: showDeleteAll
+          ? TextButton(
               onPressed: onDeleteAll,
-              child: const Text(
-                'حذف الكل',
-                style: TextStyle(
-                  color: Color(0xffEF4444),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-        ],
-      ),
+              child: const Text('\u062d\u0630\u0641 \u0627\u0644\u0643\u0644'),
+            )
+          : null,
     );
   }
 }

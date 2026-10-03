@@ -1,0 +1,78 @@
+name: Cleaning v2 Worker App Gates
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [v2]
+    paths:
+      - 'lib/features/orders/**'
+      - 'lib/core/realtime/cleaning_**'
+      - 'test/features/orders/**'
+      - 'test/core/realtime/cleaning_**'
+      - 'pubspec.lock'
+      - '.github/workflows/cleaning-v2-features.yml'
+  pull_request:
+    branches: [v2]
+    paths:
+      - 'lib/features/orders/**'
+      - 'lib/core/realtime/cleaning_**'
+      - 'test/features/orders/**'
+      - 'test/core/realtime/cleaning_**'
+      - 'pubspec.lock'
+      - '.github/workflows/cleaning-v2-features.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  flutter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.5'
+          cache: true
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed lib/features/orders/data/models/cleaning_booking_operational_details.dart lib/features/orders/data/models/cleaning_schedule_change_request_model.dart lib/features/orders/data/models/worker_booking_schedule_model.dart lib/features/orders/data/source/orders_remote_data_source.dart lib/features/orders/data/source/worker_session_remote_data_source.dart lib/features/orders/view/widgets/order_details/multi_day_order_details_body.dart lib/features/orders/view/widgets/order_details/mission/mission_operational_actions_card.dart test/features/orders/view/widgets/order_details/mission/mission_operational_actions_card_test.dart
+      - name: Analyze application without fatal baseline warnings
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Run full operational contract suite
+        run: |
+          set -o pipefail
+          flutter test --coverage 2>&1 | tee cleaning-v2-worker-test.log
+      - name: Build Android application
+        run: flutter build apk --debug
+      - name: Upload app reports and APK
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cleaning-v2-worker-app
+          path: |
+            cleaning-v2-worker-test.log
+            coverage/lcov.info
+            build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: ignore
+
+  ios:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.5'
+          cache: true
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+      - name: Build iOS without signing
+        run: flutter build ios --no-codesign
+      - name: Upload iOS application
+        uses: actions/upload-artifact@v4
+        with:
+          name: cleaning-v2-worker-ios
+          path: build/ios/iphoneos/Runner.app
+          if-no-files-found: error

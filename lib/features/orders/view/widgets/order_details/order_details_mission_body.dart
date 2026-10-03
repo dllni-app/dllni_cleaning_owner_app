@@ -17,9 +17,12 @@ import '../../../domain/usecases/reject_extension_usecase_use_case.dart';
 import '../../../domain/usecases/start_work_use_case.dart';
 import '../../helpers/order_lifecycle_policy.dart';
 import '../../helpers/order_mission_task_mapper.dart';
+import '../../helpers/order_open_time_presentation.dart';
 import '../../helpers/order_work_timer_helper.dart';
 import 'mission/completion_message_sheet.dart';
 import 'mission/mission_finish_button.dart';
+import 'mission/mission_operational_details_cards.dart';
+import 'mission/mission_operational_actions_card.dart';
 import 'mission/mission_payment_summary_card.dart';
 import 'mission/mission_services_info_card.dart';
 import 'mission/mission_support_button.dart';
@@ -91,7 +94,8 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
         oldWidget.order.myAssignment?.totalHours !=
             widget.order.myAssignment?.totalHours ||
         oldWidget.order.estimatedHours != widget.order.estimatedHours ||
-        oldWidget.order.timeWarnings != widget.order.timeWarnings) {
+        oldWidget.order.timeWarnings != widget.order.timeWarnings ||
+        oldWidget.order.openTime != widget.order.openTime) {
       _extensionDecisionResolved = false;
       _syncTimerSession();
       _calculateWorkTimer();
@@ -109,6 +113,14 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
 
   bool get _isAwaitingWorkerStartConfirmation =>
       OrderLifecyclePolicy.isAwaitingWorkerStartConfirmation(widget.order);
+
+  bool get _isOpenTime => widget.order.openTime?.isOpenTime == true;
+
+  OpenTimePresentationState get _openTimePresentation =>
+      OrderOpenTimePresentation.resolve(
+        openTime: widget.order.openTime,
+        now: DateTime.now(),
+      );
 
   List<MissionTaskItem> get _tasks =>
       OrderMissionTaskMapper.build(order: widget.order);
@@ -246,6 +258,12 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
   }
 
   void _syncTimerSession({bool resetCurrentSession = false}) {
+    if (_isOpenTime) {
+      _timerSession = null;
+      _timerOrderId = null;
+      return;
+    }
+
     if (!_uiState.isActiveWork) {
       _timerSession = null;
       _timerOrderId = null;
@@ -314,6 +332,17 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
   }
 
   void _calculateWorkTimer() {
+    if (_isOpenTime) {
+      final presentation = _openTimePresentation;
+      if (!mounted) return;
+      setState(() {
+        _isWorkTimerAvailable = presentation.elapsed != null;
+        _isSessionFinished = presentation.isFinal;
+        _elapsedTime = presentation.elapsed ?? Duration.zero;
+      });
+      return;
+    }
+
     if (!_uiState.isActiveWork) {
       _setTimerUnavailable();
       return;
@@ -389,6 +418,8 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
   }
 
   DateTime? get _orderEndTime {
+    if (_isOpenTime) return null;
+
     final start = _orderStartTime;
     if (start == null) return null;
 
@@ -421,6 +452,11 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     if (_isAwaitingWorkerStartConfirmation) {
       return const <Color>[Color(0xff0F766E), Color(0xff14B8A6)];
     }
+    if (_isOpenTime) {
+      return _openTimePresentation.isFinal
+          ? const <Color>[Color(0xff334155), Color(0xff1F2937)]
+          : const <Color>[Color(0xff0F766E), Color(0xff14B8A6)];
+    }
     if (_uiState.isWaitingCustomer) {
       return const <Color>[Color(0xff1E2A78), Color(0xff283593)];
     }
@@ -441,6 +477,11 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
 
   String get _missionStatusText {
     if (_isAwaitingWorkerStartConfirmation) return 'جاهز لبدء العمل';
+    if (_isOpenTime) {
+      return _openTimePresentation.isFinal
+          ? 'اكتمل وقت العمل'
+          : 'وقت مفتوح قيد التنفيذ';
+    }
     if (_uiState.isWaitingCustomer) return 'بانتظار تأكيد العميل';
     if (_uiState.isExtensionPending) return 'طلب تمديد وقت';
     if (_uiState.isDispute) return 'الطلب قيد المراجعة';
@@ -453,6 +494,14 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
   String get _timerTitleText {
     if (_isAwaitingWorkerStartConfirmation) {
       return 'تم تأكيد رمز الأمان — ابدأ العمل من قائمة المهام';
+    }
+    if (_isOpenTime) {
+      if (!_openTimePresentation.hasStarted) {
+        return 'بانتظار توثيق بدء العمل من النظام';
+      }
+      return _openTimePresentation.isFinal
+          ? 'المدة الفعلية للعمل'
+          : 'الوقت المنقضي في العمل';
     }
     if (_uiState.isWaitingCustomer) return 'تم إرسال طلب إنهاء العمل للعميل';
     if (_uiState.isExtensionPending) return 'بانتظار ردك على طلب التمديد';
@@ -467,6 +516,10 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
 
   String get _timerValueText {
     if (_isAwaitingWorkerStartConfirmation) return 'جاهز';
+    if (_isOpenTime) {
+      if (!_openTimePresentation.hasStarted) return '--:--:--';
+      return _formatDuration(_openTimePresentation.elapsed ?? Duration.zero);
+    }
     if (_uiState.isWaitingCustomer) return 'بانتظار تأكيد العميل';
     if (_uiState.isExtensionPending) return 'بانتظار قبول أو رفض التمديد';
     if (_uiState.isDispute) return 'قيد المراجعة';
@@ -479,6 +532,11 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
   String? get _timerHelperText {
     if (_isAwaitingWorkerStartConfirmation) {
       return 'راجع قائمة المهام ثم اضغط بدء العمل. سيبدأ احتساب وقت التنفيذ بعد التأكيد.';
+    }
+    if (_isOpenTime) {
+      return _openTimePresentation.isFinal
+          ? 'تم تثبيت المدة المعروضة من بيانات النظام.'
+          : 'هذه مدة عرض فقط؛ لا يحتسب التطبيق التكلفة أو المبلغ النهائي.';
     }
     if (_uiState.isWaitingCustomer) {
       return 'تم قفل قائمة المهام بعد إرسال طلب الإنهاء.';
@@ -496,11 +554,11 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
   }
 
   String get _taskListHintText {
-    if (_tasks.isEmpty && _uiState.isActiveWork) {
-      return 'لا توجد مهام محددة من السيرفر. يمكنك إرسال طلب الإنهاء عند اكتمال العمل.';
-    }
     if (_isAwaitingWorkerStartConfirmation) {
       return 'راجع المهام المطلوبة. سيتم تفعيل تحديدها بعد الضغط على بدء العمل.';
+    }
+    if (_tasks.isEmpty && _uiState.isActiveWork) {
+      return 'لا توجد مهام محددة من السيرفر. يمكنك إرسال طلب الإنهاء عند اكتمال العمل.';
     }
     if (_isChecklistLocked) {
       return 'قائمة المهام مقفلة لأن الطلب ليس في مرحلة التنفيذ.';
@@ -682,8 +740,8 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                 onPressed: loading || orderId == null
                     ? null
                     : () => widget.bloc.add(
-                          StartWorkEvent(params: StartWorkParams(id: orderId)),
-                        ),
+                        StartWorkEvent(params: StartWorkParams(id: orderId)),
+                      ),
                 icon: loading
                     ? const SizedBox(
                         width: 18,
@@ -807,6 +865,39 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                           : null,
                     ),
                     14.verticalSpace,
+                    if (_isOpenTime) ...[
+                      MissionOpenTimeInfoCard(
+                        openTime: widget.order.openTime!,
+                        presentation: _openTimePresentation,
+                      ),
+                      14.verticalSpace,
+                    ],
+                    if (!_uiState.isDispute && !_uiState.isFinal) ...[
+                      MissionOperationalActionsCard(
+                        bookingId: widget.order.id ?? 0,
+                        openTime: widget.order.openTime,
+                        materialKit: widget.order.materialKit,
+                        services: widget.order.specialServices ?? const [],
+                      ),
+                      14.verticalSpace,
+                    ],
+                    if (!_uiState.isDispute &&
+                        !_uiState.isFinal &&
+                        (widget.order.materials?.isNotEmpty ?? false)) ...[
+                      MissionMaterialsInfoCard(
+                        materials: widget.order.materials!,
+                      ),
+                      14.verticalSpace,
+                    ],
+                    if (!_uiState.isDispute &&
+                        !_uiState.isFinal &&
+                        (widget.order.specialServices?.isNotEmpty ??
+                            false)) ...[
+                      MissionSpecialServicesInfoCard(
+                        services: widget.order.specialServices!,
+                      ),
+                      14.verticalSpace,
+                    ],
                     if (!_uiState.isDispute &&
                         !_uiState.isFinal &&
                         _servicesInfo.isNotEmpty) ...[

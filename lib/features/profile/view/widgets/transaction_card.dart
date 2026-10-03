@@ -3,10 +3,19 @@ import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/transact
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/worker_app_colors.dart';
+
 enum TransactionCardType { underReview, closed, resolved, open }
 
 class TransactionCard extends StatelessWidget {
-  const TransactionCard({super.key, required this.type, required this.id, required this.date, required this.title, required this.disputeId});
+  const TransactionCard({
+    super.key,
+    required this.type,
+    required this.id,
+    required this.date,
+    required this.title,
+    required this.disputeId,
+  });
 
   final TransactionCardType type;
   final String id;
@@ -17,13 +26,13 @@ class TransactionCard extends StatelessWidget {
   Color cardColor(TransactionCardType type) {
     switch (type) {
       case TransactionCardType.closed:
-        return Color(0xffD80024);
+        return WorkerAppColors.danger;
       case TransactionCardType.resolved:
-        return Color(0xff0CBBC7);
+        return WorkerAppColors.success;
       case TransactionCardType.underReview:
-        return Color(0xffD80024);
+        return WorkerAppColors.danger;
       case TransactionCardType.open:
-        return Color(0xffD80024);
+        return WorkerAppColors.danger;
     }
   }
 
@@ -61,27 +70,45 @@ class TransactionCard extends StatelessWidget {
       onTap: () {
         context.pushRoute(
           '/transactiondetails',
-          arguments: TransactionDetailsScreenParam(id: disputeId, title: id, isOpen: type == TransactionCardType.open),
+          arguments: TransactionDetailsScreenParam(
+            id: disputeId,
+            title: id,
+            isOpen: type == TransactionCardType.open,
+          ),
         );
       },
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          color: context.onPrimary,
-          boxShadow: [BoxShadow(color: Color(0xff303030).withAlpha(60), offset: Offset(0, 2), blurRadius: 16)],
+          color: WorkerAppColors.surface,
+          border: Border.all(color: WorkerAppColors.border),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0F0F172A),
+              offset: Offset(0, 3),
+              blurRadius: 12,
+            ),
+          ],
         ),
         child: Stack(
           children: [
             Column(
               children: [
                 Padding(
-                  padding: EdgeInsetsDirectional.symmetric(horizontal: 20, vertical: 31),
+                  padding: EdgeInsetsDirectional.symmetric(
+                    horizontal: 20,
+                    vertical: 31,
+                  ),
                   child: Row(
                     children: [
                       CircleAvatar(
                         radius: 19,
                         backgroundColor: cardColor(type).withAlpha(51),
-                        child: Icon(cardIcon(type), color: cardColor(type), size: 20),
+                        child: Icon(
+                          cardIcon(type),
+                          color: cardColor(type),
+                          size: 20,
+                        ),
                       ),
                       SizedBox(width: 12),
                       Expanded(
@@ -90,7 +117,10 @@ class TransactionCard extends StatelessWidget {
                           children: [
                             AppText.bodyLarge(id, fontWeight: FontWeight.w500),
                             AppText.labelLarge(
-                              DateFormat('yyyy-MM-dd', 'en').format(DateTime.parse(date)),
+                              DateFormat(
+                                'yyyy-MM-dd',
+                                'en',
+                              ).format(DateTime.parse(date)),
                               fontWeight: FontWeight.w300,
                               color: Color(0xff8E939E),
                             ),
@@ -102,7 +132,10 @@ class TransactionCard extends StatelessWidget {
                 ),
                 Container(
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.only(bottomRight: Radius.circular(16), bottomLeft: Radius.circular(16)),
+                    borderRadius: BorderRadius.only(
+                      bottomRight: Radius.circular(16),
+                      bottomLeft: Radius.circular(16),
+                    ),
                     color: cardColor(type).withAlpha(51),
                   ),
                   width: context.width,
@@ -110,7 +143,11 @@ class TransactionCard extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      AppText.bodyLarge('عرض التفاصيل', color: cardColor(type), fontWeight: FontWeight.w500),
+                      AppText.bodyLarge(
+                        'عرض التفاصيل',
+                        color: cardColor(type),
+                        fontWeight: FontWeight.w500,
+                      ),
                       SizedBox(width: 8),
                       Icon(Icons.arrow_forward_ios, color: cardColor(type)),
                     ],
@@ -125,11 +162,21 @@ class TransactionCard extends StatelessWidget {
                   children: [
                     Container(
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.only(topLeft: Radius.circular(14), bottomRight: Radius.circular(10)),
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(14),
+                          bottomRight: Radius.circular(10),
+                        ),
                         color: cardColor(type).withAlpha(51),
                       ),
-                      padding: EdgeInsetsDirectional.symmetric(horizontal: 22, vertical: 8),
-                      child: AppText.bodyLarge(getTitle(title), fontWeight: FontWeight.w500, color: cardColor(type)),
+                      padding: EdgeInsetsDirectional.symmetric(
+                        horizontal: 22,
+                        vertical: 8,
+                      ),
+                      child: AppText.bodyLarge(
+                        getTitle(title),
+                        fontWeight: FontWeight.w500,
+                        color: cardColor(type),
+                      ),
                     ),
                   ],
                 ),

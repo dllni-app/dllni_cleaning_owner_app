@@ -1,8 +1,9 @@
 import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
+import '../../../../core/theme/worker_app_colors.dart';
+import '../../../../core/widgets/worker_screen_header.dart';
 import '../../../profile/view/manager/bloc/profile_bloc.dart';
 import '../../../profile/view/screens/notifications_screen.dart';
 
@@ -11,92 +12,97 @@ class HomeAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: context.onPrimary,
-        border: Border(bottom: BorderSide(color: context.primaryContainer, width: 3)),
-        borderRadius: BorderRadius.only(bottomRight: Radius.circular(24.r), bottomLeft: Radius.circular(24.r)),
-        boxShadow: [BoxShadow(color: Colors.black.withAlpha(27), offset: Offset(0, -2.h), blurRadius: 12.r, spreadRadius: 0)],
-      ),
-      width: context.width,
-      height: 70.h,
-      padding: EdgeInsetsDirectional.symmetric(horizontal: 24.w),
-      child: BlocBuilder<ProfileBloc, ProfileState>(
-        builder: (context, state) {
-          return Row(
+    return BlocBuilder<ProfileBloc, ProfileState>(
+      builder: (context, state) {
+        final data = state.workerProfileUsecase?.data;
+        final firstName = (data?.firstName ?? data?.user?.name ?? '').trim();
+        final unread = state.unreadNotification ?? 0;
+        final avatar = data?.avatar?.url;
+
+        return Container(
+          color: WorkerAppColors.surface,
+          padding: const EdgeInsetsDirectional.fromSTEB(20, 12, 20, 16),
+          child: Row(
             children: [
-              state.workerProfileUsecase?.data?.avatar?.url != null
-                  ? AppImage.network(
-                      state.workerProfileUsecase!.data!.avatar!.url!,
-                      borderRadius: BorderRadius.circular(99),
-                      width: 40,
-                      height: 40,
-                      fit: BoxFit.cover,
-                    )
-                  : SizedBox.shrink(),
-              8.horizontalSpace,
+              _WorkerAvatar(url: avatar, name: firstName),
+              const SizedBox(width: 10),
               Expanded(
-                child: AppText.labelMedium(
-                  'مرحباً ${state.workerProfileUsecase?.data?.firstName ?? ''}, لنكتشف ماهي مهامك اليوم',
-                  color: Color(0xff2C6862),
-                  fontWeight: FontWeight.w500,
-                  textAlign: TextAlign.start,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      firstName.isEmpty ? 'مرحباً' : 'مرحباً، $firstName',
+                      textAlign: TextAlign.start,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: WorkerAppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'جاهز لمهام اليوم؟',
+                      textAlign: TextAlign.start,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: WorkerAppColors.textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              InkWell(
-                borderRadius: BorderRadius.circular(12),
+              WorkerHeaderAction(
+                icon: Icons.notifications_none_rounded,
+                badge: unread <= 0 ? null : (unread > 99 ? '99+' : '$unread'),
+                semanticLabel: 'الإشعارات',
                 onTap: () {
                   final profileBloc = context.read<ProfileBloc>();
                   context.pushRoute(
                     '/notifications',
-                    arguments: NotificationsScreenParams(profileBloc: profileBloc),
+                    arguments: NotificationsScreenParams(
+                      profileBloc: profileBloc,
+                    ),
                   );
                 },
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Icon(Icons.notifications_none_outlined, color: context.primaryContainer),
-                    if (state.unreadNotification != null && state.unreadNotification! > 0)
-                      Positioned(
-                        top: -6,
-                        right: -6,
-                        child: Container(
-                          constraints: const BoxConstraints(
-                            minWidth: 18,
-                            minHeight: 18,
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 5,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: context.error,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: context.onPrimary,
-                              width: 1.5,
-                            ),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            state.unreadNotification! > 99
-                                ? '99+'
-                                : state.unreadNotification.toString(),
-                            style: TextStyle(
-                              color: context.onError,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              height: 1.1,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
               ),
             ],
-          );
-        },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _WorkerAvatar extends StatelessWidget {
+  const _WorkerAvatar({required this.url, required this.name});
+
+  final String? url;
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = name.trim().isEmpty ? 'ع' : name.trim().characters.first;
+    if (url != null && url!.trim().isNotEmpty) {
+      return AppImage.network(
+        url!,
+        borderRadius: BorderRadius.circular(999),
+        width: 44,
+        height: 44,
+        fit: BoxFit.cover,
+      );
+    }
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: const BoxDecoration(
+        color: WorkerAppColors.brandPrimarySoft,
+        shape: BoxShape.circle,
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        initial,
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          color: WorkerAppColors.brandPrimary,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }

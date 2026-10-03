@@ -4,6 +4,8 @@ import 'package:dllni_cleaninig_owner_app/features/profile/data/models/fetch_dep
 import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/fetch_deposit_transactions_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/manager/bloc/profile_bloc.dart';
 import 'package:flutter/material.dart';
+
+import '../../../../core/theme/worker_app_colors.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
@@ -37,6 +39,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
         ),
       child: Builder(
         builder: (context) => Scaffold(
+          backgroundColor: WorkerAppColors.canvas,
           body: SafeArea(
             child: Column(
               children: [

@@ -33,6 +33,10 @@ const List<OrdersStatusTab> ordersStatusTabs = <OrdersStatusTab>[
     status: CleaningBookingStatus.timeExtensionRequested,
     label: 'تمديد الوقت',
   ),
+  OrdersStatusTab(
+    status: CleaningBookingStatus.partiallyCompleted,
+    label: 'مكتملة جزئياً',
+  ),
   OrdersStatusTab(status: CleaningBookingStatus.completed, label: 'مكتملة'),
   OrdersStatusTab(status: CleaningBookingStatus.cancelled, label: 'ملغية'),
 ];

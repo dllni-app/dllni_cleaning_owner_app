@@ -1,34 +1,19 @@
-import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
+
+import '../../../../core/widgets/worker_screen_header.dart';
 
 class TransactionAppBar extends StatelessWidget {
   const TransactionAppBar({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: context.onPrimary,
-        borderRadius: BorderRadius.only(bottomRight: Radius.circular(24), bottomLeft: Radius.circular(24)),
-        border: Border(bottom: BorderSide(color: context.primaryContainer, width: 5)),
-        boxShadow: [BoxShadow(color: Colors.black.withAlpha(27), offset: Offset(0, -2), blurRadius: 12, spreadRadius: 0)],
-      ),
-      width: context.width,
-      height: 80,
-      padding: EdgeInsetsDirectional.symmetric(horizontal: 24, vertical: 16),
-      child: Row(
-        children: [
-          InkWell(
-            onTap: () {
-              context.pop();
-            },
-            child: Icon(Icons.arrow_back_ios_new, color: context.primary),
-          ),
-          SizedBox(width: 12),
-          Expanded(
-            child: AppText.headlineLarge('سجل المعاملات', fontWeight: FontWeight.w700, textAlign: TextAlign.start),
-          ),
-        ],
+    return WorkerScreenHeader(
+      title:
+          '\u0633\u062c\u0644 \u0627\u0644\u0645\u0639\u0627\u0645\u0644\u0627\u062a',
+      leading: WorkerHeaderAction(
+        icon: Icons.arrow_back_rounded,
+        semanticLabel: '\u0631\u062c\u0648\u0639',
+        onTap: () => Navigator.maybePop(context),
       ),
     );
   }

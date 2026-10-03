@@ -2,6 +2,8 @@ import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
+import '../../../../core/theme/worker_app_colors.dart';
+
 import '../../data/models/cleaning_team_models.dart';
 import '../../data/models/fetch_orders_usecase_model.dart';
 import '../helpers/cleaning_room_display.dart';
@@ -20,16 +22,14 @@ class WorkerRoomAssignmentsCard extends StatelessWidget {
       width: context.width,
       padding: EdgeInsets.all(16.r),
       decoration: BoxDecoration(
-        color: const Color(0xffF4F5F7),
-        borderRadius: BorderRadius.circular(20.r),
+        color: WorkerAppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: WorkerAppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppText.labelMedium(
-            'الغرف المخصصة لك',
-            fontWeight: FontWeight.w600,
-          ),
+          AppText.labelMedium('الغرف المخصصة لك', fontWeight: FontWeight.w600),
           SizedBox(height: 12),
           Divider(color: Colors.black.withAlpha(42)),
           SizedBox(height: 12),
@@ -57,7 +57,9 @@ class WorkerTeamStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String? teamDescription = OrderLifecyclePolicy.teamStateDescription(order);
+    final String? teamDescription = OrderLifecyclePolicy.teamStateDescription(
+      order,
+    );
 
     if (!OrderLifecyclePolicy.isAcceptedWaiting(order)) {
       return const SizedBox.shrink();
@@ -67,30 +69,30 @@ class WorkerTeamStatusCard extends StatelessWidget {
       width: double.infinity,
       padding: EdgeInsets.all(14.r),
       decoration: BoxDecoration(
-        color: context.primaryContainer.withAlpha(31),
+        color: WorkerAppColors.brandPrimarySoft,
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: context.primaryContainer.withAlpha(80)),
+        border: Border.all(color: WorkerAppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           AppText.labelLarge(
             OrderLifecyclePolicy.teamStateTitle(order),
-            color: context.primary,
+            color: WorkerAppColors.brandPrimary,
             fontWeight: FontWeight.w800,
           ),
           8.verticalSpace,
           // 1. احصل على القيمة أولاً
 
-// 2. استخدم شرط if قبل الودجت لإخفائه تماماً إذا كان null
-    if (teamDescription != null && teamDescription.isNotEmpty) ...[
-    AppText.bodyMedium(
-    teamDescription,
-    color: context.primary,
-    fontWeight: FontWeight.w600,
-    textAlign: TextAlign.start,
-    ),
-    ],
+          // 2. استخدم شرط if قبل الودجت لإخفائه تماماً إذا كان null
+          if (teamDescription != null && teamDescription.isNotEmpty) ...[
+            AppText.bodyMedium(
+              teamDescription,
+              color: WorkerAppColors.brandPrimary,
+              fontWeight: FontWeight.w600,
+              textAlign: TextAlign.start,
+            ),
+          ],
         ],
       ),
     );
@@ -110,9 +112,9 @@ class _RoomTile extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10.r),
-        border: Border.all(color: const Color(0xffE5E7EB)),
+        color: WorkerAppColors.canvas,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: WorkerAppColors.border),
       ),
       child: Row(
         children: [

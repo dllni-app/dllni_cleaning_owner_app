@@ -31,3 +31,7 @@ analyzer:
   exclude:
     - lib/features/**/data/models/**
     - lib/generated/**
+    - build/**
+    - android/**
+    - ios/**
+    - windows/**

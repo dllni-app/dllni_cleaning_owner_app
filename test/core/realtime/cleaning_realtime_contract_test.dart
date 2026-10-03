@@ -70,6 +70,12 @@ void main() {
         }),
         94,
       );
+      expect(
+        CleaningRealtimeContract.extractBookingId(const <String, dynamic>{
+          'team': <String, dynamic>{'cleaningBookingId': 77},
+        }),
+        77,
+      );
     });
 
     test('extracts tracking status from nested booking maps', () {

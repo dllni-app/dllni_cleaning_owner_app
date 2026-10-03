@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:common_package/common_package.dart';
-import 'package:common_package/helpers/shared_preferences_helper.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_realtime_contract.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_worker_extension_prompts.dart';
@@ -11,11 +10,16 @@ import 'package:dllni_cleaninig_owner_app/features/orders/data/models/arrive_mod
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_order_details_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/data/models/worker_booking_schedule_model.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/data/source/worker_session_remote_data_source.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/fetch_order_details_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_details_to_list_item_mapper.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/order_details/multi_day_order_details_body.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/order_details/order_details_body.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/order_details/order_details_mission_body.dart';
 import 'package:flutter/material.dart';
+
+import '../../../../core/theme/worker_app_colors.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../controllers/order_details_lifecycle_poller.dart';
@@ -48,6 +52,14 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   OrdersState? _previousBlocState;
   String? _lastShownCustomerNoteKey;
 
+  WorkerBookingScheduleModel? _multiDaySchedule;
+  int? _selectedSessionId;
+  bool _scheduleChecked = false;
+  bool _scheduleLoading = false;
+  String? _scheduleLoadError;
+
+  bool get _isMultiDay => _multiDaySchedule?.isMultiDay == true;
+
   int _stepFor(FetchOrdersUsecaseModelDataItem o) =>
       OrderLifecyclePolicy.detailsStepFor(o);
 
@@ -55,8 +67,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       OrderLifecyclePolicy.isAwaitingStartVerification(_order);
 
   bool get _shouldPollLifecycleAdvance =>
-      _isAwaitingStartVerification ||
-      OrderLifecyclePolicy.isAwaitingWorkerStartConfirmation(_order);
+      !_isMultiDay &&
+      (_isAwaitingStartVerification ||
+          OrderLifecyclePolicy.isAwaitingWorkerStartConfirmation(_order));
 
   bool get _canShowMissionBody {
     final status = (_order.status ?? '').trim().toLowerCase();
@@ -79,6 +92,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   void initState() {
     super.initState();
     _order = widget.params.order;
+    _selectedSessionId = widget.params.selectedSessionId;
     _lifecyclePoller = OrderDetailsLifecyclePoller(
       shouldPoll: () => mounted && _shouldPollLifecycleAdvance,
       onPoll: _pollOrderDetailsForVerificationAdvance,
@@ -91,8 +105,51 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           params: FetchOrderDetailsUsecaseParams(id: id),
         ),
       );
+      unawaited(_loadSchedule());
       unawaited(_bindRealtimeListeners());
       _syncAwaitingVerificationPoll();
+    } else {
+      _scheduleChecked = true;
+    }
+  }
+
+  Future<void> _loadSchedule() async {
+    final bookingId = _order.id;
+    if (bookingId == null || _scheduleLoading) return;
+    if (mounted) {
+      setState(() {
+        _scheduleLoading = true;
+        _scheduleLoadError = null;
+      });
+    }
+    try {
+      final result = await getIt<WorkerSessionRemoteDataSource>()
+          .fetchBookingSchedule(bookingId);
+      if (!mounted) return;
+      setState(() {
+        final schedule = result.schedule;
+        _multiDaySchedule = schedule?.isMultiDay == true ? schedule : null;
+        _scheduleChecked = true;
+        _scheduleLoading = false;
+        _scheduleLoadError = null;
+        if (_multiDaySchedule != null &&
+            _multiDaySchedule!.sessionById(_selectedSessionId) == null) {
+          _selectedSessionId =
+              _multiDaySchedule!.nextSession?.id ??
+              (_multiDaySchedule!.sessions.isEmpty
+                  ? null
+                  : _multiDaySchedule!.sessions.first.id);
+        }
+      });
+      _syncAwaitingVerificationPoll();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _scheduleChecked = true;
+        _scheduleLoading = false;
+        _scheduleLoadError =
+            'تعذر تحميل جلسات الطلب. أعد المحاولة قبل تنفيذ أي إجراء.';
+      });
     }
   }
 
@@ -153,7 +210,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }) {
     if (!mounted) return;
 
-    final normalizedEvent = CleaningRealtimeContract.normalizeEventName(eventName);
+    final normalizedEvent = CleaningRealtimeContract.normalizeEventName(
+      eventName,
+    );
     final payloadBookingId = CleaningRealtimeContract.extractBookingId(payload);
 
     if (fromWorkerChannel) {
@@ -162,14 +221,26 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       return;
     }
 
-    final isExtensionRequest = normalizedEvent ==
-            CleaningRealtimeContract.serviceExtensionRequested ||
+    final payloadSessionId = _toInt(
+      payload['sessionId'] ?? payload['session_id'],
+    );
+    if (_isMultiDay &&
+        payloadSessionId != null &&
+        _multiDaySchedule?.sessionById(payloadSessionId) != null) {
+      _selectedSessionId ??= payloadSessionId;
+    }
+
+    final isExtensionRequest =
+        normalizedEvent == CleaningRealtimeContract.serviceExtensionRequested ||
         (normalizedEvent == CleaningRealtimeContract.completionDecisionMade &&
             (payload['decision'] ?? '').toString().trim().toLowerCase() ==
                 'extension_requested');
     if (isExtensionRequest) {
       unawaited(
-        CleaningWorkerExtensionPrompts.dispatchRealtimeEvent(eventName, payload),
+        CleaningWorkerExtensionPrompts.dispatchRealtimeEvent(
+          eventName,
+          payload,
+        ),
       );
     }
 
@@ -185,6 +256,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       );
     }
 
+    unawaited(_loadSchedule());
+
     if (CleaningRealtimeContract.isLifecycleRefreshEvent(normalizedEvent)) {
       _scheduleSyncFallback(
         bookingId: bookingId,
@@ -193,6 +266,12 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             : 'owner_details_lifecycle_event_refresh',
       );
     }
+  }
+
+  int? _toInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '');
   }
 
   void _showCustomerCompletionNoteIfNeeded({
@@ -205,14 +284,16 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         .toLowerCase();
     if (decision != 'rejected') return;
 
-    final rawMessage = payload['message'] ??
+    final rawMessage =
+        payload['message'] ??
         payload['reason'] ??
         payload['customerMessage'] ??
         payload['customer_message'];
     final message = rawMessage?.toString().trim();
     if (message == null || message.isEmpty) return;
 
-    final decidedAt = payload['decidedAt'] ??
+    final decidedAt =
+        payload['decidedAt'] ??
         payload['decided_at'] ??
         payload['updatedAt'] ??
         payload['updated_at'] ??
@@ -243,6 +324,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     if (error.statusCode != 403) return;
     final bookingId = _order.id;
     if (bookingId != null) {
+      unawaited(_loadSchedule());
       _scheduleSyncFallback(
         bookingId: bookingId,
         reason: 'owner_details_channel_auth_403_refresh',
@@ -263,6 +345,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         fallbackReason: reason,
       );
       widget.params.bloc.add(SyncOrderFromRealtimeEvent(bookingId: bookingId));
+      unawaited(_loadSchedule());
     });
   }
 
@@ -291,7 +374,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }) {
     if (!mounted) return;
 
-    final resolvedStatus = status != null &&
+    final resolvedStatus =
+        status != null &&
             OrderLifecyclePolicy.shouldApplyRealtimeStatus(
               currentStatus: _order.status,
               incomingStatus: status,
@@ -341,10 +425,15 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         setState(() {
           _order = _mergeDetailsIntoOrder(details);
         });
-        widget.params.bloc.add(ChangeDetailsCurrentStep(step: _stepFor(_order)));
+        widget.params.bloc.add(
+          ChangeDetailsCurrentStep(step: _stepFor(_order)),
+        );
+        unawaited(_loadSchedule());
         _syncAwaitingVerificationPoll();
       }
     }
+
+    if (_isMultiDay) return;
 
     if (previous == null || state.arrive != previous.arrive) {
       final arrive = state.arrive?.data;
@@ -360,13 +449,15 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       }
     }
 
-    if (previous == null || state.startTravelUsecase != previous.startTravelUsecase) {
+    if (previous == null ||
+        state.startTravelUsecase != previous.startTravelUsecase) {
       final st = state.startTravelUsecase?.data;
       if (st != null && st.id == oid && st.status != null) {
         _applyLifecyclePatch(
           status: st.status,
           startedTravelAt:
-              _order.startedTravelAt ?? DateTime.now().toUtc().toIso8601String(),
+              _order.startedTravelAt ??
+              DateTime.now().toUtc().toIso8601String(),
         );
       }
     }
@@ -392,7 +483,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       }
     }
 
-    if (previous == null || state.acceptOrderUsecase != previous.acceptOrderUsecase) {
+    if (previous == null ||
+        state.acceptOrderUsecase != previous.acceptOrderUsecase) {
       final acc = state.acceptOrderUsecase?.data;
       if (acc != null && acc.id == oid && acc.status != null) {
         _applyLifecyclePatch(status: acc.status);
@@ -405,11 +497,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     }
   }
 
-  List<T> _preferNonEmpty<T>(
-    List<T>? first,
-    List<T>? second,
-    List<T>? third,
-  ) {
+  List<T> _preferNonEmpty<T>(List<T>? first, List<T>? second, List<T>? third) {
     if (first != null && first.isNotEmpty) return first;
     if (second != null && second.isNotEmpty) return second;
     if (third != null && third.isNotEmpty) return third;
@@ -422,6 +510,76 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     _lifecyclePoller.dispose();
     unawaited(_detachRealtimeListeners());
     super.dispose();
+  }
+
+  Widget _scheduleLoadingBody() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsetsDirectional.fromSTEB(8, 8, 16, 8),
+          child: Row(
+            children: [
+              IconButton(
+                onPressed: () => context.pop(),
+                icon: const Icon(Icons.arrow_back),
+              ),
+              Expanded(
+                child: AppText.headlineMedium(
+                  'تفاصيل الطلب ${_order.bookingNumber ?? ''}',
+                  textAlign: TextAlign.start,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+        const Expanded(child: Center(child: CircularProgressIndicator())),
+      ],
+    );
+  }
+
+  Widget _scheduleErrorBody() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsetsDirectional.fromSTEB(8, 8, 16, 8),
+          child: Row(
+            children: [
+              IconButton(
+                onPressed: () => context.pop(),
+                icon: const Icon(Icons.arrow_back),
+              ),
+              Expanded(
+                child: AppText.headlineMedium(
+                  'تفاصيل الطلب ${_order.bookingNumber ?? ''}',
+                  textAlign: TextAlign.start,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+        Expanded(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(_scheduleLoadError!, textAlign: TextAlign.center),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: _scheduleLoading ? null : _loadSchedule,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('إعادة المحاولة'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -442,10 +600,36 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         _onBlocStateChanged(state, previous);
       },
       child: Scaffold(
+        backgroundColor: WorkerAppColors.canvas,
         body: SafeArea(
           child: BlocBuilder<OrdersBloc, OrdersState>(
             bloc: widget.params.bloc,
             builder: (context, state) {
+              if (!_scheduleChecked) {
+                return _scheduleLoadingBody();
+              }
+              if (_scheduleLoadError != null) {
+                return _scheduleErrorBody();
+              }
+              final schedule = _multiDaySchedule;
+              if (schedule != null && schedule.isMultiDay) {
+                return MultiDayOrderDetailsBody(
+                  order: _order,
+                  initialSchedule: schedule,
+                  initialSelectedSessionId: _selectedSessionId,
+                  onScheduleChanged: (updated) {
+                    if (!mounted) return;
+                    setState(() {
+                      _multiDaySchedule = updated;
+                      final selected = updated.sessionById(_selectedSessionId);
+                      if (selected == null) {
+                        _selectedSessionId = updated.nextSession?.id;
+                      }
+                    });
+                  },
+                );
+              }
+
               final step = _stepFor(_order);
               if (!_canShowMissionBody && (step == 0 || step == 1)) {
                 return OrderDetailsBody(
@@ -498,11 +682,13 @@ class OrderDetailsScreenParams {
   final bool isNewOrder;
   final OrdersBloc bloc;
   final int index;
+  final int? selectedSessionId;
 
   OrderDetailsScreenParams({
     required this.order,
     required this.isNewOrder,
     required this.bloc,
     required this.index,
+    this.selectedSessionId,
   });
 }
