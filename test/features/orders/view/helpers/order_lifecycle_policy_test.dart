@@ -1,6 +1,7 @@
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_team_models.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/data/models/worker_booking_schedule_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_lifecycle_policy.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -26,6 +27,33 @@ FetchOrdersUsecaseModelDataItem _order({
     numberOfWorkers: numberOfWorkers,
     workerAcceptance: workerAcceptance,
     myAssignment: myAssignment,
+  );
+}
+
+
+WorkerBookingSessionModel _session({
+  String status = CleaningBookingStatus.workerAssigned,
+  DateTime? date,
+  String? time,
+  String? startedTravelAt,
+  bool canStartTravel = false,
+}) {
+  return WorkerBookingSessionModel(
+    id: 10,
+    sequence: 1,
+    date: date,
+    time: time,
+    hours: 2,
+    status: status,
+    isToday: false,
+    isPast: false,
+    canStartTravel: canStartTravel,
+    canArrive: false,
+    canStartWork: false,
+    canComplete: false,
+    canExtend: false,
+    canCancel: false,
+    startedTravelAt: startedTravelAt,
   );
 }
 
@@ -135,6 +163,42 @@ void main() {
           order,
           now: DateTime(2026, 6, 16, 9, 30),
           enforceWindow: true,
+        ),
+        isTrue,
+      );
+    });
+
+    test(
+      'multi-day session can expose start travel even when API capability is false',
+      () {
+        final session = _session(canStartTravel: false);
+
+        expect(
+          OrderLifecyclePolicy.canStartTravelForSession(session),
+          isTrue,
+        );
+      },
+    );
+
+    test('multi-day session start travel respects the configured time window', () {
+      final session = _session(
+        date: DateTime(2026, 6, 17),
+        time: '10:00:00',
+      );
+
+      expect(
+        OrderLifecyclePolicy.isSessionStartTravelWithinAllowedWindow(
+          session,
+          now: DateTime(2026, 6, 16, 10),
+          enforceWindow: true,
+        ),
+        isFalse,
+      );
+      expect(
+        OrderLifecyclePolicy.isSessionStartTravelWithinAllowedWindow(
+          session,
+          now: DateTime(2026, 6, 16, 10),
+          enforceWindow: false,
         ),
         isTrue,
       );
