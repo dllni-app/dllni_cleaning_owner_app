@@ -7,6 +7,7 @@ import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_arabic_time_format
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/worker_booking_schedule_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/source/worker_session_remote_data_source.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_lifecycle_policy.dart';
 import 'package:flutter/material.dart';
 
 class MultiDayOrderDetailsBody extends StatefulWidget {
@@ -178,7 +179,13 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     if (bookingId == null ||
         session == null ||
         sessionId == null ||
-        !session.canStartTravel) {
+        !OrderLifecyclePolicy.canStartTravelForSession(session)) {
+      return;
+    }
+    if (!OrderLifecyclePolicy.isSessionStartTravelWithinAllowedWindow(session)) {
+      AppToast.showErrorGlobal(
+        OrderLifecyclePolicy.startTravelUnavailableMessage,
+      );
       return;
     }
     await _runAction(() async {
@@ -767,11 +774,11 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     }
 
     Widget primary;
-    if (session.canStartTravel) {
+    if (OrderLifecyclePolicy.canStartTravelForSession(session)) {
       primary = FilledButton.icon(
         onPressed: _busy ? null : _startTravel,
         icon: const Icon(Icons.directions_car_outlined),
-        label: const Text('بدء التوجه لهذه الجلسة'),
+        label: const Text('أنا في الطريق'),
       );
     } else if (session.canArrive) {
       primary = FilledButton.icon(
