@@ -202,9 +202,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     });
   }
 
-  Future<void> _openSessionDetails(
-    WorkerBookingSessionModel session,
-  ) async {
+  Future<void> _openSessionDetails(WorkerBookingSessionModel session) async {
     final sessionId = session.id;
     if (sessionId == null) return;
 
@@ -740,16 +738,15 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
   }
 
   Widget _sessionOrderContextCard(WorkerBookingSessionModel session) {
-    final services = <String>[
-      ...?widget.order.services
-          ?.map((item) => item.name?.trim())
-          .whereType<String>()
-          .where((name) => name.isNotEmpty),
-      ...?widget.order.addons
-          ?.map((item) => item.name?.trim())
-          .whereType<String>()
-          .where((name) => name.isNotEmpty),
-    ];
+    final services = <String>[];
+    for (final service in widget.order.services ?? const []) {
+      final name = service.name?.trim();
+      if (name != null && name.isNotEmpty) services.add(name);
+    }
+    for (final addon in widget.order.addons ?? const []) {
+      final name = addon.name?.trim();
+      if (name != null && name.isNotEmpty) services.add(name);
+    }
 
     final sessionSpecialServices = (widget.order.specialServices ?? const [])
         .where(
@@ -763,8 +760,8 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     final address = property?.address?.trim() ?? widget.order.locationName?.trim();
     final cleaningType =
         property?.cleaningModeLabel?.trim().isNotEmpty == true
-        ? property!.cleaningModeLabel!.trim()
-        : property?.cleaningMode?.trim();
+            ? property!.cleaningModeLabel!.trim()
+            : property?.cleaningMode?.trim();
     final customService = property?.customService?.trim();
 
     return Container(
