@@ -595,7 +595,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       widgets.add(_specialServiceCard(service));
     }
 
-    if (materials.isNotEmpty) {
+    if (materials.isNotEmpty || _order.materialKit != null) {
       if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 8));
       widgets.add(
         AppText.bodyMedium(
