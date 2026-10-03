@@ -19,9 +19,40 @@ void main() {
       expect(ErrorMessageFormatter.format(message), message);
     });
 
-    test('returns English server message unchanged', () {
+    test('does not expose unknown English server messages', () {
       const message = 'Unable to load data from server';
-      expect(ErrorMessageFormatter.format(message), message);
+      expect(
+        ErrorMessageFormatter.format(message),
+        ErrorMessageFormatter.defaultFallback,
+      );
+    });
+
+    test('translates neighborhood coverage accept failure', () {
+      expect(
+        ErrorMessageFormatter.format(
+          "This booking is outside the worker's active neighborhoods.",
+        ),
+        'هذا الطلب خارج الأحياء النشطة المحددة ضمن مناطق عملك.',
+      );
+    });
+
+    test('translates schedule conflict failure', () {
+      expect(
+        ErrorMessageFormatter.format(
+          'This booking overlaps another confirmed booking in your schedule.',
+        ),
+        'لا يمكن تنفيذ العملية لأن موعد هذا الطلب يتعارض مع حجز مؤكد آخر في جدولك.',
+      );
+    });
+
+    test('uses Arabic fallback even when caller supplies an English fallback', () {
+      expect(
+        ErrorMessageFormatter.format(
+          'Unexpected backend validation failure',
+          fallback: 'fallback',
+        ),
+        ErrorMessageFormatter.defaultFallback,
+      );
     });
 
     test('returns fallback for unknown locale key without translation', () {
