@@ -36,6 +36,7 @@ WorkerBookingSessionModel _session({
   String? time,
   String? startedTravelAt,
   bool canStartTravel = false,
+  WorkerSessionAssignmentModel? assignment,
 }) {
   return WorkerBookingSessionModel(
     id: 10,
@@ -53,6 +54,7 @@ WorkerBookingSessionModel _session({
     canExtend: false,
     canCancel: false,
     startedTravelAt: startedTravelAt,
+    workerAssignmentState: assignment,
   );
 }
 
@@ -168,9 +170,17 @@ void main() {
     });
 
     test(
-      'multi-day session can expose start travel even when API capability is false',
+      'multi-day scheduled assigned session can expose start travel even when API capability is false',
       () {
-        final session = _session(canStartTravel: false);
+        final session = _session(
+          status: 'scheduled',
+          canStartTravel: false,
+          assignment: const WorkerSessionAssignmentModel(
+            id: 77,
+            workerId: 28,
+            status: 'accepted_waiting_for_order_start',
+          ),
+        );
 
         expect(
           OrderLifecyclePolicy.canStartTravelForSession(session),
@@ -178,6 +188,32 @@ void main() {
         );
       },
     );
+
+    test('multi-day scheduled session without worker assignment cannot start travel', () {
+      final session = _session(status: 'scheduled', canStartTravel: false);
+
+      expect(
+        OrderLifecyclePolicy.canStartTravelForSession(session),
+        isFalse,
+      );
+    });
+
+    test('multi-day session cannot start travel after travel already started', () {
+      final session = _session(
+        status: 'scheduled',
+        startedTravelAt: '2026-06-16T09:00:00+03:00',
+        assignment: const WorkerSessionAssignmentModel(
+          id: 77,
+          workerId: 28,
+          status: 'accepted',
+        ),
+      );
+
+      expect(
+        OrderLifecyclePolicy.canStartTravelForSession(session),
+        isFalse,
+      );
+    });
 
     test('multi-day session start travel respects the configured time window', () {
       final session = _session(
