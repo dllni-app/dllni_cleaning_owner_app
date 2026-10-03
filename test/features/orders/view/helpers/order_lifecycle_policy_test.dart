@@ -30,7 +30,6 @@ FetchOrdersUsecaseModelDataItem _order({
   );
 }
 
-
 WorkerBookingSessionModel _session({
   String status = CleaningBookingStatus.workerAssigned,
   DateTime? date,
