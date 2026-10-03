@@ -4,6 +4,7 @@ import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/core/extentions.dart';
 import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_arabic_time_formatter.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_operational_details.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/worker_booking_schedule_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/source/worker_session_remote_data_source.dart';
