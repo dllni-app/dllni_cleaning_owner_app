@@ -874,11 +874,36 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     );
   }
 
-  void _syncOrderFromRealtime(
+  FutureOr<void> _syncOrderFromRealtime(
     SyncOrderFromRealtimeEvent event,
     Emitter<OrdersState> emit,
-  ) {
+  ) async {
     _refreshOrderDetails(event.bookingId);
+
+    if (!event.sessionAcceptanceSucceeded) {
+      return;
+    }
+
+    final updatedOrder = await _fetchOrderListItemById(event.bookingId);
+    if (emit.isDone) return;
+
+    if (updatedOrder == null) {
+      _refreshLastOrdersList();
+      return;
+    }
+
+    final hydratedOrder = _withLocalSessionAcceptance(updatedOrder);
+    final updatedStatus = (hydratedOrder.status ?? '').trim().toLowerCase();
+    final nextOrders = updatedStatus == CleaningBookingStatus.pending
+        ? OrdersPendingOrderListHydrator.upsert(
+            state.ordersUsecase!,
+            hydratedOrder,
+          )
+        : state.ordersUsecase!.removeWhere(
+            (order) => order.id == event.bookingId,
+          );
+
+    emit(state.copyWith(ordersUsecase: nextOrders));
   }
 
   void _hydrateOrderListFromRealtime(
@@ -975,6 +1000,24 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
         );
       },
     );
+  }
+
+  FetchOrdersUsecaseModelDataItem _withLocalSessionAcceptance(
+    FetchOrdersUsecaseModelDataItem order,
+  ) {
+    final status = (order.status ?? '').trim().toLowerCase();
+    if (status != CleaningBookingStatus.pending ||
+        OrderLifecyclePolicy.hasCurrentWorkerAccepted(order)) {
+      return order;
+    }
+
+    final json = Map<String, dynamic>.from(order.toJson());
+    json['worker_order_status'] = 'accepted_waiting_for_order_start';
+    json['workerOrderStatus'] = 'accepted_waiting_for_order_start';
+    json['worker_order_status_label'] = 'تم قبول الطلب';
+    json['workerOrderStatusLabel'] = 'تم قبول الطلب';
+
+    return FetchOrdersUsecaseModelDataItem.fromJson(json);
   }
 
   Future<FetchOrdersUsecaseModelDataItem?> _fetchOrderListItemById(
