@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/core/extentions.dart';
@@ -5,11 +7,14 @@ import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_arabic_time_format
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/worker_booking_schedule_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/source/worker_session_remote_data_source.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/data/source/orders_remote_data_source.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/fetch_order_details_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/accept_order_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/reject_order_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/cleaning_enum_translations.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/event_assistance_order_helper.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_address_visibility_helper.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_details_to_list_item_mapper.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_lifecycle_policy.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/property_attribute_labels_helper.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
@@ -89,13 +94,18 @@ class AcceptOrderBottomSheet extends StatefulWidget {
 }
 
 class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
-  FetchOrdersUsecaseModelDataItem get _order => widget.order;
+  FetchOrdersUsecaseModelDataItem? _detailedOrder;
+
+  FetchOrdersUsecaseModelDataItem get _order => _detailedOrder ?? widget.order;
 
   WorkerBookingScheduleModel? _schedule;
   bool _scheduleChecked = false;
   bool _scheduleLoading = false;
+  bool _detailsChecked = false;
+  bool _detailsLoading = false;
   bool _sessionAcceptanceLoading = false;
   String? _scheduleError;
+  String? _detailsError;
 
   bool get _isEventAssistance =>
       EventAssistanceOrderHelper.isEventAssistance(_order.propertyType);
@@ -103,15 +113,65 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
   bool get _isMultiSession => _schedule?.isMultiDay == true;
 
   bool get _canConfirmAcceptance =>
-      _scheduleChecked && !_scheduleLoading && _scheduleError == null;
+      _scheduleChecked &&
+      !_scheduleLoading &&
+      _scheduleError == null &&
+      _detailsChecked &&
+      !_detailsLoading &&
+      _detailsError == null;
 
   @override
   void initState() {
     super.initState();
     if (_order.id != null) {
-      _loadSchedule();
+      unawaited(_loadOrderDetails());
+      unawaited(_loadSchedule());
     } else {
       _scheduleChecked = true;
+      _detailsChecked = true;
+    }
+  }
+
+  Future<void> _loadOrderDetails() async {
+    final orderId = widget.order.id;
+    if (orderId == null || _detailsLoading) return;
+
+    setState(() {
+      _detailsLoading = true;
+      _detailsError = null;
+    });
+
+    try {
+      final result = await getIt<OrdersRemoteDataSource>().fetchOrderDetailsUsecase(
+        FetchOrderDetailsUsecaseParams(id: orderId),
+      );
+      final details = result.data;
+      if (!mounted) return;
+      if (details == null) {
+        setState(() {
+          _detailsChecked = true;
+          _detailsLoading = false;
+          _detailsError = 'تعذر تحميل تفاصيل الطلب الكاملة. أعد المحاولة قبل القبول.';
+        });
+        return;
+      }
+
+      setState(() {
+        _detailedOrder = OrderDetailsToListItemMapper.fromDetails(
+          details,
+          fallback: widget.order,
+        );
+        _detailsChecked = true;
+        _detailsLoading = false;
+        _detailsError = null;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _detailsChecked = true;
+        _detailsLoading = false;
+        _detailsError = 'تعذر تحميل تفاصيل الطلب الكاملة. أعد المحاولة قبل القبول.';
+      });
     }
   }
 
@@ -508,31 +568,204 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
   List<Widget> _serviceWidgets() {
     final services = _order.services ?? const [];
     final addons = _order.addons ?? const [];
+    final specialServices = _order.specialServices ?? const [];
+    final materials = _order.materials ?? const [];
+    final openTime = _order.openTime;
+
+    final widgets = <Widget>[];
 
     if (_isEventAssistance) {
-      return [
+      widgets.add(
         AppText.bodyMedium(
           _serviceName(),
           fontWeight: FontWeight.w700,
           color: _titleTextColor,
         ),
-      ];
+      );
     }
 
-    if (services.isEmpty && addons.isEmpty) {
+    widgets.addAll(services.map((s) => _serviceLine(s.name, s.quantity)));
+    widgets.addAll(addons.map((a) => _serviceLine(a.name, a.quantity)));
+
+    for (final service in specialServices) {
+      if (widgets.isNotEmpty) {
+        widgets.add(const SizedBox(height: 6));
+      }
+      widgets.add(_specialServiceCard(service));
+    }
+
+    if (materials.isNotEmpty) {
+      if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 8));
+      widgets.add(
+        AppText.bodyMedium(
+          'مواد تنظيف مطلوبة مع الخدمة',
+          fontWeight: FontWeight.w800,
+          color: _titleTextColor,
+          textAlign: TextAlign.start,
+        ),
+      );
+      widgets.add(const SizedBox(height: 6));
+      widgets.addAll(
+        materials.map(
+          (material) => Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(
+              children: [
+                Expanded(
+                  child: AppText.bodySmall(
+                    _valueOrDash(material.name),
+                    fontWeight: FontWeight.w700,
+                    textAlign: TextAlign.start,
+                  ),
+                ),
+                if (material.quantity != null)
+                  AppText.bodySmall(
+                    '${_number(material.quantity!)} ${material.unitLabel ?? material.unit ?? ''}'.trim(),
+                    color: _mutedTextColor,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (openTime != null) {
+      if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 8));
+      final details = <String>[];
+      if (openTime.requestedWorkerCount != null) {
+        details.add('عدد العمال: ${openTime.requestedWorkerCount}');
+      }
+      if (openTime.expectedMaxMinutes != null) {
+        details.add('المدة المتوقعة القصوى: ${_minutesLabel(openTime.expectedMaxMinutes!)}');
+      }
+      widgets.add(
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: const Color(0xffEFF6FF),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xffBFDBFE)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AppText.bodyMedium(
+                'خدمة بوقت مفتوح',
+                fontWeight: FontWeight.w800,
+                color: const Color(0xff1E3A8A),
+              ),
+              if (details.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                AppText.bodySmall(
+                  details.join(' · '),
+                  color: const Color(0xff1E3A8A),
+                  textAlign: TextAlign.start,
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (widgets.isEmpty) {
       return [
         AppText.bodySmall(
-          'لا توجد خدمات إضافية',
+          'لا توجد خدمات أو إضافات أخرى',
           color: _mutedTextColor,
           textAlign: TextAlign.start,
         ),
       ];
     }
 
-    return [
-      ...services.map((s) => _serviceLine(s.name, s.quantity)),
-      ...addons.map((a) => _serviceLine(a.name, a.quantity)),
-    ];
+    return widgets;
+  }
+
+  Widget _specialServiceCard(CleaningSpecialServiceLine service) {
+    final details = <String>[];
+    final quantity = service.quantity;
+    if (quantity != null) {
+      final unit = service.pricingUnitLabel ?? service.pricingUnit;
+      details.add('${_number(quantity)}${unit == null || unit.trim().isEmpty ? '' : ' $unit'}');
+    }
+    final dirtiness = service.dirtinessLabel ?? service.dirtinessLevel;
+    if (dirtiness != null && dirtiness.trim().isNotEmpty) {
+      details.add('درجة الاتساخ: $dirtiness');
+    }
+    if (service.equipment.isNotEmpty) {
+      final names = service.equipment
+          .map((item) => item.name?.trim())
+          .whereType<String>()
+          .where((name) => name.isNotEmpty)
+          .join('، ');
+      if (names.isNotEmpty) details.add('المعدات: $names');
+    }
+
+    final itemNotes = service.items
+        .map((item) => item.notes?.trim())
+        .whereType<String>()
+        .where((note) => note.isNotEmpty)
+        .toList(growable: false);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xffF0FDFA),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xff99F6E4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppText.bodyMedium(
+            _valueOrDash(service.name),
+            fontWeight: FontWeight.w800,
+            color: _titleTextColor,
+            textAlign: TextAlign.start,
+          ),
+          if (details.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            AppText.bodySmall(
+              details.join(' · '),
+              color: _mutedTextColor,
+              textAlign: TextAlign.start,
+            ),
+          ],
+          if (service.notes?.trim().isNotEmpty == true) ...[
+            const SizedBox(height: 5),
+            AppText.bodySmall(
+              'ملاحظة المستخدم: ${service.notes!.trim()}',
+              color: _titleTextColor,
+              textAlign: TextAlign.start,
+            ),
+          ],
+          ...itemNotes.map(
+            (note) => Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: AppText.bodySmall(
+                'تفصيل إضافي: $note',
+                color: _titleTextColor,
+                textAlign: TextAlign.start,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _number(num value) =>
+      value % 1 == 0 ? value.toStringAsFixed(0) : value.toStringAsFixed(2);
+
+  String _minutesLabel(int minutes) {
+    if (minutes % 60 == 0) return '${minutes ~/ 60} ساعة';
+    if (minutes > 60) {
+      return '${minutes ~/ 60} ساعة و${minutes % 60} دقيقة';
+    }
+    return '$minutes دقيقة';
   }
 
   Widget _serviceLine(String? name, int? quantity) {
@@ -556,19 +789,36 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
 
   List<Widget> _propertyDetailsRows() {
     if (_isEventAssistance) {
-      return [
-        _orderInfoRow(
-          label: 'نوع المناسبة',
-          value: CleaningEnumTranslations.eventType(
-            _order.propertyDetails?.eventType,
+      final details = _order.propertyDetails;
+      final rows = <MapEntry<String, String>>[
+        MapEntry(
+          'نوع المناسبة',
+          CleaningEnumTranslations.eventType(details?.eventType),
+        ),
+        MapEntry('الخدمة المطلوبة', _serviceName()),
+        if (details?.guestCount != null)
+          MapEntry('عدد الضيوف', '${details!.guestCount}'),
+        if (details?.venueType?.trim().isNotEmpty == true)
+          MapEntry(
+            'نوع المكان',
+            CleaningEnumTranslations.venueType(details!.venueType),
           ),
-        ),
-        _orderInfoRow(
-          label: 'الخدمة المطلوبة',
-          value: _serviceName(),
-          withDivider: false,
-        ),
+        if (details?.hours != null)
+          MapEntry('عدد الساعات', '${_number(details!.hours!)} ساعة'),
+        if (details?.specialRequirement?.trim().isNotEmpty == true)
+          MapEntry('متطلب خاص', details!.specialRequirement!.trim()),
+        if (details?.notes?.trim().isNotEmpty == true)
+          MapEntry('ملاحظات المستخدم', details!.notes!.trim()),
       ];
+
+      return List<Widget>.generate(rows.length, (index) {
+        final row = rows[index];
+        return _orderInfoRow(
+          label: row.key,
+          value: row.value,
+          withDivider: index != rows.length - 1,
+        );
+      });
     }
 
     final List<Map<String, dynamic>> items = [
@@ -903,6 +1153,44 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                           ),
                         ),
                         const SizedBox(height: 14),
+                      ],
+                      if (_detailsLoading && !_detailsChecked) ...[
+                        const LinearProgressIndicator(minHeight: 2),
+                        const SizedBox(height: 12),
+                        AppText.bodySmall(
+                          'جاري تحميل جميع تفاصيل وإضافات الطلب...',
+                          color: _mutedTextColor,
+                          textAlign: TextAlign.start,
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      if (_detailsError != null) ...[
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xffFEF2F2),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xffFECACA)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              AppText.bodySmall(
+                                _detailsError!,
+                                color: context.error,
+                                textAlign: TextAlign.start,
+                              ),
+                              const SizedBox(height: 8),
+                              OutlinedButton.icon(
+                                onPressed: _detailsLoading ? null : _loadOrderDetails,
+                                icon: const Icon(Icons.refresh),
+                                label: const Text('إعادة تحميل تفاصيل الطلب'),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
                       ],
                       _sectionTitle(
                         context,
