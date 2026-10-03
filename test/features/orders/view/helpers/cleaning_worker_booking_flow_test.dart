@@ -243,6 +243,18 @@ void main() {
       );
     });
 
+    test('shows Arabic message when booking is outside worker neighborhoods', () {
+      const failure = ServerFailure(
+        message: "This booking is outside the worker's active neighborhoods.",
+        statusCode: 422,
+      );
+
+      expect(
+        OrdersAcceptFlowPolicy.mapAcceptFailureMessage(failure),
+        'هذا الطلب خارج الأحياء النشطة المحددة ضمن مناطق عملك.',
+      );
+    });
+
     test('does not report a schedule conflict as already accepted', () {
       const failure = ServerFailure(
         message: 'This booking overlaps another confirmed booking in your schedule.',
