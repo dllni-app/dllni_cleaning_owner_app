@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/worker_app_colors.dart';
 import '../../../../core/widgets/worker_screen_header.dart';
+import '../../../../core/widgets/worker_avatar.dart';
 import '../../../profile/view/manager/bloc/profile_bloc.dart';
 import '../../../profile/view/screens/notifications_screen.dart';
 
@@ -24,7 +25,7 @@ class HomeAppBar extends StatelessWidget {
           padding: const EdgeInsetsDirectional.fromSTEB(20, 12, 20, 16),
           child: Row(
             children: [
-              _WorkerAvatar(url: avatar, name: firstName),
+              WorkerAvatar(url: avatar, name: firstName, size: 44),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -67,43 +68,6 @@ class HomeAppBar extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _WorkerAvatar extends StatelessWidget {
-  const _WorkerAvatar({required this.url, required this.name});
-
-  final String? url;
-  final String name;
-
-  @override
-  Widget build(BuildContext context) {
-    final initial = name.trim().isEmpty ? 'ع' : name.trim().characters.first;
-    if (url != null && url!.trim().isNotEmpty) {
-      return AppImage.network(
-        url!,
-        borderRadius: BorderRadius.circular(999),
-        width: 44,
-        height: 44,
-        fit: BoxFit.cover,
-      );
-    }
-    return Container(
-      width: 44,
-      height: 44,
-      decoration: const BoxDecoration(
-        color: WorkerAppColors.brandPrimarySoft,
-        shape: BoxShape.circle,
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        initial,
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-          color: WorkerAppColors.brandPrimary,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
     );
   }
 }
