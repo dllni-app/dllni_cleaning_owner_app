@@ -3,6 +3,7 @@ import 'package:dllni_cleaninig_owner_app/core/app_config.dart';
 
 import '../../data/models/cleaning_booking_status.dart';
 import '../../data/models/fetch_orders_usecase_model.dart';
+import '../../data/models/worker_booking_schedule_model.dart';
 import '../manager/bloc/orders_bloc.dart';
 import 'cleaning_worker_order_status.dart';
 import 'dedicated_order_helper.dart';
@@ -172,6 +173,17 @@ class OrderLifecyclePolicy {
       order.status == CleaningBookingStatus.workerAssigned &&
       order.startedTravelAt == null;
 
+  static bool canStartTravelForSession(WorkerBookingSessionModel session) {
+    final startedTravelAt =
+        session.startedTravelAt ?? session.assignment?.startedTravelAt;
+    if (startedTravelAt != null && startedTravelAt.trim().isNotEmpty) {
+      return false;
+    }
+
+    return session.canStartTravel ||
+        session.status == CleaningBookingStatus.workerAssigned;
+  }
+
   static bool isStartTravelWithinAllowedWindow(
     FetchOrdersUsecaseModelDataItem order, {
     DateTime? now,
@@ -184,6 +196,39 @@ class OrderLifecyclePolicy {
 
     final currentTime = now ?? DateTime.now();
     return !scheduledAt.isAfter(currentTime.add(const Duration(hours: 1)));
+  }
+
+  static bool isSessionStartTravelWithinAllowedWindow(
+    WorkerBookingSessionModel session, {
+    DateTime? now,
+    bool? enforceWindow,
+  }) {
+    if (!(enforceWindow ?? AppConfig.enforceStartTravelWindow)) return true;
+
+    final scheduledAt = _sessionScheduledDateTime(session);
+    if (scheduledAt == null) return true;
+
+    final currentTime = now ?? DateTime.now();
+    return !scheduledAt.isAfter(currentTime.add(const Duration(hours: 1)));
+  }
+
+  static DateTime? _sessionScheduledDateTime(
+    WorkerBookingSessionModel session,
+  ) {
+    final date = session.date;
+    if (date == null) return null;
+
+    final datePart =
+        '${date.year.toString().padLeft(4, '0')}-'
+        '${date.month.toString().padLeft(2, '0')}-'
+        '${date.day.toString().padLeft(2, '0')}';
+    final rawTime = session.time?.trim();
+    if (rawTime == null || rawTime.isEmpty) {
+      return DateTime(date.year, date.month, date.day);
+    }
+
+    final timePart = rawTime.contains('T') ? rawTime.split('T').last : rawTime;
+    return DateTime.tryParse('${datePart}T$timePart');
   }
 
   static DateTime? _scheduledDateTime(FetchOrdersUsecaseModelDataItem order) {
