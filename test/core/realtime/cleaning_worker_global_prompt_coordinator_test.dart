@@ -377,14 +377,6 @@ void main() {
     test(
       'pollPendingOrderPrompts opens first pending dedicated order',
       () async {
-        const currentWorkerId = 99;
-        SharedPreferences.setMockInitialValues({
-          'user': jsonEncode({
-            'data': {'id': currentWorkerId},
-          }),
-        });
-        await SharedPreferencesHelper.init();
-
         final shown = <WorkerPendingOrderPromptData>[];
         final coordinator =
             CleaningWorkerGlobalPromptCoordinator(
