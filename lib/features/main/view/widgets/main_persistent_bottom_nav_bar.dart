@@ -23,7 +23,7 @@ class MainPersistentBottomNavBar extends StatelessWidget {
         final selectedIndex = controller.index;
         return Container(
           color: WorkerAppColors.canvas,
-          padding: const EdgeInsetsDirectional.fromSTEB(14, 8, 14, 12),
+          padding: const EdgeInsetsDirectional.fromSTEB(14, 7, 14, 12),
           child: Container(
             height: 70,
             padding: const EdgeInsetsDirectional.all(5),
