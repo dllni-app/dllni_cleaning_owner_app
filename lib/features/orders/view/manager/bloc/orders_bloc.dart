@@ -37,6 +37,7 @@ import '../../../domain/usecases/start_work_use_case.dart';
 import '../../../data/models/start_work_model.dart';
 import '../../helpers/order_details_to_list_item_mapper.dart';
 import '../../helpers/order_lifecycle_policy.dart';
+import '../../helpers/orders_accept_flow_policy.dart';
 import '../../helpers/orders_lifecycle_failure_message_mapper.dart';
 import '../../helpers/orders_pending_order_list_hydrator.dart';
 import '../../helpers/orders_realtime_hydration_policy.dart';
@@ -992,19 +993,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
   }
 
   String _mapAcceptFailureMessage(Failure failure) {
-    final raw = failure.message.toLowerCase();
-    if (raw.contains('already accepted') ||
-        raw.contains('accepted by a worker') ||
-        raw.contains('already been accepted') ||
-        raw.contains('no longer available') ||
-        raw.contains('not available')) {
-      return OrderLifecyclePolicy.orderNoLongerAvailableMessage;
-    }
-
-    return _mapLifecycleFailureMessage(
-      failure,
-      invalidStateMessage: OrderLifecyclePolicy.orderNoLongerAvailableMessage,
-    );
+    return OrdersAcceptFlowPolicy.mapAcceptFailureMessage(failure);
   }
 
   String _mapLifecycleFailureMessage(
