@@ -242,5 +242,41 @@ void main() {
         isTrue,
       );
     });
+
+    test('does not report a schedule conflict as already accepted', () {
+      const failure = ServerFailure(
+        message: 'This booking overlaps another confirmed booking in your schedule.',
+        statusCode: 422,
+      );
+
+      expect(
+        OrdersAcceptFlowPolicy.mapAcceptFailureMessage(failure),
+        'لا يمكن قبول الطلب لأن موعده يتعارض مع حجز مؤكد آخر في جدولك.',
+      );
+    });
+
+    test('shows financial eligibility reason for accept 422', () {
+      const failure = ServerFailure(
+        message:
+            'The available deposit or remaining allowance does not cover this booking platform commission.',
+        statusCode: 422,
+      );
+
+      expect(
+        OrdersAcceptFlowPolicy.mapAcceptFailureMessage(failure),
+        contains('رصيد التأمين'),
+      );
+    });
+
+    test('keeps genuine fulfilled-team failures as unavailable', () {
+      const failure = ServerFailure(
+        message: 'Booking already has the required number of workers.',
+        statusCode: 422,
+      );
+
+      expect(
+        OrdersAcceptFlowPolicy.mapAcceptFailureMessage(failure),
+        OrderLifecyclePolicy.orderNoLongerAvailableMessage,
+      );
   });
 }
