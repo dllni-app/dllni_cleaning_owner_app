@@ -130,8 +130,10 @@ class _WorkAreasScreenState extends State<WorkAreasScreen> {
         child: Column(
           children: [
             AppText.labelLarge(
-              state.cleaningNeighborhoodsErrorMessage ??
-                  'تعذر تحميل الأحياء، حاول مرة أخرى',
+              ErrorMessageFormatter.format(
+                state.cleaningNeighborhoodsErrorMessage,
+                fallback: 'تعذر تحميل الأحياء، حاول مرة أخرى',
+              ),
               color: const Color(0xff6B7280),
               textAlign: TextAlign.center,
             ),
