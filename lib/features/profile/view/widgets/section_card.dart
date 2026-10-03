@@ -78,10 +78,13 @@ class SectionCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            size: 16,
-            color: WorkerAppColors.brandPrimary,
+          const Directionality(
+            textDirection: TextDirection.ltr,
+            child: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              size: 16,
+              color: WorkerAppColors.brandPrimary,
+            ),
           ),
         ],
       ),

@@ -5,6 +5,7 @@ import 'package:shimmer/shimmer.dart';
 
 import '../../../../core/theme/worker_app_colors.dart';
 import '../../../../core/widgets/worker_surface_card.dart';
+import '../../../../core/widgets/worker_avatar.dart';
 import '../manager/bloc/profile_bloc.dart';
 import 'circular_star_rating.dart';
 
@@ -32,7 +33,13 @@ class ProfileAppBar extends StatelessWidget {
                 padding: const EdgeInsetsDirectional.all(16),
                 child: Row(
                   children: [
-                    _Avatar(url: profile?.avatar?.url, name: name),
+                    WorkerAvatar(
+                      url: profile?.avatar?.url,
+                      name: name,
+                      size: 52,
+                      backgroundColor: Colors.white24,
+                      foregroundColor: Colors.white,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -135,35 +142,4 @@ class ProfileAppBar extends StatelessWidget {
       ],
     ),
   );
-}
-
-class _Avatar extends StatelessWidget {
-  const _Avatar({required this.url, required this.name});
-
-  final String? url;
-  final String name;
-
-  @override
-  Widget build(BuildContext context) {
-    if (url != null && url!.trim().isNotEmpty) {
-      return AppImage.network(
-        url!,
-        width: 52,
-        height: 52,
-        fit: BoxFit.cover,
-        borderRadius: BorderRadius.circular(999),
-      );
-    }
-    return CircleAvatar(
-      radius: 26,
-      backgroundColor: Colors.white24,
-      child: Text(
-        name.trim().isEmpty ? '\u0639' : name.trim().characters.first,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
 }
