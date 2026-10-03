@@ -125,9 +125,13 @@ class AppToast {
         );
         break;
       case ToastificationType.error:
+        final errorMessage = ErrorMessageFormatter.format(
+          message,
+          fallback: defaultErrorMessage,
+        );
         toastification.show(
           context: context,
-          title: Text(message, style: TextStyle(color: context.onError)),
+          title: Text(errorMessage, style: TextStyle(color: context.onError)),
           type: ToastificationType.error,
           alignment: alignment,
           autoCloseDuration: duration,
@@ -136,9 +140,13 @@ class AppToast {
         );
         break;
       case ToastificationType.warning:
+        final warningMessage = ErrorMessageFormatter.format(
+          message,
+          fallback: defaultWarningMessage,
+        );
         toastification.show(
           context: context,
-          title: Text(message, style: TextStyle(color: context.onPrimary)),
+          title: Text(warningMessage, style: TextStyle(color: context.onPrimary)),
           type: ToastificationType.warning,
           alignment: alignment,
           autoCloseDuration: duration,
