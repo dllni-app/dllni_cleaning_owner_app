@@ -137,8 +137,12 @@ class StartWorkEvent extends OrdersEvent {
 
 class SyncOrderFromRealtimeEvent extends OrdersEvent {
   final int bookingId;
+  final bool sessionAcceptanceSucceeded;
 
-  SyncOrderFromRealtimeEvent({required this.bookingId});
+  SyncOrderFromRealtimeEvent({
+    required this.bookingId,
+    this.sessionAcceptanceSucceeded = false,
+  });
 }
 
 class HydrateOrderListFromRealtimeEvent extends OrdersEvent {
