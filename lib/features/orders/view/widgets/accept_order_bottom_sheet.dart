@@ -143,13 +143,11 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
 
   void _refreshAfterSessionAcceptance(int bookingId) {
     widget.bloc.add(
-      FetchOrdersUsecaseEvent(
-        params: widget.bloc.lastAppliedOrdersListFilter,
-        isReload: true,
-        silent: true,
+      SyncOrderFromRealtimeEvent(
+        bookingId: bookingId,
+        sessionAcceptanceSucceeded: true,
       ),
     );
-    widget.bloc.add(SyncOrderFromRealtimeEvent(bookingId: bookingId));
   }
 
   Future<void> _acceptAllSessions() async {
