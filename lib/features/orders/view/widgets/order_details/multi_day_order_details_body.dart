@@ -1006,7 +1006,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
           child: Row(
             children: [
               IconButton(
-                onPressed: () => context.pop(),
+                onPressed: () => Navigator.of(context).maybePop(),
                 icon: const Icon(Icons.arrow_back),
               ),
               Expanded(
