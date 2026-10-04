@@ -169,6 +169,48 @@ void main() {
       );
     });
 
+    test('start travel uses displayed wall-clock time even with timezone suffix', () {
+      final order = _order(
+        status: CleaningBookingStatus.workerAssigned,
+        scheduledDate: '2026-10-04T00:00:00Z',
+        scheduledTime: '13:30:00Z',
+      );
+
+      expect(
+        OrderLifecyclePolicy.isStartTravelWithinAllowedWindow(
+          order,
+          now: DateTime(2026, 10, 4, 12, 30, 45),
+          enforceWindow: true,
+        ),
+        isTrue,
+      );
+    });
+
+    test('start travel compares the one-hour window at displayed minute precision', () {
+      final order = _order(
+        status: CleaningBookingStatus.workerAssigned,
+        scheduledDate: '2026-10-04',
+        scheduledTime: '13:30:59',
+      );
+
+      expect(
+        OrderLifecyclePolicy.isStartTravelWithinAllowedWindow(
+          order,
+          now: DateTime(2026, 10, 4, 12, 30, 1),
+          enforceWindow: true,
+        ),
+        isTrue,
+      );
+      expect(
+        OrderLifecyclePolicy.isStartTravelWithinAllowedWindow(
+          order,
+          now: DateTime(2026, 10, 4, 12, 29, 59),
+          enforceWindow: true,
+        ),
+        isFalse,
+      );
+    });
+
     test(
       'multi-day scheduled assigned session can expose start travel even when API capability is false',
       () {
