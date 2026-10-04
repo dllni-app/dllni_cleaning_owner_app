@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:common_package/common_package.dart';
+import 'package:common_package/helpers/error_message_formatter.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/core/extentions.dart';
 import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_arabic_time_formatter.dart';
@@ -211,6 +212,50 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
     );
   }
 
+  String _sessionAcceptanceFailureMessage({
+    required WorkerSessionAcceptanceResult result,
+    required String fallback,
+  }) {
+    if (result.rejected.isNotEmpty) {
+      return ErrorMessageFormatter.format(
+        result.rejected.first.message,
+        fallback: fallback,
+      );
+    }
+
+    return ErrorMessageFormatter.format(
+      result.message,
+      fallback: fallback,
+    );
+  }
+
+  String _sessionAcceptanceExceptionMessage(
+    Object error, {
+    required String fallback,
+  }) {
+    try {
+      final dynamic dynamicError = error;
+      final dynamic responseData = dynamicError.response?.data;
+      if (responseData != null) {
+        final parsed = WorkerSessionAcceptanceResult.fromJson(responseData);
+        if (parsed.rejected.isNotEmpty ||
+            (parsed.message?.trim().isNotEmpty ?? false)) {
+          return _sessionAcceptanceFailureMessage(
+            result: parsed,
+            fallback: fallback,
+          );
+        }
+      }
+    } catch (_) {
+      // Fall back to the normalized exception text below.
+    }
+
+    return ErrorMessageFormatter.format(
+      error.toString(),
+      fallback: fallback,
+    );
+  }
+
   Future<void> _acceptAllSessions() async {
     final bookingId = _order.id;
     if (bookingId == null || _sessionAcceptanceLoading) return;
@@ -222,9 +267,10 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       if (!mounted) return;
 
       if (!result.allAccepted) {
-        final message = result.rejected.isNotEmpty
-            ? result.rejected.first.message
-            : 'تعذر قبول جميع الجلسات. حدّث الطلب وحاول مجدداً.';
+        final message = _sessionAcceptanceFailureMessage(
+          result: result,
+          fallback: 'تعذر قبول جميع الجلسات. راجع جدولك وحاول مجدداً.',
+        );
         AppToast.showErrorGlobal(message);
         setState(() => _sessionAcceptanceLoading = false);
         await _loadSchedule();
@@ -234,10 +280,13 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       _refreshAfterSessionAcceptance(bookingId);
       AppToast.showSuccessGlobal('تم قبول جميع الجلسات المتاحة');
       Navigator.of(context).pop(_AcceptOrderSheetCloseAction.accepted);
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
       AppToast.showErrorGlobal(
-        'تعذر قبول جميع الجلسات. حدّث الطلب وحاول مجدداً.',
+        _sessionAcceptanceExceptionMessage(
+          error,
+          fallback: 'تعذر قبول جميع الجلسات. راجع جدولك وحاول مجدداً.',
+        ),
       );
       setState(() => _sessionAcceptanceLoading = false);
       await _loadSchedule();
@@ -403,9 +452,10 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       if (!mounted) return;
 
       if (result.acceptedSessionIds.isEmpty) {
-        final message = result.rejected.isNotEmpty
-            ? result.rejected.first.message
-            : 'تعذر قبول الجلسات المحددة.';
+        final message = _sessionAcceptanceFailureMessage(
+          result: result,
+          fallback: 'تعذر قبول الجلسات المحددة. راجع جدولك وحاول مجدداً.',
+        );
         AppToast.showErrorGlobal(message);
         setState(() => _sessionAcceptanceLoading = false);
         await _loadSchedule();
@@ -421,9 +471,14 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
             : 'تم قبول $acceptedCount جلسة، وتعذر قبول $rejectedCount جلسة',
       );
       Navigator.of(context).pop(_AcceptOrderSheetCloseAction.accepted);
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      AppToast.showErrorGlobal('تعذر قبول الجلسات المحددة. حاول مجدداً.');
+      AppToast.showErrorGlobal(
+        _sessionAcceptanceExceptionMessage(
+          error,
+          fallback: 'تعذر قبول الجلسات المحددة. راجع جدولك وحاول مجدداً.',
+        ),
+      );
       setState(() => _sessionAcceptanceLoading = false);
       await _loadSchedule();
     }
