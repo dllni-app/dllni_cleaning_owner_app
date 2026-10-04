@@ -198,7 +198,27 @@ void main() {
       );
     });
 
-    test('multi-day session cannot start travel after travel already started', () {
+    test(
+      'multi-day session keeps start travel for this worker when another worker already started',
+      () {
+        final session = _session(
+          status: 'scheduled',
+          startedTravelAt: '2026-06-16T09:00:00+03:00',
+          assignment: const WorkerSessionAssignmentModel(
+            id: 77,
+            workerId: 28,
+            status: 'accepted_waiting_for_order_start',
+          ),
+        );
+
+        expect(
+          OrderLifecyclePolicy.canStartTravelForSession(session),
+          isTrue,
+        );
+      },
+    );
+
+    test('multi-day session cannot start travel after this worker already started', () {
       final session = _session(
         status: 'scheduled',
         startedTravelAt: '2026-06-16T09:00:00+03:00',
@@ -206,6 +226,7 @@ void main() {
           id: 77,
           workerId: 28,
           status: 'accepted',
+          startedTravelAt: '2026-06-16T09:05:00+03:00',
         ),
       );
 
