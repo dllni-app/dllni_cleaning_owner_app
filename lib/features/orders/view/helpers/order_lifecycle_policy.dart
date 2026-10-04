@@ -176,33 +176,43 @@ class OrderLifecyclePolicy {
   static bool canStartTravelForSession(WorkerBookingSessionModel session) {
     if (session.isTerminal) return false;
 
-    final startedTravelAt =
-        session.startedTravelAt ?? session.assignment?.startedTravelAt;
-    if (startedTravelAt != null && startedTravelAt.trim().isNotEmpty) {
-      return false;
+    final assignment = session.assignment;
+    if (assignment != null) {
+      final assignmentStatus = assignment.status?.trim().toLowerCase();
+
+      if (const <String>{
+        'rejected',
+        'withdrawn',
+        'cancelled',
+        'completed',
+      }.contains(assignmentStatus)) {
+        return false;
+      }
+
+      if (assignment.startedTravelAt?.trim().isNotEmpty == true ||
+          assignment.arrivedAt?.trim().isNotEmpty == true ||
+          assignment.workStartedAt?.trim().isNotEmpty == true) {
+        return false;
+      }
+
+      // Multi-worker sessions expose aggregate session timestamps. Another
+      // worker may already have started travel, so only this worker's
+      // assignment decides whether "أنا في الطريق" should remain available.
+      if (assignmentStatus == 'accepted' ||
+          assignmentStatus == 'accepted_waiting_for_order_start') {
+        return true;
+      }
+
+      return session.canStartTravel;
     }
-    if (session.arrivedAt?.trim().isNotEmpty == true ||
+
+    if (session.startedTravelAt?.trim().isNotEmpty == true ||
+        session.arrivedAt?.trim().isNotEmpty == true ||
         session.workStartedAt?.trim().isNotEmpty == true) {
       return false;
     }
-    if (session.canStartTravel) return true;
 
-    final assignment = session.assignment;
-    if (assignment == null) return false;
-
-    final assignmentStatus = assignment.status?.trim().toLowerCase();
-    if (const <String>{
-      'rejected',
-      'withdrawn',
-      'cancelled',
-      'completed',
-    }.contains(assignmentStatus)) {
-      return false;
-    }
-
-    final sessionStatus = session.status.trim().toLowerCase();
-    return sessionStatus == 'scheduled' ||
-        sessionStatus == CleaningBookingStatus.workerAssigned;
+    return session.canStartTravel;
   }
 
   static bool isStartTravelWithinAllowedWindow(
