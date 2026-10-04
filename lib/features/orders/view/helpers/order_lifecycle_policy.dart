@@ -72,7 +72,7 @@ class OrderLifecyclePolicy {
   OrderLifecyclePolicy._();
 
   static const String startTravelUnavailableMessage =
-      'لا يمكنك اجراء هذه العملية حاليا';
+      'يمكن بدء التوجه إلى موقع الطلب قبل الموعد بساعة واحدة.';
   static const String orderNoLongerAvailableMessage =
       'تم قبول هذا الطلب مسبقاً أو لم يعد متاحاً.';
 
@@ -225,8 +225,11 @@ class OrderLifecyclePolicy {
     final scheduledAt = _scheduledDateTime(order);
     if (scheduledAt == null) return true;
 
-    final currentTime = now ?? DateTime.now();
-    return !scheduledAt.isAfter(currentTime.add(const Duration(hours: 1)));
+    final currentTime = _toWallClockMinute(now ?? DateTime.now());
+    final scheduledMinute = _toWallClockMinute(scheduledAt);
+    return !scheduledMinute.isAfter(
+      currentTime.add(const Duration(hours: 1)),
+    );
   }
 
   static bool isSessionStartTravelWithinAllowedWindow(
@@ -239,8 +242,11 @@ class OrderLifecyclePolicy {
     final scheduledAt = _sessionScheduledDateTime(session);
     if (scheduledAt == null) return true;
 
-    final currentTime = now ?? DateTime.now();
-    return !scheduledAt.isAfter(currentTime.add(const Duration(hours: 1)));
+    final currentTime = _toWallClockMinute(now ?? DateTime.now());
+    final scheduledMinute = _toWallClockMinute(scheduledAt);
+    return !scheduledMinute.isAfter(
+      currentTime.add(const Duration(hours: 1)),
+    );
   }
 
   static DateTime? _sessionScheduledDateTime(
@@ -249,31 +255,83 @@ class OrderLifecyclePolicy {
     final date = session.date;
     if (date == null) return null;
 
-    final datePart =
-        '${date.year.toString().padLeft(4, '0')}-'
-        '${date.month.toString().padLeft(2, '0')}-'
-        '${date.day.toString().padLeft(2, '0')}';
-    final rawTime = session.time?.trim();
-    if (rawTime == null || rawTime.isEmpty) {
-      return DateTime(date.year, date.month, date.day);
-    }
-
-    final timePart = rawTime.contains('T') ? rawTime.split('T').last : rawTime;
-    return DateTime.tryParse('${datePart}T$timePart');
+    return _buildWallClockDateTime(
+      year: date.year,
+      month: date.month,
+      day: date.day,
+      rawTime: session.time,
+    );
   }
 
   static DateTime? _scheduledDateTime(FetchOrdersUsecaseModelDataItem order) {
     final rawDate = order.scheduledDate?.trim();
     if (rawDate == null || rawDate.isEmpty) return null;
 
-    final rawTime = order.scheduledTime?.trim();
-    if (rawTime == null || rawTime.isEmpty) {
-      return DateTime.tryParse(rawDate);
+    final dateMatch = RegExp(
+      r'^(\\d{4})-(\\d{1,2})-(\\d{1,2})',
+    ).firstMatch(rawDate);
+    if (dateMatch == null) return null;
+
+    final year = int.tryParse(dateMatch.group(1)!);
+    final month = int.tryParse(dateMatch.group(2)!);
+    final day = int.tryParse(dateMatch.group(3)!);
+    if (year == null || month == null || day == null) return null;
+
+    return _buildWallClockDateTime(
+      year: year,
+      month: month,
+      day: day,
+      rawTime: order.scheduledTime,
+    );
+  }
+
+  static DateTime? _buildWallClockDateTime({
+    required int year,
+    required int month,
+    required int day,
+    String? rawTime,
+  }) {
+    final value = rawTime?.trim();
+    if (value == null || value.isEmpty) {
+      return DateTime(year, month, day);
     }
 
-    final datePart = rawDate.split(RegExp(r'[T ]')).first;
-    final timePart = rawTime.contains('T') ? rawTime.split('T').last : rawTime;
-    return DateTime.tryParse('${datePart}T$timePart');
+    final clockValue = value.contains('T') ? value.split('T').last : value;
+    final timeMatch = RegExp(
+      r'^(\\d{1,2}):(\\d{2})(?::(\\d{2}))?',
+    ).firstMatch(clockValue);
+    if (timeMatch == null) {
+      return DateTime(year, month, day);
+    }
+
+    final hour = int.tryParse(timeMatch.group(1)!);
+    final minute = int.tryParse(timeMatch.group(2)!);
+    final second = int.tryParse(timeMatch.group(3) ?? '0') ?? 0;
+    if (hour == null ||
+        minute == null ||
+        hour < 0 ||
+        hour > 23 ||
+        minute < 0 ||
+        minute > 59 ||
+        second < 0 ||
+        second > 59) {
+      return null;
+    }
+
+    // scheduledDate/scheduledTime are booking wall-clock fields. Ignore any
+    // timezone suffix attached to the time string so a value such as
+    // "13:30:00Z" is still treated as the displayed 13:30 booking time.
+    return DateTime(year, month, day, hour, minute, second);
+  }
+
+  static DateTime _toWallClockMinute(DateTime value) {
+    return DateTime(
+      value.year,
+      value.month,
+      value.day,
+      value.hour,
+      value.minute,
+    );
   }
 
   static bool canCancel(FetchOrdersUsecaseModelDataItem order) =>
