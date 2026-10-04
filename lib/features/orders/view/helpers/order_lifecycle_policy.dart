@@ -268,7 +268,7 @@ class OrderLifecyclePolicy {
     if (rawDate == null || rawDate.isEmpty) return null;
 
     final dateMatch = RegExp(
-      r'^(\\d{4})-(\\d{1,2})-(\\d{1,2})',
+      r'^(\d{4})-(\d{1,2})-(\d{1,2})',
     ).firstMatch(rawDate);
     if (dateMatch == null) return null;
 
@@ -298,7 +298,7 @@ class OrderLifecyclePolicy {
 
     final clockValue = value.contains('T') ? value.split('T').last : value;
     final timeMatch = RegExp(
-      r'^(\\d{1,2}):(\\d{2})(?::(\\d{2}))?',
+      r'^(\d{1,2}):(\d{2})(?::(\d{2}))?',
     ).firstMatch(clockValue);
     if (timeMatch == null) {
       return DateTime(year, month, day);
