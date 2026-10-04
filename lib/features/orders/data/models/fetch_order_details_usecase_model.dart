@@ -76,6 +76,16 @@ Map<String, dynamic> _withTracking(Map<String, dynamic> json) {
   return json;
 }
 
+CleaningOpenTimeDetails? _parseOpenTime(dynamic value) {
+  if (value is! Map) return null;
+  final payload = _toMap(value);
+  final isOpenTime = _toBool(
+    _pick(payload, const <String>['isOpenTime', 'is_open_time']),
+  );
+  if (isOpenTime == false) return null;
+  return CleaningOpenTimeDetails.fromJson(payload);
+}
+
 FetchOrderDetailsUsecaseModel fetchOrderDetailsUsecaseModelFromJson(
   dynamic json,
 ) => FetchOrderDetailsUsecaseModel.fromJson(_toMap(json));
@@ -412,11 +422,7 @@ class FetchOrderDetailsUsecaseModelData {
       specialServices: _toMapList(
         m['specialServices'] ?? m['special_services'],
       ).map(CleaningSpecialServiceLine.fromJson).toList(growable: false),
-      openTime: (m['openTime'] ?? m['open_time']) is Map
-          ? CleaningOpenTimeDetails.fromJson(
-              _toMap(m['openTime'] ?? m['open_time']),
-            )
-          : null,
+      openTime: _parseOpenTime(m['openTime'] ?? m['open_time']),
       billingPolicy: (m['billingPolicy'] ?? m['billing_policy']) is Map
           ? FetchOrderDetailsUsecaseModelDataBillingPolicy.fromJson(
               _toMap(m['billingPolicy'] ?? m['billing_policy']),
