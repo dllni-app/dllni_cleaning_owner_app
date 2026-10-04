@@ -17,12 +17,14 @@ class MultiDayOrderDetailsBody extends StatefulWidget {
     required this.initialSchedule,
     this.initialSelectedSessionId,
     this.onScheduleChanged,
+    this.sessionDetailsOnly = false,
   });
 
   final FetchOrdersUsecaseModelDataItem order;
   final WorkerBookingScheduleModel initialSchedule;
   final int? initialSelectedSessionId;
   final ValueChanged<WorkerBookingScheduleModel>? onScheduleChanged;
+  final bool sessionDetailsOnly;
 
   @override
   State<MultiDayOrderDetailsBody> createState() =>
@@ -200,6 +202,31 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
         sessionId: sessionId,
       );
     });
+  }
+
+  Future<void> _openSessionDetails(WorkerBookingSessionModel session) async {
+    final sessionId = session.id;
+    if (sessionId == null) return;
+
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => Scaffold(
+          body: SafeArea(
+            child: MultiDayOrderDetailsBody(
+              order: widget.order,
+              initialSchedule: _schedule,
+              initialSelectedSessionId: sessionId,
+              onScheduleChanged: widget.onScheduleChanged,
+              sessionDetailsOnly: true,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    if (mounted) {
+      await _refresh();
+    }
   }
 
   Future<void> _arrive() async {
@@ -697,7 +724,123 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
             ),
           ],
           const SizedBox(height: 14),
+          if (!widget.sessionDetailsOnly) ...[
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _busy ? null : () => _openSessionDetails(session),
+                icon: const Icon(Icons.info_outline),
+                label: const Text('تفاصيل الجلسة'),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
           _actionArea(session),
+        ],
+      ),
+    );
+  }
+
+  Widget _sessionOrderContextCard(WorkerBookingSessionModel session) {
+    final services = <String>[];
+    for (final service in widget.order.services ?? const []) {
+      final name = service.name?.trim();
+      if (name != null && name.isNotEmpty) services.add(name);
+    }
+    for (final addon in widget.order.addons ?? const []) {
+      final name = addon.name?.trim();
+      if (name != null && name.isNotEmpty) services.add(name);
+    }
+
+    final sessionSpecialServices = (widget.order.specialServices ?? const [])
+        .where(
+          (service) =>
+              service.sessionIds.isEmpty ||
+              (session.id != null && service.sessionIds.contains(session.id)),
+        )
+        .toList(growable: false);
+
+    final property = widget.order.propertyDetails;
+    final address = property?.address?.trim() ?? widget.order.locationName?.trim();
+    final cleaningType =
+        property?.cleaningModeLabel?.trim().isNotEmpty == true
+            ? property!.cleaningModeLabel!.trim()
+            : property?.cleaningMode?.trim();
+    final customService = property?.customService?.trim();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xffE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppText.titleMedium(
+            'بيانات الطلب المرتبطة بالجلسة',
+            fontWeight: FontWeight.w800,
+          ),
+          const SizedBox(height: 10),
+          _contextRow('رقم الطلب', widget.order.bookingNumber ?? '-'),
+          if (cleaningType != null && cleaningType.isNotEmpty)
+            _contextRow('نوع التنظيف', cleaningType),
+          if (customService != null && customService.isNotEmpty)
+            _contextRow('الخدمة المطلوبة', customService),
+          if (services.isNotEmpty)
+            _contextRow('الخدمات', services.join('، ')),
+          if (sessionSpecialServices.isNotEmpty)
+            _contextRow(
+              'الخدمات الخاصة',
+              sessionSpecialServices
+                  .map((service) => service.name?.trim())
+                  .whereType<String>()
+                  .where((name) => name.isNotEmpty)
+                  .join('، '),
+            ),
+          if (address != null && address.isNotEmpty)
+            _contextRow('العنوان', address, withDivider: false),
+        ],
+      ),
+    );
+  }
+
+  Widget _contextRow(
+    String label,
+    String value, {
+    bool withDivider = true,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: AppText.bodySmall(
+                  label,
+                  color: const Color(0xff6B7280),
+                  textAlign: TextAlign.start,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: AppText.bodyMedium(
+                  value,
+                  fontWeight: FontWeight.w700,
+                  textAlign: TextAlign.end,
+                ),
+              ),
+            ],
+          ),
+          if (withDivider) ...[
+            const SizedBox(height: 8),
+            const Divider(height: 1, color: Color(0xffE5E7EB)),
+          ],
         ],
       ),
     );
@@ -853,6 +996,10 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
   @override
   Widget build(BuildContext context) {
     final session = _activeSession;
+    final title = widget.sessionDetailsOnly && session != null
+        ? 'تفاصيل الجلسة ${session.sequence}'
+        : 'تفاصيل الطلب ${widget.order.bookingNumber ?? ''}';
+
     return Column(
       children: [
         Padding(
@@ -860,12 +1007,12 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
           child: Row(
             children: [
               IconButton(
-                onPressed: () => context.pop(),
+                onPressed: () => Navigator.of(context).maybePop(),
                 icon: const Icon(Icons.arrow_back),
               ),
               Expanded(
                 child: AppText.headlineMedium(
-                  'تفاصيل الطلب ${widget.order.bookingNumber ?? ''}',
+                  title,
                   textAlign: TextAlign.start,
                 ),
               ),
@@ -883,10 +1030,12 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                _summaryCard(),
-                const SizedBox(height: 12),
-                _sessionSelector(),
-                const SizedBox(height: 12),
+                if (!widget.sessionDetailsOnly) ...[
+                  _summaryCard(),
+                  const SizedBox(height: 12),
+                  _sessionSelector(),
+                  const SizedBox(height: 12),
+                ],
                 if (_error != null) ...[
                   Container(
                     padding: const EdgeInsets.all(10),
@@ -911,8 +1060,13 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
                     text:
                         'لم تعد لديك جلسات متاحة في هذا الطلب. قد يكون تم تغيير تعيينك لأحد أيام المناسبة.',
                   )
-                else
+                else ...[
+                  if (widget.sessionDetailsOnly) ...[
+                    _sessionOrderContextCard(session),
+                    const SizedBox(height: 12),
+                  ],
                   _sessionCard(session),
+                ],
               ],
             ),
           ),
@@ -920,6 +1074,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
       ],
     );
   }
+
 }
 
 class _InfoBanner extends StatelessWidget {

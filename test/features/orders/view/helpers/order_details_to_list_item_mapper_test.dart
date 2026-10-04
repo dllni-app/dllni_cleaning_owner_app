@@ -4,6 +4,52 @@ import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_det
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+
+  test('maps operational extras from full order details before acceptance', () {
+    final details = fetchOrderDetailsUsecaseModelFromJson(<String, dynamic>{
+      'data': <String, dynamic>{
+        'id': 501,
+        'status': 'pending',
+        'materials': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 1,
+            'name': 'منظف الأرضيات',
+            'quantity': 1.5,
+            'unitLabel': 'لتر',
+          },
+        ],
+        'materialKit': <String, dynamic>{'status': 'pending'},
+        'specialServices': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 2,
+            'name': 'تنظيف السجاد',
+            'quantity': 2,
+            'dirtinessLabel': 'شديد',
+            'notes': 'التركيز على البقعة قرب الباب',
+            'sessionIds': <int>[11],
+          },
+        ],
+        'openTime': <String, dynamic>{
+          'isOpenTime': true,
+          'requestedWorkerCount': 2,
+          'expectedMaxMinutes': 240,
+        },
+      },
+    }).data!;
+
+    final mapped = OrderDetailsToListItemMapper.fromDetails(details);
+
+    expect(mapped.materials?.single.name, 'منظف الأرضيات');
+    expect(mapped.materialKit?.status, 'pending');
+    expect(mapped.specialServices?.single.name, 'تنظيف السجاد');
+    expect(
+      mapped.specialServices?.single.notes,
+      'التركيز على البقعة قرب الباب',
+    );
+    expect(mapped.specialServices?.single.sessionIds, <int>[11]);
+    expect(mapped.openTime?.requestedWorkerCount, 2);
+    expect(mapped.openTime?.expectedMaxMinutes, 240);
+  });
   test(
     'retains operational booking details when the detail refresh omits them',
     () {

@@ -174,14 +174,35 @@ class OrderLifecyclePolicy {
       order.startedTravelAt == null;
 
   static bool canStartTravelForSession(WorkerBookingSessionModel session) {
+    if (session.isTerminal) return false;
+
     final startedTravelAt =
         session.startedTravelAt ?? session.assignment?.startedTravelAt;
     if (startedTravelAt != null && startedTravelAt.trim().isNotEmpty) {
       return false;
     }
+    if (session.arrivedAt?.trim().isNotEmpty == true ||
+        session.workStartedAt?.trim().isNotEmpty == true) {
+      return false;
+    }
+    if (session.canStartTravel) return true;
 
-    return session.canStartTravel ||
-        session.status == CleaningBookingStatus.workerAssigned;
+    final assignment = session.assignment;
+    if (assignment == null) return false;
+
+    final assignmentStatus = assignment.status?.trim().toLowerCase();
+    if (const <String>{
+      'rejected',
+      'withdrawn',
+      'cancelled',
+      'completed',
+    }.contains(assignmentStatus)) {
+      return false;
+    }
+
+    final sessionStatus = session.status.trim().toLowerCase();
+    return sessionStatus == 'scheduled' ||
+        sessionStatus == CleaningBookingStatus.workerAssigned;
   }
 
   static bool isStartTravelWithinAllowedWindow(
