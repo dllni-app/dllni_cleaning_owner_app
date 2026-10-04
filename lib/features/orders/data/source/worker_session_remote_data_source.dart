@@ -95,11 +95,13 @@ class WorkerSessionAcceptanceResult {
   final bool allAccepted;
   final List<int> acceptedSessionIds;
   final List<WorkerSessionAcceptanceRejection> rejected;
+  final String? message;
 
   const WorkerSessionAcceptanceResult({
     required this.allAccepted,
     required this.acceptedSessionIds,
     required this.rejected,
+    this.message,
   });
 
   factory WorkerSessionAcceptanceResult.fromJson(dynamic json) {
@@ -124,6 +126,9 @@ class WorkerSessionAcceptanceResult {
                 .map(WorkerSessionAcceptanceRejection.fromJson)
                 .toList(growable: false)
           : const <WorkerSessionAcceptanceRejection>[],
+      message:
+          root['message']?.toString() ??
+          data['message']?.toString(),
     );
   }
 }

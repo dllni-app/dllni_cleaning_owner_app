@@ -31,6 +31,21 @@ class ErrorMessageFormatter {
   }
 
   static String? _knownBackendMessage(String value) {
+    if (value.contains('worker_not_available') ||
+        value.contains('worker is not available during this session') ||
+        value.contains('worker is not available for this session')) {
+      return 'لا يمكنك قبول هذه الجلسة لأنك غير متاح خلال وقتها. راجع جدولك أو اختر جلسة أخرى.';
+    }
+
+    if (value.contains('some selected sessions could not be accepted')) {
+      return 'تعذر قبول بعض الجلسات المحددة. راجع مواعيد الجلسات وجدولك ثم حاول مجدداً.';
+    }
+
+    if (value.contains('some sessions could not be accepted') ||
+        value.contains('not all sessions could be accepted')) {
+      return 'تعذر قبول بعض الجلسات. راجع مواعيد الجلسات وجدولك ثم حاول مجدداً.';
+    }
+
     if (value.contains("outside the worker's active neighborhoods") ||
         value.contains('outside the worker active neighborhoods') ||
         value.contains('outside your active neighborhoods')) {

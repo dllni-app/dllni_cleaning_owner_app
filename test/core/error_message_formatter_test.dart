@@ -3,6 +3,24 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('ErrorMessageFormatter', () {
+    test('translates worker session availability rejection', () {
+      expect(
+        ErrorMessageFormatter.format(
+          'Worker is not available during this session.',
+        ),
+        'لا يمكنك قبول هذه الجلسة لأنك غير متاح خلال وقتها. راجع جدولك أو اختر جلسة أخرى.',
+      );
+    });
+
+    test('translates selected-session acceptance summary', () {
+      expect(
+        ErrorMessageFormatter.format(
+          'Some selected sessions could not be accepted.',
+        ),
+        'تعذر قبول بعض الجلسات المحددة. راجع مواعيد الجلسات وجدولك ثم حاول مجدداً.',
+      );
+    });
+
     test('returns fallback for null or empty message', () {
       expect(
         ErrorMessageFormatter.format(null, fallback: 'fallback'),
