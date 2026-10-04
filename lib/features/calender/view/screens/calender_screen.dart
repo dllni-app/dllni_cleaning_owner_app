@@ -20,26 +20,27 @@ class CalenderScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider<OrdersBloc>(
-      create: (context) =>
-          getIt<OrdersBloc>()
-            ..add(
-              FetchOrdersUsecaseEvent(
-                params: FetchOrdersUsecaseParams(
-                  page: 1,
-                  assignedToCurrentWorker: true,
-                  acceptedByCurrentWorkerOnly: true,
-                  scheduledDate: DateFormat(
-                    'yyyy-MM-dd',
-                    'en',
-                  ).format(DateTime.now()),
-                ),
-              ),
+      create: (context) => getIt<OrdersBloc>()
+        ..add(
+          FetchOrdersUsecaseEvent(
+            params: FetchOrdersUsecaseParams(
+              page: 1,
+              assignedToCurrentWorker: true,
+              acceptedByCurrentWorkerOnly: true,
+              scheduledDate: DateFormat(
+                'yyyy-MM-dd',
+                'en',
+              ).format(DateTime.now()),
             ),
+          ),
+        ),
       child: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final sheetHeight = (constraints.maxHeight * 0.58)
-                .clamp(280.0, constraints.maxHeight * 0.68);
+            final sheetHeight = (constraints.maxHeight * 0.58).clamp(
+              280.0,
+              constraints.maxHeight * 0.68,
+            );
 
             return Stack(
               children: [
@@ -119,8 +120,8 @@ class CalenderScreen extends StatelessWidget {
                                       return ListView.separated(
                                         padding:
                                             EdgeInsetsDirectional.symmetric(
-                                          vertical: 10.h,
-                                        ),
+                                              vertical: 10.h,
+                                            ),
                                         itemBuilder: (context, index) {
                                           if (state.ordersUsecase!.length <=
                                               index) {
@@ -132,8 +133,7 @@ class CalenderScreen extends StatelessWidget {
                                               context.read<OrdersBloc>().add(
                                                 FetchOrdersUsecaseEvent(
                                                   isReload: false,
-                                                  params:
-                                                      FetchOrdersUsecaseParams(
+                                                  params: FetchOrdersUsecaseParams(
                                                     page: state
                                                         .ordersUsecase!
                                                         .pageNumber,
@@ -153,14 +153,15 @@ class CalenderScreen extends StatelessWidget {
                                               child: const FittedBox(
                                                 child:
                                                     CircularProgressIndicator.adaptive(
-                                                  strokeWidth: 3,
-                                                ),
+                                                      strokeWidth: 3,
+                                                    ),
                                               ),
                                             );
                                           }
                                           return CalenderOrderCard(
                                             date: state
-                                                .ordersUsecase!.list[index],
+                                                .ordersUsecase!
+                                                .list[index],
                                             index: index,
                                           );
                                         },
@@ -207,10 +208,7 @@ class CalenderScreen extends StatelessWidget {
 }
 
 class TopNotchClipper extends CustomClipper<Path> {
-  TopNotchClipper({
-    this.notchWidth = 50,
-    this.notchDepth = 28,
-  });
+  TopNotchClipper({this.notchWidth = 50, this.notchDepth = 28});
 
   final double notchWidth;
   final double notchDepth;

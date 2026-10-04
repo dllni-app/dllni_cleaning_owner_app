@@ -150,7 +150,7 @@ class _WeekCalendarState extends State<WeekCalendar> {
           onPressed: () => setState(
             () => focusedDay = focusedDay.subtract(const Duration(days: 7)),
           ),
-          icon: const Icon(Icons.chevron_right_rounded, color: Colors.white),
+          icon: const Icon(Icons.chevron_left_rounded, color: Colors.white),
         ),
         Expanded(
           child: Text(
@@ -167,7 +167,7 @@ class _WeekCalendarState extends State<WeekCalendar> {
           onPressed: () => setState(
             () => focusedDay = focusedDay.add(const Duration(days: 7)),
           ),
-          icon: const Icon(Icons.chevron_left_rounded, color: Colors.white),
+          icon: const Icon(Icons.chevron_right_rounded, color: Colors.white),
         ),
       ],
     );
