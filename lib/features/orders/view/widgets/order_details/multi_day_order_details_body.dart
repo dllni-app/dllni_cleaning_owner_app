@@ -182,7 +182,9 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
         !OrderLifecyclePolicy.canStartTravelForSession(session)) {
       return;
     }
-    if (!OrderLifecyclePolicy.isSessionStartTravelWithinAllowedWindow(session)) {
+    if (!OrderLifecyclePolicy.isSessionStartTravelWithinAllowedWindow(
+      session,
+    )) {
       AppToast.showErrorGlobal(
         OrderLifecyclePolicy.startTravelUnavailableMessage,
       );
@@ -562,6 +564,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
                 child: AppText.titleMedium(
                   'طلب متعدد الجلسات',
                   fontWeight: FontWeight.w800,
+                  textAlign: TextAlign.start,
                 ),
               ),
               AppText.bodySmall(
@@ -603,6 +606,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
                 child: AppText.titleMedium(
                   'الجلسة ${session.sequence} من ${_schedule.daysCount}',
                   fontWeight: FontWeight.w800,
+                  textAlign: TextAlign.start,
                 ),
               ),
               Container(
