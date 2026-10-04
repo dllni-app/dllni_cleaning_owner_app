@@ -686,7 +686,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       );
     }
 
-    if (openTime != null) {
+    if (openTime != null && openTime.isOpenTime != false) {
       if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 8));
       final details = <String>[];
       if (openTime.requestedWorkerCount != null) {
