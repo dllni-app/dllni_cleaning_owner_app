@@ -166,5 +166,31 @@ void main() {
       expect(item.specialServices?.single.dirtinessLabel, 'متوسط');
       expect(item.openTime?.requestedWorkerCount, 3);
     });
+
+    test('ignores explicit non-open-time metadata', () {
+      final details = fetchOrderDetailsUsecaseModelFromJson(<String, dynamic>{
+        'data': <String, dynamic>{
+          'id': 701,
+          'openTime': <String, dynamic>{
+            'isOpenTime': false,
+            'requestedWorkerCount': 1,
+          },
+        },
+      });
+      final list = fetchOrdersUsecaseModelFromJson(<String, dynamic>{
+        'data': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 702,
+            'open_time': <String, dynamic>{
+              'is_open_time': false,
+              'requested_worker_count': 1,
+            },
+          },
+        ],
+      });
+
+      expect(details.data?.openTime, isNull);
+      expect(list.data?.single.openTime, isNull);
+    });
   });
 }
