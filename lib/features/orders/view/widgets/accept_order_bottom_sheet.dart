@@ -179,7 +179,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
 
   Future<void> _loadSchedule() async {
     final orderId = _order.id;
-    if (orderId == null) return;
+    if (orderId == null || _scheduleLoading) return;
     setState(() {
       _scheduleLoading = true;
       _scheduleError = null;
@@ -1004,7 +1004,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
   }
 
   Widget _scheduleSection(BuildContext context) {
-    if (_scheduleLoading && !_scheduleChecked) {
+    if (_scheduleLoading) {
       return _detailCard(context, const [
         Center(child: CircularProgressIndicator.adaptive()),
       ]);
