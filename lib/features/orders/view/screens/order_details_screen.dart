@@ -605,7 +605,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           child: BlocBuilder<OrdersBloc, OrdersState>(
             bloc: widget.params.bloc,
             builder: (context, state) {
-              if (!_scheduleChecked) {
+              if (!_scheduleChecked || _scheduleLoading) {
                 return _scheduleLoadingBody();
               }
               if (_scheduleLoadError != null) {
