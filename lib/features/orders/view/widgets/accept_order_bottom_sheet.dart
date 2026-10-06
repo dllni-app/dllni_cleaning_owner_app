@@ -28,7 +28,15 @@ const _borderColor = Color(0xffE5E7EB);
 const _mutedTextColor = Color(0xff6B7280);
 const _titleTextColor = Color(0xff111827);
 
-enum _AcceptOrderSheetCloseAction { accepted, dismissed }
+class _AcceptOrderSheetResult {
+  const _AcceptOrderSheetResult({
+    required this.accepted,
+    this.selectedSessionId,
+  });
+
+  final bool accepted;
+  final int? selectedSessionId;
+}
 
 class AcceptOrderBottomSheet extends StatefulWidget {
   const AcceptOrderBottomSheet({
@@ -53,6 +61,7 @@ class AcceptOrderBottomSheet extends StatefulWidget {
     required int index,
     bool autoRejectOnClose = false,
     bool useRootNavigator = false,
+    ValueChanged<int?>? onAccepted,
   }) async {
     if (!OrderLifecyclePolicy.canAcceptReject(order)) {
       AppToast.showErrorGlobal(
@@ -62,7 +71,7 @@ class AcceptOrderBottomSheet extends StatefulWidget {
     }
 
     final closeAction =
-        await showModalBottomSheet<_AcceptOrderSheetCloseAction>(
+        await showModalBottomSheet<_AcceptOrderSheetResult>(
           context: context,
           useRootNavigator: useRootNavigator,
           isScrollControlled: true,
@@ -78,10 +87,13 @@ class AcceptOrderBottomSheet extends StatefulWidget {
           ),
         );
 
+    if (closeAction?.accepted == true) {
+      onAccepted?.call(closeAction?.selectedSessionId);
+      return;
+    }
     if (!autoRejectOnClose) return;
     final orderId = order.id;
     if (orderId == null) return;
-    if (closeAction == _AcceptOrderSheetCloseAction.accepted) return;
 
     bloc.add(
       RejectOrderUsecaseEvent(
@@ -256,6 +268,19 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
     );
   }
 
+  int? _firstAcceptedSessionId(List<int> acceptedSessionIds) {
+    if (acceptedSessionIds.isEmpty) return null;
+    final accepted = acceptedSessionIds.toSet();
+    final sessions = _schedule?.sessions ?? const <WorkerBookingSessionModel>[];
+    for (final session in sessions) {
+      final sessionId = session.id;
+      if (sessionId != null && accepted.contains(sessionId)) {
+        return sessionId;
+      }
+    }
+    return acceptedSessionIds.first;
+  }
+
   Future<void> _acceptAllSessions() async {
     final bookingId = _order.id;
     if (bookingId == null || _sessionAcceptanceLoading) return;
@@ -279,7 +304,14 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
 
       _refreshAfterSessionAcceptance(bookingId);
       AppToast.showSuccessGlobal('تم قبول جميع الجلسات المتاحة');
-      Navigator.of(context).pop(_AcceptOrderSheetCloseAction.accepted);
+      Navigator.of(context).pop(
+        _AcceptOrderSheetResult(
+          accepted: true,
+          selectedSessionId: _firstAcceptedSessionId(
+            result.acceptedSessionIds,
+          ),
+        ),
+      );
     } catch (error) {
       if (!mounted) return;
       AppToast.showErrorGlobal(
@@ -470,7 +502,14 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
             ? 'تم قبول $acceptedCount جلسة'
             : 'تم قبول $acceptedCount جلسة، وتعذر قبول $rejectedCount جلسة',
       );
-      Navigator.of(context).pop(_AcceptOrderSheetCloseAction.accepted);
+      Navigator.of(context).pop(
+        _AcceptOrderSheetResult(
+          accepted: true,
+          selectedSessionId: _firstAcceptedSessionId(
+            result.acceptedSessionIds,
+          ),
+        ),
+      );
     } catch (error) {
       if (!mounted) return;
       AppToast.showErrorGlobal(
@@ -557,7 +596,9 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
   }
 
   void _dismissSheet() {
-    Navigator.of(context).pop(_AcceptOrderSheetCloseAction.dismissed);
+    Navigator.of(context).pop(
+      const _AcceptOrderSheetResult(accepted: false),
+    );
   }
 
   Widget _sectionTitle(BuildContext context, IconData icon, String title) {
@@ -1108,7 +1149,9 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       AppToast.showErrorGlobal(
         OrderLifecyclePolicy.orderNoLongerAvailableMessage,
       );
-      Navigator.of(context).pop(_AcceptOrderSheetCloseAction.dismissed);
+      Navigator.of(context).pop(
+        const _AcceptOrderSheetResult(accepted: false),
+      );
       return;
     }
     widget.bloc.add(
@@ -1130,7 +1173,9 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       buildWhen: (previous, current) =>
           previous.acceptOrderUsecaseStatus != current.acceptOrderUsecaseStatus,
       listener: (context, state) {
-        Navigator.of(context).pop(_AcceptOrderSheetCloseAction.accepted);
+        Navigator.of(context).pop(
+          const _AcceptOrderSheetResult(accepted: true),
+        );
       },
       builder: (context, state) {
         final accepting =
