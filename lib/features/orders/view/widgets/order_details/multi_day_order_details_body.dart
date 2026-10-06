@@ -1073,8 +1073,13 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
   }
 
   bool _shouldShowNavigationMap(WorkerBookingSessionModel session) {
+    final tracker = WorkerLocationTracker.instance;
+    final isTrackedTravel =
+        tracker.activeBookingId == _bookingId &&
+        tracker.activeSessionId == session.id;
     return !session.isTerminal &&
-        (session.canArrive ||
+        (isTrackedTravel ||
+            session.canArrive ||
             (session.startedTravelAt != null && session.arrivedAt == null));
   }
 
