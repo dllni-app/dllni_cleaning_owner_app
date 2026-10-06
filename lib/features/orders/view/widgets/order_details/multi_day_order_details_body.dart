@@ -15,6 +15,10 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../estate_info_card.dart';
+import '../order_info_card.dart';
+import '../payment_info_card.dart';
+
 class MultiDayOrderDetailsBody extends StatefulWidget {
   const MultiDayOrderDetailsBody({
     super.key,
@@ -207,6 +211,175 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     final refreshedSession = _schedule.sessionById(sessionId);
     if (refreshedSession == null) return;
     await _openSessionDetails(refreshedSession);
+  }
+
+  String? _sessionDateValue(DateTime? value) {
+    if (value == null) return null;
+    final month = value.month.toString().padLeft(2, '0');
+    final day = value.day.toString().padLeft(2, '0');
+    return '${value.year}-$month-$day';
+  }
+
+  FetchOrdersUsecaseModelDataItem _orderForSession(
+    WorkerBookingSessionModel session,
+  ) {
+    final json = Map<String, dynamic>.from(widget.order.toJson());
+    final assignment = session.workerAssignmentState;
+    final serviceShare =
+        assignment?.serviceShareAmount ??
+        session.financial?.baseAmount ??
+        session.pricing?.basePrice;
+    final travelFee =
+        assignment?.travelFee ??
+        session.financial?.travelAmount ??
+        session.pricing?.travelFee;
+    final adminMargin =
+        assignment?.adminMarginAmount ?? session.pricing?.adminMargin;
+    final workerAmount =
+        assignment?.workerAmount ??
+        assignment?.netAmount ??
+        session.financial?.netAmount;
+    final grossAmount =
+        assignment?.grossAmount ??
+        session.financial?.grossAmount ??
+        ((serviceShare ?? 0) + (travelFee ?? 0));
+
+    json
+      ..['status'] = session.status
+      ..['statusLabel'] = session.statusLabel
+      ..['worker_order_status'] = assignment?.status ?? session.status
+      ..['workerOrderStatus'] = assignment?.status ?? session.status
+      ..['scheduledDate'] = _sessionDateValue(session.date)
+      ..['scheduledTime'] = session.time
+      ..['estimatedHours'] = session.hours
+      ..['totalHours'] = assignment?.totalHours ?? session.hours
+      ..['bookingTotalHours'] = session.hours
+      ..['basePrice'] = serviceShare ?? session.pricing?.basePrice
+      ..['addonsTotal'] = 0
+      ..['travelFee'] = travelFee
+      ..['travelDistanceKm'] = session.pricing?.travelDistanceKm
+      ..['adminMargin'] = adminMargin
+      ..['totalPrice'] = grossAmount
+      ..['bookingTotalPrice'] = grossAmount
+      ..['isPricingFinal'] = session.pricing?.isPricingFinal ?? true
+      ..['startedTravelAt'] =
+          assignment?.startedTravelAt ?? session.startedTravelAt
+      ..['arrivedAt'] = assignment?.arrivedAt ?? session.arrivedAt
+      ..['workStartedAt'] = assignment?.workStartedAt ?? session.workStartedAt
+      ..['workFinishedAt'] =
+          assignment?.workFinishedAt ?? session.workFinishedAt
+      ..['customerConfirmedAt'] = session.customerConfirmedAt
+      ..['cancelledAt'] = session.cancelledAt
+      ..['cancellationReason'] = session.cancellationReason
+      ..['openTime'] = session.isOpenTime ? widget.order.toJson()['openTime'] : null;
+
+    if (assignment != null) {
+      json['myAssignment'] = <String, dynamic>{
+        'id': assignment.id,
+        'workerId': assignment.workerId,
+        'status': assignment.status,
+        'startedTravelAt': assignment.startedTravelAt,
+        'arrivedAt': assignment.arrivedAt,
+        'startApprovedAt': assignment.startApprovedAt,
+        'workStartedAt': assignment.workStartedAt,
+        'workFinishedAt': assignment.workFinishedAt,
+        'totalHours': assignment.totalHours ?? session.hours,
+        'serviceShareAmount': serviceShare,
+        'travelFee': travelFee,
+        'adminMarginAmount': adminMargin,
+        'workerAmount': workerAmount,
+        'currency':
+            assignment.currency ??
+            session.financial?.currency ??
+            session.pricing?.currency ??
+            widget.order.currency,
+      };
+    }
+
+    return FetchOrdersUsecaseModelDataItem.fromJson(json);
+  }
+
+  Widget _buildSessionOrderDetails(WorkerBookingSessionModel session) {
+    final order = _orderForSession(session);
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsetsDirectional.fromSTEB(8, 8, 16, 8),
+          child: Row(
+            children: [
+              IconButton(
+                onPressed: () => Navigator.of(context).maybePop(),
+                icon: const Icon(Icons.arrow_back),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AppText.headlineMedium(
+                      'تفاصيل الطلب ${order.bookingNumber ?? ''}',
+                      textAlign: TextAlign.start,
+                    ),
+                    AppText.bodySmall(
+                      'الجلسة ${session.sequence} من ${_schedule.daysCount}',
+                      color: const Color(0xff6B7280),
+                      textAlign: TextAlign.start,
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: _busy ? null : _refresh,
+                icon: const Icon(Icons.refresh),
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _refresh,
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              children: [
+                if (_error != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xffFEF2F2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      _error!,
+                      style: const TextStyle(color: Color(0xffB91C1C)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (_busy) ...[
+                  const LinearProgressIndicator(minHeight: 2),
+                  const SizedBox(height: 12),
+                ],
+                OrderInfoCard(order: order),
+                const SizedBox(height: 14),
+                EstateInfoCard(order: order),
+                const SizedBox(height: 14),
+                _sessionOrderContextCard(session),
+                const SizedBox(height: 14),
+                PaymentInfoCard(order: order),
+                if (_shouldShowNavigationMap(session)) ...[
+                  const SizedBox(height: 14),
+                  _SessionNavigationMapCard(order: order),
+                ],
+                const SizedBox(height: 14),
+                _sessionCard(session),
+                const SizedBox(height: 20),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   String _friendlyError(Object error) {
@@ -1090,9 +1263,10 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
   @override
   Widget build(BuildContext context) {
     final session = _activeSession;
-    final title = widget.sessionDetailsOnly && session != null
-        ? 'تفاصيل الجلسة ${session.sequence}'
-        : 'تفاصيل الطلب ${widget.order.bookingNumber ?? ''}';
+    if (widget.sessionDetailsOnly && session != null) {
+      return _buildSessionOrderDetails(session);
+    }
+    final title = 'تفاصيل الطلب ${widget.order.bookingNumber ?? ''}';
 
     return Column(
       children: [
