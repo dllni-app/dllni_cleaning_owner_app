@@ -570,14 +570,15 @@ class OrderCard extends StatelessWidget {
                               onTap: loading
                                   ? null
                                   : () {
+                                      final navigator = Navigator.of(context);
                                       AcceptOrderBottomSheet.show(
                                         context,
                                         order: data,
                                         bloc: bloc,
                                         index: index,
                                         onAccepted: (selectedSessionId) {
-                                          if (!context.mounted) return;
-                                          context.pushRoute(
+                                          if (!navigator.mounted) return;
+                                          navigator.pushNamed(
                                             '/orderdetails',
                                             arguments: OrderDetailsScreenParams(
                                               isNewOrder: false,
