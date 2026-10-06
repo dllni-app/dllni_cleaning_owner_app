@@ -575,6 +575,22 @@ class OrderCard extends StatelessWidget {
                                         order: data,
                                         bloc: bloc,
                                         index: index,
+                                        onAccepted: (selectedSessionId) {
+                                          if (!context.mounted) return;
+                                          context.pushRoute(
+                                            '/orderdetails',
+                                            arguments: OrderDetailsScreenParams(
+                                              isNewOrder: false,
+                                              order: data,
+                                              bloc: bloc,
+                                              index: index,
+                                              selectedSessionId:
+                                                  selectedSessionId,
+                                              sessionDetailsOnly:
+                                                  selectedSessionId != null,
+                                            ),
+                                          );
+                                        },
                                       );
                                     },
                               borderRadius: BorderRadius.circular(10),
