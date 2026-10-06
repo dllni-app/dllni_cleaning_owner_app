@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:common_package/common_package.dart';
+import 'package:dio/dio.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/core/location/worker_location_tracker.dart';
 import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_arabic_time_formatter.dart';
@@ -9,6 +10,10 @@ import 'package:dllni_cleaninig_owner_app/features/orders/data/models/worker_boo
 import 'package:dllni_cleaninig_owner_app/features/orders/data/source/worker_session_remote_data_source.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_lifecycle_policy.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MultiDayOrderDetailsBody extends StatefulWidget {
   const MultiDayOrderDetailsBody({
@@ -178,8 +183,8 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     }
   }
 
-  Future<void> _runAction(Future<void> Function() action) async {
-    if (_busy || !mounted) return;
+  Future<bool> _runAction(Future<void> Function() action) async {
+    if (_busy || !mounted) return false;
     setState(() {
       _busy = true;
       _error = null;
@@ -187,12 +192,21 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     try {
       await action();
       await _refresh();
+      return mounted;
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted) return false;
       setState(() => _error = _friendlyError(error));
+      return false;
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<void> _openSessionDetailsAfterAction(int sessionId) async {
+    if (!mounted || widget.sessionDetailsOnly) return;
+    final refreshedSession = _schedule.sessionById(sessionId);
+    if (refreshedSession == null) return;
+    await _openSessionDetails(refreshedSession);
   }
 
   String _friendlyError(Object error) {
@@ -221,7 +235,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
       );
       return;
     }
-    await _runAction(() async {
+    final succeeded = await _runAction(() async {
       await getIt<WorkerSessionRemoteDataSource>().startTravel(
         bookingId: bookingId,
         sessionId: sessionId,
@@ -231,6 +245,9 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
         sessionId: sessionId,
       );
     });
+    if (succeeded) {
+      await _openSessionDetailsAfterAction(sessionId);
+    }
   }
 
   Future<void> _openSessionDetails(WorkerBookingSessionModel session) async {
@@ -268,13 +285,16 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
         !session.canArrive) {
       return;
     }
-    await _runAction(() async {
+    final succeeded = await _runAction(() async {
       await getIt<WorkerSessionRemoteDataSource>().arrive(
         bookingId: bookingId,
         sessionId: sessionId,
       );
       await WorkerLocationTracker.instance.stop();
     });
+    if (succeeded) {
+      await _openSessionDetailsAfterAction(sessionId);
+    }
   }
 
   Future<void> _fetchSecurityCode() async {
@@ -286,6 +306,10 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
         sessionId == null ||
         !session.isAwaitingStartVerification ||
         _busy) {
+      return;
+    }
+    if (!widget.sessionDetailsOnly) {
+      await _openSessionDetails(session);
       return;
     }
 
@@ -316,13 +340,16 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
         !session.canStartWork) {
       return;
     }
-    await _runAction(() async {
+    final succeeded = await _runAction(() async {
       await getIt<WorkerSessionRemoteDataSource>().startWork(
         bookingId: bookingId,
         sessionId: sessionId,
       );
       await WorkerLocationTracker.instance.stop();
     });
+    if (succeeded) {
+      await _openSessionDetailsAfterAction(sessionId);
+    }
   }
 
   Future<void> _complete() async {
@@ -344,13 +371,16 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     );
     if (message == null) return;
 
-    await _runAction(() async {
+    final succeeded = await _runAction(() async {
       await getIt<WorkerSessionRemoteDataSource>().complete(
         bookingId: bookingId,
         sessionId: sessionId,
         completionMessage: message,
       );
     });
+    if (succeeded) {
+      await _openSessionDetailsAfterAction(sessionId);
+    }
   }
 
   Future<void> _decideOpenTimeExtension(String decision) async {
@@ -1046,6 +1076,12 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     );
   }
 
+  bool _shouldShowNavigationMap(WorkerBookingSessionModel session) {
+    return !session.isTerminal &&
+        (session.canArrive ||
+            (session.startedTravelAt != null && session.arrivedAt == null));
+  }
+
   @override
   Widget build(BuildContext context) {
     final session = _activeSession;
@@ -1117,6 +1153,10 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
                   if (widget.sessionDetailsOnly) ...[
                     _sessionOrderContextCard(session),
                     const SizedBox(height: 12),
+                    if (_shouldShowNavigationMap(session)) ...[
+                      _SessionNavigationMapCard(order: widget.order),
+                      const SizedBox(height: 12),
+                    ],
                   ],
                   _sessionCard(session),
                 ],
@@ -1128,6 +1168,310 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     );
   }
 
+}
+
+class _SessionNavigationMapCard extends StatefulWidget {
+  const _SessionNavigationMapCard({required this.order});
+
+  final FetchOrdersUsecaseModelDataItem order;
+
+  @override
+  State<_SessionNavigationMapCard> createState() =>
+      _SessionNavigationMapCardState();
+}
+
+class _SessionNavigationMapCardState extends State<_SessionNavigationMapCard> {
+  final Dio _dio = Dio();
+  final MapController _mapController = MapController();
+  StreamSubscription<Position>? _positionSubscription;
+  LatLng? _currentLocation;
+  List<LatLng> _route = const <LatLng>[];
+  bool _loading = true;
+  String? _error;
+
+  LatLng? get _destination {
+    final lat = widget.order.addressLatitude;
+    final lng = widget.order.addressLongitude;
+    if (lat == null || lng == null) return null;
+    return LatLng(lat, lng);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_loadNavigation());
+  }
+
+  @override
+  void dispose() {
+    _positionSubscription?.cancel();
+    _mapController.dispose();
+    super.dispose();
+  }
+
+  Future<Position> _currentPosition() async {
+    if (!await Geolocator.isLocationServiceEnabled()) {
+      await Geolocator.openLocationSettings();
+    }
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      throw StateError('location_permission_denied');
+    }
+    return Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.bestForNavigation,
+      ),
+    );
+  }
+
+  Future<void> _loadNavigation() async {
+    final destination = _destination;
+    if (destination == null) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = 'تعذر تحديد موقع العميل لهذا الطلب.';
+      });
+      return;
+    }
+
+    try {
+      final position = await _currentPosition();
+      final current = LatLng(position.latitude, position.longitude);
+      final route = await _fetchRoute(current, destination);
+      if (!mounted) return;
+      setState(() {
+        _currentLocation = current;
+        _route = route;
+        _loading = false;
+        _error = null;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        try {
+          _mapController.move(current, 14);
+        } catch (_) {}
+      });
+      _positionSubscription?.cancel();
+      _positionSubscription = Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.bestForNavigation,
+          distanceFilter: 8,
+        ),
+      ).listen((position) {
+        if (!mounted) return;
+        final next = LatLng(position.latitude, position.longitude);
+        setState(() => _currentLocation = next);
+        try {
+          _mapController.move(next, _mapController.camera.zoom);
+        } catch (_) {}
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error =
+            'تعذر تحميل الخريطة. تحقق من صلاحية الموقع والاتصال ثم حاول مرة أخرى.';
+      });
+    }
+  }
+
+  Future<List<LatLng>> _fetchRoute(LatLng start, LatLng end) async {
+    try {
+      final response = await _dio.get<dynamic>(
+        'https://router.project-osrm.org/route/v1/driving/'
+        '${start.longitude},${start.latitude};${end.longitude},${end.latitude}',
+        queryParameters: const <String, dynamic>{
+          'overview': 'full',
+          'geometries': 'geojson',
+        },
+      );
+      final data = response.data;
+      if (data is! Map) return const <LatLng>[];
+      final routes = data['routes'];
+      if (routes is! List || routes.isEmpty || routes.first is! Map) {
+        return const <LatLng>[];
+      }
+      final geometry = (routes.first as Map)['geometry'];
+      if (geometry is! Map) return const <LatLng>[];
+      final coordinates = geometry['coordinates'];
+      if (coordinates is! List) return const <LatLng>[];
+      return coordinates
+          .whereType<List>()
+          .where((item) => item.length >= 2)
+          .map(
+            (item) => LatLng(
+              (item[1] as num).toDouble(),
+              (item[0] as num).toDouble(),
+            ),
+          )
+          .toList(growable: false);
+    } catch (_) {
+      return const <LatLng>[];
+    }
+  }
+
+  String? get _distanceLabel {
+    final current = _currentLocation;
+    final destination = _destination;
+    if (current == null || destination == null) return null;
+    final km = Geolocator.distanceBetween(
+          current.latitude,
+          current.longitude,
+          destination.latitude,
+          destination.longitude,
+        ) /
+        1000;
+    return km >= 10
+        ? '${km.toStringAsFixed(0)} كم تقريباً'
+        : '${km.toStringAsFixed(1)} كم تقريباً';
+  }
+
+  Future<void> _openExternalNavigation() async {
+    final destination = _destination;
+    if (destination == null) return;
+    final uri = Uri.parse(
+      'https://www.google.com/maps/dir/?api=1'
+      '&destination=${destination.latitude},${destination.longitude}'
+      '&travelmode=driving',
+    );
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final destination = _destination;
+    return Container(
+      width: double.infinity,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: const Color(0xffF8FAFC),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xffCBD5E1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsetsDirectional.fromSTEB(14, 12, 14, 10),
+            child: Row(
+              children: [
+                const Icon(Icons.navigation_outlined),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'الطريق إلى العميل',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+                if (_distanceLabel != null)
+                  Text(
+                    _distanceLabel!,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          SizedBox(
+            height: 320,
+            child: _loading
+                ? const Center(child: CircularProgressIndicator.adaptive())
+                : _error != null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(_error!, textAlign: TextAlign.center),
+                          const SizedBox(height: 10),
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                _loading = true;
+                                _error = null;
+                              });
+                              unawaited(_loadNavigation());
+                            },
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('إعادة المحاولة'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : _currentLocation == null || destination == null
+                ? const Center(child: Text('تعذر تحديد المسار.'))
+                : FlutterMap(
+                    mapController: _mapController,
+                    options: MapOptions(
+                      initialCenter: _currentLocation!,
+                      initialZoom: 14,
+                    ),
+                    children: [
+                      TileLayer(
+                        urlTemplate:
+                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        userAgentPackageName: 'com.dllni.clOwner',
+                      ),
+                      if (_route.isNotEmpty)
+                        PolylineLayer(
+                          polylines: <Polyline>[
+                            Polyline(
+                              points: _route,
+                              strokeWidth: 5,
+                              color: Colors.blue,
+                            ),
+                          ],
+                        ),
+                      MarkerLayer(
+                        markers: <Marker>[
+                          Marker(
+                            point: _currentLocation!,
+                            width: 42,
+                            height: 42,
+                            child: const Icon(
+                              Icons.my_location,
+                              size: 34,
+                              color: Colors.blue,
+                            ),
+                          ),
+                          Marker(
+                            point: destination,
+                            width: 42,
+                            height: 42,
+                            child: const Icon(
+                              Icons.location_on,
+                              size: 40,
+                              color: Colors.red,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: FilledButton.icon(
+              onPressed: destination == null ? null : _openExternalNavigation,
+              icon: const Icon(Icons.directions),
+              label: const Text('فتح الملاحة'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _InfoBanner extends StatelessWidget {
