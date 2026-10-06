@@ -70,10 +70,11 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
       if (!mounted) return;
       setState(() => _now = DateTime.now());
     });
-    _statusRefreshTimer = Timer.periodic(const Duration(seconds: 8), (_) {
+    _statusRefreshTimer = Timer.periodic(const Duration(seconds: 2), (_) {
       if (!mounted || _busy || _refreshing) return;
       final session = _activeSession;
-      if (session?.isAwaitingCustomerCompletion == true) {
+      if (session?.isAwaitingStartVerification == true ||
+          session?.isAwaitingCustomerCompletion == true) {
         unawaited(_refresh());
       }
     });
