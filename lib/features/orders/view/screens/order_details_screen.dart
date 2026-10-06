@@ -617,6 +617,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                   order: _order,
                   initialSchedule: schedule,
                   initialSelectedSessionId: _selectedSessionId,
+                  sessionDetailsOnly: widget.params.sessionDetailsOnly,
                   onScheduleChanged: (updated) {
                     if (!mounted) return;
                     setState(() {
@@ -683,6 +684,7 @@ class OrderDetailsScreenParams {
   final OrdersBloc bloc;
   final int index;
   final int? selectedSessionId;
+  final bool sessionDetailsOnly;
 
   OrderDetailsScreenParams({
     required this.order,
@@ -690,5 +692,6 @@ class OrderDetailsScreenParams {
     required this.bloc,
     required this.index,
     this.selectedSessionId,
+    this.sessionDetailsOnly = false,
   });
 }
