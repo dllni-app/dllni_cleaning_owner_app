@@ -38,6 +38,8 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
   String? _error;
   WorkerSessionSecurityCodeModel? _securityCode;
   Timer? _timer;
+  Timer? _statusRefreshTimer;
+  bool _refreshing = false;
   DateTime _now = DateTime.now();
 
   int? get _bookingId => widget.order.id;
@@ -59,6 +61,13 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
       if (!mounted) return;
       setState(() => _now = DateTime.now());
     });
+    _statusRefreshTimer = Timer.periodic(const Duration(seconds: 8), (_) {
+      if (!mounted || _busy || _refreshing) return;
+      final session = _activeSession;
+      if (session?.isAwaitingCustomerCompletion == true) {
+        unawaited(_refresh());
+      }
+    });
   }
 
   @override
@@ -78,6 +87,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
   @override
   void dispose() {
     _timer?.cancel();
+    _statusRefreshTimer?.cancel();
     super.dispose();
   }
 
@@ -141,7 +151,8 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
 
   Future<void> _refresh() async {
     final bookingId = _bookingId;
-    if (bookingId == null) return;
+    if (bookingId == null || _refreshing) return;
+    _refreshing = true;
     try {
       final result = await getIt<WorkerSessionRemoteDataSource>()
           .fetchBookingSchedule(bookingId);
@@ -162,6 +173,8 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _error = 'تعذر تحديث حالة جلسات المناسبة.');
+    } finally {
+      _refreshing = false;
     }
   }
 
