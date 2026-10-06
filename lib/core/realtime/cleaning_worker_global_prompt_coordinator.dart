@@ -13,6 +13,7 @@ import '../../features/orders/domain/usecases/fetch_orders_usecase_use_case.dart
 import '../../features/orders/view/helpers/order_details_to_list_item_mapper.dart';
 import '../../features/orders/view/helpers/order_lifecycle_policy.dart';
 import '../../features/orders/view/manager/bloc/orders_bloc.dart';
+import '../../features/orders/view/screens/order_details_screen.dart';
 import '../../features/orders/view/widgets/accept_order_bottom_sheet.dart';
 import '../../features/orders/view/widgets/extension_request_action_sheet.dart';
 import '../di/injection.dart';
@@ -433,6 +434,23 @@ class CleaningWorkerGlobalPromptCoordinator {
             order: order,
             bloc: bloc,
             index: -1,
+            onAccepted: (selectedSessionId) {
+              final navigationContext = _navigatorKey.currentContext;
+              if (navigationContext == null || !navigationContext.mounted) {
+                return;
+              }
+              navigationContext.pushRoute(
+                '/orderdetails',
+                arguments: OrderDetailsScreenParams(
+                  isNewOrder: false,
+                  order: order,
+                  bloc: bloc,
+                  index: -1,
+                  selectedSessionId: selectedSessionId,
+                  sessionDetailsOnly: selectedSessionId != null,
+                ),
+              );
+            },
           );
           return true;
         }
