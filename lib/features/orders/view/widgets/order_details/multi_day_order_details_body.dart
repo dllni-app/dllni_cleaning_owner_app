@@ -106,9 +106,21 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
         _selectedSessionId != null &&
         schedule.sessionById(_selectedSessionId) == null;
     final securityCodeSessionId = _securityCode?.sessionId;
+    final securityCodeSession =
+        securityCodeSessionId == null
+        ? null
+        : schedule.sessionById(securityCodeSessionId);
     final securityCodeRemoved =
+        securityCodeSessionId != null && securityCodeSession == null;
+    final securityCodeExpiresAt = DateTime.tryParse(
+      _securityCode?.expiresAt ?? '',
+    )?.toLocal();
+    final securityCodeExpired =
+        securityCodeExpiresAt != null &&
+        !securityCodeExpiresAt.isAfter(DateTime.now());
+    final securityCodeNoLongerAwaitingVerification =
         securityCodeSessionId != null &&
-        schedule.sessionById(securityCodeSessionId) == null;
+        securityCodeSession?.isAwaitingStartVerification != true;
 
     _schedule = schedule;
 
@@ -118,7 +130,11 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
       _selectedSessionId = _resolveInitialSessionId();
     }
 
-    if (selectedRemoved || securityCodeRemoved || schedule.sessions.isEmpty) {
+    if (selectedRemoved ||
+        securityCodeRemoved ||
+        securityCodeExpired ||
+        securityCodeNoLongerAwaitingVerification ||
+        schedule.sessions.isEmpty) {
       _securityCode = null;
     }
   }
@@ -711,9 +727,16 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
                       letterSpacing: 6,
                     ),
                   ),
+                  const SizedBox(height: 4),
+                  AppText.bodySmall(
+                    'أعطِ العميل هذا الرمز لهذه الجلسة فقط.',
+                    textAlign: TextAlign.center,
+                  ),
                   if (_securityCode?.expiresAt != null) ...[
                     const SizedBox(height: 4),
-                    AppText.bodySmall('ينتهي: ${_securityCode!.expiresAt}'),
+                    AppText.bodySmall(
+                      'ينتهي: ${CleaningArabicTimeFormatter.formatDateTime(_securityCode!.expiresAt, pattern: 'yyyy-MM-dd hh:mm a')}',
+                    ),
                   ],
                 ],
               ),
