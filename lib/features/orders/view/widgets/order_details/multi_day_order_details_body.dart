@@ -873,6 +873,14 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
   }
 
   Widget _actionArea(WorkerBookingSessionModel session) {
+    final displayedCodeExpiresAt = DateTime.tryParse(
+      _securityCode?.expiresAt ?? '',
+    )?.toLocal();
+    final hasActiveDisplayedSecurityCode =
+        _securityCode?.sessionId == session.id &&
+        _securityCode?.securityCode?.isNotEmpty == true &&
+        (displayedCodeExpiresAt == null || displayedCodeExpiresAt.isAfter(_now));
+
     if (session.id == null) {
       return const _InfoBanner(
         icon: Icons.info_outline,
@@ -961,9 +969,15 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
       );
     } else if (session.isAwaitingStartVerification) {
       primary = FilledButton.icon(
-        onPressed: _busy ? null : _fetchSecurityCode,
+        onPressed: _busy || hasActiveDisplayedSecurityCode
+            ? null
+            : _fetchSecurityCode,
         icon: const Icon(Icons.password),
-        label: const Text('إظهار رمز التحقق لهذه الجلسة'),
+        label: Text(
+          hasActiveDisplayedSecurityCode
+              ? 'رمز التحقق ظاهر أعلاه'
+              : 'إظهار رمز التحقق لهذه الجلسة',
+        ),
       );
     } else if (session.canStartWork) {
       primary = FilledButton.icon(
