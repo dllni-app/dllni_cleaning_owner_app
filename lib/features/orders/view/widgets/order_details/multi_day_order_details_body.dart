@@ -710,7 +710,10 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
             ),
           ],
           if (_securityCode?.securityCode != null &&
-              _securityCode?.sessionId == session.id) ...[
+              _securityCode?.sessionId == session.id &&
+              session.isAwaitingStartVerification &&
+              (DateTime.tryParse(_securityCode?.expiresAt ?? '')?.toLocal().isAfter(_now) ??
+                  true)) ...[
             const SizedBox(height: 12),
             Container(
               width: double.infinity,
