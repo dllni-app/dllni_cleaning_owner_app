@@ -90,10 +90,10 @@ class MissionOpenTimeInfoCard extends StatelessWidget {
     final elapsed = presentation.elapsed;
     return Semantics(
       container: true,
-      label: 'طلب وقت مفتوح. المدة والتكلفة النهائية يحددهما النظام.',
+      label: 'عامل بالساعة. المدة والتكلفة النهائية يحددهما النظام.',
       child: _OperationalDetailsCard(
         icon: Icons.timelapse_outlined,
-        title: 'طلب وقت مفتوح',
+        title: 'عامل بالساعة',
         subtitle: presentation.isFinal
             ? 'تم توثيق انتهاء العمل من النظام'
             : 'المدة المعروضة للمتابعة فقط',
