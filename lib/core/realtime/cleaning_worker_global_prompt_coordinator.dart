@@ -231,7 +231,7 @@ class CleaningWorkerGlobalPromptCoordinator {
     Map<String, dynamic> payload,
   ) {
     final targetWorkerId = _asInt(payload['workerId'] ?? payload['worker_id']);
-    final currentWorkerId = _listeningWorkerId;
+    final currentWorkerId = _listeningWorkerId ?? _readWorkerId();
     if (targetWorkerId != null &&
         currentWorkerId != null &&
         targetWorkerId != currentWorkerId) {
