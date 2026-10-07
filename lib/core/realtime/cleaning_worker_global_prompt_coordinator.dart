@@ -600,6 +600,7 @@ class CleaningWorkerGlobalPromptCoordinator {
       final resolved = await _showExtensionSheet(
         warningId: warningId,
         bookingId: bookingId,
+        sessionId: _asInt(payload['sessionId'] ?? payload['session_id']),
         requestedMinutes:
             requestedMinutesOverride ?? _resolveRequestedMinutes(payload),
         customerName: (payload['customerName'] ?? payload['customer_name'])
@@ -644,12 +645,19 @@ class CleaningWorkerGlobalPromptCoordinator {
     _inFlightExtensionLookupBookingIds.add(bookingId);
     try {
       final requests = await _loadPendingExtensionRequests();
+      final payloadSessionId = _asInt(
+        payload['sessionId'] ?? payload['session_id'],
+      );
       WorkerPendingExtensionRequest? match;
       for (final request in requests) {
-        if (request.bookingId == bookingId && request.warningId != null) {
-          match = request;
-          break;
+        if (request.bookingId != bookingId || request.warningId == null) {
+          continue;
         }
+        if (payloadSessionId != null && request.sessionId != payloadSessionId) {
+          continue;
+        }
+        match = request;
+        break;
       }
       if (match == null || match.warningId == null) return false;
       return _openExtensionPromptForWarning(
@@ -657,6 +665,7 @@ class CleaningWorkerGlobalPromptCoordinator {
         bookingId: match.bookingId ?? bookingId,
         payload: {
           ...payload,
+          'sessionId': match.sessionId ?? payloadSessionId,
           'baseAmount': match.baseAmount,
           'adminMargin': match.adminMargin,
           'totalAmount': match.totalAmount,
@@ -673,6 +682,7 @@ class CleaningWorkerGlobalPromptCoordinator {
   Future<bool> _showExtensionSheet({
     required int warningId,
     required int? bookingId,
+    required int? sessionId,
     required int? requestedMinutes,
     required String? customerName,
     required double? baseAmount,
@@ -700,6 +710,7 @@ class CleaningWorkerGlobalPromptCoordinator {
         WorkerExtensionPromptData(
           warningId: warningId,
           bookingId: bookingId,
+          sessionId: sessionId,
           requestedMinutes: enriched.requestedMinutes,
           customerName: enriched.customerName,
           baseAmount: enriched.baseAmount,
@@ -903,6 +914,7 @@ class CleaningWorkerGlobalPromptCoordinator {
             (item) => WorkerPendingExtensionRequest(
               warningId: _asInt(item.id),
               bookingId: _asInt(item.bookingId),
+              sessionId: _asInt(item.sessionId),
               requestedMinutes: _asInt(item.resolvedAdditionalMinutes),
               baseAmount: item.baseAmount,
               adminMargin: item.adminMargin,
@@ -1040,6 +1052,7 @@ class WorkerExtensionPromptData {
   const WorkerExtensionPromptData({
     required this.warningId,
     required this.bookingId,
+    this.sessionId,
     required this.requestedMinutes,
     required this.customerName,
     required this.baseAmount,
@@ -1051,6 +1064,7 @@ class WorkerExtensionPromptData {
   });
   final int warningId;
   final int? bookingId;
+  final int? sessionId;
   final int? requestedMinutes;
   final String? customerName;
   final double? baseAmount;
@@ -1083,6 +1097,7 @@ class WorkerPendingExtensionRequest {
   const WorkerPendingExtensionRequest({
     required this.warningId,
     required this.bookingId,
+    this.sessionId,
     required this.requestedMinutes,
     this.baseAmount,
     this.adminMargin,
@@ -1092,6 +1107,7 @@ class WorkerPendingExtensionRequest {
   });
   final int? warningId;
   final int? bookingId;
+  final int? sessionId;
   final int? requestedMinutes;
   final double? baseAmount;
   final double? adminMargin;
