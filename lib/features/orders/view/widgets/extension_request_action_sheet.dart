@@ -209,7 +209,14 @@ class _ExtensionRequestActionSheetBodyState
           if (state.acceptExtensionUsecaseStatus == BlocStatus.failed ||
               state.rejectExtensionUsecaseStatus == BlocStatus.failed) {
             if (mounted) {
-              setState(() => _isSubmitting = false);
+              setState(() {
+                _isSubmitting = false;
+                _rejectError = ErrorMessageFormatter.format(
+                  state.errorMessage,
+                  fallback:
+                      'تعذر تنفيذ قرار التمديد. حدّث الطلب وحاول مرة أخرى.',
+                );
+              });
             }
           }
         },
