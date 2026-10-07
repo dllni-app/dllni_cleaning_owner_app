@@ -482,8 +482,8 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     if (_isAwaitingWorkerStartConfirmation) return 'جاهز لبدء العمل';
     if (_isOpenTime) {
       return _openTimePresentation.isFinal
-          ? 'اكتمل وقت العمل'
-          : 'وقت مفتوح قيد التنفيذ';
+          ? 'اكتمل العمل بالساعة'
+          : 'عمل بالساعة قيد التنفيذ';
     }
     if (_uiState.isWaitingCustomer) return 'بانتظار تأكيد العميل';
     if (_uiState.isExtensionPending) return 'طلب تمديد وقت';
