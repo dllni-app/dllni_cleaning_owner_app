@@ -300,9 +300,12 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
         _timerSession == null ||
         _timerSession!.isExtension ||
         _timerOrderId != widget.order.id) {
-      _timerSession = OrderWorkTimerHelper.startOriginalSession(
-        now: DateTime.now(),
+      final backendStart = DateTime.tryParse(widget.order.workStartedAt ?? '');
+      _timerSession = OrderWorkTimerSession(
+        sessionStart: backendStart ?? DateTime.now(),
         maxDuration: maxDuration,
+        sessionKey: 'base:${widget.order.id}:${backendStart?.toIso8601String() ?? 'local'}:${maxDuration.inSeconds}',
+        isExtension: false,
       );
       _timerOrderId = widget.order.id;
     }
