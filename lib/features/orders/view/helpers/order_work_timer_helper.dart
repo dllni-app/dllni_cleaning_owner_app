@@ -23,10 +23,12 @@ class AcceptedExtensionTimerSeed {
   const AcceptedExtensionTimerSeed({
     required this.id,
     required this.minutes,
+    this.startedAt,
   });
 
   final int? id;
   final int minutes;
+  final DateTime? startedAt;
 
   String get sessionKey => 'extension:${id ?? 'unknown'}:$minutes';
 }
@@ -76,7 +78,7 @@ class OrderWorkTimerHelper {
     required AcceptedExtensionTimerSeed seed,
   }) {
     return OrderWorkTimerSession(
-      sessionStart: now,
+      sessionStart: seed.startedAt ?? now,
       maxDuration: Duration(minutes: seed.minutes),
       sessionKey: seed.sessionKey,
       isExtension: true,
@@ -146,7 +148,11 @@ class OrderWorkTimerHelper {
         ),
       );
       final id = _asInt(_pick(map, const <String>['id', 'warningId', 'warning_id']));
-      final candidate = AcceptedExtensionTimerSeed(id: id, minutes: minutes);
+      final candidate = AcceptedExtensionTimerSeed(
+        id: id,
+        minutes: minutes,
+        startedAt: responseTime,
+      );
       if (latest == null ||
           (responseTime != null &&
               (latestTime == null || responseTime.isAfter(latestTime))) ||
