@@ -124,6 +124,8 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
   bool get _isEventAssistance =>
       EventAssistanceOrderHelper.isEventAssistance(_order.propertyType);
 
+  bool get _isHourlyWorker => _order.openTime != null;
+
   bool get _isMultiSession => _schedule?.isMultiDay == true;
 
   bool get _canConfirmAcceptance =>
@@ -524,6 +526,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
   }
 
   String _serviceName() {
+    if (_order.openTime != null) return 'عامل بالساعة';
     return EventAssistanceOrderHelper.serviceTitle(
       propertyType: _order.propertyType,
       customService: _order.propertyDetails?.customService,
@@ -751,7 +754,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               AppText.bodyMedium(
-                'خدمة بوقت مفتوح',
+                'عامل بالساعة',
                 fontWeight: FontWeight.w800,
                 color: const Color(0xff1E3A8A),
               ),
@@ -889,6 +892,31 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
   }
 
   List<Widget> _propertyDetailsRows() {
+    if (_isHourlyWorker) {
+      final details = _order.propertyDetails;
+      final rows = <MapEntry<String, String>>[
+        const MapEntry('نوع الطلب', 'عامل بالساعة'),
+        if (_order.openTime?.requestedWorkerCount != null)
+          MapEntry('عدد العمال', '${_order.openTime!.requestedWorkerCount}'),
+        if (_order.openTime?.expectedMaxMinutes != null)
+          MapEntry(
+            'المدة القصوى المتوقعة',
+            _minutesLabel(_order.openTime!.expectedMaxMinutes!),
+          ),
+        if (details?.notes?.trim().isNotEmpty == true)
+          MapEntry('ملاحظات المستخدم', details!.notes!.trim()),
+      ];
+
+      return List<Widget>.generate(rows.length, (index) {
+        final row = rows[index];
+        return _orderInfoRow(
+          label: row.key,
+          value: row.value,
+          withDivider: index != rows.length - 1,
+        );
+      });
+    }
+
     if (_isEventAssistance) {
       final details = _order.propertyDetails;
       final rows = <MapEntry<String, String>>[
