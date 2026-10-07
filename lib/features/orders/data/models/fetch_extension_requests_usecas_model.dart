@@ -222,6 +222,7 @@ class FetchExtensionRequestsUsecasModelDataItem {
   int? id;
   int? bookingId;
   String? bookingType;
+  int? sessionId;
   int? requestedMinutes;
   int? additionalMinutes;
   double? baseAmount;
@@ -240,6 +241,7 @@ class FetchExtensionRequestsUsecasModelDataItem {
     this.id,
     this.bookingId,
     this.bookingType,
+    this.sessionId,
     this.requestedMinutes,
     this.additionalMinutes,
     this.baseAmount,
@@ -300,6 +302,7 @@ class FetchExtensionRequestsUsecasModelDataItem {
       id: _asInt(json['id']),
       bookingId: _asInt(json['bookingId'] ?? json['booking_id']),
       bookingType: _asString(json['bookingType'] ?? json['booking_type']),
+      sessionId: _asInt(json['sessionId'] ?? json['session_id']),
       requestedMinutes: _asInt(json['requestedMinutes']),
       additionalMinutes: _asInt(
         json['additionalMinutes'] ?? json['additional_minutes'],
@@ -337,6 +340,7 @@ class FetchExtensionRequestsUsecasModelDataItem {
       'id': id,
       'bookingId': bookingId,
       'bookingType': bookingType,
+      'sessionId': sessionId,
       'requestedMinutes': requestedMinutes,
       'additionalMinutes': additionalMinutes,
       'baseAmount': baseAmount,
