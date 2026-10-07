@@ -81,11 +81,16 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }
 
   int? _resolveWorkerId() {
+    final raw = SharedPreferencesHelper.getData(key: 'worker_id');
+    if (raw is num && raw.toInt() > 0) return raw.toInt();
+    final cachedWorkerId = int.tryParse('$raw');
+    if (cachedWorkerId != null && cachedWorkerId > 0) {
+      return cachedWorkerId;
+    }
+
     final fromOrder = _order.workerId;
     if (fromOrder != null && fromOrder > 0) return fromOrder;
-    final raw = SharedPreferencesHelper.getData(key: 'worker_id');
-    if (raw is num) return raw.toInt();
-    return int.tryParse('$raw');
+    return null;
   }
 
   @override
@@ -235,7 +240,15 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         (normalizedEvent == CleaningRealtimeContract.completionDecisionMade &&
             (payload['decision'] ?? '').toString().trim().toLowerCase() ==
                 'extension_requested');
-    if (isExtensionRequest) {
+    final extensionTargetWorkerId = _toInt(
+      payload['workerId'] ?? payload['worker_id'],
+    );
+    final currentWorkerId = _resolveWorkerId();
+    final extensionTargetsCurrentWorker =
+        extensionTargetWorkerId == null ||
+        currentWorkerId == null ||
+        extensionTargetWorkerId == currentWorkerId;
+    if (isExtensionRequest && extensionTargetsCurrentWorker) {
       unawaited(
         CleaningWorkerExtensionPrompts.dispatchRealtimeEvent(
           eventName,
