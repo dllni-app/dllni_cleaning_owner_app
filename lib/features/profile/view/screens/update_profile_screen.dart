@@ -461,7 +461,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
             ),
             8.horizontalSpace,
             Icon(
-              isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+              isSelected ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
               color: isSelected ? option.color : const Color(0xff9CA3AF),
               size: 22.sp,
             ),
