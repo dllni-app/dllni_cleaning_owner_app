@@ -230,6 +230,14 @@ class CleaningWorkerGlobalPromptCoordinator {
     String eventName,
     Map<String, dynamic> payload,
   ) {
+    final targetWorkerId = _asInt(payload['workerId'] ?? payload['worker_id']);
+    final currentWorkerId = _listeningWorkerId;
+    if (targetWorkerId != null &&
+        currentWorkerId != null &&
+        targetWorkerId != currentWorkerId) {
+      return false;
+    }
+
     final bookingId = CleaningRealtimeContract.extractBookingId(payload);
     final warningId = CleaningRealtimeContract.extractWarningId(payload);
     if (bookingId == null && warningId == null) return false;
