@@ -274,10 +274,16 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
       widget.order.timeWarnings,
     );
     if (extensionSeed != null) {
+      // Extension timing must remain server-authoritative.
+      if (extensionSeed.startedAt == null) {
+        _timerSession = null;
+        _timerOrderId = null;
+        return;
+      }
       if (resetCurrentSession ||
           _timerSession?.sessionKey != extensionSeed.sessionKey) {
         _timerSession = OrderWorkTimerHelper.startExtensionSession(
-          now: DateTime.now(),
+          now: extensionSeed.startedAt!,
           seed: extensionSeed,
         );
         _timerOrderId = widget.order.id;
@@ -300,9 +306,18 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
         _timerSession == null ||
         _timerSession!.isExtension ||
         _timerOrderId != widget.order.id) {
-      _timerSession = OrderWorkTimerHelper.startOriginalSession(
-        now: DateTime.now(),
+      final backendStart = DateTime.tryParse(widget.order.workStartedAt ?? '');
+      if (backendStart == null) {
+        // Never synthesize a work-start timestamp from the device clock.
+        _timerSession = null;
+        _timerOrderId = null;
+        return;
+      }
+      _timerSession = OrderWorkTimerSession(
+        sessionStart: backendStart,
         maxDuration: maxDuration,
+        sessionKey: 'base:${widget.order.id}:${backendStart.toIso8601String()}:${maxDuration.inSeconds}',
+        isExtension: false,
       );
       _timerOrderId = widget.order.id;
     }
@@ -312,13 +327,18 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     final data = state.acceptExtensionUsecase?.data;
     final minutes = data?.approvedMinutes;
     if (minutes == null || minutes <= 0) return;
-    final seed = AcceptedExtensionTimerSeed(id: data?.id, minutes: minutes);
-    if (_timerSession?.sessionKey == seed.sessionKey) return;
-    _timerSession = OrderWorkTimerHelper.startExtensionSession(
-      now: DateTime.now(),
-      seed: seed,
-    );
-    _timerOrderId = widget.order.id;
+    // Do not start an extension timer from the device clock. Refresh the
+    // booking and resume from the authoritative backend timestamp.
+    _timerSession = null;
+    _timerOrderId = null;
+    final orderId = widget.order.id;
+    if (orderId != null) {
+      widget.bloc.add(
+        FetchOrderDetailsUsecaseEvent(
+          params: FetchOrderDetailsUsecaseParams(id: orderId),
+        ),
+      );
+    }
     _calculateWorkTimer();
   }
 
@@ -479,8 +499,8 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     if (_isAwaitingWorkerStartConfirmation) return 'جاهز لبدء العمل';
     if (_isOpenTime) {
       return _openTimePresentation.isFinal
-          ? 'اكتمل وقت العمل'
-          : 'وقت مفتوح قيد التنفيذ';
+          ? 'اكتمل العمل بالساعة'
+          : 'عمل بالساعة قيد التنفيذ';
     }
     if (_uiState.isWaitingCustomer) return 'بانتظار تأكيد العميل';
     if (_uiState.isExtensionPending) return 'طلب تمديد وقت';
