@@ -516,11 +516,12 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     final res = await acceptExtensionUsecaseUseCase(event.params);
     res.fold(
       (l) {
-        AppToast.showErrorGlobal(l.message);
+        final message = _mapExtensionFailureMessage(l);
+        AppToast.showErrorGlobal(message);
         emit(
           state.copyWith(
             acceptExtensionUsecaseStatus: BlocStatus.failed,
-            errorMessage: l.message,
+            errorMessage: message,
           ),
         );
       },
@@ -551,11 +552,12 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     final res = await rejectExtensionUsecaseUseCase(event.params);
     res.fold(
       (l) {
-        AppToast.showErrorGlobal(l.message);
+        final message = _mapExtensionFailureMessage(l);
+        AppToast.showErrorGlobal(message);
         emit(
           state.copyWith(
             rejectExtensionUsecaseStatus: BlocStatus.failed,
-            errorMessage: l.message,
+            errorMessage: message,
           ),
         );
       },
@@ -1037,6 +1039,54 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
 
   String _mapAcceptFailureMessage(Failure failure) {
     return OrdersAcceptFlowPolicy.mapAcceptFailureMessage(failure);
+  }
+
+  String _mapExtensionFailureMessage(Failure failure) {
+    final raw = (failure.message).trim();
+    final normalized = raw.toLowerCase();
+
+    if (normalized.contains('extension request is not for your booking') ||
+        normalized.contains('extension request is not for your worker assignment') ||
+        normalized.contains('طلب التمديد مخصص لعامل آخر') ||
+        normalized.contains('غير مرتبط بطلب التمديد')) {
+      return 'تعذر تنفيذ القرار لأن طلب التمديد لم يعد مرتبطاً بحساب العامل الحالي. حدّث الطلب وحاول مرة أخرى.';
+    }
+
+    if (normalized.contains('session') &&
+        (normalized.contains('invalid') ||
+            normalized.contains('missing') ||
+            normalized.contains('تعذر تحديد الجلسة') ||
+            normalized.contains('جلسة طلب التمديد'))) {
+      return 'تعذر تحديد جلسة طلب التمديد. حدّث تفاصيل الطلب ثم حاول مرة أخرى.';
+    }
+
+    if (failure.statusCode == 403) {
+      final formatted = ErrorMessageFormatter.format(
+        raw,
+        fallback:
+            'لا يمكنك تنفيذ قرار التمديد لهذا الطلب. حدّث الطلب وتأكد أنه ما زال مرتبطاً بحسابك.',
+      );
+      if (formatted.trim().isNotEmpty &&
+          formatted.trim() != AppToast.defaultErrorMessage) {
+        return formatted;
+      }
+      return 'لا يمكنك تنفيذ قرار التمديد لهذا الطلب. حدّث الطلب وتأكد أنه ما زال مرتبطاً بحسابك.';
+    }
+
+    if (failure.statusCode == 409) {
+      return 'حالة الطلب تغيّرت ولم يعد قرار التمديد متاحاً. حدّث الطلب وحاول مرة أخرى.';
+    }
+
+    final formatted = ErrorMessageFormatter.format(
+      raw,
+      fallback: 'تعذر تنفيذ قرار التمديد. حدّث الطلب وحاول مرة أخرى.',
+    );
+    if (formatted.trim().isEmpty ||
+        formatted.trim() == AppToast.defaultErrorMessage ||
+        formatted.trim() == ErrorMessageFormatter.defaultFallback) {
+      return 'تعذر تنفيذ قرار التمديد. حدّث الطلب وحاول مرة أخرى.';
+    }
+    return formatted;
   }
 
   String _mapLifecycleFailureMessage(
