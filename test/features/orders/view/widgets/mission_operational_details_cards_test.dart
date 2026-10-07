@@ -86,7 +86,7 @@ void main() {
       ),
     );
 
-    expect(find.text('طلب وقت مفتوح'), findsOneWidget);
+    expect(find.text('عامل بالساعة'), findsOneWidget);
     expect(find.text('المدة الفعلية للعمل'), findsOneWidget);
     expect(find.text('00:44:00'), findsOneWidget);
     expect(find.text('المدة القابلة للفوترة'), findsOneWidget);
