@@ -17,6 +17,7 @@ void main() {
 
   setUp(() async {
     SharedPreferences.setMockInitialValues(<String, Object>{
+      'worker_id': currentWorkerId,
       'user': jsonEncode(<String, dynamic>{
         'data': <String, dynamic>{'id': currentWorkerId},
       }),
@@ -55,6 +56,33 @@ void main() {
 
         expect(shown.length, 1);
         expect(shown.first.warningId, 100);
+      },
+    );
+
+    test(
+      'ServiceExtensionRequested ignores prompts targeted to another worker',
+      () async {
+        final shown = <WorkerExtensionPromptData>[];
+        final coordinator = CleaningWorkerGlobalPromptCoordinator(
+          navigatorKey: GlobalKey<NavigatorState>(),
+          pusherManager: _buildNoopPusherManager(),
+          extensionPromptPresenter: (prompt) async {
+            shown.add(prompt);
+            return true;
+          },
+        )..markStartedForTest();
+
+        await coordinator.handleRealtimeEventForTest(
+          CleaningRealtimeContract.serviceExtensionRequested,
+          const <String, dynamic>{
+            'warningId': 201,
+            'cleaningBookingId': 54,
+            'workerId': currentWorkerId + 1,
+            'requestedMinutes': 30,
+          },
+        );
+
+        expect(shown, isEmpty);
       },
     );
 
