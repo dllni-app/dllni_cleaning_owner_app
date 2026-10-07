@@ -227,7 +227,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     if (_isMultiDay &&
         payloadSessionId != null &&
         _multiDaySchedule?.sessionById(payloadSessionId) != null) {
-      _selectedSessionId ??= payloadSessionId;
+      _selectedSessionId = payloadSessionId;
     }
 
     final isExtensionRequest =
