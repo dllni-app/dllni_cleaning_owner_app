@@ -35,6 +35,7 @@ class OrderCard extends StatelessWidget {
   final int index;
 
   String _serviceName() {
+    if (data.openTime != null) return 'عامل بالساعة';
     return EventAssistanceOrderHelper.serviceTitle(
       propertyType: data.propertyType,
       customService: data.propertyDetails?.customService,
