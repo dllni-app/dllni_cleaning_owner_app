@@ -1,5 +1,16 @@
 import 'dart:convert';
 
+List<String> _asStringList(dynamic value) {
+  if (value is List) {
+    return value
+        .map((item) => item?.toString().trim().toLowerCase() ?? '')
+        .where((item) => item.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+  }
+  return const <String>[];
+}
+
 String? _asString(dynamic value) {
   if (value == null) return null;
   if (value is String) return value;
@@ -93,6 +104,7 @@ class FetchWorkerProfileUsecaseModelData {
   List<Zone>? zones;
   List<Availability>? availability;
   String? preferredWorkType;
+  List<String> preferredWorkTypes;
   String? createdAt;
   String? updatedAt;
 
@@ -124,6 +136,7 @@ class FetchWorkerProfileUsecaseModelData {
     this.zones,
     this.availability,
     this.preferredWorkType,
+    this.preferredWorkTypes = const <String>[],
     this.createdAt,
     this.updatedAt,
   });
@@ -165,6 +178,20 @@ class FetchWorkerProfileUsecaseModelData {
       preferredWorkType: _asString(
         json['preferred_work_type'] ?? json['preferredWorkType'],
       ),
+      preferredWorkTypes: (() {
+        final values = _asStringList(
+          json['preferredWorkTypes'] ?? json['preferred_work_types'],
+        );
+        if (values.isNotEmpty) return values;
+        final legacy = _asString(
+          json['preferred_work_type'] ?? json['preferredWorkType'],
+        )?.toLowerCase();
+        if (legacy == 'both') return <String>['cleaning', 'events'];
+        if (legacy == 'cleaning' || legacy == 'events' || legacy == 'hourly') {
+          return <String>[legacy!];
+        }
+        return <String>['cleaning'];
+      })(),
       createdAt: _asString(json['createdAt']),
       updatedAt: _asString(json['updatedAt']),
     );
@@ -198,6 +225,8 @@ class FetchWorkerProfileUsecaseModelData {
     'zones': zones?.map((e) => e.toJson()).toList(),
     'availability': availability?.map((e) => e.toJson()).toList(),
     'preferred_work_type': preferredWorkType,
+    'preferredWorkTypes': preferredWorkTypes,
+    'preferred_work_types': preferredWorkTypes,
     'createdAt': createdAt,
     'updatedAt': updatedAt,
   };
