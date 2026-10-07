@@ -524,6 +524,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
   }
 
   String _serviceName() {
+    if (_order.openTime != null) return 'عامل بالساعة';
     return EventAssistanceOrderHelper.serviceTitle(
       propertyType: _order.propertyType,
       customService: _order.propertyDetails?.customService,
@@ -749,7 +750,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               AppText.bodyMedium(
-                'خدمة بوقت مفتوح',
+                'عامل بالساعة',
                 fontWeight: FontWeight.w800,
                 color: const Color(0xff1E3A8A),
               ),
