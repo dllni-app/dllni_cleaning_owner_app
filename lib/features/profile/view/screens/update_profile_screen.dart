@@ -33,7 +33,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
   late TextEditingController _cityMeController;
   late TextEditingController phoneNumberController;
 
-  String _preferredWorkType = 'both';
+  final Set<String> _preferredWorkTypes = <String>{'cleaning'};
 
   static const List<
     ({String value, String title, String subtitle, IconData icon, Color color})
@@ -41,23 +41,23 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
   _workTypeOptions = [
     (
       value: 'cleaning',
-      title: 'طلبات التنظيف فقط',
-      subtitle: 'استقبال طلبات تنظيف المنازل والمكاتب فقط',
+      title: 'تنظيف',
+      subtitle: 'استقبال طلبات تنظيف المنازل والمكاتب',
       icon: Icons.cleaning_services_outlined,
       color: Color(0xff3B82F6),
     ),
     (
       value: 'events',
-      title: 'طلبات الفعاليات فقط',
-      subtitle: 'استقبال طلبات مساعدة وتنظيف الفعاليات فقط',
+      title: 'مناسبات',
+      subtitle: 'استقبال طلبات المساعدة في المناسبات',
       icon: Icons.event_outlined,
       color: Color(0xffA855F7),
     ),
     (
-      value: 'both',
-      title: 'كلا النوعين',
-      subtitle: 'استقبال طلبات التنظيف وطلبات الفعاليات معاً',
-      icon: Icons.all_inclusive,
+      value: 'hourly',
+      title: 'عامل بالساعة',
+      subtitle: 'استقبال طلبات العمل المحسوبة بالوقت',
+      icon: Icons.timer_outlined,
       color: Color(0xff22C55E),
     ),
   ];
@@ -75,7 +75,12 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     phoneNumberController = TextEditingController(
       text: _phoneWithCountryCode(widget.params.phone),
     );
-    _preferredWorkType = widget.params.preferredWorkType ?? 'both';
+    _preferredWorkTypes
+      ..clear()
+      ..addAll(widget.params.preferredWorkTypes.isNotEmpty
+          ? widget.params.preferredWorkTypes
+          : _legacyPreferredWorkTypes(widget.params.preferredWorkType));
+    if (_preferredWorkTypes.isEmpty) _preferredWorkTypes.add('cleaning');
   }
 
   String _phoneWithCountryCode(String? phone) {
@@ -279,8 +284,8 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                                             isActive: 1,
                                             name: widget.params.name,
                                             phone: widget.params.phone,
-                                            preferredWorkType:
-                                                _preferredWorkType,
+                                            preferredWorkTypes:
+                                                _preferredWorkTypes.toList(growable: false),
                                           ),
                                         ),
                                       );
@@ -395,9 +400,19 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     ({String value, String title, String subtitle, IconData icon, Color color})
     option,
   ) {
-    final isSelected = _preferredWorkType == option.value;
+    final isSelected = _preferredWorkTypes.contains(option.value);
     return InkWell(
-      onTap: () => setState(() => _preferredWorkType = option.value),
+      onTap: () {
+        setState(() {
+          if (isSelected) {
+            if (_preferredWorkTypes.length > 1) {
+              _preferredWorkTypes.remove(option.value);
+            }
+          } else {
+            _preferredWorkTypes.add(option.value);
+          }
+        });
+      },
       borderRadius: BorderRadius.circular(14.r),
       child: Container(
         decoration: BoxDecoration(
@@ -446,7 +461,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
             ),
             8.horizontalSpace,
             Icon(
-              isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+              isSelected ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
               color: isSelected ? option.color : const Color(0xff9CA3AF),
               size: 22.sp,
             ),
@@ -609,6 +624,20 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
   }
 }
 
+List<String> _legacyPreferredWorkTypes(String? value) {
+  switch (value?.trim().toLowerCase()) {
+    case 'both':
+      return const <String>['cleaning', 'events'];
+    case 'events':
+      return const <String>['events'];
+    case 'hourly':
+      return const <String>['hourly'];
+    case 'cleaning':
+    default:
+      return const <String>['cleaning'];
+  }
+}
+
 class UpdateProfileScreenParams {
   const UpdateProfileScreenParams({
     required this.name,
@@ -620,6 +649,7 @@ class UpdateProfileScreenParams {
     this.bio,
     this.avatarUrl,
     this.preferredWorkType,
+    this.preferredWorkTypes = const <String>[],
   });
 
   factory UpdateProfileScreenParams.fromWorkerProfile(
@@ -632,7 +662,8 @@ class UpdateProfileScreenParams {
       bio: data.bio,
       city: data.homeAddress,
       avatarUrl: data.avatar?.url,
-      preferredWorkType: data.preferredWorkType ?? 'both',
+      preferredWorkType: data.preferredWorkType,
+      preferredWorkTypes: data.preferredWorkTypes,
     );
   }
 
@@ -645,4 +676,5 @@ class UpdateProfileScreenParams {
   final String? bio;
   final String? avatarUrl;
   final String? preferredWorkType;
+  final List<String> preferredWorkTypes;
 }
