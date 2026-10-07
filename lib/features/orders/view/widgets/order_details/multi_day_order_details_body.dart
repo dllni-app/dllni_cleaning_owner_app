@@ -1152,7 +1152,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
       final minutes = session.openTime?.pendingExtension?.requestedMinutes ?? 0;
       return _OpenTimeDecisionPanel(
         icon: Icons.more_time,
-        title: 'طلب تمديد الوقت المفتوح',
+        title: 'طلب تمديد وقت العامل بالساعة',
         message: 'طلب العميل تمديد هذه الجلسة $minutes دقيقة.',
         busy: _busy,
         onAccept: () => _decideOpenTimeExtension('accepted'),
@@ -1163,7 +1163,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
         session.canDecideOpenTimeEnd) {
       return _OpenTimeDecisionPanel(
         icon: Icons.stop_circle_outlined,
-        title: 'طلب إنهاء الوقت المفتوح',
+        title: 'طلب إنهاء عمل العامل بالساعة',
         message: 'يريد العميل إنهاء هذه الجلسة الآن.',
         busy: _busy,
         onAccept: () => _decideOpenTimeEnd('accepted'),
