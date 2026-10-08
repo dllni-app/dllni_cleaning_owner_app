@@ -17,15 +17,12 @@ class WorkerProfileCompletenessResult {
   final bool hasWorkingTime;
 
   bool get isComplete =>
-      hasMissionStartLocation && hasWorkAreas && hasWorkingTime;
+      hasMissionStartLocation && hasWorkingTime;
 
   List<String> get missingSectionsAr {
     final sections = <String>[];
     if (!hasMissionStartLocation) {
       sections.add(profileLocationSectionLabelAr);
-    }
-    if (!hasWorkAreas) {
-      sections.add(profileWorkAreasSectionLabelAr);
     }
     if (!hasWorkingTime) {
       sections.add(profileWorkingTimeSectionLabelAr);
@@ -126,9 +123,8 @@ bool isProfileSectionIncompleteByIndex(
   WorkerProfileCompletenessResult result,
 ) {
   return switch (sectionIndex) {
-    1 => !result.hasWorkAreas,
-    2 => !result.hasMissionStartLocation,
-    3 => !result.hasWorkingTime,
+    1 => !result.hasMissionStartLocation,
+    2 => !result.hasWorkingTime,
     _ => false,
   };
 }
