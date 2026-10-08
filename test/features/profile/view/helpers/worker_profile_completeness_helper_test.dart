@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('evaluateWorkerProfileCompleteness', () {
     test(
-      'returns complete when location/work areas/working time are valid',
+      'returns complete when location and working time are valid',
       () {
         final result = evaluateWorkerProfileCompleteness(
           _buildProfile(
@@ -38,7 +38,7 @@ void main() {
       expect(result.missingSectionsAr, <String>[profileLocationSectionLabelAr]);
     });
 
-    test('marks missing work areas only', () {
+    test('does not require legacy work areas', () {
       final result = evaluateWorkerProfileCompleteness(
         _buildProfile(
           withLocation: true,
@@ -50,9 +50,8 @@ void main() {
       expect(result.hasMissionStartLocation, isTrue);
       expect(result.hasWorkAreas, isFalse);
       expect(result.hasWorkingTime, isTrue);
-      expect(result.missingSectionsAr, <String>[
-        profileWorkAreasSectionLabelAr,
-      ]);
+      expect(result.missingSectionsAr, isEmpty);
+      expect(result.isComplete, isTrue);
     });
 
     test('marks missing working time only', () {
@@ -83,7 +82,6 @@ void main() {
 
       expect(result.missingSectionsAr, <String>[
         profileLocationSectionLabelAr,
-        profileWorkAreasSectionLabelAr,
       ]);
     });
 
@@ -154,7 +152,7 @@ void main() {
 
       expect(isProfileSectionIncompleteByIndex(0, result), isFalse);
       expect(isProfileSectionIncompleteByIndex(1, result), isTrue);
-      expect(isProfileSectionIncompleteByIndex(2, result), isTrue);
+      expect(isProfileSectionIncompleteByIndex(2, result), isFalse);
       expect(isProfileSectionIncompleteByIndex(3, result), isFalse);
       expect(isProfileSectionIncompleteByIndex(4, result), isFalse);
     });
