@@ -124,7 +124,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
   bool get _isEventAssistance =>
       EventAssistanceOrderHelper.isEventAssistance(_order.propertyType);
 
-  bool get _isHourlyWorker => _order.openTime != null;
+  bool get _isHourlyWorker => _order.isHourlyWorker;
 
   bool get _isMultiSession => _schedule?.isMultiDay == true;
 
@@ -526,7 +526,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
   }
 
   String _serviceName() {
-    if (_order.openTime != null) return 'عامل بالساعة';
+    if (_order.isHourlyWorker) return 'عامل بالساعة';
     return EventAssistanceOrderHelper.serviceTitle(
       propertyType: _order.propertyType,
       customService: _order.propertyDetails?.customService,
