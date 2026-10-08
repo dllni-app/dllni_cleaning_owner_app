@@ -43,6 +43,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   late final VoidCallback _statusListener;
   int? _workerId;
   Timer? _fallbackRefreshDebounce;
+  Timer? _pendingOrderRefreshTimer;
 
   // المتغير المسؤول عن إدارة دورة حياة الاشتراك لهذه الشاشة
   RealtimeListenerHandle? _workerListenerHandle;
@@ -140,6 +141,20 @@ class _OrdersScreenState extends State<OrdersScreen> {
   @override
   void initState() {
     super.initState();
+    // The backend expands the geographic search every twenty minutes.
+    // Refresh pending requests while the worker is viewing this screen;
+    // realtime delivery is not guaranteed and should not be the only trigger.
+    _pendingOrderRefreshTimer = Timer.periodic(
+      const Duration(minutes: 1),
+      (_) {
+        if (!mounted || orderNotifier.status.value != CleaningBookingStatus.pending) return;
+        _ordersBloc.add(FetchOrdersUsecaseEvent(
+          params: _assignedOrdersParams(page: 1),
+          isReload: true,
+          silent: true,
+        ));
+      },
+    );
     final firstFetchStatus = _resolveStatus(widget.initialStatus);
     orderNotifier.changeStatus(firstFetchStatus);
     _statusListener = () {
@@ -261,6 +276,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   @override
   void dispose() {
     _fallbackRefreshDebounce?.cancel();
+    _pendingOrderRefreshTimer?.cancel();
 
     // التخلص من الاشتراك بدقة عند الخروج من الشاشة
     unawaited(_workerListenerHandle?.dispose());
