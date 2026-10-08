@@ -303,6 +303,7 @@ class FetchOrdersUsecaseModelDataItem {
   final String? status;
   final String? statusLabel;
   final String? propertyType;
+  final String? bookingKind;
   final String? propertyTypeLabel;
   final String? locationName;
   final int? neighborhoodId;
@@ -370,6 +371,9 @@ class FetchOrdersUsecaseModelDataItem {
   final List<CleaningRoomAssignmentModel>? roomAssignments;
   final CleaningMyAssignmentModel? myAssignment;
 
+  bool get isHourlyWorker =>
+      bookingKind?.toLowerCase() == 'open_time' || openTime != null;
+
   String get statusNameValue => CleaningBookingStatus.toArabic(status ?? '');
 
   String? get displayNeighborhoodName {
@@ -389,6 +393,7 @@ class FetchOrdersUsecaseModelDataItem {
     this.status,
     this.statusLabel,
     this.propertyType,
+    this.bookingKind,
     this.propertyTypeLabel,
     this.locationName,
     this.neighborhoodId,
@@ -477,6 +482,9 @@ class FetchOrdersUsecaseModelDataItem {
       ),
       propertyType: _toStringValue(
         _pick(m, const <String>['propertyType', 'property_type']),
+      ),
+      bookingKind: _toStringValue(
+        _pick(m, const <String>['bookingKind', 'booking_kind']),
       ),
       propertyTypeLabel: _toStringValue(
         _pick(m, const <String>['propertyTypeLabel', 'property_type_label']),
@@ -762,6 +770,7 @@ class FetchOrdersUsecaseModelDataItem {
       'status': status,
       'statusLabel': statusLabel,
       'propertyType': propertyType,
+      'bookingKind': bookingKind,
       'propertyTypeLabel': propertyTypeLabel,
       'locationName': locationName,
       'neighborhoodId': neighborhoodId,
@@ -852,6 +861,7 @@ class FetchOrdersUsecaseModelDataItem {
       status: status,
       statusLabel: statusLabel,
       propertyType: propertyType,
+      bookingKind: bookingKind,
       propertyTypeLabel: propertyTypeLabel,
       locationName: locationName,
       neighborhoodId: neighborhoodId,
@@ -933,6 +943,7 @@ class FetchOrdersUsecaseModelDataItem {
       status: status ?? this.status,
       statusLabel: statusLabel,
       propertyType: propertyType,
+      bookingKind: bookingKind,
       propertyTypeLabel: propertyTypeLabel,
       locationName: locationName,
       neighborhoodId: neighborhoodId,

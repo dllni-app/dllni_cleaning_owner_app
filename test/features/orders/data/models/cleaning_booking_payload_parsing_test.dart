@@ -167,6 +167,26 @@ void main() {
       expect(item.openTime?.requestedWorkerCount, 3);
     });
 
+    test('identifies hourly-worker list items even without expanded openTime', () {
+      final model = fetchOrdersUsecaseModelFromJson(<String, dynamic>{
+        'data': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 703,
+            'bookingKind': 'open_time',
+            'propertyType': 'apartment',
+          },
+          <String, dynamic>{
+            'id': 704,
+            'booking_kind': 'standard',
+            'property_type': 'apartment',
+          },
+        ],
+      });
+
+      expect(model.data![0].isHourlyWorker, isTrue);
+      expect(model.data![1].isHourlyWorker, isFalse);
+    });
+
     test('ignores explicit non-open-time metadata', () {
       final details = fetchOrderDetailsUsecaseModelFromJson(<String, dynamic>{
         'data': <String, dynamic>{
