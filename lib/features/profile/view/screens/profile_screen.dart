@@ -10,7 +10,6 @@ import 'package:dllni_cleaninig_owner_app/features/profile/view/helpers/worker_p
 import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/mission_start_location_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/update_profile_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/wallet_screen.dart';
-import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/work_areas_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/working_time_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/screens/worker_reviews_screen.dart';
 import 'package:flutter/material.dart';
@@ -206,7 +205,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     const titles = <String>[
       'تعديل ملفي الشخصي',
-      'مناطق عملي',
       'موقع بدء المهمة',
       'أوقات العمل',
       // 'سجل المعاملات',
@@ -215,7 +213,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ];
     const subtitles = <String>[
       'لتعديل بيانات العرض',
-      'يمكنك إدارة أماكن عملك',
       'للمساعدة على حساب تكلفة التنقل',
       'يمكنك تعديل أوقات عملك',
       // 'يمكنك تتبع أدائك',
@@ -224,7 +221,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ];
     const images = <IconData>[
       Icons.person,
-      Icons.location_on_outlined,
       Icons.flag_outlined,
       Icons.alarm,
       // Icons.signal_cellular_alt,
@@ -234,7 +230,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     const colors = <Color>[
       Color(0xff3B82F6),
-      Color(0xffEAB308),
       Color(0xffF97316),
       Color(0xffA855F7),
       // Color(0xff22C55E),
@@ -342,32 +337,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       );
                                     }
                                   : i == 1
-                                  ? () {
-                                      context.pushRoute(
-                                        '/workareas',
-                                        arguments: WorkAreasScreenParams(
-                                          zones:
-                                              profileData?.zones ??
-                                              const <Zone>[],
-                                        ),
-                                      );
+                                  ? () async {
+                                      await _openMissionStartLocationScreen(profileBloc);
                                     }
                                   : i == 2
-                                  ? () async {
-                                      await _openMissionStartLocationScreen(
-                                        profileBloc,
-                                      );
-                                    }
-                                  : i == 3
                                   ? () {
-                                      final defaultHours =
-                                          profileData?.defaultWorkingHours;
+                                      final defaultHours = profileData?.defaultWorkingHours;
                                       if (defaultHours == null) return;
                                       context.pushRoute(
                                         '/workingtime',
-                                        arguments: WorkingTimeScreenParams(
-                                          defaultWorkingHours: defaultHours,
-                                        ),
+                                        arguments: WorkingTimeScreenParams(defaultWorkingHours: defaultHours),
                                       );
                                     }
                                   /*
@@ -376,7 +355,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       context.pushRoute('/transactionhistory');
                                     } 
                                   */
-                                  : i == 4
+                                  : i == 3
                                   ? () async {
                                       await launchSupportWhatsApp(context);
                                     }
