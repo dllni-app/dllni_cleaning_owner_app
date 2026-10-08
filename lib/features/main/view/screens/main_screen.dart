@@ -1,3 +1,7 @@
+import 'dart:async';
+
+import 'package:geolocator/geolocator.dart';
+import '../../../../core/location/location_reporter.dart';
 import 'package:common_package/annotations/auto_route_page.dart';
 import 'package:flutter/material.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
@@ -27,10 +31,16 @@ class _MainScreenState extends State<MainScreen> {
 
   String? _ordersInitialStatus;
   int _ordersStatusRequestId = 0;
+  Timer? _dispatchLocationTimer;
 
   @override
   void initState() {
     super.initState();
+    unawaited(_refreshDispatchLocation());
+    _dispatchLocationTimer = Timer.periodic(
+      const Duration(minutes: 15),
+      (_) => unawaited(_refreshDispatchLocation()),
+    );
     _tabNavigation = MainTabNavigation.instance;
     final requestedIndex =
         widget.mainScreenParam?.returnedPageIndex ??
@@ -53,6 +63,27 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  Future<void> _refreshDispatchLocation() async {
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) return;
+      final permission = await Geolocator.checkPermission();
+      if (permission != LocationPermission.whileInUse &&
+          permission != LocationPermission.always) return;
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 15),
+        ),
+      );
+      await LocationReporter.postCurrentWorkerLocation(
+        latitude: position.latitude,
+        longitude: position.longitude,
+      );
+    } catch (_) {
+      // Fallback to the configured mission start location on the server.
+    }
+  }
+
   void _handleOrdersStatusRequest() {
     final nextStatus = _tabNavigation.consumePendingOrdersInitialStatus();
     if (nextStatus == null || nextStatus.isEmpty || !mounted) return;
@@ -64,6 +95,7 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   void dispose() {
+    _dispatchLocationTimer?.cancel();
     _tabNavigation.ordersStatusRequestIdListenable.removeListener(
       _ordersStatusListener,
     );
