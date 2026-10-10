@@ -38,7 +38,8 @@ class _MissionOperationalActionsCardState
   bool _busy = false;
   bool _loadingScheduleChanges = true;
   String? _error;
-  final Set<int> _resolvedReservationIds = <int>{};
+  final Map<int, CleaningEquipmentReservationDetails> _reservationOverrides =
+      <int, CleaningEquipmentReservationDetails>{};
   List<CleaningScheduleChangeRequestModel> _scheduleChanges =
       const <CleaningScheduleChangeRequestModel>[];
 
@@ -57,6 +58,7 @@ class _MissionOperationalActionsCardState
     super.didUpdateWidget(oldWidget);
     if (!_busy) _syncFromWidget();
     if (oldWidget.bookingId != widget.bookingId) {
+      _reservationOverrides.clear();
       unawaited(_loadScheduleChanges());
     }
   }
@@ -65,6 +67,18 @@ class _MissionOperationalActionsCardState
     _openTime = widget.openTime;
     _kit = widget.materialKit;
     _services = List<CleaningSpecialServiceLine>.of(widget.services);
+    for (final service in widget.services) {
+      for (final reservation in service.equipmentReservations) {
+        if (reservation.id != null &&
+            const <String>[
+              'returned',
+              'failed',
+              'released',
+            ].contains(reservation.status)) {
+          _reservationOverrides.remove(reservation.id);
+        }
+      }
+    }
   }
 
   @override
@@ -87,11 +101,17 @@ class _MissionOperationalActionsCardState
                 'unable',
               ].contains(service.executionStatus) ||
               service.equipmentReservations.any(
-                (reservation) => const <String>[
-                  'reserved',
-                  'handed_over',
-                  'acknowledged',
-                ].contains(reservation.status),
+                (reservation) =>
+                    const <String>[
+                      'reserved',
+                      'handed_over',
+                      'acknowledged',
+                      'return_pending_confirmation',
+                      'failure_pending_confirmation',
+                    ].contains(
+                      _reservationOverrides[reservation.id]?.status ??
+                          reservation.status,
+                    ),
               ),
         );
   }
@@ -193,9 +213,22 @@ class _MissionOperationalActionsCardState
             ],
             for (final service in _services) ...[
               if (!const <String>[
-                'completed',
-                'unable',
-              ].contains(service.executionStatus)) ...[
+                    'completed',
+                    'unable',
+                  ].contains(service.executionStatus) ||
+                  service.equipmentReservations.any(
+                    (reservation) =>
+                        const <String>[
+                          'reserved',
+                          'handed_over',
+                          'acknowledged',
+                          'return_pending_confirmation',
+                          'failure_pending_confirmation',
+                        ].contains(
+                          _reservationOverrides[reservation.id]?.status ??
+                              reservation.status,
+                        ),
+                  )) ...[
                 const SizedBox(height: 14),
                 _ServiceActions(
                   service: service,
@@ -205,7 +238,7 @@ class _MissionOperationalActionsCardState
                   onUnable: () => _finishService(service, 'unable'),
                   onAcknowledge: _acknowledgeEquipment,
                   onReturn: _returnEquipment,
-                  resolvedReservationIds: _resolvedReservationIds,
+                  reservationOverrides: _reservationOverrides,
                 ),
               ],
             ],
@@ -356,10 +389,12 @@ class _MissionOperationalActionsCardState
   ) async {
     if (reservation.id == null) return;
     await _run(() async {
-      await getIt<OrdersRemoteDataSource>().acknowledgeEquipment(
+      final result = await getIt<OrdersRemoteDataSource>().acknowledgeEquipment(
         reservation.id!,
       );
-      _resolvedReservationIds.add(reservation.id!);
+      if (result.reservation != null) {
+        _reservationOverrides[reservation.id!] = result.reservation!;
+      }
     });
   }
 
@@ -392,11 +427,13 @@ class _MissionOperationalActionsCardState
     final reason = failed ? await _reasonDialog('وصف العطل') : null;
     if (failed && reason == null) return;
     await _run(() async {
-      await getIt<OrdersRemoteDataSource>().returnEquipment(
+      final result = await getIt<OrdersRemoteDataSource>().returnEquipment(
         reservationId: reservation.id!,
         failureReason: reason,
       );
-      _resolvedReservationIds.add(reservation.id!);
+      if (result.reservation != null) {
+        _reservationOverrides[reservation.id!] = result.reservation!;
+      }
     });
   }
 
@@ -557,7 +594,7 @@ class _ServiceActions extends StatelessWidget {
     required this.onUnable,
     required this.onAcknowledge,
     required this.onReturn,
-    required this.resolvedReservationIds,
+    required this.reservationOverrides,
   });
 
   final CleaningSpecialServiceLine service;
@@ -567,19 +604,25 @@ class _ServiceActions extends StatelessWidget {
   final VoidCallback onUnable;
   final ValueChanged<CleaningEquipmentReservationDetails> onAcknowledge;
   final ValueChanged<CleaningEquipmentReservationDetails> onReturn;
-  final Set<int> resolvedReservationIds;
+  final Map<int, CleaningEquipmentReservationDetails> reservationOverrides;
 
   @override
   Widget build(BuildContext context) {
     final inProgress = service.executionStatus == 'in_progress';
+    final terminal = const <String>[
+      'completed',
+      'unable',
+    ].contains(service.executionStatus);
     return _ActionShell(
       icon: Icons.cleaning_services_outlined,
       title: service.name ?? 'خدمة خاصة',
-      subtitle: inProgress ? 'قيد التنفيذ' : 'بانتظار البدء',
+      subtitle: terminal
+          ? 'اكتمل إجراء الخدمة'
+          : (inProgress ? 'قيد التنفيذ' : 'بانتظار البدء'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (!inProgress)
+          if (!terminal && !inProgress)
             SizedBox(
               height: 48,
               child: FilledButton.icon(
@@ -588,7 +631,7 @@ class _ServiceActions extends StatelessWidget {
                 label: const Text('بدء الخدمة'),
               ),
             )
-          else
+          else if (!terminal)
             Row(
               children: [
                 Expanded(
@@ -613,35 +656,57 @@ class _ServiceActions extends StatelessWidget {
               ],
             ),
           for (final reservation in service.equipmentReservations) ...[
-            if (reservation.id != null &&
-                resolvedReservationIds.contains(reservation.id))
-              const SizedBox.shrink()
-            else ...[
-              const SizedBox(height: 8),
-              if (const <String>[
-                'reserved',
-                'handed_over',
-              ].contains(reservation.status))
-                SizedBox(
-                  height: 48,
-                  child: OutlinedButton.icon(
-                    onPressed: enabled
-                        ? () => onAcknowledge(reservation)
-                        : null,
-                    icon: const Icon(Icons.handyman_outlined),
-                    label: Text('استلام ${reservation.name ?? 'المعدة'}'),
-                  ),
-                )
-              else if (reservation.status == 'acknowledged')
-                SizedBox(
-                  height: 48,
-                  child: OutlinedButton.icon(
-                    onPressed: enabled ? () => onReturn(reservation) : null,
-                    icon: const Icon(Icons.assignment_return_outlined),
-                    label: Text('إرجاع ${reservation.name ?? 'المعدة'}'),
-                  ),
-                ),
-            ],
+            const SizedBox(height: 8),
+            Builder(
+              builder: (context) {
+                final status =
+                    reservationOverrides[reservation.id]?.status ??
+                    reservation.status;
+                if (status == 'reserved') {
+                  return const _Message(
+                    message: 'المعدة محجوزة، بانتظار تسليمها من الإدارة.',
+                  );
+                }
+                if (status == 'handed_over') {
+                  return SizedBox(
+                    height: 48,
+                    child: OutlinedButton.icon(
+                      onPressed: enabled
+                          ? () => onAcknowledge(reservation)
+                          : null,
+                      icon: const Icon(Icons.handyman_outlined),
+                      label: Text(
+                        'تأكيد استلام ${reservation.name ?? 'المعدة'}',
+                      ),
+                    ),
+                  );
+                }
+                if (status == 'acknowledged') {
+                  return SizedBox(
+                    height: 48,
+                    child: OutlinedButton.icon(
+                      onPressed: enabled ? () => onReturn(reservation) : null,
+                      icon: const Icon(Icons.assignment_return_outlined),
+                      label: Text(
+                        'إبلاغ إرجاع ${reservation.name ?? 'المعدة'}',
+                      ),
+                    ),
+                  );
+                }
+                if (status == 'return_pending_confirmation') {
+                  return const _Message(
+                    message: 'تم إرسال بلاغ الإرجاع، بانتظار تأكيد الإدارة.',
+                  );
+                }
+                if (status == 'failure_pending_confirmation') {
+                  return const _Message(
+                    message:
+                        'تم إرسال بلاغ العطل، بانتظار استلام الإدارة وتحويل المعدة للصيانة.',
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
           ],
         ],
       ),
