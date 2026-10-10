@@ -20,13 +20,15 @@ class LocationReporter {
           .toString()
           .trim();
       if (token.isEmpty) return;
-      final dio = Dio(BaseOptions(
-        baseUrl: AppConfig.baseUrl,
-        headers: <String, String>{
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      ));
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: AppConfig.baseUrl,
+          headers: <String, String>{
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        ),
+      );
       await dio.post(
         '/api/v1/cleaning/worker/current-location',
         data: {'latitude': latitude, 'longitude': longitude},

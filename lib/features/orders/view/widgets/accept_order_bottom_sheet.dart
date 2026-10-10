@@ -70,22 +70,21 @@ class AcceptOrderBottomSheet extends StatefulWidget {
       return;
     }
 
-    final closeAction =
-        await showModalBottomSheet<_AcceptOrderSheetResult>(
-          context: context,
-          useRootNavigator: useRootNavigator,
-          isScrollControlled: true,
-          isDismissible: true,
-          enableDrag: true,
-          backgroundColor: Colors.transparent,
-          builder: (_) => AcceptOrderBottomSheet(
-            order: order,
-            bloc: bloc,
-            index: index,
-            autoRejectOnClose: autoRejectOnClose,
-            useRootNavigator: useRootNavigator,
-          ),
-        );
+    final closeAction = await showModalBottomSheet<_AcceptOrderSheetResult>(
+      context: context,
+      useRootNavigator: useRootNavigator,
+      isScrollControlled: true,
+      isDismissible: true,
+      enableDrag: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => AcceptOrderBottomSheet(
+        order: order,
+        bloc: bloc,
+        index: index,
+        autoRejectOnClose: autoRejectOnClose,
+        useRootNavigator: useRootNavigator,
+      ),
+    );
 
     if (closeAction?.accepted == true) {
       onAccepted?.call(closeAction?.selectedSessionId);
@@ -158,16 +157,18 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
     });
 
     try {
-      final result = await getIt<OrdersRemoteDataSource>().fetchOrderDetailsUsecase(
-        FetchOrderDetailsUsecaseParams(id: orderId),
-      );
+      final result = await getIt<OrdersRemoteDataSource>()
+          .fetchOrderDetailsUsecase(
+            FetchOrderDetailsUsecaseParams(id: orderId),
+          );
       final details = result.data;
       if (!mounted) return;
       if (details == null) {
         setState(() {
           _detailsChecked = true;
           _detailsLoading = false;
-          _detailsError = 'تعذر تحميل تفاصيل الطلب الكاملة. أعد المحاولة قبل القبول.';
+          _detailsError =
+              'تعذر تحميل تفاصيل الطلب الكاملة. أعد المحاولة قبل القبول.';
         });
         return;
       }
@@ -186,7 +187,8 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       setState(() {
         _detailsChecked = true;
         _detailsLoading = false;
-        _detailsError = 'تعذر تحميل تفاصيل الطلب الكاملة. أعد المحاولة قبل القبول.';
+        _detailsError =
+            'تعذر تحميل تفاصيل الطلب الكاملة. أعد المحاولة قبل القبول.';
       });
     }
   }
@@ -237,10 +239,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       );
     }
 
-    return ErrorMessageFormatter.format(
-      result.message,
-      fallback: fallback,
-    );
+    return ErrorMessageFormatter.format(result.message, fallback: fallback);
   }
 
   String _sessionAcceptanceExceptionMessage(
@@ -264,10 +263,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       // Fall back to the normalized exception text below.
     }
 
-    return ErrorMessageFormatter.format(
-      error.toString(),
-      fallback: fallback,
-    );
+    return ErrorMessageFormatter.format(error.toString(), fallback: fallback);
   }
 
   int? _firstAcceptedSessionId(List<int> acceptedSessionIds) {
@@ -309,9 +305,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       Navigator.of(context).pop(
         _AcceptOrderSheetResult(
           accepted: true,
-          selectedSessionId: _firstAcceptedSessionId(
-            result.acceptedSessionIds,
-          ),
+          selectedSessionId: _firstAcceptedSessionId(result.acceptedSessionIds),
         ),
       );
     } catch (error) {
@@ -507,9 +501,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       Navigator.of(context).pop(
         _AcceptOrderSheetResult(
           accepted: true,
-          selectedSessionId: _firstAcceptedSessionId(
-            result.acceptedSessionIds,
-          ),
+          selectedSessionId: _firstAcceptedSessionId(result.acceptedSessionIds),
         ),
       );
     } catch (error) {
@@ -599,9 +591,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
   }
 
   void _dismissSheet() {
-    Navigator.of(context).pop(
-      const _AcceptOrderSheetResult(accepted: false),
-    );
+    Navigator.of(context).pop(const _AcceptOrderSheetResult(accepted: false));
   }
 
   Widget _sectionTitle(BuildContext context, IconData icon, String title) {
@@ -720,7 +710,8 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                 ),
                 if (material.quantity != null)
                   AppText.bodySmall(
-                    '${_number(material.quantity!)} ${material.unitLabel ?? material.unit ?? ''}'.trim(),
+                    '${_number(material.quantity!)} ${material.unitLabel ?? material.unit ?? ''}'
+                        .trim(),
                     color: _mutedTextColor,
                   ),
               ],
@@ -1181,9 +1172,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       AppToast.showErrorGlobal(
         OrderLifecyclePolicy.orderNoLongerAvailableMessage,
       );
-      Navigator.of(context).pop(
-        const _AcceptOrderSheetResult(accepted: false),
-      );
+      Navigator.of(context).pop(const _AcceptOrderSheetResult(accepted: false));
       return;
     }
     widget.bloc.add(
@@ -1205,9 +1194,9 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       buildWhen: (previous, current) =>
           previous.acceptOrderUsecaseStatus != current.acceptOrderUsecaseStatus,
       listener: (context, state) {
-        Navigator.of(context).pop(
-          const _AcceptOrderSheetResult(accepted: true),
-        );
+        Navigator.of(
+          context,
+        ).pop(const _AcceptOrderSheetResult(accepted: true));
       },
       builder: (context, state) {
         final accepting =
@@ -1316,8 +1305,9 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                               ),
                               const SizedBox(height: 8),
                               OutlinedButton.icon(
-                                onPressed:
-                                    _detailsLoading ? null : _loadOrderDetails,
+                                onPressed: _detailsLoading
+                                    ? null
+                                    : _loadOrderDetails,
                                 icon: const Icon(Icons.refresh),
                                 label: const Text('إعادة تحميل تفاصيل الطلب'),
                               ),
