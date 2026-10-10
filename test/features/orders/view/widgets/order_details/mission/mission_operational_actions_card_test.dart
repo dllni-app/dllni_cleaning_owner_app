@@ -82,7 +82,7 @@ void main() {
       expect(find.text('طلب العميل إنهاء الخدمة'), findsOneWidget);
       expect(find.text('تأكيد الاستلام'), findsOneWidget);
       expect(find.text('تم التنفيذ'), findsOneWidget);
-      expect(find.text('إرجاع جهاز الاستخراج'), findsOneWidget);
+      expect(find.text('إبلاغ إرجاع جهاز الاستخراج'), findsOneWidget);
       expect(tester.takeException(), isNull);
 
       final confirmationButton = find.widgetWithText(
@@ -94,6 +94,48 @@ void main() {
         greaterThanOrEqualTo(48),
       );
       semantics.dispose();
+    },
+  );
+
+  testWidgets(
+    'shows worker equipment return as pending admin approval even after service completion',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: MissionOperationalActionsCard(
+                bookingId: 107,
+                loadScheduleChanges: () async => const [],
+                openTime: null,
+                materialKit: null,
+                services: const [
+                  CleaningSpecialServiceLine(
+                    id: 23,
+                    name: 'تنظيف سجاد',
+                    executionStatus: 'completed',
+                    equipmentReservations: [
+                      CleaningEquipmentReservationDetails(
+                        id: 6,
+                        name: 'آلة التنظيف',
+                        status: 'return_pending_confirmation',
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(
+        find.text('تم إرسال بلاغ الإرجاع، بانتظار تأكيد الإدارة.'),
+        findsOneWidget,
+      );
+      expect(find.text('بدء الخدمة'), findsNothing);
+      expect(find.text('تم التنفيذ'), findsNothing);
+      expect(tester.takeException(), isNull);
     },
   );
 }
