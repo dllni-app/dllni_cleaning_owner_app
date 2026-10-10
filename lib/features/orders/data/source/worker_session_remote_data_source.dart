@@ -126,9 +126,7 @@ class WorkerSessionAcceptanceResult {
                 .map(WorkerSessionAcceptanceRejection.fromJson)
                 .toList(growable: false)
           : const <WorkerSessionAcceptanceRejection>[],
-      message:
-          root['message']?.toString() ??
-          data['message']?.toString(),
+      message: root['message']?.toString() ?? data['message']?.toString(),
     );
   }
 }
