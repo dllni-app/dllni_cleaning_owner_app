@@ -77,7 +77,7 @@ class CancelOrderDialog extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             AppText.bodyMedium(
-              'في حال قمت بإلغاء الطلب #$orderNum هذا سيترتب عليه ما يلي:',
+              'في حال انسحبت من الطلب #$orderNum فسيتم البحث عن عامل بديل إذا كان الحجز جماعياً، وقد يترتب على انسحابك ما يلي:',
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 10),
@@ -108,7 +108,7 @@ class CancelOrderDialog extends StatelessWidget {
                       foregroundColor: Colors.white,
                     ),
                     child: AppText.labelLarge(
-                      'إلغاء الطلب',
+                      'إلغاء مشاركتي',
                       color: Colors.white,
                     ),
                   ),
