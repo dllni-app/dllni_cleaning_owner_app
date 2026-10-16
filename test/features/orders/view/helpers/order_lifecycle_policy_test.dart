@@ -303,6 +303,20 @@ void main() {
     });
 
 
+    test('withdrawn team worker must not see start travel again', () {
+      final order = _order(
+        status: CleaningBookingStatus.workerAssigned,
+        numberOfWorkers: 2,
+        startedTravelAt: '2026-10-16T10:00:00Z',
+        myAssignment: CleaningMyAssignmentModel(
+          status: 'withdrawn',
+          acceptedAt: '2026-10-16T09:40:00Z',
+        ),
+      );
+      expect(OrderLifecyclePolicy.canStartTravel(order), isFalse);
+      expect(OrderLifecyclePolicy.canArrive(order), isFalse);
+    });
+
     test('another team member travelling does not mark this worker as arrived or travelling', () {
       final order = _order(
         status: CleaningBookingStatus.workerAssigned,
