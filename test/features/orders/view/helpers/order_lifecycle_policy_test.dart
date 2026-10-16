@@ -135,7 +135,7 @@ void main() {
       expect(OrderLifecyclePolicy.detailsStepFor(order), 1);
     });
 
-    test('start travel is blocked more than one hour before schedule', () {
+    test('start travel is blocked more than three hours before schedule', () {
       final order = _order(
         status: CleaningBookingStatus.workerAssigned,
         scheduledDate: '2026-06-17',
@@ -152,7 +152,7 @@ void main() {
       );
     });
 
-    test('start travel is allowed within one hour before schedule', () {
+    test('start travel is allowed within three hours before schedule', () {
       final order = _order(
         status: CleaningBookingStatus.workerAssigned,
         scheduledDate: '2026-06-16',
@@ -348,6 +348,40 @@ void main() {
       expect(OrderLifecyclePolicy.canStartTravel(order), isFalse);
       expect(OrderLifecyclePolicy.canArrive(order), isTrue);
       expect(OrderLifecyclePolicy.detailsStepFor(order), 2);
+    });
+
+
+    test('travel opens exactly three hours before booking and not a minute earlier', () {
+      final order = _order(
+        status: CleaningBookingStatus.workerAssigned,
+        scheduledDate: '2026-06-16',
+        scheduledTime: '12:00:00',
+      );
+      expect(
+        OrderLifecyclePolicy.isStartTravelWithinAllowedWindow(
+          order, now: DateTime(2026, 6, 16, 8, 59), enforceWindow: true,
+        ),
+        isFalse,
+      );
+      expect(
+        OrderLifecyclePolicy.isStartTravelWithinAllowedWindow(
+          order, now: DateTime(2026, 6, 16, 9), enforceWindow: true,
+        ),
+        isTrue,
+      );
+    });
+
+    test('session travel opens exactly three hours before its start time', () {
+      final session = _session(
+        date: DateTime(2026, 6, 16),
+        time: '12:00',
+      );
+      expect(OrderLifecyclePolicy.isSessionStartTravelWithinAllowedWindow(
+        session, now: DateTime(2026, 6, 16, 8, 59), enforceWindow: true,
+      ), isFalse);
+      expect(OrderLifecyclePolicy.isSessionStartTravelWithinAllowedWindow(
+        session, now: DateTime(2026, 6, 16, 9), enforceWindow: true,
+      ), isTrue);
     });
 
     test('traveling allows arrive on map step', () {
