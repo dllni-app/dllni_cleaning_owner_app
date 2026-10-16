@@ -260,6 +260,40 @@ void main() {
       );
     });
 
+
+    test('another team member travelling does not mark this worker as arrived or travelling', () {
+      final order = _order(
+        status: CleaningBookingStatus.workerAssigned,
+        numberOfWorkers: 2,
+        startedTravelAt: '2026-10-16T10:00:00Z',
+        myAssignment: CleaningMyAssignmentModel(
+          status: 'accepted',
+          acceptedAt: '2026-10-16T09:40:00Z',
+        ),
+      );
+      expect(OrderLifecyclePolicy.canStartTravel(order), isTrue);
+      expect(OrderLifecyclePolicy.canArrive(order), isFalse);
+      expect(OrderLifecyclePolicy.isTravelingToCustomer(order), isFalse);
+      expect(OrderLifecyclePolicy.detailsStepFor(order), 1);
+      expect(OrderLifecyclePolicy.detailsUiStateFor(order), OrderDetailsUiState.readyToStartTravel);
+    });
+
+    test('only this worker starting travel enables arrival on team booking', () {
+      final order = _order(
+        status: CleaningBookingStatus.workerAssigned,
+        numberOfWorkers: 2,
+        startedTravelAt: '2026-10-16T10:00:00Z',
+        myAssignment: CleaningMyAssignmentModel(
+          status: 'accepted',
+          acceptedAt: '2026-10-16T09:40:00Z',
+          startedTravelAt: '2026-10-16T10:05:00Z',
+        ),
+      );
+      expect(OrderLifecyclePolicy.canStartTravel(order), isFalse);
+      expect(OrderLifecyclePolicy.canArrive(order), isTrue);
+      expect(OrderLifecyclePolicy.detailsStepFor(order), 2);
+    });
+
     test('traveling allows arrive on map step', () {
       final order = _order(
         status: CleaningBookingStatus.workerAssigned,
