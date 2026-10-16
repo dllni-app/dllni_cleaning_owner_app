@@ -372,7 +372,10 @@ class OrderLifecyclePolicy {
 
   static bool canArrive(FetchOrdersUsecaseModelDataItem order) =>
       order.status == CleaningBookingStatus.workerAssigned &&
-      order.startedTravelAt != null &&
+      !canStartTravel(order) &&
+      ((order.numberOfWorkers ?? 1) > 1 && order.myAssignment != null
+          ? order.myAssignment?.startedTravelAt != null
+          : order.startedTravelAt != null) &&
       order.id != null;
 
   static bool isAwaitingStartVerification(
@@ -390,9 +393,7 @@ class OrderLifecyclePolicy {
       order.status == CleaningBookingStatus.awaitingWorkerStartConfirmation;
 
   static bool isTravelingToCustomer(FetchOrdersUsecaseModelDataItem order) =>
-      order.status == CleaningBookingStatus.workerAssigned &&
-      order.startedTravelAt != null &&
-      !isAwaitingStartVerification(order);
+      canArrive(order) && !isAwaitingStartVerification(order);
 
   static bool canCompleteWork(String? status) {
     final normalized = (status ?? '').toLowerCase();
@@ -472,10 +473,7 @@ class OrderLifecyclePolicy {
       return 0;
     }
     if (order.status == CleaningBookingStatus.workerAssigned) {
-      if (order.startedTravelAt == null) {
-        return 1;
-      }
-      return 2;
+      return canStartTravel(order) ? 1 : 2;
     }
     if (isAwaitingStartVerification(order)) {
       return 2;
@@ -509,7 +507,7 @@ class OrderLifecyclePolicy {
       case CleaningWorkerOrderStatus.accepted:
         return 'تم قبول الطلب';
       case CleaningWorkerOrderStatus.workerAssigned:
-        return order.startedTravelAt == null ? 'طلب مؤكد' : 'في الطريق';
+        return canStartTravel(order) ? 'طلب مؤكد' : 'في الطريق';
       case CleaningWorkerOrderStatus.awaitingStartVerification:
         return 'بانتظار التحقق';
       case CleaningWorkerOrderStatus.awaitingWorkerStartConfirmation:
