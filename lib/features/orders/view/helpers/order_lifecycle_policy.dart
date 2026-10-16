@@ -72,7 +72,7 @@ class OrderLifecyclePolicy {
   OrderLifecyclePolicy._();
 
   static const String startTravelUnavailableMessage =
-      'يمكن بدء التوجه إلى موقع الطلب قبل الموعد بساعة واحدة.';
+      'يمكن بدء التوجه إلى موقع الطلب قبل الموعد بثلاث ساعات.';
   static const String orderNoLongerAvailableMessage =
       'تم قبول هذا الطلب مسبقاً أو لم يعد متاحاً.';
 
@@ -238,7 +238,7 @@ class OrderLifecyclePolicy {
     final currentTime = _toWallClockMinute(now ?? DateTime.now());
     final scheduledMinute = _toWallClockMinute(scheduledAt);
     return !scheduledMinute.isAfter(
-      currentTime.add(const Duration(hours: 1)),
+      currentTime.add(const Duration(hours: 3)),
     );
   }
 
@@ -255,7 +255,7 @@ class OrderLifecyclePolicy {
     final currentTime = _toWallClockMinute(now ?? DateTime.now());
     final scheduledMinute = _toWallClockMinute(scheduledAt);
     return !scheduledMinute.isAfter(
-      currentTime.add(const Duration(hours: 1)),
+      currentTime.add(const Duration(hours: 3)),
     );
   }
 
