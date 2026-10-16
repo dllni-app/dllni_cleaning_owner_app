@@ -1,5 +1,6 @@
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/widgets/worker_technical_support_call_button.dart';
+import 'package:dllni_cleaninig_owner_app/core/widgets/legal_links_launcher.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/core/location/worker_location_tracker.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_booking_pusher_service.dart';
@@ -379,6 +380,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       builder: (context, state) {
                         return _buildAccountActiveToggle(context, state);
                       },
+                    ),
+                    12.verticalSpace,
+                    SectionCard(
+                      containerColor: const Color(0xFFEFF6FF),
+                      imageColor: const Color(0xFF1D4ED8),
+                      image: Icons.privacy_tip_outlined,
+                      title: 'سياسة الخصوصية',
+                      subtitle: 'كيفية جمع بياناتك وحمايتها',
+                      onTap: () => launchPrivacyPolicy(context),
+                    ),
+                    12.verticalSpace,
+                    SectionCard(
+                      containerColor: const Color(0xFFEFF6FF),
+                      imageColor: const Color(0xFF1D4ED8),
+                      image: Icons.description_outlined,
+                      title: 'شروط الاستخدام',
+                      subtitle: 'الشروط والأحكام الخاصة بالتطبيق',
+                      onTap: () => launchTermsAndConditions(context),
                     ),
                     12.verticalSpace,
                     InkWell(
