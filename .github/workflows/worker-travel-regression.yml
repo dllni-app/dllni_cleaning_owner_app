@@ -1,0 +1,28 @@
+name: Worker Team Travel Regression
+
+on:
+  push:
+    branches: [dev, main]
+    paths:
+      - 'lib/features/orders/view/helpers/order_lifecycle_policy.dart'
+      - 'lib/features/orders/data/models/cleaning_team_models.dart'
+      - 'test/features/orders/view/helpers/order_lifecycle_policy_test.dart'
+      - '.github/workflows/worker-travel-regression.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  travel-policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Verify team travel policy
+        run: flutter test test/features/orders/view/helpers/order_lifecycle_policy_test.dart
