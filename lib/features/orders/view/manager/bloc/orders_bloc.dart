@@ -450,7 +450,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
         );
       },
       (r) {
-        AppToast.showSuccessGlobal('تم إلغاء الطلب');
+        AppToast.showSuccessGlobal('تم تسجيل انسحابك من الطلب');
         _stopTrackingForBooking(event.params.id);
         _refreshLastOrdersList();
         emit(
