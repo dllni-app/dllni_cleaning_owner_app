@@ -175,8 +175,10 @@ class OrderLifecyclePolicy {
     // The parent startedTravelAt is shared across a multi-worker booking.
     // Another worker starting the trip must never hide this worker's button.
     if ((order.numberOfWorkers ?? 1) > 1 && order.myAssignment != null) {
+      if (hasCurrentWorkerRejectedOrClosed(order)) return false;
       return hasCurrentWorkerAccepted(order) &&
-          order.myAssignment?.startedTravelAt == null;
+          order.myAssignment?.startedTravelAt == null &&
+          order.myAssignment?.arrivedAt == null;
     }
     return order.startedTravelAt == null;
   }
