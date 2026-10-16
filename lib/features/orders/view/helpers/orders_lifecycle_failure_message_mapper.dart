@@ -17,7 +17,12 @@ class OrdersLifecycleFailureMessageMapper {
       case _statusTooManyRequests:
         return 'الطلبات كثيرة حالياً، حاول بعد قليل.';
       case _statusUnprocessable:
-        return invalidStateMessage;
+        // Preserve the backend's precise Arabic validation reason when available.
+        // Otherwise use the action-specific, user-friendly fallback.
+        final explanation = failure.message.trim();
+        return RegExp(r'[\u0600-\u06FF]').hasMatch(explanation)
+            ? explanation
+            : invalidStateMessage;
       default:
         return ErrorMessageFormatter.format(failure.message);
     }
