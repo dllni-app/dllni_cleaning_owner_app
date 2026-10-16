@@ -154,7 +154,7 @@ class OrderLifecyclePolicy {
       case CleaningBookingStatus.awaitingStartVerification:
         return OrderDetailsUiState.awaitingCustomerCode;
       case CleaningBookingStatus.workerAssigned:
-        return order.startedTravelAt == null
+        return canStartTravel(order)
             ? OrderDetailsUiState.readyToStartTravel
             : OrderDetailsUiState.traveling;
       case CleaningBookingStatus.pending:
@@ -169,9 +169,17 @@ class OrderLifecyclePolicy {
   static bool canAcceptReject(FetchOrdersUsecaseModelDataItem order) =>
       isAvailableNewOrderForCurrentWorker(order);
 
-  static bool canStartTravel(FetchOrdersUsecaseModelDataItem order) =>
-      order.status == CleaningBookingStatus.workerAssigned &&
-      order.startedTravelAt == null;
+  static bool canStartTravel(FetchOrdersUsecaseModelDataItem order) {
+    if (order.status != CleaningBookingStatus.workerAssigned) return false;
+
+    // The parent startedTravelAt is shared across a multi-worker booking.
+    // Another worker starting the trip must never hide this worker's button.
+    if ((order.numberOfWorkers ?? 1) > 1 && order.myAssignment != null) {
+      return hasCurrentWorkerAccepted(order) &&
+          order.myAssignment?.startedTravelAt == null;
+    }
+    return order.startedTravelAt == null;
+  }
 
   static bool canStartTravelForSession(WorkerBookingSessionModel session) {
     if (session.isTerminal) return false;
