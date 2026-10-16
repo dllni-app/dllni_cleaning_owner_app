@@ -236,7 +236,7 @@ class OrderLifecyclePolicy {
     if (scheduledAt == null) return true;
 
     final currentTime = now ?? DateTime.now();
-    return !scheduledAt.isAfter(currentTime.add(const Duration(hours: 1)));
+    return !scheduledAt.isAfter(currentTime.add(const Duration(hours: 3)));
   }
 
   static bool isSessionStartTravelWithinAllowedWindow(
@@ -250,7 +250,7 @@ class OrderLifecyclePolicy {
     if (scheduledAt == null) return true;
 
     final currentTime = now ?? DateTime.now();
-    return !scheduledAt.isAfter(currentTime.add(const Duration(hours: 1)));
+    return !scheduledAt.isAfter(currentTime.add(const Duration(hours: 3)));
   }
 
   static DateTime? _sessionScheduledDateTime(
