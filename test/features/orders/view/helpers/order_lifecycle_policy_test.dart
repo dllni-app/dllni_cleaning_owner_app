@@ -186,7 +186,7 @@ void main() {
       );
     });
 
-    test('start travel compares the one-hour window at displayed minute precision', () {
+    test('start travel compares the three-hour window at displayed minute precision', () {
       final order = _order(
         status: CleaningBookingStatus.workerAssigned,
         scheduledDate: '2026-10-04',
@@ -196,7 +196,7 @@ void main() {
       expect(
         OrderLifecyclePolicy.isStartTravelWithinAllowedWindow(
           order,
-          now: DateTime(2026, 10, 4, 12, 30, 1),
+          now: DateTime(2026, 10, 4, 10, 30, 1),
           enforceWindow: true,
         ),
         isTrue,
@@ -204,7 +204,7 @@ void main() {
       expect(
         OrderLifecyclePolicy.isStartTravelWithinAllowedWindow(
           order,
-          now: DateTime(2026, 10, 4, 12, 29, 59),
+          now: DateTime(2026, 10, 4, 10, 29, 59),
           enforceWindow: true,
         ),
         isFalse,
