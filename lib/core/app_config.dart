@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 class AppConfig {
   const AppConfig._();
 
-  /// When true, start travel is only allowed within one hour of the scheduled time.
+  /// When true, start travel is only allowed within three hours of the scheduled time.
   /// Enabled by default. Override with
   /// `--dart-define=ENFORCE_START_TRAVEL_WINDOW=true|false`.
   static const bool enforceStartTravelWindow = bool.fromEnvironment(
