@@ -4,6 +4,8 @@ import 'package:geolocator/geolocator.dart';
 import '../../../../core/location/location_reporter.dart';
 import 'package:common_package/annotations/auto_route_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../../../../core/widgets/exit_confirmation_dialog.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 
 import '../../../../core/widgets/worker_technical_support_call_button.dart';
@@ -32,6 +34,7 @@ class _MainScreenState extends State<MainScreen> {
   String? _ordersInitialStatus;
   int _ordersStatusRequestId = 0;
   Timer? _dispatchLocationTimer;
+  bool _isExitDialogVisible = false;
 
   @override
   void initState() {
@@ -93,6 +96,24 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
+  Future<void> _handleBackPressed() async {
+    if (_tabController.index != 0) {
+      _tabNavigation.jumpToTab(0);
+      return;
+    }
+
+    if (_isExitDialogVisible) return;
+    _isExitDialogVisible = true;
+    try {
+      final shouldExit = await showExitConfirmationDialog(context);
+      if (shouldExit && mounted) {
+        await SystemNavigator.pop();
+      }
+    } finally {
+      _isExitDialogVisible = false;
+    }
+  }
+
   @override
   void dispose() {
     _dispatchLocationTimer?.cancel();
@@ -106,14 +127,19 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return PersistentTabView.custom(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) _handleBackPressed();
+      },
+      child: PersistentTabView.custom(
       context,
       controller: _tabController,
       itemCount: 4,
       navBarHeight: 84,
       backgroundColor: Colors.white,
       resizeToAvoidBottomInset: true,
-      handleAndroidBackButtonPress: true,
+      handleAndroidBackButtonPress: false,
       stateManagement: true,
       confineToSafeArea: true,
       screens: [
@@ -131,6 +157,7 @@ class _MainScreenState extends State<MainScreen> {
         controller: _tabController,
         onItemSelected: (index) => _tabNavigation.jumpToTab(index),
         onSupportTap: () => launchSupportWhatsApp(context),
+      ),
       ),
     );
   }
