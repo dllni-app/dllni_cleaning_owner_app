@@ -290,5 +290,6 @@ void main() {
         OrdersAcceptFlowPolicy.mapAcceptFailureMessage(failure),
         OrderLifecyclePolicy.orderNoLongerAvailableMessage,
       );
+    });
   });
 }

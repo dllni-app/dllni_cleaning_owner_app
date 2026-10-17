@@ -3,7 +3,7 @@ name: Cleaning v2 Worker App Gates
 on:
   workflow_dispatch:
   push:
-    branches: [v2]
+    branches: [main, v2]
     paths:
       - 'lib/features/orders/**'
       - 'lib/core/realtime/cleaning_**'
@@ -12,7 +12,7 @@ on:
       - 'pubspec.lock'
       - '.github/workflows/cleaning-v2-features.yml'
   pull_request:
-    branches: [v2]
+    branches: [main, v2]
     paths:
       - 'lib/features/orders/**'
       - 'lib/core/realtime/cleaning_**'

@@ -33,8 +33,8 @@ enum HomeOrdersTab { newOrders, todayOrders }
 
 extension HomeOrdersTabX on HomeOrdersTab {
   String get label => switch (this) {
-    HomeOrdersTab.newOrders => 'طلبات جديدة',
-    HomeOrdersTab.todayOrders => 'مهام اليوم',
+    HomeOrdersTab.newOrders => 'فرص عمل متاحة',
+    HomeOrdersTab.todayOrders => 'مهماتي اليوم',
   };
 
   String get emptyMessage => switch (this) {
@@ -75,7 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
   RealtimeListenerHandle? _workerRealtimeHandle;
   StreamSubscription<RemoteMessage>? _fcmForegroundSubscription;
   int? _workerId;
-  HomeOrdersTab _selectedHomeOrdersTab = HomeOrdersTab.newOrders;
+  HomeOrdersTab _selectedHomeOrdersTab = HomeOrdersTab.todayOrders;
   int _homeOrdersCurrentPage = 1;
 
   String get _todayScheduledDate =>
@@ -426,7 +426,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           16.verticalSpace,
                           AppText.labelLarge(
-                            'نظرة عامة عن اليوم',
+                            'يومك في لمحة',
                             fontWeight: FontWeight.w400,
                           ),
                           12.verticalSpace,

@@ -19,6 +19,7 @@ import '../estate_info_card.dart';
 import '../order_info_card.dart';
 import '../payment_info_card.dart';
 import '../worker_room_assignments_card.dart';
+import 'worker_booking_inventory_card.dart';
 
 class OrderDetailsBody extends StatefulWidget {
   const OrderDetailsBody({
@@ -95,10 +96,7 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.groups_2_outlined,
-            color: Color(0xffC2410C),
-          ),
+          const Icon(Icons.groups_2_outlined, color: Color(0xffC2410C)),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -240,6 +238,8 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                   const SizedBox(height: 14),
                   EstateInfoCard(order: widget.order),
                   const SizedBox(height: 14),
+                  if (widget.order.id != null)
+                    WorkerBookingInventoryCard(bookingId: widget.order.id!),
                   _buildServicesCard(context),
                   _buildOrderAddressCard(context),
                   if (_shouldShowCustomerContact) ...[
@@ -288,10 +288,7 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppText.labelMedium(
-            'التواصل مع العميل',
-            fontWeight: FontWeight.w600,
-          ),
+          AppText.labelMedium('التواصل مع العميل', fontWeight: FontWeight.w600),
           const SizedBox(height: 6),
           AppText.bodySmall(
             'تظهر وسائل التواصل بعد قبولك للمهمة.',
@@ -331,9 +328,7 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
     }
 
     AppToast.showErrorGlobal(
-      scheme == 'tel'
-          ? 'تعذر فتح تطبيق الاتصال.'
-          : 'تعذر فتح تطبيق الرسائل.',
+      scheme == 'tel' ? 'تعذر فتح تطبيق الاتصال.' : 'تعذر فتح تطبيق الرسائل.',
     );
   }
 

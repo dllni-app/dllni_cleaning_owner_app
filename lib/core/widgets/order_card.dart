@@ -167,7 +167,8 @@ class OrderCard extends StatelessWidget {
   // }
 
   void _openDetails(BuildContext context) {
-    if (OrderLifecyclePolicy.isTimeExtensionRequested(data)) {
+    if (data.bookingKind != 'supervised_team' &&
+        OrderLifecyclePolicy.isTimeExtensionRequested(data)) {
       unawaited(_openExtensionRequestActionSheet(context));
       return;
     }
@@ -377,6 +378,35 @@ class OrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (data.bookingKind == 'supervised_team') {
+      return Card(
+        margin: const EdgeInsets.symmetric(vertical: 7, horizontal: 4),
+        child: InkWell(
+          onTap: () => _openDetails(context),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text('طلب جماعي · بإدارة مشرف',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const SizedBox(height: 7),
+                Text('رقم الطلب: ${data.bookingNumber ?? data.id ?? ''}'),
+                Text('${_formatDate()}   ${_formatTime()}'),
+                if (data.displayNeighborhoodName != null)
+                  Text(data.displayNeighborhoodName!),
+                const SizedBox(height: 8),
+                const Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text('عرض جميع المهام والخدمات المتخصصة',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     final statusColor = _statusColor(context);
     final bookingLabel = data.bookingNumber ?? '${data.id ?? '-'}';
     final isDedicatedToMe = _isDedicatedToMe;
