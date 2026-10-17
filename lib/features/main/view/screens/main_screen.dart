@@ -127,19 +127,19 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) _handleBackPressed();
-      },
-      child: PersistentTabView.custom(
+    return PersistentTabView.custom(
       context,
       controller: _tabController,
       itemCount: 4,
       navBarHeight: 84,
       backgroundColor: Colors.white,
       resizeToAvoidBottomInset: true,
-      handleAndroidBackButtonPress: false,
+      handleAndroidBackButtonPress: true,
+      // Keep the package's nested navigator back behavior intact.
+      onWillPop: (_) async {
+        await _handleBackPressed();
+        return false;
+      },
       stateManagement: true,
       confineToSafeArea: true,
       screens: [
@@ -157,7 +157,6 @@ class _MainScreenState extends State<MainScreen> {
         controller: _tabController,
         onItemSelected: (index) => _tabNavigation.jumpToTab(index),
         onSupportTap: () => launchSupportWhatsApp(context),
-      ),
       ),
     );
   }
