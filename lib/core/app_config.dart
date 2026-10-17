@@ -13,7 +13,16 @@ class AppConfig {
 
   static const String appName = 'cleaning owner';
   static const String orgIdentifier = 'com.dllni.clOwner';
-  static const String baseUrl = 'https://alnadha.net';
+
+  /// Development emulator uses local Laravel via `adb reverse tcp:8000 tcp:8000`.
+  /// Release builds continue using the deployed HTTPS API. Both can be
+  /// overridden explicitly using --dart-define=API_BASE_URL=...
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: kReleaseMode
+        ? 'https://alnadha.net'
+        : 'http://127.0.0.1:8000',
+  );
   static const String privacyPolicyUrl = '$baseUrl/legal/user-app';
   static const String termsAndConditionsUrl = '$baseUrl/legal/user-app/terms';
 

@@ -2,6 +2,8 @@ import 'package:common_package/helpers/dio_network.dart';
 import 'package:injectable/injectable.dart';
 import 'package:common_package/helpers/api_handler.dart';
 import '../models/fetch_orders_usecase_model.dart';
+import '../models/supervised_worker_booking.dart';
+import '../models/worker_booking_inventory.dart';
 import '../../domain/usecases/fetch_orders_usecase_use_case.dart';
 import '../models/fetch_order_details_usecase_model.dart';
 import '../../domain/usecases/fetch_order_details_usecase_use_case.dart';
@@ -43,6 +45,23 @@ class OrdersRemoteDataSource with HandlingApiManager {
   final DioNetwork dioNetwork;
 
   OrdersRemoteDataSource({required this.dioNetwork});
+
+  Future<WorkerBookingInventory> fetchBookingInventory(int bookingId) =>
+      wrapHandlingApi(
+        tryCall: () => dioNetwork.getData(
+          endPoint: '/api/v1/cleaning/inventory/bookings/$bookingId',
+        ),
+        jsonConvert: WorkerBookingInventory.fromJson,
+      );
+
+  Future<SupervisedWorkerBooking> fetchSupervisedBooking(int bookingId) {
+    return wrapHandlingApi(
+      tryCall: () => dioNetwork.getData(
+        endPoint: '/api/v1/cleaning/supervised-worker/bookings/$bookingId',
+      ),
+      jsonConvert: SupervisedWorkerBooking.fromJson,
+    );
+  }
 
   Future<FetchOrdersUsecaseModel> fetchOrdersUsecase(
     FetchOrdersUsecaseParams params,

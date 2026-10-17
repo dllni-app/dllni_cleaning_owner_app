@@ -17,6 +17,7 @@ import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_det
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/order_details/multi_day_order_details_body.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/order_details/order_details_body.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/order_details/order_details_mission_body.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/order_details/supervised_worker_details_body.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/worker_app_colors.dart';
@@ -55,10 +56,14 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   WorkerBookingScheduleModel? _multiDaySchedule;
   int? _selectedSessionId;
   bool _scheduleChecked = false;
+  bool _hasLoadedScheduleSuccessfully = false;
   bool _scheduleLoading = false;
   String? _scheduleLoadError;
 
   bool get _isMultiDay => _multiDaySchedule?.isMultiDay == true;
+
+  bool get _isSupervisedTeam => _order.bookingKind == 'supervised_team';
+  int _supervisedRefreshRevision = 0;
 
   int _stepFor(FetchOrdersUsecaseModelDataItem o) =>
       OrderLifecyclePolicy.detailsStepFor(o);
@@ -104,7 +109,10 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     );
     widget.params.bloc.add(ChangeDetailsCurrentStep(step: _stepFor(_order)));
     final id = _order.id;
-    if (id != null) {
+    if (id != null && _isSupervisedTeam) {
+      _scheduleChecked = true;
+      unawaited(_bindRealtimeListeners());
+    } else if (id != null) {
       widget.params.bloc.add(
         FetchOrderDetailsUsecaseEvent(
           params: FetchOrderDetailsUsecaseParams(id: id),
@@ -120,7 +128,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 
   Future<void> _loadSchedule() async {
     final bookingId = _order.id;
-    if (bookingId == null || _scheduleLoading) return;
+    if (_isSupervisedTeam || bookingId == null || _scheduleLoading) return;
     if (mounted) {
       setState(() {
         _scheduleLoading = true;
@@ -135,6 +143,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         final schedule = result.schedule;
         _multiDaySchedule = schedule?.isMultiDay == true ? schedule : null;
         _scheduleChecked = true;
+        _hasLoadedScheduleSuccessfully = true;
         _scheduleLoading = false;
         _scheduleLoadError = null;
         if (_multiDaySchedule != null &&
@@ -223,6 +232,14 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     if (fromWorkerChannel) {
       if (payloadBookingId == null || payloadBookingId != bookingId) return;
     } else if (payloadBookingId != null && payloadBookingId != bookingId) {
+      return;
+    }
+
+    if (_isSupervisedTeam) {
+      _scheduleSyncFallback(
+        bookingId: bookingId,
+        reason: 'supervised_team_realtime_refresh',
+      );
       return;
     }
 
@@ -347,6 +364,10 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 
   void _scheduleSyncFallback({required int bookingId, required String reason}) {
     if (_order.id != bookingId) return;
+    if (_isSupervisedTeam) {
+      if (mounted) setState(() => _supervisedRefreshRevision++);
+      return;
+    }
     _syncFallbackDebounce?.cancel();
     _syncFallbackDebounce = Timer(_fallbackDebounce, () {
       if (!mounted || _order.id != bookingId) return;
@@ -618,10 +639,20 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           child: BlocBuilder<OrdersBloc, OrdersState>(
             bloc: widget.params.bloc,
             builder: (context, state) {
-              if (!_scheduleChecked || _scheduleLoading) {
+              if (_isSupervisedTeam) {
+                return SupervisedWorkerDetailsBody(
+                  bookingId: _order.id!,
+                  refreshRevision: _supervisedRefreshRevision,
+                  onBack: () => context.pop(),
+                );
+              }
+              // Background schedule refreshes must not repeatedly dispose the
+              // active map/mission widget or hide 'لقد وصلت' behind a spinner.
+              if (!_scheduleChecked) {
                 return _scheduleLoadingBody();
               }
-              if (_scheduleLoadError != null) {
+              if (_scheduleLoadError != null &&
+                  !_hasLoadedScheduleSuccessfully) {
                 return _scheduleErrorBody();
               }
               final schedule = _multiDaySchedule;
