@@ -289,13 +289,20 @@ class _OrdersScreenState extends State<OrdersScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              OrdersAppBar(),
-              SizedBox(height: 20),
+              OrdersAppBar(
+                onRefresh: () => _ordersBloc.add(
+                  FetchOrdersUsecaseEvent(
+                    params: _assignedOrdersParams(page: 1),
+                    isReload: true,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
               Padding(
                 padding: EdgeInsetsDirectional.symmetric(horizontal: 24),
                 child: OrdersTypeTabBar(orderNotifier: orderNotifier),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 12),
               Expanded(
                 child: BlocBuilder<OrdersBloc, OrdersState>(
                   buildWhen: (previous, current) =>
@@ -346,7 +353,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                             ),
                             itemCount: orders.listLength(1),
                             separatorBuilder: (context, index) =>
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 12),
                             itemBuilder: (context, index) {
                               if (orders.length <= index) {
                                 if (orders.length == index) {

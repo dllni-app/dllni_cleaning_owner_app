@@ -29,10 +29,7 @@ class _WeekCalendarState extends State<WeekCalendar> {
         gradient: LinearGradient(
           begin: AlignmentDirectional.centerStart,
           end: AlignmentDirectional.centerEnd,
-          colors: [
-            WorkerAppColors.brandPrimary,
-            WorkerAppColors.brandPrimaryStrong,
-          ],
+          colors: [WorkerAppColors.surface, WorkerAppColors.surface],
         ),
       ),
       padding: const EdgeInsetsDirectional.fromSTEB(16, 12, 16, 14),
@@ -78,11 +75,11 @@ class _WeekCalendarState extends State<WeekCalendar> {
               dowTextFormatter: (date, _) =>
                   CleaningArabicTimeFormatter.arabicWeekdayShortName(date),
               weekdayStyle: const TextStyle(
-                color: Color(0xCCFFFFFF),
+                color: WorkerAppColors.textSecondary,
                 fontSize: 10,
               ),
               weekendStyle: const TextStyle(
-                color: Color(0xCCFFFFFF),
+                color: WorkerAppColors.textSecondary,
                 fontSize: 10,
               ),
             ),
@@ -111,11 +108,13 @@ class _WeekCalendarState extends State<WeekCalendar> {
     return Center(
       child: AnimatedContainer(
         duration: WorkerAppDurations.stateChange,
-        width: 42,
-        height: 50,
+        width: 44,
+        height: 48,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: selected ? Colors.white : Colors.white.withAlpha(20),
+          color: selected
+              ? WorkerAppColors.brandPrimary
+              : WorkerAppColors.surfaceSubtle,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Text(
@@ -123,7 +122,7 @@ class _WeekCalendarState extends State<WeekCalendar> {
             CleaningArabicTimeFormatter.formatCalendarDayNumber(day),
           ),
           style: TextStyle(
-            color: selected ? WorkerAppColors.brandPrimary : Colors.white,
+            color: selected ? Colors.white : WorkerAppColors.textPrimary,
             fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
             fontSize: 15,
           ),
@@ -150,14 +149,17 @@ class _WeekCalendarState extends State<WeekCalendar> {
           onPressed: () => setState(
             () => focusedDay = focusedDay.subtract(const Duration(days: 7)),
           ),
-          icon: const Icon(Icons.chevron_right_rounded, color: Colors.white),
+          icon: const Icon(
+            Icons.chevron_right_rounded,
+            color: WorkerAppColors.brandPrimary,
+          ),
         ),
         Expanded(
           child: Text(
             title,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: Colors.white,
+              color: WorkerAppColors.textPrimary,
               fontSize: 14,
               fontWeight: FontWeight.w700,
             ),
@@ -167,7 +169,10 @@ class _WeekCalendarState extends State<WeekCalendar> {
           onPressed: () => setState(
             () => focusedDay = focusedDay.add(const Duration(days: 7)),
           ),
-          icon: const Icon(Icons.chevron_left_rounded, color: Colors.white),
+          icon: const Icon(
+            Icons.chevron_left_rounded,
+            color: WorkerAppColors.brandPrimary,
+          ),
         ),
       ],
     );

@@ -88,7 +88,6 @@ class MyPhoneNumberField extends StatelessWidget {
     String initialValue = internationalPhoneValue?.value.trim() ?? '';
 
     // 🟢 2. نحدّد الدولة والرقم بناءً على القيمة
-    String countryCode = '+963';
     String countryISO = 'SY';
     String localNumber = '';
 
@@ -96,7 +95,6 @@ class MyPhoneNumberField extends StatelessWidget {
       // مثال: +963947861234 → نستخرج الدولة والرقم
       for (final c in countries) {
         if (initialValue.startsWith('+${c.fullCountryCode}')) {
-          countryCode = '+${c.dialCode}';
           countryISO = c.code;
           localNumber = initialValue.replaceFirst('+${c.fullCountryCode}', '');
           break;
@@ -114,7 +112,7 @@ class MyPhoneNumberField extends StatelessWidget {
     initialValue.isEmpty ? initialCountryCode : countryISO;
 
     // دالة مساعدة: تحدّث الـ ValueNotifier بالقيمة الدولية
-    void _updateIntlByParts({required String countryCodeWithPlus}) {
+    void updateIntlByParts({required String countryCodeWithPlus}) {
       if (internationalPhoneValue == null) return;
       String raw = controller.text.trim().replaceAll(RegExp(r'\D'), '');
       if (raw.startsWith('0')) raw = raw.substring(1);
@@ -134,7 +132,7 @@ class MyPhoneNumberField extends StatelessWidget {
           onSubmitted: onSubmitted,
           onCountryChanged: (country) {
             // حدّث الرقم الدولي عند تغيير الدولة
-            _updateIntlByParts(countryCodeWithPlus: '+${country.dialCode}');
+            updateIntlByParts(countryCodeWithPlus: '+${country.dialCode}');
             if (onCountryChanged != null) onCountryChanged!(country);
           },
           enabled: enabled,
@@ -302,7 +300,6 @@ class MyPhoneNumberInitField extends StatelessWidget {
       if (match != null) {
         final countryDial = match.group(1)!;
         final local = match.group(2)!.trim();
-        _initialCountryDialCode = countryDial;
         controller.text = local;
         internationalPhoneValue?.value = '+$countryDial$local';
       }
@@ -310,7 +307,8 @@ class MyPhoneNumberInitField extends StatelessWidget {
   }
 
   final String? initialPhoneNumber;
-  String? _initialCountryDialCode;
+  late final String? _initialCountryDialCode =
+      RegExp(r'^\+(\d{1,3})(.*)$').firstMatch(initialPhoneNumber ?? '')?.group(1);
 
   final Function(Country)? onCountryChanged;
   final TextEditingController controller;
@@ -347,7 +345,7 @@ class MyPhoneNumberInitField extends StatelessWidget {
       theme.inputDecorationTheme,
     );
 
-    void _updateIntlByParts({required String countryCodeWithPlus}) {
+    void updateIntlByParts({required String countryCodeWithPlus}) {
       if (internationalPhoneValue == null) return;
       String raw = controller.text.trim().replaceAll(RegExp(r'\D'), '');
       if (raw.startsWith('0')) raw = raw.substring(1);
@@ -359,7 +357,7 @@ class MyPhoneNumberInitField extends StatelessWidget {
       child: MyCustomIntlField(
         textInputAction: textInputAction,
         initialCountryCode: _initialCountryDialCode != null
-            ? _countryCodeFromDial(_initialCountryDialCode!) ??
+            ? _countryCodeFromDial(_initialCountryDialCode) ??
                   initialCountryCode
             : initialCountryCode,
         controller: controller,
@@ -368,7 +366,7 @@ class MyPhoneNumberInitField extends StatelessWidget {
         readOnly: readOnly,
         invalidNumberMessage: invalidNumberMessage,
         onCountryChanged: (country) {
-          _updateIntlByParts(countryCodeWithPlus: '+${country.dialCode}');
+          updateIntlByParts(countryCodeWithPlus: '+${country.dialCode}');
           onCountryChanged?.call(country);
         },
         onChanged: (phone) {

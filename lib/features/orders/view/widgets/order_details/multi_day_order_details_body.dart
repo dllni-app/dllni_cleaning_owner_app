@@ -126,8 +126,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
         _selectedSessionId != null &&
         schedule.sessionById(_selectedSessionId) == null;
     final securityCodeSessionId = _securityCode?.sessionId;
-    final securityCodeSession =
-        securityCodeSessionId == null
+    final securityCodeSession = securityCodeSessionId == null
         ? null
         : schedule.sessionById(securityCodeSessionId);
     final securityCodeRemoved =
@@ -272,7 +271,9 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
       ..['customerConfirmedAt'] = session.customerConfirmedAt
       ..['cancelledAt'] = session.cancelledAt
       ..['cancellationReason'] = session.cancellationReason
-      ..['openTime'] = session.isOpenTime ? widget.order.toJson()['openTime'] : null;
+      ..['openTime'] = session.isOpenTime
+          ? widget.order.toJson()['openTime']
+          : null;
 
     if (assignment != null) {
       json['myAssignment'] = <String, dynamic>{
@@ -401,7 +402,9 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
         !OrderLifecyclePolicy.canStartTravelForSession(session)) {
       return;
     }
-    if (!OrderLifecyclePolicy.isSessionStartTravelWithinAllowedWindow(session)) {
+    if (!OrderLifecyclePolicy.isSessionStartTravelWithinAllowedWindow(
+      session,
+    )) {
       AppToast.showErrorGlobal(
         OrderLifecyclePolicy.startTravelUnavailableMessage,
       );
@@ -925,7 +928,9 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
           if (_securityCode?.securityCode != null &&
               _securityCode?.sessionId == session.id &&
               session.isAwaitingStartVerification &&
-              (DateTime.tryParse(_securityCode?.expiresAt ?? '')?.toLocal().isAfter(_now) ??
+              (DateTime.tryParse(
+                    _securityCode?.expiresAt ?? '',
+                  )?.toLocal().isAfter(_now) ??
                   true)) ...[
             const SizedBox(height: 12),
             Container(
@@ -1000,11 +1005,11 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
         .toList(growable: false);
 
     final property = widget.order.propertyDetails;
-    final address = property?.address?.trim() ?? widget.order.locationName?.trim();
-    final cleaningType =
-        property?.cleaningModeLabel?.trim().isNotEmpty == true
-            ? property!.cleaningModeLabel!.trim()
-            : property?.cleaningMode?.trim();
+    final address =
+        property?.address?.trim() ?? widget.order.locationName?.trim();
+    final cleaningType = property?.cleaningModeLabel?.trim().isNotEmpty == true
+        ? property!.cleaningModeLabel!.trim()
+        : property?.cleaningMode?.trim();
     final customService = property?.customService?.trim();
 
     return Container(
@@ -1028,8 +1033,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
             _contextRow('نوع التنظيف', cleaningType),
           if (customService != null && customService.isNotEmpty)
             _contextRow('الخدمة المطلوبة', customService),
-          if (services.isNotEmpty)
-            _contextRow('الخدمات', services.join('، ')),
+          if (services.isNotEmpty) _contextRow('الخدمات', services.join('، ')),
           if (sessionSpecialServices.isNotEmpty)
             _contextRow(
               'الخدمات الخاصة',
@@ -1046,11 +1050,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     );
   }
 
-  Widget _contextRow(
-    String label,
-    String value, {
-    bool withDivider = true,
-  }) {
+  Widget _contextRow(String label, String value, {bool withDivider = true}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Column(
@@ -1092,7 +1092,8 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     final hasActiveDisplayedSecurityCode =
         _securityCode?.sessionId == session.id &&
         _securityCode?.securityCode?.isNotEmpty == true &&
-        (displayedCodeExpiresAt == null || displayedCodeExpiresAt.isAfter(_now));
+        (displayedCodeExpiresAt == null ||
+            displayedCodeExpiresAt.isAfter(_now));
 
     if (session.id == null) {
       return const _InfoBanner(
@@ -1343,7 +1344,6 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
       ],
     );
   }
-
 }
 
 class _SessionNavigationMapCard extends StatefulWidget {
@@ -1433,19 +1433,20 @@ class _SessionNavigationMapCardState extends State<_SessionNavigationMapCard> {
         } catch (_) {}
       });
       _positionSubscription?.cancel();
-      _positionSubscription = Geolocator.getPositionStream(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.bestForNavigation,
-          distanceFilter: 8,
-        ),
-      ).listen((position) {
-        if (!mounted) return;
-        final next = LatLng(position.latitude, position.longitude);
-        setState(() => _currentLocation = next);
-        try {
-          _mapController.move(next, _mapController.camera.zoom);
-        } catch (_) {}
-      });
+      _positionSubscription =
+          Geolocator.getPositionStream(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.bestForNavigation,
+              distanceFilter: 8,
+            ),
+          ).listen((position) {
+            if (!mounted) return;
+            final next = LatLng(position.latitude, position.longitude);
+            setState(() => _currentLocation = next);
+            try {
+              _mapController.move(next, _mapController.camera.zoom);
+            } catch (_) {}
+          });
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -1495,7 +1496,8 @@ class _SessionNavigationMapCardState extends State<_SessionNavigationMapCard> {
     final current = _currentLocation;
     final destination = _destination;
     if (current == null || destination == null) return null;
-    final km = Geolocator.distanceBetween(
+    final km =
+        Geolocator.distanceBetween(
           current.latitude,
           current.longitude,
           destination.latitude,

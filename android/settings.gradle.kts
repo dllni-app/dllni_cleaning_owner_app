@@ -9,9 +9,17 @@ pluginManagement {
         }
 
     includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.id == "com.google.gms.google-services") {
+                useModule("com.google.gms:google-services:${requested.version}")
+            }
+        }
+    }
 
     repositories {
         google()
+        maven("https://maven-central.storage-download.googleapis.com/maven2/")
         mavenCentral()
         gradlePluginPortal()
     }

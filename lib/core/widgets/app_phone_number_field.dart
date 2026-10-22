@@ -1,6 +1,5 @@
 import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:intl_phone_number_input/intl_phone_number_input.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../helpers/phone_number_helper.dart';
@@ -149,7 +148,6 @@ class AppPhoneNumberFieldState extends State<AppPhoneNumberField> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
-
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.08),

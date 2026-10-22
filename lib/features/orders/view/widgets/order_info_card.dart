@@ -16,6 +16,9 @@ class OrderInfoCard extends StatelessWidget {
   final FetchOrdersUsecaseModelDataItem order;
 
   String get _title {
+    if (order.isHourlyWorker) {
+      return 'حجز عامل بالساعة';
+    }
     if (EventAssistanceOrderHelper.isEventAssistance(order.propertyType)) {
       return 'حجز مساعدة مناسبة';
     }

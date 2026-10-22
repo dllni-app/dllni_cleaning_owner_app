@@ -4,6 +4,9 @@ import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_arabic_time_format
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/worker_booking_schedule_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/source/worker_session_remote_data_source.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/dedicated_order_helper.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/worker_order_visual_identity.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/worker_order_identity_chips.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
@@ -213,6 +216,18 @@ class _CalenderOrderCardState extends State<CalenderOrderCard> {
                               ),
                             ),
                         ],
+                      ),
+                    ),
+                    Padding(
+                      padding: EdgeInsetsDirectional.symmetric(
+                        horizontal: 10.w,
+                      ),
+                      child: WorkerOrderIdentityChips(
+                        identity: WorkerOrderVisualIdentity.fromOrder(order),
+                        isPreferredForMe:
+                            DedicatedOrderHelper.isDedicatedToCurrentUser(
+                              order.preferredWorkerId,
+                            ),
                       ),
                     ),
                     SizedBox(height: 12.h),
