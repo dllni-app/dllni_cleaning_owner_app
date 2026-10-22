@@ -24,7 +24,6 @@ import '../usecases/fetch_worker_reviews_use_case.dart';
 import '../../data/models/fetch_worker_reviews_model.dart';
 import '../usecases/fetch_cleaning_neighborhoods_use_case.dart';
 import '../../data/models/cleaning_neighborhoods_response_model.dart';
-import '../usecases/fetch_worker_working_hours_use_case.dart';
 import '../usecases/update_worker_working_hours_use_case.dart';
 import '../../data/models/worker_working_hours_model.dart';
 

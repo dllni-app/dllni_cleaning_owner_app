@@ -65,10 +65,14 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _refreshDispatchLocation() async {
     try {
-      if (!await Geolocator.isLocationServiceEnabled()) return;
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        return;
+      }
       final permission = await Geolocator.checkPermission();
       if (permission != LocationPermission.whileInUse &&
-          permission != LocationPermission.always) return;
+          permission != LocationPermission.always) {
+        return;
+      }
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,

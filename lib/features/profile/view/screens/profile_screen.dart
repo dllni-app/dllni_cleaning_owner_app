@@ -3,7 +3,6 @@ import 'package:dllni_cleaninig_owner_app/core/widgets/worker_technical_support_
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/core/location/worker_location_tracker.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_booking_pusher_service.dart';
-import 'package:dllni_cleaninig_owner_app/features/profile/data/models/fetch_worker_profile_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/fetch_worker_profile_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/domain/usecases/update_worker_profile_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/profile/view/helpers/worker_profile_completeness_helper.dart';
@@ -338,15 +337,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     }
                                   : i == 1
                                   ? () async {
-                                      await _openMissionStartLocationScreen(profileBloc);
+                                      await _openMissionStartLocationScreen(
+                                        profileBloc,
+                                      );
                                     }
                                   : i == 2
                                   ? () {
-                                      final defaultHours = profileData?.defaultWorkingHours;
+                                      final defaultHours =
+                                          profileData?.defaultWorkingHours;
                                       if (defaultHours == null) return;
                                       context.pushRoute(
                                         '/workingtime',
-                                        arguments: WorkingTimeScreenParams(defaultWorkingHours: defaultHours),
+                                        arguments: WorkingTimeScreenParams(
+                                          defaultWorkingHours: defaultHours,
+                                        ),
                                       );
                                     }
                                   /*

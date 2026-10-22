@@ -179,7 +179,7 @@ class SyncPendingOrderFromRealtimeEvent extends OrdersEvent {
   });
 }
 
-StreamTransformer<T, T> ExhaustMapStreamTransformer<T>({
+StreamTransformer<T, T> exhaustMapStreamTransformer<T>({
   required Stream<T> Function(T event) maper,
 }) {
   return StreamTransformer<T, T>.fromBind((events) {
