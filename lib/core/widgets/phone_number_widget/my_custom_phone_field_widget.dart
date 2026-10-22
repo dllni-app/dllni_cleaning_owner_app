@@ -1,16 +1,10 @@
 import 'dart:async';
-import 'package:common_package/generated/locale_keys.g.dart';
-import 'package:easy_localization/easy_localization.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl_phone_field/countries.dart';
 import 'package:intl_phone_field/helpers.dart';
 import 'package:intl_phone_field/phone_number.dart';
-import 'package:intl_phone_number_input/intl_phone_number_input.dart' hide PhoneNumber;
-
-import '../../../generated/assets.dart';
 
 
 
@@ -60,8 +54,8 @@ class MyCustomIntlField extends StatefulWidget {
   final EdgeInsets flagsButtonMargin;
   final bool disableAutoFillHints;
 
-  MyCustomIntlField({
-    Key? key,
+  const MyCustomIntlField({
+    super.key,
     this.initialCountryCode,
     // this.nextFocusNode,
     this.languageCode = 'en',
@@ -106,10 +100,10 @@ class MyCustomIntlField extends StatefulWidget {
     this.showCursor = true,
     this.pickerDialogStyle,
     this.flagsButtonMargin = EdgeInsets.zero,
-  }) : super(key: key);
+  });
 
   @override
-  _IntlPhoneFieldState createState() => _IntlPhoneFieldState();
+  State<MyCustomIntlField> createState() => _IntlPhoneFieldState();
 }
 
 class _IntlPhoneFieldState extends State<MyCustomIntlField> {
@@ -192,28 +186,6 @@ class _IntlPhoneFieldState extends State<MyCustomIntlField> {
     }
   }
 
-  Future<void> _changeCountry() async {
-    filteredCountries = _countryList;
-    await showDialog(
-      context: context,
-      useRootNavigator: false,
-      builder: (context) => StatefulBuilder(
-        builder: (ctx, setState) => CountryPickerDialog(
-          languageCode: context.locale.languageCode,
-          style: widget.pickerDialogStyle,
-          filteredCountries: filteredCountries,
-          countryList: _countryList,
-          selectedCountry: _selectedCountry,
-          onCountryChanged: (Country country) {
-            _selectedCountry = country;
-            widget.onCountryChanged?.call(country);
-            setState(() {});
-          },
-        ),
-      ),
-    );
-    if (mounted) setState(() {});
-  }
   Widget _buildFlagsButton() {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -259,11 +231,6 @@ class _IntlPhoneFieldState extends State<MyCustomIntlField> {
     );
   }
 
-  bool _isAssetPath(String flag) {
-    return flag.contains('assets/') ||
-        flag.endsWith('.png') ||
-        flag.endsWith('.jpg');
-  }
 
   Widget _buildFlagWidget(Country country) {
     return Container(
@@ -319,9 +286,8 @@ class _IntlPhoneFieldState extends State<MyCustomIntlField> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height:kMinInteractiveDimension+24 ,
-
+    return SizedBox(
+      height: kMinInteractiveDimension + 24,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -466,17 +432,17 @@ class CountryPickerDialog extends StatefulWidget {
   final String languageCode;
 
   const CountryPickerDialog({
-    Key? key,
+    super.key,
     required this.languageCode,
     required this.countryList,
     required this.onCountryChanged,
     required this.selectedCountry,
     required this.filteredCountries,
     this.style,
-  }) : super(key: key);
+  });
 
   @override
-  _CountryPickerDialogState createState() => _CountryPickerDialogState();
+  State<CountryPickerDialog> createState() => _CountryPickerDialogState();
 }
 
 class _CountryPickerDialogState extends State<CountryPickerDialog> {
@@ -675,7 +641,9 @@ class SvgAsset extends StatelessWidget {
   Widget build(BuildContext context) {
     return SvgPicture.asset(
       assetName,
-      color: color,
+      colorFilter: color == null
+          ? null
+          : ColorFilter.mode(color!, BlendMode.srcIn),
       width: width,
       height: height,
       fit: BoxFit.contain,
