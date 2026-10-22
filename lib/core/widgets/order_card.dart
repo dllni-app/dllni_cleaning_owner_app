@@ -11,11 +11,12 @@ import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/reject
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/start_travel_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/dedicated_order_helper.dart';
-import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/event_assistance_order_helper.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/worker_order_visual_identity.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_lifecycle_policy.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/screens/order_details_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/accept_order_bottom_sheet.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/extension_request_action_sheet.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/worker_order_identity_chips.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -33,14 +34,6 @@ class OrderCard extends StatelessWidget {
   final FetchOrdersUsecaseModelDataItem data;
   final OrdersBloc bloc;
   final int index;
-
-  String _serviceName() {
-    if (data.isHourlyWorker) return 'عامل بالساعة';
-    return EventAssistanceOrderHelper.serviceTitle(
-      propertyType: data.propertyType,
-      customService: data.propertyDetails?.customService,
-    );
-  }
 
   String _statusLabel() => OrderLifecyclePolicy.statusLabel(data);
 
@@ -378,28 +371,57 @@ class OrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (data.bookingKind == 'supervised_team') {
+    final identity = WorkerOrderVisualIdentity.fromOrder(data);
+    if (identity.isSupervised) {
       return Card(
         margin: const EdgeInsets.symmetric(vertical: 7, horizontal: 4),
         child: InkWell(
           onTap: () => _openDetails(context),
+          borderRadius: BorderRadius.circular(12),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('طلب جماعي · بإدارة مشرف',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                const SizedBox(height: 7),
-                Text('رقم الطلب: ${data.bookingNumber ?? data.id ?? ''}'),
-                Text('${_formatDate()}   ${_formatTime()}'),
-                if (data.displayNeighborhoodName != null)
-                  Text(data.displayNeighborhoodName!),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        identity.title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    const Icon(Icons.chevron_left),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                WorkerOrderIdentityChips(
+                  identity: identity,
+                  isPreferredForMe: _isDedicatedToMe,
+                ),
+                const SizedBox(height: 12),
+                Text('رقم الطلب: ${data.bookingNumber ?? data.id ?? '-'}'),
+                const SizedBox(height: 4),
+                Text('${_formatDate()} · ${_formatTime()}'),
+                if (data.displayNeighborhoodName?.isNotEmpty == true) ...[
+                  const SizedBox(height: 4),
+                  Text('الحي: ${data.displayNeighborhoodName}'),
+                ],
                 const SizedBox(height: 8),
-                const Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: Text('عرض جميع المهام والخدمات المتخصصة',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
+                Text(
+                  _statusLabel(),
+                  style: TextStyle(
+                    color: _statusColor(context),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'تفاصيل مهام الفريق والخدمات المتخصصة',
+                  style: TextStyle(fontWeight: FontWeight.w600),
                 ),
               ],
             ),
@@ -450,7 +472,7 @@ class OrderCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           AppText.titleSmall(
-                            _serviceName(),
+                            identity.title,
                             fontWeight: FontWeight.bold,
                             textAlign: TextAlign.start,
                           ),
@@ -508,33 +530,6 @@ class OrderCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
 
-                        isSameDate(data.createdAt, data.scheduledDate)
-                            ? Container(
-                                padding: const EdgeInsetsDirectional.symmetric(
-                                  horizontal: 10,
-                                  vertical: 5,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: context.error.withAlpha(30),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  children: [
-                                    CircleAvatar(
-                                      radius: 3.5,
-                                      backgroundColor: context.error,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    AppText.labelSmall(
-                                      'طلب ساخن',
-                                      color: context.error,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ],
-                                ),
-                              )
-                            : const SizedBox(),
-
                         // Container(
                         //   decoration: BoxDecoration(
                         //     color: context.primaryContainer,
@@ -553,6 +548,11 @@ class OrderCard extends StatelessWidget {
                       ],
                     ),
                   ],
+                ),
+                const SizedBox(height: 8),
+                WorkerOrderIdentityChips(
+                  identity: identity,
+                  isPreferredForMe: isDedicatedToMe,
                 ),
                 const SizedBox(height: 12),
 
