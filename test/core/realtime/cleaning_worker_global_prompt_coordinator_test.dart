@@ -1,14 +1,38 @@
+import 'dart:async';
 import 'dart:convert';
 
-import 'package:common_package/helpers/shared_preferences_helper.dart';
 import 'package:dio/dio.dart';
+import 'package:dartz/dartz.dart';
+import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_realtime_contract.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_extension_requests_usecas_model.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_order_details_usecase_model.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/data/models/reject_extension_usecase_model.dart';
+import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/domain/repository/orders_repo.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/accept_extension_usecase_use_case.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/accept_order_usecase_use_case.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/arrive_use_case.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/cancel_order_use_case.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/complete_order_usecase_use_case.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/fetch_extension_requests_usecas_use_case.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/fetch_order_details_usecase_use_case.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/fetch_orders_usecase_use_case.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/fetch_security_code_use_case.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/post_booking_location_use_case.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/reject_extension_usecase_use_case.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/reject_order_usecase_use_case.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/start_travel_usecase_use_case.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/start_work_use_case.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/update_availability_usecase_use_case.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/cleaning_worker_global_prompt_coordinator.dart';
 import 'package:dllni_cleaninig_owner_app/core/realtime/pusher_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../../support/finish_widget_cleanup.dart';
 import 'package:pusher_channels_flutter/pusher_channels_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -26,6 +50,198 @@ void main() {
   });
 
   group('CleaningWorkerGlobalPromptCoordinator', () {
+    testWidgets(
+      'real root modal keeps realtime and resume work pending until close',
+      (WidgetTester tester) async {
+        await getIt.reset();
+        final bloc = _buildCoordinatorOrdersBloc();
+        getIt.registerSingleton<OrdersBloc>(bloc);
+        final navigatorKey = GlobalKey<NavigatorState>();
+        var handled = false;
+        final coordinator =
+            CleaningWorkerGlobalPromptCoordinator(
+                navigatorKey: navigatorKey,
+                pusherManager: _buildNoopPusherManager(),
+                pendingRequestsLoader: () async =>
+                    const <WorkerPendingExtensionRequest>[
+                      WorkerPendingExtensionRequest(
+                        warningId: 881,
+                        bookingId: 44,
+                        requestedMinutes: 30,
+                        baseAmount: 100,
+                        adminMargin: 0,
+                        totalAmount: 100,
+                        additionalAmount: 100,
+                        currency: 'SYP',
+                      ),
+                      WorkerPendingExtensionRequest(
+                        warningId: 882,
+                        bookingId: 45,
+                        requestedMinutes: 15,
+                        baseAmount: 50,
+                        adminMargin: 0,
+                        totalAmount: 50,
+                        additionalAmount: 50,
+                        currency: 'SYP',
+                      ),
+                    ],
+              )
+              ..markStartedForTest()
+              ..markAuthBypassForTest();
+
+        await tester.pumpWidget(
+          MaterialApp(
+            navigatorKey: navigatorKey,
+            home: const Scaffold(body: SizedBox.expand()),
+          ),
+        );
+        final eventHandling = coordinator.handleRealtimeEventForTest(
+          CleaningRealtimeContract.serviceExtensionRequested,
+          const <String, dynamic>{
+            'warningId': 881,
+            'cleaningBookingId': 44,
+            'requestedMinutes': 30,
+            'customerName': 'Customer',
+            'baseAmount': 100,
+            'adminMargin': 0,
+            'totalAmount': 100,
+            'additionalAmount': 100,
+            'currency': 'SYP',
+            'paymentMethod': 'cash',
+          },
+        )..then((_) => handled = true);
+        await tester.pumpAndSettle();
+
+        expect(find.text('طلب تمديد مدة العمل'), findsOneWidget);
+        expect(handled, isFalse);
+        final secondWarningHandling = coordinator.handleRealtimeEventForTest(
+          CleaningRealtimeContract.serviceExtensionRequested,
+          const <String, dynamic>{
+            'warningId': 882,
+            'cleaningBookingId': 45,
+            'requestedMinutes': 15,
+            'customerName': 'Customer 882',
+            'baseAmount': 50,
+            'adminMargin': 0,
+            'totalAmount': 50,
+            'additionalAmount': 50,
+            'currency': 'SYP',
+            'paymentMethod': 'cash',
+          },
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('طلب تمديد مدة العمل'), findsOneWidget);
+        expect(find.textContaining('15 دقيقة إضافية'), findsNothing);
+        await coordinator.handleRealtimeEventForTest(
+          CleaningRealtimeContract.serviceExtensionRequested,
+          const <String, dynamic>{
+            'warningId': 881,
+            'cleaningBookingId': 44,
+            'requestedMinutes': 30,
+            'customerName': 'Customer',
+            'baseAmount': 100,
+            'adminMargin': 0,
+            'totalAmount': 100,
+            'additionalAmount': 100,
+            'currency': 'SYP',
+            'paymentMethod': 'cash',
+          },
+        );
+        await coordinator.pollPendingExtensionPrompts();
+        expect(find.text('طلب تمديد مدة العمل'), findsOneWidget);
+        expect(handled, isFalse);
+
+        await tester.tap(find.text('رفض الطلب'));
+        await tester.pumpAndSettle();
+        await eventHandling;
+        expect(handled, isTrue);
+        expect(find.text('طلب تمديد مدة العمل'), findsNothing);
+        await secondWarningHandling;
+        final resumedPoll = coordinator.pollPendingExtensionPrompts();
+        await tester.pumpAndSettle();
+        expect(find.textContaining('15 دقيقة إضافية'), findsOneWidget);
+        expect(find.text('طلب تمديد مدة العمل'), findsOneWidget);
+        await tester.tap(find.text('رفض الطلب'));
+        await tester.pumpAndSettle();
+        await resumedPoll;
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await finishWidgetCleanup(tester, coordinator.stop());
+        await getIt.reset();
+      },
+    );
+    testWidgets(
+      'pending poll carries authoritative quote and keeps incomplete consent disabled',
+      (WidgetTester tester) async {
+        for (final request in <WorkerPendingExtensionRequest>[
+          const WorkerPendingExtensionRequest(
+            warningId: 891,
+            bookingId: 49,
+            requestedMinutes: 25,
+            baseAmount: 100,
+            adminMargin: 10,
+            totalAmount: 110,
+            additionalAmount: 110,
+            currency: 'SYP',
+          ),
+          const WorkerPendingExtensionRequest(
+            warningId: 892,
+            bookingId: 50,
+            requestedMinutes: 25,
+            totalAmount: 110,
+            additionalAmount: 110,
+            currency: 'SYP',
+          ),
+        ]) {
+          await getIt.reset();
+          final bloc = _buildCoordinatorOrdersBloc();
+          getIt.registerSingleton<OrdersBloc>(bloc);
+          final navigatorKey = GlobalKey<NavigatorState>();
+          final coordinator =
+              CleaningWorkerGlobalPromptCoordinator(
+                  navigatorKey: navigatorKey,
+                  pusherManager: _buildNoopPusherManager(),
+                  pendingRequestsLoader: () async =>
+                      <WorkerPendingExtensionRequest>[request],
+                )
+                ..markStartedForTest()
+                ..markAuthBypassForTest();
+          await tester.pumpWidget(
+            MaterialApp(
+              navigatorKey: navigatorKey,
+              home: const Scaffold(body: SizedBox.expand()),
+            ),
+          );
+
+          final polling = coordinator.pollPendingExtensionPrompts();
+          await tester.pumpAndSettle();
+          expect(
+            find.byKey(const Key('extension_total_quote')),
+            findsOneWidget,
+          );
+          expect(find.text('المبلغ الإضافي المعتمد'), findsOneWidget);
+          expect(find.text('110.00 SYP'), findsOneWidget);
+          if (request.warningId == 891) {
+            final accept = tester.widget<FilledButton>(
+              find.widgetWithText(FilledButton, 'قبول الطلب'),
+            );
+            expect(accept.onPressed, isNotNull);
+          } else {
+            final accept = tester.widget<FilledButton>(
+              find.widgetWithText(FilledButton, 'قبول الطلب'),
+            );
+            expect(accept.onPressed, isNull);
+          }
+
+          await tester.tap(find.text('رفض الطلب'));
+          await tester.pumpAndSettle();
+          await polling;
+          await tester.pumpWidget(const SizedBox.shrink());
+          await finishWidgetCleanup(tester, coordinator.stop());
+          await getIt.reset();
+        }
+      },
+    );
     test(
       'ServiceExtensionRequested opens extension prompt only once per warning id',
       () async {
@@ -83,6 +299,64 @@ void main() {
         );
 
         expect(shown, isEmpty);
+      },
+    );
+
+    test(
+      'an open extension prompt remains reserved until its presenter closes',
+      () async {
+        final presenterCompleted = Completer<bool>();
+        var presentationCount = 0;
+        final coordinator =
+            CleaningWorkerGlobalPromptCoordinator(
+                navigatorKey: GlobalKey<NavigatorState>(),
+                pusherManager: _buildNoopPusherManager(),
+                pendingRequestsLoader: () async =>
+                    const <WorkerPendingExtensionRequest>[
+                      WorkerPendingExtensionRequest(
+                        warningId: 808,
+                        bookingId: 18,
+                        requestedMinutes: 30,
+                      ),
+                    ],
+                extensionPromptPresenter: (_) {
+                  presentationCount++;
+                  return presenterCompleted.future;
+                },
+              )
+              ..markStartedForTest()
+              ..markAuthBypassForTest();
+
+        final eventHandling = coordinator.handleRealtimeEventForTest(
+          CleaningRealtimeContract.serviceExtensionRequested,
+          const <String, dynamic>{
+            'warningId': 808,
+            'cleaningBookingId': 18,
+            'requestedMinutes': 30,
+          },
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        final duplicateEvent = coordinator.handleRealtimeEventForTest(
+          CleaningRealtimeContract.serviceExtensionRequested,
+          const <String, dynamic>{
+            'warningId': 808,
+            'cleaningBookingId': 18,
+            'requestedMinutes': 30,
+          },
+        );
+        final resumePoll = coordinator.pollPendingExtensionPrompts();
+        await Future<void>.delayed(Duration.zero);
+
+        expect(presentationCount, 1);
+        presenterCompleted.complete(true);
+        await Future.wait(<Future<void>>[
+          eventHandling,
+          duplicateEvent,
+          resumePoll,
+        ]);
+
+        expect(presentationCount, 1);
       },
     );
 
@@ -497,6 +771,62 @@ void main() {
 
 PusherManager _buildNoopPusherManager() {
   return PusherManager(clientBridge: _NoopPusherClientBridge(), authDio: Dio());
+}
+
+OrdersBloc _buildCoordinatorOrdersBloc() {
+  final repo = _CoordinatorOrdersRepo();
+  return OrdersBloc(
+    FetchOrdersUsecaseUseCase(orders: repo),
+    FetchOrderDetailsUsecaseUseCase(orders: repo),
+    AcceptOrderUsecaseUseCase(orders: repo),
+    StartTravelUsecaseUseCase(orders: repo),
+    CompleteOrderUsecaseUseCase(orders: repo),
+    CancelOrderUseCase(orders: repo),
+    FetchExtensionRequestsUsecasUseCase(orders: repo),
+    AcceptExtensionUsecaseUseCase(orders: repo),
+    RejectExtensionUsecaseUseCase(orders: repo),
+    UpdateAvailabilityUsecaseUseCase(orders: repo),
+    RejectOrderUsecaseUseCase(orders: repo),
+    ArriveUseCase(orders: repo),
+    PostBookingLocationUseCase(orders: repo),
+    FetchSecurityCodeUseCase(orders: repo),
+    StartWorkUseCase(orders: repo),
+  );
+}
+
+class _CoordinatorOrdersRepo implements OrdersRepo {
+  @override
+  DataResponse<RejectExtensionUsecaseModel> rejectExtensionUsecase(
+    RejectExtensionUsecaseParams params,
+  ) async => Right<Failure, RejectExtensionUsecaseModel>(
+    RejectExtensionUsecaseModel(
+      data: RejectExtensionUsecaseModelData(id: params.id),
+    ),
+  );
+
+  @override
+  DataResponse<FetchExtensionRequestsUsecasModel> fetchExtensionRequestsUsecas(
+    FetchExtensionRequestsUsecasParams params,
+  ) async => const Left<Failure, FetchExtensionRequestsUsecasModel>(
+    ServerFailure(message: 'not configured', statusCode: 500),
+  );
+
+  @override
+  DataResponse<FetchOrdersUsecaseModel> fetchOrdersUsecase(
+    FetchOrdersUsecaseParams params,
+  ) async => const Left<Failure, FetchOrdersUsecaseModel>(
+    ServerFailure(message: 'not configured', statusCode: 500),
+  );
+
+  @override
+  DataResponse<FetchOrderDetailsUsecaseModel> fetchOrderDetailsUsecase(
+    FetchOrderDetailsUsecaseParams params,
+  ) async => const Left<Failure, FetchOrderDetailsUsecaseModel>(
+    ServerFailure(message: 'not configured', statusCode: 500),
+  );
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _NoopPusherClientBridge implements PusherClientBridge {

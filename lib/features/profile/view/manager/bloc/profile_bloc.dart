@@ -443,12 +443,14 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     final pagination = state.notificationsPagination;
     final isLoadMore = event.loadMore && !event.isReload;
     if (isLoadMore && pagination.isEndPage) return;
+    final requestPagination = pagination
+        .setLoading(isReload: event.isReload && !event.preserveExisting)
+        .copyWith(errorMessage: '');
 
     emit(
       state.copyWith(
-        notificationsPagination: pagination.setLoading(
-          isReload: event.isReload,
-        ),
+        notificationsPagination: requestPagination,
+        notificationsAccessDenied: false,
         clearNotificationActionError: true,
       ),
     );
@@ -464,11 +466,20 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     );
     response.fold(
       (failure) {
+        final accessDenied =
+            failure.statusCode == 401 || failure.statusCode == 403;
+        final failedPagination = requestPagination.setFaild(
+          errorMessage: failure.message,
+        );
         emit(
           state.copyWith(
-            notificationsPagination: pagination.setFaild(
-              errorMessage: failure.message,
-            ),
+            notificationsPagination: accessDenied
+                ? failedPagination.copyWith(
+                    list: const <FetchNotificationsModelDataItem>[],
+                    status: BlocStatus.failed,
+                  )
+                : failedPagination,
+            notificationsAccessDenied: accessDenied,
             errorMessage: failure.message,
           ),
         );
@@ -480,15 +491,22 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         final countUnread = result.resolvedCountUnread;
         emit(
           state.copyWith(
-            notificationsPagination: pagination.setSuccess(
-              data: mapped,
-              perPage: result.meta?.perPage ?? perPage,
-            ),
+            notificationsPagination: event.isReload
+                ? pagination.setSuccessReplace(
+                    data: mapped,
+                    perPage: result.meta?.perPage ?? perPage,
+                  )
+                : pagination.setSuccess(
+                    data: mapped,
+                    perPage: result.meta?.perPage ?? perPage,
+                  ),
+            notificationsAccessDenied: false,
             unreadNotification: countUnread,
           ),
         );
         if (event.markAllReadOnSuccess) {
-          final hasUnread = (countUnread ?? 0) > 0 ||
+          final hasUnread =
+              (countUnread ?? 0) > 0 ||
               mapped.any((item) => item.isRead != true);
           if (hasUnread) {
             add(MarkAllNotificationsReadEvent(silent: true));
@@ -502,9 +520,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     List<FetchNotificationsModelDataItem> notifications,
   ) {
     return notifications
-        .map(
-          (item) => item.copyWith(isRead: true, showTrailingAccent: false),
-        )
+        .map((item) => item.copyWith(isRead: true, showTrailingAccent: false))
         .toList();
   }
 

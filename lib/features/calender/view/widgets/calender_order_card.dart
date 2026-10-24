@@ -12,6 +12,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/worker_app_colors.dart';
 
 import '../../../../generated/assets.dart';
+import '../helpers/calendar_schedule_request_guard.dart';
+import '../helpers/calendar_session_selection.dart';
 import '../../../orders/data/models/fetch_orders_usecase_model.dart';
 import '../../../orders/view/screens/order_details_screen.dart';
 
@@ -27,6 +29,8 @@ class CalenderOrderCard extends StatefulWidget {
 
 class _CalenderOrderCardState extends State<CalenderOrderCard> {
   WorkerBookingScheduleModel? _schedule;
+  final CalendarScheduleRequestGuard _scheduleRequestGuard =
+      CalendarScheduleRequestGuard();
 
   bool get _isEventAssistance =>
       widget.date.propertyType?.trim().toLowerCase() == 'event_assistance';
@@ -42,7 +46,11 @@ class _CalenderOrderCardState extends State<CalenderOrderCard> {
   @override
   void didUpdateWidget(covariant CalenderOrderCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.date.id != widget.date.id) {
+    // A refreshed booking DTO may keep the same ID while its assignment,
+    // authorization or status has changed. Treat each new snapshot as a new
+    // read boundary rather than reusing a previous session schedule.
+    if (!identical(oldWidget.date, widget.date)) {
+      _scheduleRequestGuard.invalidate();
       _schedule = null;
       if (_isEventAssistance && widget.date.id != null) {
         _fetchSchedule();
@@ -50,13 +58,27 @@ class _CalenderOrderCardState extends State<CalenderOrderCard> {
     }
   }
 
+  @override
+  void dispose() {
+    _scheduleRequestGuard.invalidate();
+    super.dispose();
+  }
+
   Future<void> _fetchSchedule() async {
     final bookingId = widget.date.id;
     if (bookingId == null) return;
+    final requestGeneration = _scheduleRequestGuard.begin(bookingId);
     try {
       final result = await getIt<WorkerSessionRemoteDataSource>()
           .fetchBookingSchedule(bookingId);
-      if (!mounted) return;
+      if (!mounted ||
+          !_scheduleRequestGuard.acceptsResponse(
+            generation: requestGeneration,
+            bookingId: bookingId,
+            responseBookingId: result.bookingId,
+          )) {
+        return;
+      }
       setState(() => _schedule = result.schedule);
     } catch (_) {
       // Keep the legacy occurrence available if schedule loading fails.
@@ -73,24 +95,10 @@ class _CalenderOrderCardState extends State<CalenderOrderCard> {
         .read<OrdersBloc>()
         .lastAppliedOrdersListFilter
         .scheduledDate;
-    if (selectedDate != null && selectedDate.isNotEmpty) {
-      final matches = schedule.sessions
-          .where((session) => _dateApi(session.date) == selectedDate)
-          .toList(growable: false);
-      if (matches.isNotEmpty) return matches;
-    }
-
-    final next = schedule.nextSession;
-    if (next != null) {
-      return <WorkerBookingSessionModel>[schedule.sessionById(next.id) ?? next];
-    }
-    if (schedule.sessions.isEmpty) return const <WorkerBookingSessionModel>[];
-    return <WorkerBookingSessionModel>[schedule.sessions.first];
-  }
-
-  String _dateApi(DateTime? date) {
-    if (date == null) return '';
-    return '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    return selectCalendarSessionsForDate(
+      schedule: schedule,
+      selectedDate: selectedDate,
+    );
   }
 
   String _sessionHours(double value) =>
@@ -138,7 +146,7 @@ class _CalenderOrderCardState extends State<CalenderOrderCard> {
     final displayTime = session?.time ?? order.scheduledTime;
     final displayDate = session == null
         ? order.scheduledDate
-        : _dateApi(session.date);
+        : calendarDateKey(session.date);
     final workerAmount =
         session?.workerAssignmentState?.workerAmount ??
         session?.workerAssignmentState?.netAmount;

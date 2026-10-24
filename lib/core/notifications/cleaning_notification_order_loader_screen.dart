@@ -10,9 +10,11 @@ class CleaningNotificationOrderLoaderScreen extends StatefulWidget {
   const CleaningNotificationOrderLoaderScreen({
     super.key,
     required this.bookingId,
+    this.selectedSessionId,
   });
 
   final int bookingId;
+  final int? selectedSessionId;
 
   @override
   State<CleaningNotificationOrderLoaderScreen> createState() =>
@@ -54,7 +56,10 @@ class _CleaningNotificationOrderLoaderScreenState
       },
       (result) {
         final details = result.data;
-        if (details == null) {
+        // A notification's booking identity is immutable. Never render a
+        // different or unidentified booking if the server response is stale,
+        // malformed, or unexpectedly substituted.
+        if (details == null || details.id != widget.bookingId) {
           setState(() {
             _loading = false;
             _error = 'تعذر تحميل تفاصيل الطلب';
@@ -80,6 +85,7 @@ class _CleaningNotificationOrderLoaderScreenState
           isNewOrder: false,
           bloc: getIt<OrdersBloc>(),
           index: 0,
+          selectedSessionId: widget.selectedSessionId,
         ),
       );
     }

@@ -493,6 +493,11 @@ class WorkerBookingScheduleModel {
     }
     return null;
   }
+
+  /// Any authoritative session scope, including a single-day visit, may be
+  /// opened only when that exact ID appears in the server's schedule.
+  bool canHonorExplicitSession(int? sessionId) =>
+      sessionId == null || sessionById(sessionId) != null;
 }
 
 class WorkerMultiDayBookingEnvelope {

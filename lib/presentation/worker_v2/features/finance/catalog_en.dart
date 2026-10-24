@@ -1,0 +1,18 @@
+const financeLabelsEn = <String, String>{
+  'active': 'Active',
+  'inactive': 'Inactive',
+  'pending': 'Pending review',
+  'completed': 'Completed',
+  'complete': 'Complete',
+  'open': 'Open',
+  'resolved': 'Resolved',
+  'closed': 'Closed',
+  'unavailable': 'Unavailable',
+  'deposit': 'Deposit',
+  'commission': 'Commission',
+  'admin_fee': 'Administration fee',
+  'debt': 'Debt',
+  'settlement': 'Settlement',
+  'refund': 'Refund',
+  'allowance_limit': 'Allowance limit',
+};

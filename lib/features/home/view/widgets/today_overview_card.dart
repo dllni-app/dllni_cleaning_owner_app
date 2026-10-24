@@ -19,6 +19,10 @@ class TodayOverviewCard extends StatelessWidget {
             state.homePageUsecaseStatus == BlocStatus.loading ||
             state.homePageUsecaseStatus == BlocStatus.init;
         final isFailed = state.homePageUsecaseStatus == BlocStatus.failed;
+        final earnings = model?.totalEarnings;
+        final earningsLabel = earnings != null && earnings.isFinite
+            ? earnings.formatMoney(currency: '')
+            : '—';
 
         return Container(
           width: double.infinity,
@@ -41,36 +45,42 @@ class TodayOverviewCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsetsDirectional.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withAlpha(24),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.insights_rounded,
-                          size: 15,
-                          color: Colors.white,
+                  Expanded(
+                    child: Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: Container(
+                        padding: const EdgeInsetsDirectional.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
                         ),
-                        SizedBox(width: 6),
-                        Text(
-                          'ملخص اليوم',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha(24),
+                          borderRadius: BorderRadius.circular(999),
                         ),
-                      ],
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.insights_rounded,
+                              size: 15,
+                              color: Colors.white,
+                            ),
+                            SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                'ملخص اليوم',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                  const Spacer(),
                   const Icon(
                     Icons.cleaning_services_rounded,
                     color: Colors.white,
@@ -106,7 +116,7 @@ class TodayOverviewCard extends StatelessWidget {
                 )
               else
                 Text(
-                  '${model?.totalEarnings.formatMoney(currency: '') ?? '0'} ل.س',
+                  '$earningsLabel ل.س',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w800,
@@ -203,7 +213,7 @@ class _MiniMetric extends StatelessWidget {
             const SizedBox(height: 2),
             Text(
               label,
-              maxLines: 1,
+              textAlign: TextAlign.center,
               style: const TextStyle(color: Color(0xFFDCE2FF), fontSize: 9),
             ),
           ],

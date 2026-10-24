@@ -1,0 +1,9 @@
+{
+  "version": "V2",
+  "algorithm": "SHA256",
+  "fixtures": {
+    "fixtures/base_fixtures.dart": "EBD520B3EE4FFD04619B2C3D575A0948826C2B10689A9C64588A59A2C4F528C9",
+    "fixtures/base_scenarios.json": "270D04B75BBA82BB4FDCF70F03E9C5CAE20216F3998DDF88BBBECE4E9747EA1E",
+    "fixtures/base_scenarios.schema.json": "BBAA62A0506F0A5312468F47282ABEEBFDBC10A5E5CAB12F410D9B400808D887"
+  }
+}

@@ -24,7 +24,6 @@ class ProfileAppBar extends StatelessWidget {
             case BlocStatus.success:
               final profile = state.workerProfileUsecase?.data;
               final name = profile?.user?.name ?? '-';
-              final id = profile?.user?.id;
               return WorkerSurfaceCard(
                 shadow: false,
                 radius: WorkerAppRadius.lg,
@@ -55,15 +54,6 @@ class ProfileAppBar extends StatelessWidget {
                                 ),
                           ),
                           const SizedBox(height: 4),
-                          Text(
-                            'ID: ${id ?? '-'}',
-                            textDirection: TextDirection.ltr,
-                            style: Theme.of(context).textTheme.labelMedium
-                                ?.copyWith(
-                                  color: const Color(0xFFDCE2FF),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                          ),
                         ],
                       ),
                     ),

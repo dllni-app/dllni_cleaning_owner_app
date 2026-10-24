@@ -2,10 +2,13 @@ import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/accept_extension_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/fetch_order_details_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/reject_extension_usecase_use_case.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_extension_requests_usecas_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/extension_time_format_helper.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../../core/theme/worker_app_colors.dart';
 
 class ExtensionRequestActionSheet {
   static Future<bool> show(
@@ -161,7 +164,15 @@ class _ExtensionRequestActionSheetBodyState
     final totalAmount = widget.totalAmount ?? widget.additionalAmount;
     final currencyText = (widget.currency?.trim().isNotEmpty ?? false)
         ? widget.currency!.trim()
-        : 'ل.س';
+        : 'العملة غير محددة';
+    final hasValidConsentTerms = hasValidExtensionConsentTerms(
+      requestedMinutes: widget.requestedMinutes,
+      baseAmount: widget.baseAmount,
+      adminMargin: widget.adminMargin,
+      totalAmount: widget.totalAmount,
+      additionalAmount: widget.additionalAmount,
+      currency: widget.currency,
+    );
     final paymentText = ExtensionRequestActionSheet.paymentMethodLabel(
       widget.paymentMethod,
     );
@@ -178,10 +189,12 @@ class _ExtensionRequestActionSheetBodyState
         listenWhen: (previous, current) {
           final acceptedNow =
               previous.acceptExtensionUsecaseStatus != BlocStatus.success &&
-              current.acceptExtensionUsecaseStatus == BlocStatus.success;
+              current.acceptExtensionUsecaseStatus == BlocStatus.success &&
+              current.acceptExtensionUsecase?.data?.id == widget.warningId;
           final rejectedNow =
               previous.rejectExtensionUsecaseStatus != BlocStatus.success &&
-              current.rejectExtensionUsecaseStatus == BlocStatus.success;
+              current.rejectExtensionUsecaseStatus == BlocStatus.success &&
+              current.rejectExtensionUsecase?.data?.id == widget.warningId;
           final acceptFailedNow =
               previous.acceptExtensionUsecaseStatus != BlocStatus.failed &&
               current.acceptExtensionUsecaseStatus == BlocStatus.failed;
@@ -243,7 +256,7 @@ class _ExtensionRequestActionSheetBodyState
                           ),
                           const SizedBox(height: 4),
                           AppText.bodySmall(
-                            'إذا كان برنامجك يسمح هذا سيؤدي لمرابح أكثر',
+                            'راجع المبلغ والمدة قبل تأكيد قرارك',
                             textAlign: TextAlign.center,
                             color: const Color(0xff6B7280),
                           ),
@@ -304,6 +317,14 @@ class _ExtensionRequestActionSheetBodyState
                         totalAmount: totalAmount,
                         currency: currencyText,
                       ),
+                      if (!hasValidConsentTerms) ...[
+                        const SizedBox(height: 10),
+                        AppText.bodySmall(
+                          'لا يمكن قبول التمديد حتى تتوفر تفاصيل المبلغ والمدة بشكل موثوق.',
+                          color: WorkerAppColors.danger,
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                       const SizedBox(height: 10),
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -351,31 +372,37 @@ class _ExtensionRequestActionSheetBodyState
                         child: OutlinedButton(
                           onPressed: isLoading ? null : _onReject,
                           style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Color(0xffEF4444)),
-                            foregroundColor: const Color(0xffEF4444),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: const BorderSide(
+                              color: WorkerAppColors.danger,
+                            ),
+                            foregroundColor: WorkerAppColors.danger,
+                            minimumSize: const Size(0, 48),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
                           child: AppText.labelLarge(
                             'رفض الطلب',
-                            color: const Color(0xffEF4444),
+                            color: WorkerAppColors.danger,
                           ),
                         ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: FilledButton(
-                          onPressed: isLoading ? null : _onAccept,
                           style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xff1DBCC8),
+                            backgroundColor: WorkerAppColors.brandPrimary,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            minimumSize: const Size(0, 48),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
+                          onPressed: isLoading || !hasValidConsentTerms
+                              ? null
+                              : _onAccept,
                           child:
                               isLoading &&
                                   state.acceptExtensionUsecaseStatus ==
@@ -422,32 +449,27 @@ class ExtensionRequestAmountBreakdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final serviceAmount = totalAmount ?? baseAmount;
-    final netProfit = totalAmount != null && adminMargin != null
-        ? (totalAmount! - adminMargin!).clamp(0, double.infinity).toDouble()
-        : baseAmount;
     final rows = <Widget>[
-      if (serviceAmount != null)
+      if (totalAmount != null && totalAmount!.isFinite && totalAmount! >= 0)
         _ExtensionAmountRow(
-          key: const Key('extension_service_amount'),
-          label: 'سعر الخدمة',
-          amount: serviceAmount,
+          key: const Key('extension_total_quote'),
+          label: 'المبلغ الإضافي المعتمد',
+          amount: totalAmount!,
           currency: currency,
         ),
-      if (adminMargin != null)
+      if (baseAmount != null && baseAmount!.isFinite && baseAmount! >= 0)
+        _ExtensionAmountRow(
+          key: const Key('extension_base_amount'),
+          label: 'القيمة الأساسية',
+          amount: baseAmount!,
+          currency: currency,
+        ),
+      if (adminMargin != null && adminMargin!.isFinite && adminMargin! >= 0)
         _ExtensionAmountRow(
           key: const Key('extension_admin_margin'),
           label: 'هامش الادارة',
           amount: adminMargin!,
           currency: currency,
-        ),
-      if (netProfit != null)
-        _ExtensionAmountRow(
-          key: const Key('extension_net_profit'),
-          label: 'صافي الربح',
-          amount: netProfit,
-          currency: currency,
-          emphasize: true,
         ),
     ];
 
@@ -475,27 +497,31 @@ class _ExtensionAmountRow extends StatelessWidget {
     required this.label,
     required this.amount,
     required this.currency,
-    this.emphasize = false,
     super.key,
   });
 
   final String label;
   final double amount;
   final String currency;
-  final bool emphasize;
-
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AppText.bodyLarge(
-          '${amount.toStringAsFixed(2)} $currency',
-          fontWeight: emphasize ? FontWeight.w700 : FontWeight.w500,
+        Flexible(
+          child: AppText.bodyLarge(
+            '${amount.toStringAsFixed(2)} $currency',
+            fontWeight: FontWeight.w500,
+            textAlign: TextAlign.start,
+          ),
         ),
-        AppText.bodyLarge(
-          label,
-          fontWeight: emphasize ? FontWeight.w700 : FontWeight.w500,
+        const SizedBox(width: 12),
+        Flexible(
+          child: AppText.bodyLarge(
+            label,
+            fontWeight: FontWeight.w500,
+            textAlign: TextAlign.end,
+          ),
         ),
       ],
     );

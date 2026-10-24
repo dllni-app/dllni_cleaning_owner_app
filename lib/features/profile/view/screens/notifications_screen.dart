@@ -78,11 +78,33 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       FetchNotificationsEvent(
         params: FetchNotificationsParams(),
         isReload: true,
+        preserveExisting: true,
       ),
     );
     await profileBloc.stream.firstWhere(
       (state) => state.notificationsStatus != BlocStatus.loading,
     );
+  }
+
+  void _retryNotifications() {
+    profileBloc.add(
+      FetchNotificationsEvent(
+        params: FetchNotificationsParams(),
+        isReload: true,
+        preserveExisting: true,
+      ),
+    );
+  }
+
+  String _loadFailureMessage(String? error, {bool accessDenied = false}) {
+    if (accessDenied) return 'لا تملك صلاحية الوصول إلى هذه الإشعارات.';
+    final normalized = (error ?? '').toLowerCase();
+    if (normalized.contains('403') ||
+        normalized.contains('forbidden') ||
+        normalized.contains('غير مصرح')) {
+      return 'لا تملك صلاحية الوصول إلى هذه الإشعارات.';
+    }
+    return 'تعذر تحميل الإشعارات. تحقق من الاتصال ثم حاول مرة أخرى.';
   }
 
   Future<void> _confirmDeleteAll(BuildContext context) async {
@@ -174,6 +196,42 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         notifications.isEmpty) {
                       return const Center(child: CircularProgressIndicator());
                     }
+                    if (state.notificationsStatus == BlocStatus.failed &&
+                        notifications.isEmpty) {
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.notifications_off_outlined,
+                                size: 40,
+                                color: WorkerAppColors.textSecondary,
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                _loadFailureMessage(
+                                  pagination.errorMessage,
+                                  accessDenied: state.notificationsAccessDenied,
+                                ),
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                              const SizedBox(height: 12),
+                              OutlinedButton.icon(
+                                onPressed: _retryNotifications,
+                                icon: const Icon(Icons.refresh_rounded),
+                                label: const Text('إعادة المحاولة'),
+                                style: OutlinedButton.styleFrom(
+                                  minimumSize: const Size(0, 48),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
                     if (notifications.isEmpty) {
                       return const Center(child: Text('لا توجد إشعارات'));
                     }
@@ -205,6 +263,44 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             bottom: 16,
                           ),
                           children: [
+                            if (state.notificationsStatus ==
+                                    BlocStatus.failed &&
+                                notifications.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsetsDirectional.fromSTEB(
+                                  16,
+                                  8,
+                                  16,
+                                  8,
+                                ),
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: WorkerAppColors.dangerSoft,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          _loadFailureMessage(
+                                            pagination.errorMessage,
+                                            accessDenied:
+                                                state.notificationsAccessDenied,
+                                          ),
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.bodySmall,
+                                        ),
+                                      ),
+                                      TextButton(
+                                        onPressed: _retryNotifications,
+                                        child: const Text('إعادة المحاولة'),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
                             for (final section in sections)
                               if (groups[section]!.isNotEmpty) ...[
                                 Padding(

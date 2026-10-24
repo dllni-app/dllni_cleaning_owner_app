@@ -24,6 +24,7 @@ class ProfileState {
   final int? unreadNotification;
   final BlocStatus? markAllNotificationsReadStatus;
   final String? notificationActionError;
+  final bool notificationsAccessDenied;
   BlocStatus? workerReviewsStatus;
   FetchWorkerReviewsModel? workerReviews;
   BlocStatus? cleaningNeighborhoodsStatus;
@@ -63,6 +64,7 @@ class ProfileState {
     this.unreadNotification,
     this.markAllNotificationsReadStatus,
     this.notificationActionError,
+    this.notificationsAccessDenied = false,
     this.workerReviewsStatus,
     this.workerReviews,
     this.cleaningNeighborhoodsStatus,
@@ -102,6 +104,7 @@ class ProfileState {
     bool clearMarkAllNotificationsReadStatus = false,
     String? notificationActionError,
     bool clearNotificationActionError = false,
+    bool? notificationsAccessDenied,
     BlocStatus? workerReviewsStatus,
     FetchWorkerReviewsModel? workerReviews,
     BlocStatus? cleaningNeighborhoodsStatus,
@@ -149,6 +152,8 @@ class ProfileState {
     notificationActionError: clearNotificationActionError
         ? null
         : (notificationActionError ?? this.notificationActionError),
+    notificationsAccessDenied:
+        notificationsAccessDenied ?? this.notificationsAccessDenied,
     workerReviewsStatus: workerReviewsStatus ?? this.workerReviewsStatus,
     workerReviews: workerReviews ?? this.workerReviews,
     cleaningNeighborhoodsStatus:

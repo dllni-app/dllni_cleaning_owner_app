@@ -76,17 +76,7 @@ class _AppState extends State<App> {
         localizationsDelegates: context.localizationDelegates,
         onGenerateRoute: AppRouter.onGenerateRoute,
         home: hasToken ? const MainScreen() : const LoginScreen(),
-        builder: (context, child) {
-          final mediaQuery = MediaQuery.of(context);
-          final clampedScaler = mediaQuery.textScaler.clamp(
-            minScaleFactor: 1.0,
-            maxScaleFactor: 1.2,
-          );
-          return MediaQuery(
-            data: mediaQuery.copyWith(textScaler: clampedScaler),
-            child: child ?? const SizedBox.shrink(),
-          );
-        },
+        builder: (context, child) => child ?? const SizedBox.shrink(),
         theme: WorkerAppTheme.light(),
       ),
     );

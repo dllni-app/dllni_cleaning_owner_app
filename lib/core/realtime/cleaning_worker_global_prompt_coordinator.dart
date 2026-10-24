@@ -326,7 +326,9 @@ class CleaningWorkerGlobalPromptCoordinator {
     List<FetchOrdersUsecaseModelDataItem> orders,
   ) {
     return orders
-        .where(OrderLifecyclePolicy.isDedicatedAvailableNewOrderForCurrentWorker)
+        .where(
+          OrderLifecyclePolicy.isDedicatedAvailableNewOrderForCurrentWorker,
+        )
         .map((order) => order.id)
         .whereType<int>()
         .toList(growable: false);
@@ -349,7 +351,14 @@ class CleaningWorkerGlobalPromptCoordinator {
       final shown = await _openExtensionPromptForWarning(
         warningId: warningId,
         bookingId: request.bookingId,
-        payload: const <String, dynamic>{},
+        payload: <String, dynamic>{
+          'sessionId': request.sessionId,
+          'baseAmount': request.baseAmount,
+          'adminMargin': request.adminMargin,
+          'totalAmount': request.totalAmount,
+          'additionalAmount': request.additionalAmount,
+          'currency': request.currency,
+        },
         requestedMinutesOverride: request.requestedMinutes,
       );
       if (shown) return true;
@@ -739,7 +748,7 @@ class CleaningWorkerGlobalPromptCoordinator {
       for (var attempt = 0; attempt < 8; attempt++) {
         final context = _navigatorKey.currentContext;
         if (context != null && context.mounted) {
-          return ExtensionRequestActionSheet.show(
+          final decision = await ExtensionRequestActionSheet.show(
             context,
             useRootNavigator: true,
             bloc: bloc,
@@ -754,6 +763,7 @@ class CleaningWorkerGlobalPromptCoordinator {
             currency: enriched.currency,
             paymentMethod: enriched.paymentMethod,
           );
+          return decision;
         }
         await Future<void>.delayed(const Duration(milliseconds: 120));
       }

@@ -1,0 +1,1471 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Worker rebuild shared contract scenario fixtures V2",
+  "type": "object",
+  "required": [
+    "contractVersion",
+    "scenarios"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "contractVersion": {
+      "const": "V2"
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 17,
+      "maxItems": 17,
+      "items": {
+        "$ref": "#/$defs/scenario"
+      },
+      "allOf": [
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "const": "legacy_single_worker"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "const": "standard_kind_supervisor_v2"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "const": "independent_later_visit"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "const": "room_interval_overlap_gap"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "const": "ambiguous_bounds"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "const": "unaccepted_discoverable_offer"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "const": "customer_wait_rework"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "const": "valid_zero_money"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "const": "missing_allocation"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "const": "mixed_currencies"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "const": "deposit_restriction"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "const": "exact_session_dispute"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "const": "notification_selected_session"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "const": "offline_24h_expiry"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "const": "assignment_removed"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "const": "stale_409"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "const": "uncertain_timeout"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "scope": {
+      "type": "object",
+      "required": [
+        "bookingId"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "bookingId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sessionId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "assignmentId": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "scope",
+        "owner",
+        "executionCapability",
+        "canRecordAttendance",
+        "allowedActions",
+        "blockedReasons"
+      ],
+      "properties": {
+        "code": {
+          "enum": [
+            "legacy_single_worker",
+            "standard_kind_supervisor_v2",
+            "independent_later_visit",
+            "room_interval_overlap_gap",
+            "ambiguous_bounds",
+            "unaccepted_discoverable_offer",
+            "customer_wait_rework",
+            "valid_zero_money",
+            "missing_allocation",
+            "mixed_currencies",
+            "deposit_restriction",
+            "exact_session_dispute",
+            "notification_selected_session",
+            "offline_24h_expiry",
+            "assignment_removed",
+            "stale_409",
+            "uncertain_timeout"
+          ]
+        },
+        "scope": {
+          "$ref": "#/$defs/scope"
+        },
+        "owner": {
+          "enum": [
+            "worker",
+            "supervisor",
+            null
+          ]
+        },
+        "bookingKind": {
+          "const": "standard"
+        },
+        "executionCapability": {
+          "type": "boolean"
+        },
+        "canRecordAttendance": {
+          "type": "boolean"
+        },
+        "allowedActions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "view",
+              "accept_offer",
+              "reject_offer",
+              "start_travel",
+              "arrive",
+              "view_verification_code",
+              "confirm_work_start",
+              "submit_completion",
+              "cancel_assignment",
+              "accept_extension",
+              "reject_extension",
+              "decide_open_time_end",
+              "decide_schedule_change",
+              "request_price_adjustment",
+              "receive_materials",
+              "acknowledge_equipment",
+              "return_equipment",
+              "start_special_service",
+              "finish_special_service",
+              "send_sos"
+            ]
+          }
+        },
+        "blockedReasons": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "execution_unavailable",
+              "supervisor_managed",
+              "not_assigned",
+              "state_changed",
+              "waiting_customer",
+              "waiting_team",
+              "not_yet_available",
+              "financial_restriction",
+              "location_required",
+              "schedule_unconfirmed",
+              "unavailable"
+            ]
+          }
+        },
+        "amount": {
+          "$ref": "#/$defs/money"
+        },
+        "intervals": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "object",
+            "required": [
+              "start",
+              "end"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "start": {
+                "type": "string",
+                "pattern": "Z$"
+              },
+              "end": {
+                "type": "string",
+                "pattern": "Z$"
+              }
+            }
+          }
+        },
+        "startsAt": {
+          "type": "null"
+        },
+        "endsAt": {
+          "type": "null"
+        },
+        "discoverable": {
+          "const": true
+        },
+        "assigned": {
+          "const": false
+        },
+        "earning": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "key",
+            "authoritativeAmount",
+            "reconciliationState"
+          ],
+          "properties": {
+            "key": {
+              "const": "session_assignment:402"
+            },
+            "authoritativeAmount": {
+              "type": "null"
+            },
+            "reconciliationState": {
+              "const": "incomplete"
+            }
+          }
+        },
+        "totalsByCurrency": {
+          "type": "object",
+          "required": [
+            "USD",
+            "SYP"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "USD": {
+              "type": "string"
+            },
+            "SYP": {
+              "type": "string"
+            }
+          }
+        },
+        "depositEligible": {
+          "const": false
+        },
+        "disputeId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "notificationId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cacheAgeSeconds": {
+          "type": "integer",
+          "minimum": 86401
+        },
+        "denied": {
+          "const": true
+        },
+        "commandOutcome": {
+          "enum": [
+            "rejected",
+            "outcomeUnknown"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "legacy_single_worker"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "required": [
+              "code",
+              "scope",
+              "owner",
+              "executionCapability",
+              "canRecordAttendance",
+              "allowedActions",
+              "blockedReasons"
+            ],
+            "maxProperties": 7,
+            "properties": {
+              "scope": {
+                "const": {
+                  "bookingId": "101"
+                }
+              },
+              "owner": {
+                "const": "worker"
+              },
+              "executionCapability": {
+                "const": true
+              },
+              "canRecordAttendance": {
+                "const": true
+              },
+              "allowedActions": {
+                "const": [
+                  "view",
+                  "start_travel",
+                  "arrive"
+                ]
+              },
+              "blockedReasons": {
+                "const": []
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "standard_kind_supervisor_v2"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "required": [
+              "code",
+              "scope",
+              "bookingKind",
+              "owner",
+              "executionCapability",
+              "canRecordAttendance",
+              "allowedActions",
+              "blockedReasons"
+            ],
+            "maxProperties": 8,
+            "properties": {
+              "scope": {
+                "const": {
+                  "bookingId": "202",
+                  "sessionId": "301",
+                  "assignmentId": "401"
+                }
+              },
+              "bookingKind": {
+                "const": "standard"
+              },
+              "owner": {
+                "const": "supervisor"
+              },
+              "executionCapability": {
+                "const": false
+              },
+              "canRecordAttendance": {
+                "const": true
+              },
+              "allowedActions": {
+                "const": [
+                  "view"
+                ]
+              },
+              "blockedReasons": {
+                "const": [
+                  "supervisor_managed"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "independent_later_visit"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "required": [
+              "code",
+              "scope",
+              "owner",
+              "executionCapability",
+              "canRecordAttendance",
+              "allowedActions",
+              "blockedReasons"
+            ],
+            "maxProperties": 7,
+            "properties": {
+              "scope": {
+                "const": {
+                  "bookingId": "202",
+                  "sessionId": "302",
+                  "assignmentId": "402"
+                }
+              },
+              "owner": {
+                "const": "supervisor"
+              },
+              "executionCapability": {
+                "const": false
+              },
+              "canRecordAttendance": {
+                "const": true
+              },
+              "allowedActions": {
+                "const": [
+                  "view"
+                ]
+              },
+              "blockedReasons": {
+                "const": [
+                  "not_yet_available"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "room_interval_overlap_gap"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "required": [
+              "code",
+              "scope",
+              "owner",
+              "executionCapability",
+              "canRecordAttendance",
+              "allowedActions",
+              "blockedReasons",
+              "intervals"
+            ],
+            "maxProperties": 8,
+            "properties": {
+              "scope": {
+                "const": {
+                  "bookingId": "202",
+                  "sessionId": "301",
+                  "assignmentId": "401"
+                }
+              },
+              "owner": {
+                "const": "supervisor"
+              },
+              "executionCapability": {
+                "const": false
+              },
+              "canRecordAttendance": {
+                "const": true
+              },
+              "allowedActions": {
+                "const": [
+                  "view"
+                ]
+              },
+              "blockedReasons": {
+                "const": [
+                  "execution_unavailable"
+                ]
+              },
+              "intervals": {
+                "const": [
+                  {
+                    "start": "2026-10-22T06:00:00Z",
+                    "end": "2026-10-22T07:00:00Z"
+                  },
+                  {
+                    "start": "2026-10-22T06:30:00Z",
+                    "end": "2026-10-22T08:00:00Z"
+                  },
+                  {
+                    "start": "2026-10-22T09:00:00Z",
+                    "end": "2026-10-22T10:00:00Z"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "ambiguous_bounds"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "required": [
+              "code",
+              "scope",
+              "owner",
+              "executionCapability",
+              "canRecordAttendance",
+              "allowedActions",
+              "blockedReasons",
+              "startsAt",
+              "endsAt"
+            ],
+            "maxProperties": 9,
+            "properties": {
+              "scope": {
+                "const": {
+                  "bookingId": "202",
+                  "sessionId": "301",
+                  "assignmentId": "401"
+                }
+              },
+              "owner": {
+                "const": "supervisor"
+              },
+              "executionCapability": {
+                "const": false
+              },
+              "canRecordAttendance": {
+                "const": true
+              },
+              "allowedActions": {
+                "const": [
+                  "view"
+                ]
+              },
+              "blockedReasons": {
+                "const": [
+                  "unavailable"
+                ]
+              },
+              "startsAt": {
+                "const": null
+              },
+              "endsAt": {
+                "const": null
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "unaccepted_discoverable_offer"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "required": [
+              "code",
+              "scope",
+              "owner",
+              "executionCapability",
+              "canRecordAttendance",
+              "allowedActions",
+              "blockedReasons",
+              "discoverable",
+              "assigned"
+            ],
+            "maxProperties": 9,
+            "properties": {
+              "scope": {
+                "const": {
+                  "bookingId": "203"
+                }
+              },
+              "owner": {
+                "const": null
+              },
+              "executionCapability": {
+                "const": false
+              },
+              "canRecordAttendance": {
+                "const": false
+              },
+              "allowedActions": {
+                "const": [
+                  "view"
+                ]
+              },
+              "blockedReasons": {
+                "const": [
+                  "not_assigned"
+                ]
+              },
+              "discoverable": {
+                "const": true
+              },
+              "assigned": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "customer_wait_rework"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "required": [
+              "code",
+              "scope",
+              "owner",
+              "executionCapability",
+              "canRecordAttendance",
+              "allowedActions",
+              "blockedReasons"
+            ],
+            "maxProperties": 7,
+            "properties": {
+              "scope": {
+                "const": {
+                  "bookingId": "202",
+                  "sessionId": "301",
+                  "assignmentId": "401"
+                }
+              },
+              "owner": {
+                "const": "supervisor"
+              },
+              "executionCapability": {
+                "const": false
+              },
+              "canRecordAttendance": {
+                "const": true
+              },
+              "allowedActions": {
+                "const": [
+                  "view"
+                ]
+              },
+              "blockedReasons": {
+                "const": [
+                  "waiting_customer"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "valid_zero_money"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "required": [
+              "code",
+              "scope",
+              "owner",
+              "executionCapability",
+              "canRecordAttendance",
+              "allowedActions",
+              "blockedReasons",
+              "amount"
+            ],
+            "maxProperties": 8,
+            "properties": {
+              "scope": {
+                "const": {
+                  "bookingId": "101"
+                }
+              },
+              "owner": {
+                "const": "worker"
+              },
+              "executionCapability": {
+                "const": true
+              },
+              "canRecordAttendance": {
+                "const": true
+              },
+              "allowedActions": {
+                "const": [
+                  "view"
+                ]
+              },
+              "blockedReasons": {
+                "const": []
+              },
+              "amount": {
+                "const": {
+                  "decimal": "0.00",
+                  "currency": "SYP"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "missing_allocation"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "required": [
+              "code",
+              "scope",
+              "owner",
+              "executionCapability",
+              "canRecordAttendance",
+              "allowedActions",
+              "blockedReasons",
+              "earning"
+            ],
+            "maxProperties": 8,
+            "properties": {
+              "scope": {
+                "const": {
+                  "bookingId": "202",
+                  "sessionId": "302",
+                  "assignmentId": "402"
+                }
+              },
+              "owner": {
+                "const": "worker"
+              },
+              "executionCapability": {
+                "const": true
+              },
+              "canRecordAttendance": {
+                "const": true
+              },
+              "allowedActions": {
+                "const": [
+                  "view"
+                ]
+              },
+              "blockedReasons": {
+                "const": []
+              },
+              "earning": {
+                "const": {
+                  "key": "session_assignment:402",
+                  "authoritativeAmount": null,
+                  "reconciliationState": "incomplete"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "mixed_currencies"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "required": [
+              "code",
+              "scope",
+              "owner",
+              "executionCapability",
+              "canRecordAttendance",
+              "allowedActions",
+              "blockedReasons",
+              "totalsByCurrency"
+            ],
+            "maxProperties": 8,
+            "properties": {
+              "scope": {
+                "const": {
+                  "bookingId": "101"
+                }
+              },
+              "owner": {
+                "const": "worker"
+              },
+              "executionCapability": {
+                "const": true
+              },
+              "canRecordAttendance": {
+                "const": true
+              },
+              "allowedActions": {
+                "const": [
+                  "view"
+                ]
+              },
+              "blockedReasons": {
+                "const": []
+              },
+              "totalsByCurrency": {
+                "const": {
+                  "USD": "13.25",
+                  "SYP": "100.00"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "deposit_restriction"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "required": [
+              "code",
+              "scope",
+              "owner",
+              "executionCapability",
+              "canRecordAttendance",
+              "allowedActions",
+              "blockedReasons",
+              "depositEligible"
+            ],
+            "maxProperties": 8,
+            "properties": {
+              "scope": {
+                "const": {
+                  "bookingId": "101"
+                }
+              },
+              "owner": {
+                "const": "worker"
+              },
+              "executionCapability": {
+                "const": false
+              },
+              "canRecordAttendance": {
+                "const": true
+              },
+              "allowedActions": {
+                "const": [
+                  "view"
+                ]
+              },
+              "blockedReasons": {
+                "const": [
+                  "financial_restriction"
+                ]
+              },
+              "depositEligible": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "exact_session_dispute"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "required": [
+              "code",
+              "scope",
+              "owner",
+              "executionCapability",
+              "canRecordAttendance",
+              "allowedActions",
+              "blockedReasons",
+              "disputeId"
+            ],
+            "maxProperties": 8,
+            "properties": {
+              "scope": {
+                "const": {
+                  "bookingId": "202",
+                  "sessionId": "301",
+                  "assignmentId": "401"
+                }
+              },
+              "owner": {
+                "const": "worker"
+              },
+              "executionCapability": {
+                "const": true
+              },
+              "canRecordAttendance": {
+                "const": true
+              },
+              "allowedActions": {
+                "const": [
+                  "view"
+                ]
+              },
+              "blockedReasons": {
+                "const": []
+              },
+              "disputeId": {
+                "const": "500"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "notification_selected_session"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "required": [
+              "code",
+              "scope",
+              "owner",
+              "executionCapability",
+              "canRecordAttendance",
+              "allowedActions",
+              "blockedReasons",
+              "notificationId"
+            ],
+            "maxProperties": 8,
+            "properties": {
+              "scope": {
+                "const": {
+                  "bookingId": "202",
+                  "sessionId": "302",
+                  "assignmentId": "402"
+                }
+              },
+              "owner": {
+                "const": "worker"
+              },
+              "executionCapability": {
+                "const": true
+              },
+              "canRecordAttendance": {
+                "const": true
+              },
+              "allowedActions": {
+                "const": [
+                  "view"
+                ]
+              },
+              "blockedReasons": {
+                "const": []
+              },
+              "notificationId": {
+                "const": "900"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "offline_24h_expiry"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "required": [
+              "code",
+              "scope",
+              "owner",
+              "executionCapability",
+              "canRecordAttendance",
+              "allowedActions",
+              "blockedReasons",
+              "cacheAgeSeconds"
+            ],
+            "maxProperties": 8,
+            "properties": {
+              "scope": {
+                "const": {
+                  "bookingId": "202",
+                  "sessionId": "301",
+                  "assignmentId": "401"
+                }
+              },
+              "owner": {
+                "const": "worker"
+              },
+              "executionCapability": {
+                "const": false
+              },
+              "canRecordAttendance": {
+                "const": true
+              },
+              "allowedActions": {
+                "const": [
+                  "view"
+                ]
+              },
+              "blockedReasons": {
+                "const": [
+                  "unavailable"
+                ]
+              },
+              "cacheAgeSeconds": {
+                "const": 86401
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "assignment_removed"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "required": [
+              "code",
+              "scope",
+              "owner",
+              "executionCapability",
+              "canRecordAttendance",
+              "allowedActions",
+              "blockedReasons",
+              "denied"
+            ],
+            "maxProperties": 8,
+            "properties": {
+              "scope": {
+                "const": {
+                  "bookingId": "202",
+                  "sessionId": "301",
+                  "assignmentId": "401"
+                }
+              },
+              "owner": {
+                "const": "worker"
+              },
+              "executionCapability": {
+                "const": false
+              },
+              "canRecordAttendance": {
+                "const": false
+              },
+              "allowedActions": {
+                "const": [
+                  "view"
+                ]
+              },
+              "blockedReasons": {
+                "const": [
+                  "not_assigned"
+                ]
+              },
+              "denied": {
+                "const": true
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "stale_409"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "required": [
+              "code",
+              "scope",
+              "owner",
+              "executionCapability",
+              "canRecordAttendance",
+              "allowedActions",
+              "blockedReasons",
+              "commandOutcome"
+            ],
+            "maxProperties": 8,
+            "properties": {
+              "scope": {
+                "const": {
+                  "bookingId": "202",
+                  "sessionId": "301",
+                  "assignmentId": "401"
+                }
+              },
+              "owner": {
+                "const": "worker"
+              },
+              "executionCapability": {
+                "const": false
+              },
+              "canRecordAttendance": {
+                "const": true
+              },
+              "allowedActions": {
+                "const": [
+                  "view"
+                ]
+              },
+              "blockedReasons": {
+                "const": [
+                  "state_changed"
+                ]
+              },
+              "commandOutcome": {
+                "const": "rejected"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "uncertain_timeout"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "required": [
+              "code",
+              "scope",
+              "owner",
+              "executionCapability",
+              "canRecordAttendance",
+              "allowedActions",
+              "blockedReasons",
+              "commandOutcome"
+            ],
+            "maxProperties": 8,
+            "properties": {
+              "scope": {
+                "const": {
+                  "bookingId": "202",
+                  "sessionId": "301",
+                  "assignmentId": "401"
+                }
+              },
+              "owner": {
+                "const": "worker"
+              },
+              "executionCapability": {
+                "const": true
+              },
+              "canRecordAttendance": {
+                "const": true
+              },
+              "allowedActions": {
+                "const": [
+                  "view"
+                ]
+              },
+              "blockedReasons": {
+                "const": []
+              },
+              "commandOutcome": {
+                "const": "outcomeUnknown"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "money": {
+      "type": "object",
+      "required": [
+        "decimal",
+        "currency"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "decimal": {
+          "type": "string",
+          "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        }
+      }
+    }
+  }
+}

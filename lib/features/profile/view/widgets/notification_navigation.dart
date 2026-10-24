@@ -27,14 +27,20 @@ Future<void> tryNavigateFromNotificationPayload(
     return;
   }
 
+  final m = (module ?? 'cleaning').trim().toLowerCase();
+  if (m != 'cleaning') return;
+
   if (routeKey.contains('dispute')) {
-    final disputeId = _intFromData(data, const ['disputeId', 'dispute_id']);
-    if (disputeId != null && context.mounted) {
+    final disputeId = _positiveIdFromAliases(data, const [
+      'disputeId',
+      'dispute_id',
+    ]);
+    if (disputeId.value != null && context.mounted) {
       context.pushRoute(
         '/transactiondetails',
         arguments: TransactionDetailsScreenParam(
-          id: disputeId,
-          title: '#$disputeId',
+          id: disputeId.value!,
+          title: '#${disputeId.value}',
           isOpen: true,
         ),
       );
@@ -42,20 +48,24 @@ Future<void> tryNavigateFromNotificationPayload(
     return;
   }
 
-  final m = (module ?? 'cleaning').toLowerCase();
-  if (m != 'cleaning') return;
-
-  final bookingId = _intFromData(data, const [
+  final bookingId = _positiveIdFromAliases(data, const [
     'bookingId',
     'booking_id',
     'orderId',
     'order_id',
   ]);
-  if (bookingId == null) return;
-  final sessionId = _intFromData(data, const ['sessionId', 'session_id']);
+  if (bookingId.value == null) return;
+
+  final sessionId = _positiveIdFromAliases(data, const [
+    'sessionId',
+    'session_id',
+    'cleaningBookingSessionId',
+    'cleaning_booking_session_id',
+  ]);
+  if (sessionId.isPresent && sessionId.value == null) return;
 
   final response = await getIt<FetchOrderDetailsUsecaseUseCase>()(
-    FetchOrderDetailsUsecaseParams(id: bookingId),
+    FetchOrderDetailsUsecaseParams(id: bookingId.value!),
   );
   if (!context.mounted) return;
 
@@ -64,7 +74,11 @@ Future<void> tryNavigateFromNotificationPayload(
         AppToast.showErrorGlobal(ErrorMessageFormatter.format(failure.message)),
     (result) {
       final details = result.data;
-      if (details == null || !context.mounted) return;
+      if (details == null ||
+          details.id != bookingId.value ||
+          !context.mounted) {
+        return;
+      }
 
       final order = FetchOrdersUsecaseModelDataItem.fromJson(details.toJson());
 
@@ -75,7 +89,7 @@ Future<void> tryNavigateFromNotificationPayload(
           isNewOrder: isNewOrder,
           bloc: getIt<OrdersBloc>(),
           index: 0,
-          selectedSessionId: sessionId,
+          selectedSessionId: sessionId.value,
         ),
       );
     },
@@ -97,13 +111,46 @@ bool _isUnavailable(Map<String, dynamic> data) {
   return false;
 }
 
-int? _intFromData(Map<String, dynamic> data, List<String> keys) {
+_ExplicitId _positiveIdFromAliases(
+  Map<String, dynamic> data,
+  List<String> keys,
+) {
+  var isPresent = false;
+  int? resolved;
   for (final k in keys) {
-    final v = data[k];
-    if (v == null) continue;
-    if (v is int) return v;
-    if (v is num) return v.toInt();
-    if (v is String) return int.tryParse(v.trim());
+    if (!data.containsKey(k)) continue;
+    isPresent = true;
+    final candidate = _positiveInteger(data[k]);
+    if (candidate == null || (resolved != null && resolved != candidate)) {
+      return _ExplicitId(isPresent: true, value: null);
+    }
+    resolved = candidate;
+  }
+
+  return _ExplicitId(isPresent: isPresent, value: resolved);
+}
+
+int? _positiveInteger(dynamic value) {
+  if (value is int) return value > 0 ? value : null;
+  if (value is num) {
+    if (!value.isFinite ||
+        value <= 0 ||
+        value >= 9223372036854775808.0 ||
+        value != value.truncateToDouble()) {
+      return null;
+    }
+    return value.toInt();
+  }
+  if (value is String) {
+    final parsed = int.tryParse(value.trim());
+    return parsed != null && parsed > 0 ? parsed : null;
   }
   return null;
+}
+
+class _ExplicitId {
+  const _ExplicitId({required this.isPresent, required this.value});
+
+  final bool isPresent;
+  final int? value;
 }

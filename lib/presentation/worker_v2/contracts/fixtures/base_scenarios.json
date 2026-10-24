@@ -1,0 +1,22 @@
+{
+  "contractVersion": "V2",
+  "scenarios": [
+    {"code":"legacy_single_worker","scope":{"bookingId":"101"},"owner":"worker","executionCapability":true,"canRecordAttendance":true,"allowedActions":["view","start_travel","arrive"],"blockedReasons":[]},
+    {"code":"standard_kind_supervisor_v2","scope":{"bookingId":"202","sessionId":"301","assignmentId":"401"},"bookingKind":"standard","owner":"supervisor","executionCapability":false,"canRecordAttendance":true,"allowedActions":["view"],"blockedReasons":["supervisor_managed"]},
+    {"code":"independent_later_visit","scope":{"bookingId":"202","sessionId":"302","assignmentId":"402"},"owner":"supervisor","executionCapability":false,"canRecordAttendance":true,"allowedActions":["view"],"blockedReasons":["not_yet_available"]},
+    {"code":"room_interval_overlap_gap","scope":{"bookingId":"202","sessionId":"301","assignmentId":"401"},"owner":"supervisor","executionCapability":false,"canRecordAttendance":true,"allowedActions":["view"],"blockedReasons":["execution_unavailable"],"intervals":[{"start":"2026-10-22T06:00:00Z","end":"2026-10-22T07:00:00Z"},{"start":"2026-10-22T06:30:00Z","end":"2026-10-22T08:00:00Z"},{"start":"2026-10-22T09:00:00Z","end":"2026-10-22T10:00:00Z"}]},
+    {"code":"ambiguous_bounds","scope":{"bookingId":"202","sessionId":"301","assignmentId":"401"},"owner":"supervisor","executionCapability":false,"canRecordAttendance":true,"allowedActions":["view"],"blockedReasons":["unavailable"],"startsAt":null,"endsAt":null},
+    {"code":"unaccepted_discoverable_offer","scope":{"bookingId":"203"},"owner":null,"executionCapability":false,"canRecordAttendance":false,"allowedActions":["view"],"blockedReasons":["not_assigned"],"discoverable":true,"assigned":false},
+    {"code":"customer_wait_rework","scope":{"bookingId":"202","sessionId":"301","assignmentId":"401"},"owner":"supervisor","executionCapability":false,"canRecordAttendance":true,"allowedActions":["view"],"blockedReasons":["waiting_customer"]},
+    {"code":"valid_zero_money","scope":{"bookingId":"101"},"owner":"worker","executionCapability":true,"canRecordAttendance":true,"allowedActions":["view"],"blockedReasons":[],"amount":{"decimal":"0.00","currency":"SYP"}},
+    {"code":"missing_allocation","scope":{"bookingId":"202","sessionId":"302","assignmentId":"402"},"owner":"worker","executionCapability":true,"canRecordAttendance":true,"allowedActions":["view"],"blockedReasons":[],"earning":{"key":"session_assignment:402","authoritativeAmount":null,"reconciliationState":"incomplete"}},
+    {"code":"mixed_currencies","scope":{"bookingId":"101"},"owner":"worker","executionCapability":true,"canRecordAttendance":true,"allowedActions":["view"],"blockedReasons":[],"totalsByCurrency":{"USD":"13.25","SYP":"100.00"}},
+    {"code":"deposit_restriction","scope":{"bookingId":"101"},"owner":"worker","executionCapability":false,"canRecordAttendance":true,"allowedActions":["view"],"blockedReasons":["financial_restriction"],"depositEligible":false},
+    {"code":"exact_session_dispute","scope":{"bookingId":"202","sessionId":"301","assignmentId":"401"},"owner":"worker","executionCapability":true,"canRecordAttendance":true,"allowedActions":["view"],"blockedReasons":[],"disputeId":"500"},
+    {"code":"notification_selected_session","scope":{"bookingId":"202","sessionId":"302","assignmentId":"402"},"owner":"worker","executionCapability":true,"canRecordAttendance":true,"allowedActions":["view"],"blockedReasons":[],"notificationId":"900"},
+    {"code":"offline_24h_expiry","scope":{"bookingId":"202","sessionId":"301","assignmentId":"401"},"owner":"worker","executionCapability":false,"canRecordAttendance":true,"allowedActions":["view"],"blockedReasons":["unavailable"],"cacheAgeSeconds":86401},
+    {"code":"assignment_removed","scope":{"bookingId":"202","sessionId":"301","assignmentId":"401"},"owner":"worker","executionCapability":false,"canRecordAttendance":false,"allowedActions":["view"],"blockedReasons":["not_assigned"],"denied":true},
+    {"code":"stale_409","scope":{"bookingId":"202","sessionId":"301","assignmentId":"401"},"owner":"worker","executionCapability":false,"canRecordAttendance":true,"allowedActions":["view"],"blockedReasons":["state_changed"],"commandOutcome":"rejected"},
+    {"code":"uncertain_timeout","scope":{"bookingId":"202","sessionId":"301","assignmentId":"401"},"owner":"worker","executionCapability":true,"canRecordAttendance":true,"allowedActions":["view"],"blockedReasons":[],"commandOutcome":"outcomeUnknown"}
+  ]
+}

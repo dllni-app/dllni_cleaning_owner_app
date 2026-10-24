@@ -71,6 +71,7 @@ class FetchNotificationsEvent extends ProfileEvent with EventWithReload {
   final FetchNotificationsParams params;
   final bool loadMore;
   final bool markAllReadOnSuccess;
+  final bool preserveExisting;
   @override
   final bool isReload;
 
@@ -78,6 +79,7 @@ class FetchNotificationsEvent extends ProfileEvent with EventWithReload {
     required this.params,
     this.loadMore = false,
     this.markAllReadOnSuccess = false,
+    this.preserveExisting = false,
     this.isReload = false,
   });
 }

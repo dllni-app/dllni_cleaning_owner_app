@@ -17,6 +17,7 @@ import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_det
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/order_details/multi_day_order_details_body.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/order_details/order_details_body.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/order_details/order_details_mission_body.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/order_details/supervised_worker_details_body.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/worker_app_colors.dart';
@@ -55,10 +56,16 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   WorkerBookingScheduleModel? _multiDaySchedule;
   int? _selectedSessionId;
   bool _scheduleChecked = false;
+  bool _hasLoadedScheduleSuccessfully = false;
   bool _scheduleLoading = false;
+  bool _scheduleRetryRequired = false;
   String? _scheduleLoadError;
+  int _scheduleReadRevision = 0;
 
   bool get _isMultiDay => _multiDaySchedule?.isMultiDay == true;
+
+  bool get _isSupervisedTeam => _order.bookingKind == 'supervised_team';
+  int _supervisedRefreshRevision = 0;
 
   int _stepFor(FetchOrdersUsecaseModelDataItem o) =>
       OrderLifecyclePolicy.detailsStepFor(o);
@@ -104,7 +111,17 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     );
     widget.params.bloc.add(ChangeDetailsCurrentStep(step: _stepFor(_order)));
     final id = _order.id;
-    if (id != null) {
+    if (id != null && _isSupervisedTeam) {
+      _scheduleChecked = true;
+      if (widget.params.selectedSessionId != null) {
+        // The supervised team view only supports a booking-wide scope. Do not
+        // discard a deep link's explicitly selected visit and show its parent.
+        _scheduleLoadError =
+            'لا يمكن فتح الجلسة المحددة ضمن تفاصيل الطلب الجماعي حالياً.';
+      } else {
+        unawaited(_bindRealtimeListeners());
+      }
+    } else if (id != null) {
       widget.params.bloc.add(
         FetchOrderDetailsUsecaseEvent(
           params: FetchOrderDetailsUsecaseParams(id: id),
@@ -118,11 +135,23 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     }
   }
 
-  Future<void> _loadSchedule() async {
+  Future<void> _loadSchedule({bool explicitRetry = false}) async {
     final bookingId = _order.id;
-    if (bookingId == null || _scheduleLoading) return;
+    if (_isSupervisedTeam ||
+        bookingId == null ||
+        _scheduleLoading ||
+        (_scheduleRetryRequired && !explicitRetry)) {
+      return;
+    }
+    if (explicitRetry) _scheduleRetryRequired = false;
+    final readRevision = ++_scheduleReadRevision;
     if (mounted) {
       setState(() {
+        // After a denied/failed scoped read there is no trusted mission view.
+        // Do not render the legacy booking-wide body during the next fetch.
+        if (!_hasLoadedScheduleSuccessfully || _multiDaySchedule == null) {
+          _scheduleChecked = false;
+        }
         _scheduleLoading = true;
         _scheduleLoadError = null;
       });
@@ -130,11 +159,45 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     try {
       final result = await getIt<WorkerSessionRemoteDataSource>()
           .fetchBookingSchedule(bookingId);
-      if (!mounted) return;
+      if (!mounted || readRevision != _scheduleReadRevision) return;
       setState(() {
         final schedule = result.schedule;
-        _multiDaySchedule = schedule?.isMultiDay == true ? schedule : null;
+        // Older booking-wide schedules may omit their parent ID; keep that
+        // legacy read compatible. Explicit visit navigation requires a
+        // positive matching parent identity before revealing any mission UI.
+        if ((result.bookingId != null && result.bookingId != bookingId) ||
+            (widget.params.selectedSessionId != null &&
+                result.bookingId == null)) {
+          _multiDaySchedule = null;
+          _scheduleChecked = true;
+          _scheduleLoading = false;
+          _hasLoadedScheduleSuccessfully = false;
+          _scheduleRetryRequired = true;
+          _scheduleLoadError = 'تعذر التحقق من هوية الطلب.';
+          return;
+        }
+        if (widget.params.selectedSessionId != null &&
+            (schedule == null ||
+                !schedule.canHonorExplicitSession(
+                  widget.params.selectedSessionId,
+                ))) {
+          _multiDaySchedule = null;
+          _scheduleChecked = true;
+          _scheduleLoading = false;
+          _hasLoadedScheduleSuccessfully = false;
+          _scheduleRetryRequired = true;
+          _scheduleLoadError =
+              'الجلسة المطلوبة غير متاحة لهذا الطلب. يرجى العودة إلى قائمة الطلبات.';
+          return;
+        }
+        _multiDaySchedule =
+            schedule != null &&
+                (schedule.isMultiDay || widget.params.selectedSessionId != null)
+            ? schedule
+            : null;
         _scheduleChecked = true;
+        _hasLoadedScheduleSuccessfully = true;
+        _scheduleRetryRequired = false;
         _scheduleLoading = false;
         _scheduleLoadError = null;
         if (_multiDaySchedule != null &&
@@ -148,10 +211,13 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       });
       _syncAwaitingVerificationPoll();
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted || readRevision != _scheduleReadRevision) return;
       setState(() {
         _scheduleChecked = true;
         _scheduleLoading = false;
+        _multiDaySchedule = null;
+        _hasLoadedScheduleSuccessfully = false;
+        _scheduleRetryRequired = true;
         _scheduleLoadError =
             'تعذر تحميل جلسات الطلب. أعد المحاولة قبل تنفيذ أي إجراء.';
       });
@@ -226,10 +292,19 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       return;
     }
 
+    if (_isSupervisedTeam) {
+      _scheduleSyncFallback(
+        bookingId: bookingId,
+        reason: 'supervised_team_realtime_refresh',
+      );
+      return;
+    }
+
     final payloadSessionId = _toInt(
       payload['sessionId'] ?? payload['session_id'],
     );
-    if (_isMultiDay &&
+    if (widget.params.selectedSessionId == null &&
+        _isMultiDay &&
         payloadSessionId != null &&
         _multiDaySchedule?.sessionById(payloadSessionId) != null) {
       _selectedSessionId = payloadSessionId;
@@ -335,9 +410,20 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 
   void _onRealtimeChannelError(RealtimeChannelError error) {
     if (error.statusCode != 403) return;
+    if (!mounted) return;
+    // The channel is no longer authorized. Immediately conceal cached visit
+    // data and invalidate any already-in-flight schedule read before retrying.
+    ++_scheduleReadRevision;
+    _scheduleRetryRequired = true;
+    setState(() {
+      _multiDaySchedule = null;
+      _hasLoadedScheduleSuccessfully = false;
+      _scheduleChecked = true;
+      _scheduleLoading = false;
+      _scheduleLoadError = 'تعذر التحقق من صلاحية الوصول إلى هذا الطلب.';
+    });
     final bookingId = _order.id;
     if (bookingId != null) {
-      unawaited(_loadSchedule());
       _scheduleSyncFallback(
         bookingId: bookingId,
         reason: 'owner_details_channel_auth_403_refresh',
@@ -347,6 +433,10 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 
   void _scheduleSyncFallback({required int bookingId, required String reason}) {
     if (_order.id != bookingId) return;
+    if (_isSupervisedTeam) {
+      if (mounted) setState(() => _supervisedRefreshRevision++);
+      return;
+    }
     _syncFallbackDebounce?.cancel();
     _syncFallbackDebounce = Timer(_fallbackDebounce, () {
       if (!mounted || _order.id != bookingId) return;
@@ -582,7 +672,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                   Text(_scheduleLoadError!, textAlign: TextAlign.center),
                   const SizedBox(height: 12),
                   FilledButton.icon(
-                    onPressed: _scheduleLoading ? null : _loadSchedule,
+                    onPressed: _scheduleLoading
+                        ? null
+                        : () => _loadSchedule(explicitRetry: true),
                     icon: const Icon(Icons.refresh),
                     label: const Text('إعادة المحاولة'),
                   ),
@@ -618,14 +710,54 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           child: BlocBuilder<OrdersBloc, OrdersState>(
             bloc: widget.params.bloc,
             builder: (context, state) {
-              if (!_scheduleChecked || _scheduleLoading) {
+              if (_isSupervisedTeam) {
+                if (_scheduleLoadError != null) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _scheduleLoadError!,
+                            textAlign: TextAlign.center,
+                          ),
+                          if (widget.params.selectedSessionId == null) ...[
+                            const SizedBox(height: 16),
+                            FilledButton(
+                              onPressed: () {
+                                setState(() {
+                                  _scheduleLoadError = null;
+                                  _supervisedRefreshRevision++;
+                                });
+                              },
+                              child: const Text('إعادة المحاولة'),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  );
+                }
+                return SupervisedWorkerDetailsBody(
+                  bookingId: _order.id!,
+                  refreshRevision: _supervisedRefreshRevision,
+                  onBack: () => context.pop(),
+                );
+              }
+              // Background schedule refreshes must not repeatedly dispose the
+              // active map/mission widget or hide 'لقد وصلت' behind a spinner.
+              if (!_scheduleChecked) {
                 return _scheduleLoadingBody();
               }
-              if (_scheduleLoadError != null) {
+              if (_scheduleLoadError != null &&
+                  !_hasLoadedScheduleSuccessfully) {
                 return _scheduleErrorBody();
               }
               final schedule = _multiDaySchedule;
-              if (schedule != null && schedule.isMultiDay) {
+              if (schedule != null &&
+                  (schedule.isMultiDay ||
+                      widget.params.selectedSessionId != null)) {
                 return MultiDayOrderDetailsBody(
                   order: _order,
                   initialSchedule: schedule,
@@ -637,7 +769,15 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                       _multiDaySchedule = updated;
                       final selected = updated.sessionById(_selectedSessionId);
                       if (selected == null) {
-                        _selectedSessionId = updated.nextSession?.id;
+                        // A previously selected visit may have been revoked.
+                        // Never substitute another session for a scoped route.
+                        if (_selectedSessionId != null) {
+                          _hasLoadedScheduleSuccessfully = false;
+                          _scheduleLoadError =
+                              'الجلسة المطلوبة غير متاحة لهذا الطلب. يرجى العودة إلى قائمة الطلبات.';
+                        } else {
+                          _selectedSessionId = updated.nextSession?.id;
+                        }
                       }
                     });
                   },

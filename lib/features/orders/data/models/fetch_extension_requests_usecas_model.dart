@@ -260,6 +260,17 @@ class FetchExtensionRequestsUsecasModelDataItem {
   /// Contract field `additionalMinutes` with legacy `requestedMinutes` fallback.
   int? get resolvedAdditionalMinutes => additionalMinutes ?? requestedMinutes;
 
+  double? get authoritativeQuoteAmount => additionalAmount ?? totalAmount;
+
+  bool get hasValidWorkerConsentTerms => hasValidExtensionConsentTerms(
+    requestedMinutes: resolvedAdditionalMinutes,
+    baseAmount: baseAmount,
+    adminMargin: adminMargin,
+    totalAmount: totalAmount,
+    additionalAmount: additionalAmount,
+    currency: currency,
+  );
+
   bool get isPendingWorkerResponse {
     final status = responseStatus?.toString().trim().toLowerCase();
     if (status == 'accepted' ||
@@ -356,4 +367,36 @@ class FetchExtensionRequestsUsecasModelDataItem {
       'booking': booking?.toJson(),
     };
   }
+}
+
+bool hasValidExtensionConsentTerms({
+  required int? requestedMinutes,
+  required double? baseAmount,
+  required double? adminMargin,
+  required double? totalAmount,
+  required double? additionalAmount,
+  required String? currency,
+}) {
+  final quote = additionalAmount ?? totalAmount;
+  if (requestedMinutes == null || requestedMinutes <= 0) return false;
+  if (baseAmount == null || !baseAmount.isFinite || baseAmount < 0) {
+    return false;
+  }
+  if (adminMargin == null || !adminMargin.isFinite || adminMargin < 0) {
+    return false;
+  }
+  for (final suppliedQuote in <double?>[totalAmount, additionalAmount]) {
+    if (suppliedQuote != null &&
+        (!suppliedQuote.isFinite || suppliedQuote < 0)) {
+      return false;
+    }
+  }
+  if (quote == null || !quote.isFinite || quote < 0) return false;
+  if ((currency ?? '').trim().isEmpty) return false;
+  if (totalAmount != null &&
+      additionalAmount != null &&
+      (totalAmount - additionalAmount).abs() > 0.01) {
+    return false;
+  }
+  return (baseAmount + adminMargin - quote).abs() <= 0.01;
 }

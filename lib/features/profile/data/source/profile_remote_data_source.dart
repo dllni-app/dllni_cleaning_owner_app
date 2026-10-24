@@ -130,7 +130,7 @@ class ProfileRemoteDataSource with HandlingApiManager {
   ) {
     return wrapHandlingApi(
       tryCall: () => dioNetwork.getData(
-        endPoint: '/api/v1/user/notifications',
+        endPoint: '/api/v1/cleaning/worker/account/notifications',
         params: params.getParams(),
         data: params.getBody().isEmpty ? null : params.getBody(),
       ),
@@ -165,7 +165,7 @@ class ProfileRemoteDataSource with HandlingApiManager {
   Future<ActionResultModel> markAllNotificationsRead(NoParams params) {
     return wrapHandlingApi(
       tryCall: () => dioNetwork.patchData(
-        endPoint: '/api/v1/user/notifications/read-all',
+        endPoint: '/api/v1/cleaning/worker/account/notifications/read-all',
         data: params.getBody().isEmpty ? {} : params.getBody(),
       ),
       jsonConvert: actionResultModelFromJson,
@@ -177,7 +177,8 @@ class ProfileRemoteDataSource with HandlingApiManager {
   ) {
     return wrapHandlingApi(
       tryCall: () => dioNetwork.patchData(
-        endPoint: '/api/v1/user/notifications/${params.notificationId}/read',
+        endPoint:
+            '/api/v1/cleaning/worker/account/notifications/${params.notificationId}/read',
         data: params.getBody().isEmpty ? {} : params.getBody(),
       ),
       jsonConvert: actionResultModelFromJson,
@@ -189,7 +190,8 @@ class ProfileRemoteDataSource with HandlingApiManager {
   ) {
     return wrapHandlingApi(
       tryCall: () => dioNetwork.deleteData(
-        endPoint: '/api/v1/user/notifications/${params.notificationId}',
+        endPoint:
+            '/api/v1/cleaning/worker/account/notifications/${params.notificationId}',
       ),
       jsonConvert: actionResultModelFromJson,
     );
@@ -198,7 +200,7 @@ class ProfileRemoteDataSource with HandlingApiManager {
   Future<ActionResultModel> deleteAllNotifications(NoParams params) {
     return wrapHandlingApi(
       tryCall: () => dioNetwork.deleteData(
-        endPoint: '/api/v1/user/notifications/all',
+        endPoint: '/api/v1/cleaning/worker/account/notifications/all',
       ),
       jsonConvert: actionResultModelFromJson,
     );

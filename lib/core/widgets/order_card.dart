@@ -11,11 +11,13 @@ import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/reject
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/start_travel_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/dedicated_order_helper.dart';
-import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/event_assistance_order_helper.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/worker_order_visual_identity.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_lifecycle_policy.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/cleaning_worker_order_status.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/screens/order_details_screen.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/accept_order_bottom_sheet.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/extension_request_action_sheet.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/worker_order_identity_chips.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -34,20 +36,46 @@ class OrderCard extends StatelessWidget {
   final OrdersBloc bloc;
   final int index;
 
-  String _serviceName() {
-    if (data.isHourlyWorker) return 'عامل بالساعة';
-    return EventAssistanceOrderHelper.serviceTitle(
-      propertyType: data.propertyType,
-      customService: data.propertyDetails?.customService,
-    );
+  String _bookingStatusLabel() {
+    final label = data.statusLabel?.trim();
+    if (label != null && label.isNotEmpty && _containsArabic(label)) {
+      return 'حالة الطلب: $label';
+    }
+    final status = data.status?.trim();
+    if (status != null && status.isNotEmpty) {
+      final localizedStatus = CleaningBookingStatus.toArabic(status);
+      if (localizedStatus != status) return 'حالة الطلب: $localizedStatus';
+    }
+    if (label != null && label.isNotEmpty) {
+      final localizedLabel = CleaningBookingStatus.toArabic(label);
+      if (localizedLabel != label) return 'حالة الطلب: $localizedLabel';
+    }
+    return 'حالة الطلب: غير محددة';
   }
 
-  String _statusLabel() => OrderLifecyclePolicy.statusLabel(data);
+  String? _workerAssignmentStatusLabel() {
+    final label = data.workerOrderStatusLabel?.trim();
+    if (label != null && label.isNotEmpty && _containsArabic(label)) {
+      return 'حالة تعييني: $label';
+    }
+    final status = data.workerOrderStatus?.trim();
+    final assignmentStatus = data.myAssignment?.status?.trim();
+    final assignmentStatusValue = status?.isNotEmpty == true
+        ? parseCleaningWorkerOrderStatus(status)
+        : parseCleaningWorkerOrderStatus(assignmentStatus);
+    if (assignmentStatusValue == CleaningWorkerOrderStatus.unknown) {
+      if (label == null || label.isEmpty) return null;
+      final labelStatus = parseCleaningWorkerOrderStatus(label);
+      if (labelStatus == CleaningWorkerOrderStatus.unknown) return null;
+      return 'حالة تعييني: ${localArabicWorkerStatusLabel(labelStatus)}';
+    }
+    return 'حالة تعييني: ${localArabicWorkerStatusLabel(assignmentStatusValue)}';
+  }
+
+  bool _containsArabic(String value) =>
+      RegExp(r'[\u0600-\u06FF]').hasMatch(value);
 
   Color _statusColor(BuildContext context) {
-    if (OrderLifecyclePolicy.isAcceptedWaiting(data)) {
-      return WorkerAppColors.info;
-    }
     final status = data.status;
     if (status == CleaningBookingStatus.pending) {
       return WorkerAppColors.brandPrimary;
@@ -167,7 +195,8 @@ class OrderCard extends StatelessWidget {
   // }
 
   void _openDetails(BuildContext context) {
-    if (OrderLifecyclePolicy.isTimeExtensionRequested(data)) {
+    if (data.bookingKind != 'supervised_team' &&
+        OrderLifecyclePolicy.isTimeExtensionRequested(data)) {
       unawaited(_openExtensionRequestActionSheet(context));
       return;
     }
@@ -377,6 +406,73 @@ class OrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final identity = WorkerOrderVisualIdentity.fromOrder(data);
+    if (identity.isSupervised) {
+      return Card(
+        margin: const EdgeInsets.symmetric(vertical: 7, horizontal: 4),
+        child: InkWell(
+          onTap: () => _openDetails(context),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        identity.title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    const Icon(Icons.chevron_left),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                WorkerOrderIdentityChips(
+                  identity: identity,
+                  isPreferredForMe: _isDedicatedToMe,
+                ),
+                const SizedBox(height: 12),
+                Text('رقم الطلب: ${data.bookingNumber ?? data.id ?? '-'}'),
+                const SizedBox(height: 4),
+                Text('${_formatDate()} · ${_formatTime()}'),
+                if (data.displayNeighborhoodName?.isNotEmpty == true) ...[
+                  const SizedBox(height: 4),
+                  Text('الحي: ${data.displayNeighborhoodName}'),
+                ],
+                const SizedBox(height: 8),
+                Text(
+                  _bookingStatusLabel(),
+                  style: TextStyle(
+                    color: _statusColor(context),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (_workerAssignmentStatusLabel() != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    _workerAssignmentStatusLabel()!,
+                    style: const TextStyle(
+                      color: WorkerAppColors.textSecondary,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 8),
+                const Text(
+                  'تفاصيل مهام الفريق والخدمات المتخصصة',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     final statusColor = _statusColor(context);
     final bookingLabel = data.bookingNumber ?? '${data.id ?? '-'}';
     final isDedicatedToMe = _isDedicatedToMe;
@@ -420,7 +516,7 @@ class OrderCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           AppText.titleSmall(
-                            _serviceName(),
+                            identity.title,
                             fontWeight: FontWeight.bold,
                             textAlign: TextAlign.start,
                           ),
@@ -443,86 +539,78 @@ class OrderCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Container(
-                          padding: const EdgeInsetsDirectional.symmetric(
-                            horizontal: 10,
-                            vertical: 5,
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 170),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Container(
+                            padding: const EdgeInsetsDirectional.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: statusColor.withAlpha(30),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 3.5,
+                                  backgroundColor: statusColor,
+                                ),
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: AppText.labelSmall(
+                                    _bookingStatusLabel(),
+                                    color: statusColor,
+                                    fontWeight: FontWeight.w700,
+                                    textAlign: TextAlign.end,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          decoration: BoxDecoration(
-                            color: statusColor.withAlpha(30),
-                            borderRadius: BorderRadius.circular(12),
+                          if (_workerAssignmentStatusLabel() != null) ...[
+                            const SizedBox(height: 4),
+                            AppText.labelSmall(
+                              _workerAssignmentStatusLabel()!,
+                              color: WorkerAppColors.textSecondary,
+                              textAlign: TextAlign.end,
+                            ),
+                          ],
+                          const SizedBox(height: 4),
+                          AppText.titleSmall(
+                            data.totalPrice.formatMoney(),
+                            color: WorkerAppColors.brandPrimary,
+                            fontWeight: FontWeight.bold,
                           ),
-                          child: Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 3.5,
-                                backgroundColor: statusColor,
-                              ),
-                              const SizedBox(width: 6),
-                              AppText.labelSmall(
-                                _statusLabel(),
-                                color: statusColor,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        AppText.titleSmall(
-                          data.totalPrice.formatMoney(),
-                          color: WorkerAppColors.brandPrimary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        const SizedBox(height: 4),
+                          const SizedBox(height: 4),
 
-                        isSameDate(data.createdAt, data.scheduledDate)
-                            ? Container(
-                                padding: const EdgeInsetsDirectional.symmetric(
-                                  horizontal: 10,
-                                  vertical: 5,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: context.error.withAlpha(30),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  children: [
-                                    CircleAvatar(
-                                      radius: 3.5,
-                                      backgroundColor: context.error,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    AppText.labelSmall(
-                                      'طلب ساخن',
-                                      color: context.error,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ],
-                                ),
-                              )
-                            : const SizedBox(),
-
-                        // Container(
-                        //   decoration: BoxDecoration(
-                        //     color: context.primaryContainer,
-                        //     borderRadius: BorderRadius.circular(8),
-                        //   ),
-                        //   padding: const EdgeInsetsDirectional.symmetric(
-                        //     horizontal: 12,
-                        //     vertical: 5,
-                        //   ),
-                        //   child: AppText.labelSmall(
-                        //     'نقدي',
-                        //     color: context.onPrimaryContainer,
-                        //     fontWeight: FontWeight.w700,
-                        //   ),
-                        // ),
-                      ],
+                          // Container(
+                          //   decoration: BoxDecoration(
+                          //     color: context.primaryContainer,
+                          //     borderRadius: BorderRadius.circular(8),
+                          //   ),
+                          //   padding: const EdgeInsetsDirectional.symmetric(
+                          //     horizontal: 12,
+                          //     vertical: 5,
+                          //   ),
+                          //   child: AppText.labelSmall(
+                          //     'نقدي',
+                          //     color: context.onPrimaryContainer,
+                          //     fontWeight: FontWeight.w700,
+                          //   ),
+                          // ),
+                        ],
+                      ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 8),
+                WorkerOrderIdentityChips(
+                  identity: identity,
+                  isPreferredForMe: isDedicatedToMe,
                 ),
                 const SizedBox(height: 12),
 
