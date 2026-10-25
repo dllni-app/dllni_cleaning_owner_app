@@ -29,6 +29,17 @@ class WorkerPaymentSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (useWorkerShare && serviceShareAmount == null && travelFee == null) {
+      // Accepted/pre-acceptance offers may expose only a worker-specific
+      // payable amount. Do not fill the absent component breakdown with zeros.
+      return _PaymentRow(
+        label: 'مستحق العامل',
+        amount: workerAmount?.formatMoney() ?? 'قيد التحديد',
+        isTotal: true,
+        labelColor: context.primaryContainer,
+        amountColor: context.primaryContainer,
+      );
+    }
     // In worker-share mode the booking base price belongs to the whole order,
     // not to the current worker. Never fall back to it while assignment pricing
     // is still being refreshed, otherwise a multi-worker order briefly shows
@@ -40,23 +51,37 @@ class WorkerPaymentSummary extends StatelessWidget {
     final grossTotal = useWorkerShare
         ? calculatedGrossTotal
         : (calculatedGrossTotal > 0 ? calculatedGrossTotal : (totalPrice ?? 0));
-    final calculatedNetProfit = grossTotal - (adminMargin ?? 0);
+    // Administration margin is a customer-side charge above the worker share,
+    // not a deduction from this worker's payout.
+    final calculatedNetProfit = grossTotal;
     final hasCalculableNet = useWorkerShare
         ? serviceShareAmount != null || travelFee != null || adminMargin != null
         : calculatedGrossTotal > 0 || totalPrice != null || adminMargin != null;
-    final netProfit = hasCalculableNet
-        ? (calculatedNetProfit > 0 ? calculatedNetProfit : 0)
-        : (workerAmount ?? 0);
+    final netProfit =
+        workerAmount ??
+        (hasCalculableNet
+            ? (calculatedNetProfit > 0 ? calculatedNetProfit : 0)
+            : null);
 
     return Column(
       children: [
-        _PaymentRow(label: 'قيمة الخدمة', amount: serviceAmount.formatMoney()),
+        _PaymentRow(
+          label: 'قيمة الخدمة',
+          amount: useWorkerShare && serviceShareAmount == null
+              ? 'قيد التحديد'
+              : serviceAmount.formatMoney(),
+        ),
         12.verticalSpace,
-        _PaymentRow(label: 'رسوم التنقل', amount: travelFee.formatMoney()),
-        12.verticalSpace,
-        _PaymentRow(label: 'الإجمالي', amount: grossTotal.formatMoney()),
-        12.verticalSpace,
-        _PaymentRow(label: 'هامش الإدارة', amount: adminMargin.formatMoney()),
+        _PaymentRow(
+          label: 'رسوم التنقل',
+          amount: travelFee?.formatMoney() ?? 'قيد التحديد',
+        ),
+        if (!useWorkerShare) ...[
+          12.verticalSpace,
+          _PaymentRow(label: 'الإجمالي', amount: grossTotal.formatMoney()),
+          12.verticalSpace,
+          _PaymentRow(label: 'هامش الإدارة', amount: adminMargin.formatMoney()),
+        ],
         18.verticalSpace,
         LayoutBuilder(
           builder: (context, constraints) {
@@ -79,8 +104,8 @@ class WorkerPaymentSummary extends StatelessWidget {
         ),
         18.verticalSpace,
         _PaymentRow(
-          label: 'صافي الربح',
-          amount: netProfit.formatMoney(),
+          label: 'مستحق العامل',
+          amount: netProfit?.formatMoney() ?? 'قيد التحديد',
           isTotal: true,
           labelColor: context.primaryContainer,
           amountColor: context.primaryContainer,

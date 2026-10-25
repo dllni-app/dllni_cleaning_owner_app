@@ -21,6 +21,8 @@ import '../../helpers/order_lifecycle_policy.dart';
 import '../../manager/bloc/orders_bloc.dart';
 import '../order_details_map_app_bar.dart';
 import '../../helpers/cleaning_security_code_display.dart';
+import 'worker_order_overview_card.dart';
+import 'worker_detail_section.dart';
 
 bool _securityCodeInFlightForBooking(OrdersBloc bloc, int bookingId) {
   return bloc.state.securityCodeStatus == BlocStatus.loading &&
@@ -597,6 +599,16 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
             ),
           ),
           16.verticalSpace,
+          WorkerOrderOverviewCard(order: widget.order),
+          12.verticalSpace,
+          WorkerDetailSection(
+            title: 'موقع المهمة',
+            icon: Icons.place_outlined,
+            children: [
+              Text(primaryLocationName),
+              if (shouldShowAddressLine) Text(visibleAddress),
+            ],
+          ),
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
@@ -846,9 +858,9 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
             alignment: Alignment.bottomCenter,
             child: DraggableScrollableSheet(
               expand: false,
-              minChildSize: 0.24,
-              initialChildSize: 0.36,
-              maxChildSize: 0.5,
+              minChildSize: 0.28,
+              initialChildSize: 0.42,
+              maxChildSize: 0.78,
               builder: (context, scrollController) =>
                   _buildDraggableBottomSheet(scrollController),
             ),

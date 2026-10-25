@@ -330,6 +330,8 @@ class FetchOrdersUsecaseModelDataItem {
   final double? cancellationFee;
   final double? totalPrice;
   final double? bookingTotalPrice;
+  final double? workerOfferPayable;
+  final double? workerFinancialsPayable;
   final bool? isPricingFinal;
   final String? currency;
 
@@ -418,6 +420,8 @@ class FetchOrdersUsecaseModelDataItem {
     this.cancellationFee,
     this.totalPrice,
     this.bookingTotalPrice,
+    this.workerOfferPayable,
+    this.workerFinancialsPayable,
     this.isPricingFinal,
     this.currency,
     this.addressLatitude,
@@ -561,6 +565,23 @@ class FetchOrdersUsecaseModelDataItem {
       bookingTotalPrice: _toDouble(
         _pick(m, const <String>['bookingTotalPrice', 'booking_total_price']),
       ),
+      workerOfferPayable:
+          _toDouble(
+            _pick(_toMap(m['workerOffer'] ?? m['worker_offer']), const <String>[
+              'workerAmount',
+              'worker_amount',
+              'netTotalPrice',
+            ]),
+          ) ??
+          _toDouble(_pick(m, const <String>['workerOfferPayable'])),
+      workerFinancialsPayable:
+          _toDouble(
+            _pick(
+              _toMap(m['workerFinancials'] ?? m['worker_financials']),
+              const <String>['workerAmount', 'worker_amount'],
+            ),
+          ) ??
+          _toDouble(_pick(m, const <String>['workerFinancialsPayable'])),
       isPricingFinal: _toBool(
         _pick(m, const <String>['isPricingFinal', 'is_pricing_final']),
       ),
@@ -690,38 +711,60 @@ class FetchOrdersUsecaseModelDataItem {
       (numberOfWorkers ?? 1) > 1;
 
   num get workerGrossTotal {
-    final assignment = myAssignment;
-    if (assignment != null) {
-      final assignmentGross =
-          (assignment.serviceShareAmount ?? 0) + (assignment.travelFee ?? 0);
-      if (assignmentGross > 0) return assignmentGross;
+    final payable = workerPayableAmount;
+    if (payable != null && (isPricingFinal != true || myAssignment == null)) {
+      final gross =
+          (myAssignment?.serviceShareAmount ?? 0) +
+          (myAssignment?.travelFee ?? 0);
+      if (gross == 0 && payable > 0) return payable;
     }
-
-    final calculated = (basePrice ?? 0) + (addonsTotal ?? 0) + (travelFee ?? 0);
-    if (calculated > 0) return calculated;
-
-    return totalPrice ?? 0;
-  }
-
-  num get workerNetProfit {
     final assignment = myAssignment;
     if (assignment != null) {
-      final assignmentGross =
-          (assignment.serviceShareAmount ?? 0) + (assignment.travelFee ?? 0);
-      if (assignmentGross > 0 || assignment.adminMarginAmount != null) {
-        final netProfit = assignmentGross - (assignment.adminMarginAmount ?? 0);
-        return netProfit > 0 ? netProfit : 0;
+      if (assignment.serviceShareAmount != null ||
+          assignment.travelFee != null) {
+        return (assignment.serviceShareAmount ?? 0) +
+            (assignment.travelFee ?? 0);
       }
-
-      final assignmentWorkerAmount = assignment.workerAmount;
-      if (assignmentWorkerAmount != null) return assignmentWorkerAmount;
+      if (assignment.workerAmount != null) return assignment.workerAmount!;
     }
-
-    final assignmentAdminMargin = myAssignment?.adminMarginAmount;
-    final netProfit =
-        workerGrossTotal - (assignmentAdminMargin ?? adminMargin ?? 0);
-    return netProfit > 0 ? netProfit : 0;
+    // A booking-wide amount is not a safe fallback for a worker's share.
+    return workerPayableAmount ?? 0;
   }
+
+  /// Amount payable to this worker, not the customer's booking total.
+  /// A missing offer is unknown, not a zero-priced service.
+  num? get workerPayableAmount {
+    // This server projection is scoped to the authenticated worker. Prefer it
+    // over a stale acceptance snapshot, while retaining older API fallbacks.
+    if (workerFinancialsPayable != null) return workerFinancialsPayable;
+    final assignment = myAssignment;
+    if (assignment != null) {
+      if (assignment.workerAmount != null) {
+        if (assignment.workerAmount == 0 &&
+            isPricingFinal != true &&
+            (workerOfferPayable ?? 0) > 0) {
+          return workerOfferPayable;
+        }
+        return assignment.workerAmount;
+      }
+      if (assignment.serviceShareAmount != null ||
+          assignment.travelFee != null) {
+        final computed =
+            (assignment.serviceShareAmount ?? 0) + (assignment.travelFee ?? 0);
+        if (computed == 0 &&
+            isPricingFinal != true &&
+            (workerOfferPayable ?? 0) > 0) {
+          return workerOfferPayable;
+        }
+        return computed;
+      }
+    }
+    // The admin margin is charged on top of the worker share in the API.
+    // Never subtract it again or fall back to bookingTotalPrice.
+    return workerOfferPayable;
+  }
+
+  num get workerNetProfit => workerPayableAmount ?? 0;
 
   bool get isSearchingForWorkers {
     final workerStatus = (workerOrderStatus ?? '').trim().toLowerCase();
@@ -795,6 +838,8 @@ class FetchOrdersUsecaseModelDataItem {
       'cancellationFee': cancellationFee,
       'totalPrice': totalPrice,
       'bookingTotalPrice': bookingTotalPrice,
+      'workerOfferPayable': workerOfferPayable,
+      'workerFinancialsPayable': workerFinancialsPayable,
       'isPricingFinal': isPricingFinal,
       'currency': currency,
       'addressLatitude': addressLatitude,
@@ -886,6 +931,8 @@ class FetchOrdersUsecaseModelDataItem {
       cancellationFee: cancellationFee,
       totalPrice: totalPrice,
       bookingTotalPrice: bookingTotalPrice,
+      workerOfferPayable: workerOfferPayable,
+      workerFinancialsPayable: workerFinancialsPayable,
       isPricingFinal: isPricingFinal,
       currency: currency,
       addressLatitude: addressLatitude,
@@ -968,6 +1015,8 @@ class FetchOrdersUsecaseModelDataItem {
       cancellationFee: cancellationFee,
       totalPrice: totalPrice,
       bookingTotalPrice: bookingTotalPrice,
+      workerOfferPayable: workerOfferPayable,
+      workerFinancialsPayable: workerFinancialsPayable,
       isPricingFinal: isPricingFinal,
       currency: currency,
       addressLatitude: addressLatitude,

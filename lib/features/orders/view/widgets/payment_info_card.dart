@@ -17,7 +17,7 @@ class PaymentInfoCard extends StatelessWidget {
   final FetchOrdersUsecaseModelDataItem order;
   final bool showAddonsTotal;
 
-  bool get _usesWorkerShare => order.myAssignment != null;
+  bool get _usesWorkerShare => true;
 
   @override
   Widget build(BuildContext context) {
@@ -32,25 +32,31 @@ class PaymentInfoCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           AppText.labelMedium(
-            _usesWorkerShare ? 'أرباحك من الطلب' : 'تفاصيل الدفع',
+            'مستحقاتك من هذا الطلب',
             fontWeight: FontWeight.w400,
           ),
           12.verticalSpace,
           Divider(color: Colors.black.withAlpha(42)),
           12.verticalSpace,
-          WorkerPaymentSummary(
-            basePrice: order.basePrice,
-            travelFee: order.myAssignment?.travelFee ?? order.travelFee,
-            addonsTotal: order.addonsTotal,
-            totalPrice: order.workerGrossTotal,
+          if (order.workerPayableAmount == null)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Text('مستحق العامل قيد التحديد. سيتم تحديثه من الخادم.'),
+            )
+          else
+            WorkerPaymentSummary(
+              basePrice: order.basePrice,
+              travelFee: order.myAssignment?.travelFee ?? order.travelFee,
+              addonsTotal: order.addonsTotal,
+              totalPrice: order.workerGrossTotal,
 
-            showAddonsTotal: showAddonsTotal,
-            useWorkerShare: _usesWorkerShare,
-            serviceShareAmount: order.myAssignment?.serviceShareAmount,
-            workerAmount: order.workerNetProfit,
-            adminMargin:
-                order.myAssignment?.adminMarginAmount ?? order.adminMargin,
-          ),
+              showAddonsTotal: showAddonsTotal,
+              useWorkerShare: _usesWorkerShare,
+              serviceShareAmount: order.myAssignment?.serviceShareAmount,
+              workerAmount: order.workerPayableAmount,
+              adminMargin:
+                  order.myAssignment?.adminMarginAmount ?? order.adminMargin,
+            ),
         ],
       ),
     );

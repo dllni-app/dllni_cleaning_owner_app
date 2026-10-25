@@ -157,18 +157,36 @@ extension FetchOrdersWorkerStatusX on FetchOrdersUsecaseModelDataItem {
 
   CleaningWorkerOrderStatus get effectiveWorkerStatus {
     final fromStatus = parseCleaningWorkerOrderStatus(status);
-    if (isGlobalTerminalWorkerStatus(fromStatus) ||
-        isGlobalActiveWorkerStatus(fromStatus)) {
-      return fromStatus;
-    }
-
     final fromWorkerField = parseCleaningWorkerOrderStatus(workerOrderStatus);
     if (fromWorkerField != CleaningWorkerOrderStatus.unknown) {
+      // A worker may have declined or withdrawn while other team members keep
+      // the parent booking in progress/completed. Never paint that person as
+      // executing or paid simply because of the global booking status.
+      if (fromWorkerField == CleaningWorkerOrderStatus.rejected ||
+          fromWorkerField == CleaningWorkerOrderStatus.withdrawn ||
+          fromWorkerField == CleaningWorkerOrderStatus.cancelled ||
+          fromWorkerField == CleaningWorkerOrderStatus.completed) {
+        return fromWorkerField;
+      }
+      // A stale pending/accepted snapshot cannot reopen a globally finished
+      // booking. A real per-worker terminal status above still takes priority.
+      if (isGlobalTerminalWorkerStatus(fromStatus)) return fromStatus;
+      if (fromWorkerField == CleaningWorkerOrderStatus.pending &&
+          isGlobalActiveWorkerStatus(fromStatus)) {
+        return fromStatus;
+      }
       return _normalizePendingAcceptedStatus(fromWorkerField);
     }
 
     final fromAssignment = parseCleaningWorkerOrderStatus(myAssignment?.status);
     if (fromAssignment != CleaningWorkerOrderStatus.unknown) {
+      if (fromAssignment == CleaningWorkerOrderStatus.rejected ||
+          fromAssignment == CleaningWorkerOrderStatus.withdrawn ||
+          fromAssignment == CleaningWorkerOrderStatus.cancelled ||
+          fromAssignment == CleaningWorkerOrderStatus.completed) {
+        return fromAssignment;
+      }
+      if (isGlobalTerminalWorkerStatus(fromStatus)) return fromStatus;
       return _normalizePendingAcceptedStatus(fromAssignment);
     }
 

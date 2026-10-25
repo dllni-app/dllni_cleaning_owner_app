@@ -21,6 +21,7 @@ import '../../../../core/widgets/order_card.dart';
 import '../../domain/usecases/fetch_orders_usecase_use_case.dart';
 import '../manager/bloc/orders_bloc.dart';
 import '../manager/order_notifier.dart';
+import '../manager/orders_status_tabs.dart';
 import '../widgets/orders_app_bar.dart';
 import '../widgets/orders_type_tab_bar.dart';
 
@@ -102,10 +103,16 @@ class _OrdersScreenState extends State<OrdersScreen> {
     required int page,
     String? status,
   }) {
+    final selectedStatus = status ?? orderNotifier.status.value;
+    final selectedTab = ordersStatusTabs.firstWhere(
+      (tab) => tab.status == selectedStatus,
+      orElse: () => ordersStatusTabs[1],
+    );
     return FetchOrdersUsecaseParams(
       page: page,
-      status: status ?? orderNotifier.status.value,
-      assignedToCurrentWorker: true,
+      status: selectedStatus,
+      assignedToCurrentWorker: selectedTab.workerView == 'mine',
+      workerView: selectedTab.workerView,
     );
   }
 
@@ -144,17 +151,19 @@ class _OrdersScreenState extends State<OrdersScreen> {
     // The backend expands the geographic search every twenty minutes.
     // Refresh pending requests while the worker is viewing this screen;
     // realtime delivery is not guaranteed and should not be the only trigger.
-    _pendingOrderRefreshTimer = Timer.periodic(
-      const Duration(minutes: 1),
-      (_) {
-        if (!mounted || orderNotifier.status.value != CleaningBookingStatus.pending) return;
-        _ordersBloc.add(FetchOrdersUsecaseEvent(
+    _pendingOrderRefreshTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (!mounted ||
+          orderNotifier.status.value != CleaningBookingStatus.pending) {
+        return;
+      }
+      _ordersBloc.add(
+        FetchOrdersUsecaseEvent(
           params: _assignedOrdersParams(page: 1),
           isReload: true,
           silent: true,
-        ));
-      },
-    );
+        ),
+      );
+    });
     final firstFetchStatus = _resolveStatus(widget.initialStatus);
     orderNotifier.changeStatus(firstFetchStatus);
     _statusListener = () {
@@ -194,9 +203,18 @@ class _OrdersScreenState extends State<OrdersScreen> {
   String _resolveStatus(String? status) {
     final normalized = status?.trim();
     if (normalized == null || normalized.isEmpty) {
-      return CleaningBookingStatus.workerAssigned;
+      return ordersStatusTabs[1].status;
     }
-    return normalized;
+    // The home page can still deep-link with a single backend status.
+    if (normalized == CleaningBookingStatus.pending) {
+      return ordersStatusTabs[0].status;
+    }
+    for (final tab in ordersStatusTabs.skip(1)) {
+      if (tab.status == normalized || tab.containsStatus(normalized)) {
+        return tab.status;
+      }
+    }
+    return ordersStatusTabs[1].status;
   }
 
   Future<void> _initPusher() async {

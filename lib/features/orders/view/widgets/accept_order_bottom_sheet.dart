@@ -1,9 +1,7 @@
 import 'dart:async';
 
 import 'package:common_package/common_package.dart';
-import 'package:common_package/helpers/error_message_formatter.dart';
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
-import 'package:dllni_cleaninig_owner_app/core/extentions.dart';
 import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_arabic_time_formatter.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_operational_details.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
@@ -21,6 +19,8 @@ import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_lif
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/property_attribute_labels_helper.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/manager/bloc/orders_bloc.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/worker_payment_summary.dart';
+import 'order_details/worker_order_overview_card.dart';
+import 'order_details/worker_detail_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -70,22 +70,21 @@ class AcceptOrderBottomSheet extends StatefulWidget {
       return;
     }
 
-    final closeAction =
-        await showModalBottomSheet<_AcceptOrderSheetResult>(
-          context: context,
-          useRootNavigator: useRootNavigator,
-          isScrollControlled: true,
-          isDismissible: true,
-          enableDrag: true,
-          backgroundColor: Colors.transparent,
-          builder: (_) => AcceptOrderBottomSheet(
-            order: order,
-            bloc: bloc,
-            index: index,
-            autoRejectOnClose: autoRejectOnClose,
-            useRootNavigator: useRootNavigator,
-          ),
-        );
+    final closeAction = await showModalBottomSheet<_AcceptOrderSheetResult>(
+      context: context,
+      useRootNavigator: useRootNavigator,
+      isScrollControlled: true,
+      isDismissible: true,
+      enableDrag: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => AcceptOrderBottomSheet(
+        order: order,
+        bloc: bloc,
+        index: index,
+        autoRejectOnClose: autoRejectOnClose,
+        useRootNavigator: useRootNavigator,
+      ),
+    );
 
     if (closeAction?.accepted == true) {
       onAccepted?.call(closeAction?.selectedSessionId);
@@ -158,16 +157,18 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
     });
 
     try {
-      final result = await getIt<OrdersRemoteDataSource>().fetchOrderDetailsUsecase(
-        FetchOrderDetailsUsecaseParams(id: orderId),
-      );
+      final result = await getIt<OrdersRemoteDataSource>()
+          .fetchOrderDetailsUsecase(
+            FetchOrderDetailsUsecaseParams(id: orderId),
+          );
       final details = result.data;
       if (!mounted) return;
       if (details == null) {
         setState(() {
           _detailsChecked = true;
           _detailsLoading = false;
-          _detailsError = 'تعذر تحميل تفاصيل الطلب الكاملة. أعد المحاولة قبل القبول.';
+          _detailsError =
+              'تعذر تحميل تفاصيل الطلب الكاملة. أعد المحاولة قبل القبول.';
         });
         return;
       }
@@ -186,7 +187,8 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       setState(() {
         _detailsChecked = true;
         _detailsLoading = false;
-        _detailsError = 'تعذر تحميل تفاصيل الطلب الكاملة. أعد المحاولة قبل القبول.';
+        _detailsError =
+            'تعذر تحميل تفاصيل الطلب الكاملة. أعد المحاولة قبل القبول.';
       });
     }
   }
@@ -237,10 +239,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       );
     }
 
-    return ErrorMessageFormatter.format(
-      result.message,
-      fallback: fallback,
-    );
+    return ErrorMessageFormatter.format(result.message, fallback: fallback);
   }
 
   String _sessionAcceptanceExceptionMessage(
@@ -264,10 +263,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       // Fall back to the normalized exception text below.
     }
 
-    return ErrorMessageFormatter.format(
-      error.toString(),
-      fallback: fallback,
-    );
+    return ErrorMessageFormatter.format(error.toString(), fallback: fallback);
   }
 
   int? _firstAcceptedSessionId(List<int> acceptedSessionIds) {
@@ -309,9 +305,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       Navigator.of(context).pop(
         _AcceptOrderSheetResult(
           accepted: true,
-          selectedSessionId: _firstAcceptedSessionId(
-            result.acceptedSessionIds,
-          ),
+          selectedSessionId: _firstAcceptedSessionId(result.acceptedSessionIds),
         ),
       );
     } catch (error) {
@@ -507,9 +501,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       Navigator.of(context).pop(
         _AcceptOrderSheetResult(
           accepted: true,
-          selectedSessionId: _firstAcceptedSessionId(
-            result.acceptedSessionIds,
-          ),
+          selectedSessionId: _firstAcceptedSessionId(result.acceptedSessionIds),
         ),
       );
     } catch (error) {
@@ -594,24 +586,8 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
     return id == null ? '-' : id.toString();
   }
 
-  num _grossWorkerTotal() {
-    return _order.workerGrossTotal;
-  }
-
   void _dismissSheet() {
-    Navigator.of(context).pop(
-      const _AcceptOrderSheetResult(accepted: false),
-    );
-  }
-
-  Widget _sectionTitle(BuildContext context, IconData icon, String title) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: context.primaryContainer),
-        const SizedBox(width: 8),
-        AppText.bodyLarge(title, fontWeight: FontWeight.bold),
-      ],
-    );
+    Navigator.of(context).pop(const _AcceptOrderSheetResult(accepted: false));
   }
 
   Widget _detailCard(BuildContext context, List<Widget> children) {
@@ -720,7 +696,8 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                 ),
                 if (material.quantity != null)
                   AppText.bodySmall(
-                    '${_number(material.quantity!)} ${material.unitLabel ?? material.unit ?? ''}'.trim(),
+                    '${_number(material.quantity!)} ${material.unitLabel ?? material.unit ?? ''}'
+                        .trim(),
                     color: _mutedTextColor,
                   ),
               ],
@@ -737,7 +714,9 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
         details.add('عدد العمال: ${openTime.requestedWorkerCount}');
       }
       if (openTime.expectedMaxMinutes != null) {
-        details.add('المدة المتوقعة القصوى: ${_minutesLabel(openTime.expectedMaxMinutes!)}');
+        details.add(
+          'المدة المتوقعة القصوى: ${_minutesLabel(openTime.expectedMaxMinutes!)}',
+        );
       }
       widgets.add(
         Container(
@@ -788,7 +767,9 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
     final quantity = service.quantity;
     if (quantity != null) {
       final unit = service.pricingUnitLabel ?? service.pricingUnit;
-      details.add('${_number(quantity)}${unit == null || unit.trim().isEmpty ? '' : ' $unit'}');
+      details.add(
+        '${_number(quantity)}${unit == null || unit.trim().isEmpty ? '' : ' $unit'}',
+      );
     }
     final dirtiness = service.dirtinessLabel ?? service.dirtinessLevel;
     if (dirtiness != null && dirtiness.trim().isNotEmpty) {
@@ -1177,9 +1158,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       AppToast.showErrorGlobal(
         OrderLifecyclePolicy.orderNoLongerAvailableMessage,
       );
-      Navigator.of(context).pop(
-        const _AcceptOrderSheetResult(accepted: false),
-      );
+      Navigator.of(context).pop(const _AcceptOrderSheetResult(accepted: false));
       return;
     }
     widget.bloc.add(
@@ -1201,9 +1180,9 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       buildWhen: (previous, current) =>
           previous.acceptOrderUsecaseStatus != current.acceptOrderUsecaseStatus,
       listener: (context, state) {
-        Navigator.of(context).pop(
-          const _AcceptOrderSheetResult(accepted: true),
-        );
+        Navigator.of(
+          context,
+        ).pop(const _AcceptOrderSheetResult(accepted: true));
       },
       builder: (context, state) {
         final accepting =
@@ -1230,7 +1209,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           AppText.titleMedium(
-                            'قبول الطلب #${_bookingCode()}',
+                            'مراجعة عرض العمل',
                             fontWeight: FontWeight.bold,
                             textAlign: TextAlign.start,
                           ),
@@ -1239,7 +1218,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                                 ? 'راجع جميع أيام المناسبة؛ القبول يعني الالتزام بها جميعاً'
                                 : _isMultiSession
                                 ? 'راجع جميع الجلسات وحدد نطاق التزامك قبل القبول'
-                                : 'يرجى تأكيد تفاصيل الطلب قبل القبول',
+                                : 'الطلب #${_bookingCode()} • تحقق من المهام والمستحق قبل القبول',
                             color: _mutedTextColor,
                             textAlign: TextAlign.start,
                           ),
@@ -1312,7 +1291,9 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                               ),
                               const SizedBox(height: 8),
                               OutlinedButton.icon(
-                                onPressed: _detailsLoading ? null : _loadOrderDetails,
+                                onPressed: _detailsLoading
+                                    ? null
+                                    : _loadOrderDetails,
                                 icon: const Icon(Icons.refresh),
                                 label: const Text('إعادة تحميل تفاصيل الطلب'),
                               ),
@@ -1321,77 +1302,65 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                         ),
                         const SizedBox(height: 16),
                       ],
-                      _sectionTitle(
-                        context,
-                        Icons.receipt_long_outlined,
-                        'بيانات الطلب',
+                      WorkerOrderOverviewCard(order: _order),
+                      const SizedBox(height: 12),
+                      WorkerDetailSection(
+                        title: 'المهام والخدمات المطلوبة',
+                        icon: Icons.cleaning_services_outlined,
+                        children: _serviceWidgets(),
                       ),
-                      const SizedBox(height: 10),
-                      _detailCard(context, [
-                        _orderInfoRow(
-                          label: 'السعر الإجمالي',
-                          value: _grossWorkerTotal().formatMoney(),
-                          withDivider: false,
-                        ),
-                      ]),
-                      const SizedBox(height: 16),
-                      _sectionTitle(
-                        context,
-                        Icons.cleaning_services_outlined,
-                        'الخدمات المطلوبة',
+                      WorkerDetailSection(
+                        title: _isMultiSession
+                            ? 'جميع الجلسات'
+                            : 'موعد ووقت الخدمة',
+                        icon: Icons.schedule_outlined,
+                        children: [_scheduleSection(context)],
                       ),
-                      const SizedBox(height: 10),
-                      _detailCard(context, _serviceWidgets()),
-                      const SizedBox(height: 16),
-                      _sectionTitle(
-                        context,
-                        Icons.schedule,
-                        _isMultiSession ? 'جميع الجلسات' : 'موعد ووقت الخدمة',
-                      ),
-                      const SizedBox(height: 10),
-                      _scheduleSection(context),
-                      const SizedBox(height: 16),
-                      _sectionTitle(
-                        context,
-                        _isEventAssistance
-                            ? Icons.event_available_outlined
-                            : Icons.apartment_outlined,
-                        _isEventAssistance
+                      WorkerDetailSection(
+                        title: _isEventAssistance
                             ? 'تفاصيل المناسبة'
                             : 'تفاصيل العقار',
+                        icon: _isEventAssistance
+                            ? Icons.event_available_outlined
+                            : Icons.apartment_outlined,
+                        children: _propertyDetailsRows(),
                       ),
-                      const SizedBox(height: 10),
-                      _detailCard(context, _propertyDetailsRows()),
-                      const SizedBox(height: 16),
-                      _sectionTitle(
-                        context,
-                        Icons.payments_outlined,
-                        'تفاصيل الدفع',
+                      WorkerDetailSection(
+                        title: 'تفاصيل حصتي المالية',
+                        icon: Icons.payments_outlined,
+                        children: [
+                          if (_order.workerPayableAmount == null)
+                            const Text(
+                              'ستظهر تفاصيل حصتك بعد تسعير الطلب من الخادم.',
+                            )
+                          else
+                            WorkerPaymentSummary(
+                              basePrice: null,
+                              travelFee:
+                                  _order.myAssignment?.travelFee ??
+                                  _order.travelFee,
+                              addonsTotal: null,
+                              totalPrice: _order.workerGrossTotal,
+                              showAddonsTotal: false,
+                              useWorkerShare: true,
+                              serviceShareAmount:
+                                  _order.myAssignment?.serviceShareAmount,
+                              workerAmount: _order.workerPayableAmount,
+                              adminMargin:
+                                  _order.myAssignment?.adminMarginAmount,
+                            ),
+                        ],
                       ),
-                      const SizedBox(height: 10),
-                      _detailCard(context, [
-                        WorkerPaymentSummary(
-                          basePrice: _order.basePrice,
-                          travelFee: _order.travelFee,
-                          addonsTotal: _order.addonsTotal,
-                          totalPrice: _order.workerGrossTotal,
-                          showAddonsTotal: true,
-                          adminMargin: _order.adminMargin,
-                        ),
-                      ]),
-                      const SizedBox(height: 16),
-                      _sectionTitle(
-                        context,
-                        Icons.location_on_outlined,
-                        'عنوان العقار',
+                      WorkerDetailSection(
+                        title: 'موقع المهمة',
+                        icon: Icons.location_on_outlined,
+                        children: [
+                          AppText.bodyMedium(
+                            _preAcceptanceAddressText(),
+                            textAlign: TextAlign.start,
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 10),
-                      _detailCard(context, [
-                        AppText.bodyMedium(
-                          _preAcceptanceAddressText(),
-                          textAlign: TextAlign.start,
-                        ),
-                      ]),
                     ],
                   ),
                 ),

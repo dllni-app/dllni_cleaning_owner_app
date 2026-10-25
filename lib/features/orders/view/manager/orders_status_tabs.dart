@@ -1,42 +1,49 @@
 import '../../data/models/cleaning_booking_status.dart';
 
+/// Task-oriented worker views. Backend still accepts its original individual
+/// statuses, so old deep links and other API consumers remain compatible.
 class OrdersStatusTab {
-  const OrdersStatusTab({required this.status, required this.label});
+  const OrdersStatusTab({
+    required this.status,
+    required this.label,
+    required this.workerView,
+  });
 
   final String status;
   final String label;
+  final String workerView;
+
+  bool containsStatus(String value) => status.split(',').contains(value);
 }
 
 const List<OrdersStatusTab> ordersStatusTabs = <OrdersStatusTab>[
   OrdersStatusTab(
     status: CleaningBookingStatus.pending,
-    label: 'بانتظار اكتمال الفريق',
-  ),
-  OrdersStatusTab(status: CleaningBookingStatus.workerAssigned, label: 'مؤكدة'),
-  OrdersStatusTab(
-    status: CleaningBookingStatus.awaitingStartVerification,
-    label: 'بانتظار التحقق',
+    label: 'جديدة',
+    workerView: 'available',
   ),
   OrdersStatusTab(
-    status: CleaningBookingStatus.awaitingWorkerStartConfirmation,
-    label: 'جاهز للبدء',
+    status:
+        '${CleaningBookingStatus.pending},${CleaningBookingStatus.workerAssigned},'
+        '${CleaningBookingStatus.awaitingStartVerification},'
+        '${CleaningBookingStatus.awaitingWorkerStartConfirmation}',
+    label: 'القادمة',
+    workerView: 'mine',
   ),
   OrdersStatusTab(
-    status: CleaningBookingStatus.inProgress,
+    status:
+        '${CleaningBookingStatus.inProgress},'
+        '${CleaningBookingStatus.awaitingCustomerCompletion},'
+        '${CleaningBookingStatus.timeExtensionRequested},'
+        '${CleaningBookingStatus.underDispute}',
     label: 'قيد التنفيذ',
+    workerView: 'mine',
   ),
   OrdersStatusTab(
-    status: CleaningBookingStatus.awaitingCustomerCompletion,
-    label: 'تأكيد الإكمال',
+    status:
+        '${CleaningBookingStatus.partiallyCompleted},'
+        '${CleaningBookingStatus.completed},${CleaningBookingStatus.cancelled}',
+    label: 'السجل',
+    workerView: 'mine',
   ),
-  OrdersStatusTab(
-    status: CleaningBookingStatus.timeExtensionRequested,
-    label: 'تمديد الوقت',
-  ),
-  OrdersStatusTab(
-    status: CleaningBookingStatus.partiallyCompleted,
-    label: 'مكتملة جزئياً',
-  ),
-  OrdersStatusTab(status: CleaningBookingStatus.completed, label: 'مكتملة'),
-  OrdersStatusTab(status: CleaningBookingStatus.cancelled, label: 'ملغية'),
 ];

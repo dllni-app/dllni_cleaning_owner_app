@@ -196,7 +196,7 @@ void main() {
   );
 
   testWidgets(
-    'booking status and own assignment status have separate captions',
+    'compact card prioritizes the worker status over global booking status',
     (WidgetTester tester) async {
       final bloc = _buildOrdersBloc(repo: _OrdersRepoFake());
       await tester.pumpWidget(
@@ -218,15 +218,15 @@ void main() {
         ),
       );
 
-      expect(find.text('حالة الطلب: تم تعيين العامل'), findsOneWidget);
-      expect(find.text('حالة تعييني: تم رفض تعييني'), findsOneWidget);
+      expect(find.text('تم رفض الطلب'), findsOneWidget);
+      expect(find.textContaining('تم تعيين العامل'), findsNothing);
       await tester.pumpWidget(const SizedBox.shrink());
       await finishWidgetCleanup(tester, bloc.close());
     },
   );
 
   testWidgets(
-    'assignment caption uses raw worker status when labels are absent',
+    'compact card localizes worker state without duplicate global caption',
     (WidgetTester tester) async {
       final bloc = _buildOrdersBloc(repo: _OrdersRepoFake());
       await tester.pumpWidget(
@@ -246,9 +246,9 @@ void main() {
         ),
       );
 
-      expect(find.text('حالة الطلب: قيد التنفيذ'), findsOneWidget);
-      expect(find.text('حالة تعييني: تم رفض الطلب'), findsOneWidget);
-      expect(find.text('حالة تعييني: قيد التنفيذ'), findsNothing);
+      expect(find.text('تم رفض الطلب'), findsOneWidget);
+      expect(find.textContaining('حالة الطلب:'), findsNothing);
+      expect(find.textContaining('قيد التنفيذ'), findsNothing);
       await tester.pumpWidget(const SizedBox.shrink());
       await finishWidgetCleanup(tester, bloc.close());
     },
@@ -321,8 +321,8 @@ void main() {
       ),
     );
 
-    expect(find.text('حالة الطلب: مكتمل'), findsOneWidget);
-    expect(find.text('حالة تعييني: تم رفض الطلب'), findsOneWidget);
+    expect(find.text('تم رفض الطلب'), findsOneWidget);
+    expect(find.textContaining('حالة الطلب:'), findsNothing);
     expect(find.textContaining('pending'), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
     await finishWidgetCleanup(tester, bloc.close());

@@ -18,16 +18,13 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/di/injection.dart';
 import '../../../main/navigation/main_tab_navigation.dart';
-import '../../../main/view/screens/main_screen.dart';
 import '../../../orders/data/models/cleaning_booking_status.dart';
 import '../../../orders/domain/usecases/fetch_orders_usecase_use_case.dart';
 import '../../../orders/view/manager/bloc/orders_bloc.dart';
 import '../../../profile/view/manager/bloc/profile_bloc.dart';
-import '../../../profile/view/screens/wallet_screen.dart';
 import '../../domain/usecases/fetch_home_page_usecase_use_case.dart';
 import '../manager/bloc/home_bloc.dart';
 import '../widgets/home_app_bar.dart';
-import '../widgets/statistics_row.dart';
 
 enum HomeOrdersTab { newOrders, todayOrders }
 
@@ -86,10 +83,18 @@ class _HomeScreenState extends State<HomeScreen> {
       HomeOrdersTab.newOrders => FetchOrdersUsecaseParams(
         page: page,
         status: CleaningBookingStatus.pending,
+        workerView: 'available',
       ),
       HomeOrdersTab.todayOrders => FetchOrdersUsecaseParams(
         page: page,
-        status: CleaningBookingStatus.workerAssigned,
+        status:
+            '${CleaningBookingStatus.pending},${CleaningBookingStatus.workerAssigned},'
+            '${CleaningBookingStatus.awaitingStartVerification},'
+            '${CleaningBookingStatus.awaitingWorkerStartConfirmation},'
+            '${CleaningBookingStatus.inProgress},'
+            '${CleaningBookingStatus.awaitingCustomerCompletion},'
+            '${CleaningBookingStatus.timeExtensionRequested}',
+        workerView: 'mine',
         scheduledDate: _todayScheduledDate,
       ),
     };
@@ -431,39 +436,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           12.verticalSpace,
                           TodayOverviewCard(),
-                          12.verticalSpace,
-                          Builder(
-                            builder: (innerContext) {
-                              return StatisticsRow(
-                                onStatisticsTap: () {
-                                  Navigator.of(innerContext).push<void>(
-                                    MaterialPageRoute<void>(
-                                      builder: (_) => BlocProvider.value(
-                                        value: innerContext.read<ProfileBloc>(),
-                                        child: const WalletScreen(),
-                                      ),
-                                    ),
-                                  );
-                                },
-                                onStatusTap: (status) {
-                                  final opened = MainTabNavigation.instance
-                                      .jumpToTab(
-                                        2,
-                                        ordersInitialStatus: status,
-                                      );
-                                  if (!opened) {
-                                    innerContext.pushRouteAndRemoveUntil(
-                                      '/main',
-                                      arguments: MainScreenParam(
-                                        returnedPageIndex: 2,
-                                        ordersInitialStatus: status,
-                                      ),
-                                    );
-                                  }
-                                },
-                              );
-                            },
-                          ),
+                          // The primary overview already contains these three
+                          // metrics. Do not repeat the same numbers below it.
                           16.verticalSpace,
                           _HomeOrdersSection(
                             selectedTab: _selectedHomeOrdersTab,

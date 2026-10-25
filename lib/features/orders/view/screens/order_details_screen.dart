@@ -411,22 +411,15 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   void _onRealtimeChannelError(RealtimeChannelError error) {
     if (error.statusCode != 403) return;
     if (!mounted) return;
-    // The channel is no longer authorized. Immediately conceal cached visit
-    // data and invalidate any already-in-flight schedule read before retrying.
-    ++_scheduleReadRevision;
-    _scheduleRetryRequired = true;
-    setState(() {
-      _multiDaySchedule = null;
-      _hasLoadedScheduleSuccessfully = false;
-      _scheduleChecked = true;
-      _scheduleLoading = false;
-      _scheduleLoadError = 'تعذر التحقق من صلاحية الوصول إلى هذا الطلب.';
-    });
+    // Realtime channel authorization and REST booking/schedule authorization
+    // are separate. A failed Pusher subscription is NOT proof that the worker
+    // lost access to the booking. Keep REST-owned state and retry the API;
+    // explicit REST 403/404 remains handled by the scoped read error path.
     final bookingId = _order.id;
     if (bookingId != null) {
       _scheduleSyncFallback(
         bookingId: bookingId,
-        reason: 'owner_details_channel_auth_403_refresh',
+        reason: 'worker_details_channel_auth_403_rest_recheck',
       );
     }
   }
@@ -627,9 +620,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                 icon: const Icon(Icons.arrow_back),
               ),
               Expanded(
-                child: AppText.headlineMedium(
-                  'تفاصيل الطلب ${_order.bookingNumber ?? ''}',
-                  textAlign: TextAlign.start,
+                child: Text(
+                  'تفاصيل المهمة',
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
               ),
             ],
@@ -653,9 +646,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                 icon: const Icon(Icons.arrow_back),
               ),
               Expanded(
-                child: AppText.headlineMedium(
-                  'تفاصيل الطلب ${_order.bookingNumber ?? ''}',
-                  textAlign: TextAlign.start,
+                child: Text(
+                  'تفاصيل المهمة',
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
               ),
             ],

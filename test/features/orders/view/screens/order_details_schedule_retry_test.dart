@@ -59,7 +59,8 @@ void main() {
       delayed.complete(_scheduleEnvelope());
       await tester.pumpAndSettle();
       expect(source.calls, 1);
-      expect(find.text('الجلسة 1 من 1'), findsOneWidget);
+      // Both the session header and the worker summary show the same visit.
+      expect(find.text('الجلسة 1 من 1'), findsWidgets);
 
       await tester.pumpWidget(const SizedBox.shrink());
       await _dispose(tester, bloc);
@@ -122,7 +123,7 @@ void main() {
   });
 
   testWidgets(
-    'channel 403 invalidates in-flight schedule and requires explicit retry',
+    'realtime channel 403 does not revoke an authorized REST schedule',
     (WidgetTester tester) async {
       final delayed = Completer<WorkerMultiDayBookingEnvelope>();
       final source = _QueuedScheduleSource(
@@ -150,22 +151,21 @@ void main() {
         'private-cleaning-booking.44',
         const <String, dynamic>{'statusCode': 403},
       );
-      await tester.pumpAndSettle();
+      // Realtime auth errors trigger a REST recheck. The mock details source
+      // deliberately does not complete, so a full pumpAndSettle would wait
+      // forever for that unrelated request.
+      await tester.pump(const Duration(milliseconds: 400));
       expect(source.calls, 1);
 
       delayed.complete(_scheduleEnvelope());
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(milliseconds: 300));
       expect(source.calls, 1);
-      expect(find.text('الجلسة 1 من 1'), findsNothing);
+      expect(find.text('الجلسة 1 من 1'), findsWidgets);
       expect(
         find.text('تعذر التحقق من صلاحية الوصول إلى هذا الطلب.'),
-        findsOneWidget,
+        findsNothing,
       );
-
-      await tester.tap(find.text('إعادة المحاولة'));
-      await tester.pumpAndSettle();
-      expect(source.calls, 2);
-      expect(find.text('الجلسة 1 من 1'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox.shrink());
       await _dispose(tester, bloc);

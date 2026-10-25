@@ -1,6 +1,4 @@
 import 'package:common_package/common_package.dart';
-import 'package:dllni_cleaninig_owner_app/core/extentions.dart';
-import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
@@ -16,7 +14,7 @@ import '../../helpers/order_lifecycle_policy.dart';
 import '../../manager/bloc/orders_bloc.dart';
 import '../accept_order_bottom_sheet.dart';
 import '../estate_info_card.dart';
-import '../order_info_card.dart';
+import 'worker_order_overview_card.dart';
 import '../payment_info_card.dart';
 import '../worker_room_assignments_card.dart';
 
@@ -45,85 +43,6 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
       widget.order.numberOfWorkers != null &&
       widget.order.numberOfWorkers! > 1;
 
-  int get _requiredWorkersCount =>
-      widget.order.requiredWorkersCount ??
-      widget.order.workerAcceptance?.required ??
-      widget.order.numberOfWorkers ??
-      1;
-
-  bool get _isMultiWorkerOrder => _requiredWorkersCount > 1;
-
-  String _formatHours(double? hours) {
-    if (hours == null) return '-';
-    return hours % 1 == 0 ? hours.toInt().toString() : hours.toString();
-  }
-
-  num get _netProfit {
-    return widget.order.workerNetProfit;
-  }
-
-  List<MapEntry<String, String>> get _summaryRows {
-    final bookedHours = EventAssistanceOrderHelper.resolveBookedHours(
-      propertyHours: widget.order.propertyDetails?.hours,
-      assignmentHours: widget.order.myAssignment?.totalHours,
-      totalHours: widget.order.totalHours,
-      estimatedHours: widget.order.estimatedHours,
-    );
-
-    return [
-      MapEntry('إجمالي ساعات العمل', _formatHours(bookedHours)),
-      MapEntry(
-        _isEventAssistance ? 'عدد الضيوف : ' : 'المساحة التقديرية',
-        _isEventAssistance
-            ? '${widget.order.propertyDetails?.guestCount ?? '-'}'
-            : widget.order.estimatedSqm ?? '-',
-      ),
-      MapEntry('صافي الربح', _netProfit.formatMoney()),
-    ];
-  }
-
-  Widget _buildMultiWorkerNotice() {
-    final requiredWorkers = _requiredWorkersCount;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsetsDirectional.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xffFFF7ED),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xffFDBA74)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(
-            Icons.groups_2_outlined,
-            color: Color(0xffC2410C),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AppText.labelLarge(
-                  'طلب متعدد العمال',
-                  color: const Color(0xff9A3412),
-                  fontWeight: FontWeight.w800,
-                  textAlign: TextAlign.start,
-                ),
-                const SizedBox(height: 4),
-                AppText.bodySmall(
-                  'هذا الطلب يتطلب $requiredWorkers عمال. أنت أحد أفراد الفريق المشاركين في تنفيذ الطلب.',
-                  color: const Color(0xff9A3412),
-                  textAlign: TextAlign.start,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final canAcceptReject = OrderLifecyclePolicy.canAcceptReject(widget.order);
@@ -142,9 +61,26 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
               icon: const Icon(Icons.arrow_back, color: Colors.black),
             ),
             Expanded(
-              child: AppText.headlineMedium(
-                'تفاصيل الطلب ${widget.order.bookingNumber}',
-                textAlign: TextAlign.start,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'تفاصيل المهمة',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  if (widget.order.bookingNumber?.isNotEmpty == true)
+                    Text(
+                      widget.order.bookingNumber!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textDirection: TextDirection.ltr,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                ],
               ),
             ),
             6.horizontalSpace,
@@ -184,59 +120,7 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
               child: Column(
                 children: [
                   const SizedBox(height: 14),
-                  if (_isMultiWorkerOrder) ...[
-                    _buildMultiWorkerNotice(),
-                    const SizedBox(height: 14),
-                  ],
-                  DottedBorder(
-                    options: RoundedRectDottedBorderOptions(
-                      radius: const Radius.circular(10),
-                      color: context.primaryContainer,
-                      strokeWidth: 2,
-                      dashPattern: const [8, 4],
-                    ),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        color: context.primaryContainer.withAlpha(31),
-                      ),
-                      padding: const EdgeInsetsDirectional.symmetric(
-                        horizontal: 10,
-                        vertical: 16,
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: _summaryRows
-                            .map(
-                              (row) => Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
-                                  child: Column(
-                                    children: [
-                                      AppText.labelSmall(
-                                        row.key,
-                                        color: context.primary,
-                                        fontWeight: FontWeight.w700,
-                                        textAlign: TextAlign.center,
-                                      ),
-                                      const SizedBox(height: 8),
-                                      AppText.labelSmall(
-                                        row.value,
-                                        color: context.primary,
-                                        fontWeight: FontWeight.w500,
-                                        textAlign: TextAlign.start,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            )
-                            .toList(growable: false),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  OrderInfoCard(order: widget.order),
+                  WorkerOrderOverviewCard(order: widget.order),
                   const SizedBox(height: 14),
                   EstateInfoCard(order: widget.order),
                   const SizedBox(height: 14),
@@ -288,10 +172,7 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppText.labelMedium(
-            'التواصل مع العميل',
-            fontWeight: FontWeight.w600,
-          ),
+          AppText.labelMedium('التواصل مع العميل', fontWeight: FontWeight.w600),
           const SizedBox(height: 6),
           AppText.bodySmall(
             'تظهر وسائل التواصل بعد قبولك للمهمة.',
@@ -331,9 +212,7 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
     }
 
     AppToast.showErrorGlobal(
-      scheme == 'tel'
-          ? 'تعذر فتح تطبيق الاتصال.'
-          : 'تعذر فتح تطبيق الرسائل.',
+      scheme == 'tel' ? 'تعذر فتح تطبيق الاتصال.' : 'تعذر فتح تطبيق الرسائل.',
     );
   }
 

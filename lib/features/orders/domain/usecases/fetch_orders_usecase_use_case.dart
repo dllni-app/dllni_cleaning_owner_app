@@ -36,6 +36,7 @@ class FetchOrdersUsecaseParams with Params {
   final String? scheduledDateTo;
   final String? sort;
   final bool assignedToCurrentWorker;
+  final String? workerView;
   final bool acceptedByCurrentWorkerOnly;
   final int page;
   final int perPage;
@@ -47,12 +48,11 @@ class FetchOrdersUsecaseParams with Params {
     this.scheduledDateTo,
     this.sort,
     this.assignedToCurrentWorker = false,
+    this.workerView,
     this.acceptedByCurrentWorkerOnly = false,
     required this.page,
     this.perPage = 10,
-  }) : status = acceptedByCurrentWorkerOnly
-           ? _acceptedWorkerStatuses
-           : status;
+  }) : status = acceptedByCurrentWorkerOnly ? _acceptedWorkerStatuses : status;
 
   @override
   QueryParams getParams() {
@@ -64,6 +64,7 @@ class FetchOrdersUsecaseParams with Params {
     final params = {
       'filter[forCurrentWorker]': 1,
       'filter[assignedToCurrentWorker]': shouldFilterAssignedOrders ? 1 : null,
+      'filter[workerView]': workerView,
       'filter[status]': status,
       'filter[scheduledDate]': scheduledDate,
       'filter[scheduledDateFrom]': scheduledDateFrom,

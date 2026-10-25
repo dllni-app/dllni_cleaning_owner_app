@@ -149,6 +149,23 @@ void main() {
       },
     );
 
+    test(
+      'prefers authenticated worker financial projection over stale assignment',
+      () {
+        final order = fetchOrdersUsecaseModelDataItemFromJson(<String, dynamic>{
+          'totalPrice': 50000,
+          'myAssignment': <String, dynamic>{'workerAmount': 0},
+          'workerOffer': <String, dynamic>{'workerAmount': 100},
+          'workerFinancials': <String, dynamic>{'workerAmount': 640},
+        });
+        expect(order.workerPayableAmount, 640);
+        expect(
+          order.withLifecycle(status: 'worker_assigned').workerPayableAmount,
+          640,
+        );
+      },
+    );
+
     test('does not use bedrooms aggregate for bedroom count', () {
       final order = fetchOrdersUsecaseModelDataItemFromJson(<String, dynamic>{
         'propertyDetails': <String, dynamic>{
@@ -179,7 +196,7 @@ void main() {
       expect(order.displayNeighborhoodName, 'الفرقان');
     });
 
-    test('calculates worker gross total and net profit from payment parts', () {
+    test('does not substitute a booking total for a missing worker offer', () {
       final order = fetchOrdersUsecaseModelDataItemFromJson(<String, dynamic>{
         'basePrice': 120000,
         'addonsTotal': 0,
@@ -188,8 +205,8 @@ void main() {
         'totalPrice': 146000,
       });
 
-      expect(order.workerGrossTotal, 134000);
-      expect(order.workerNetProfit, 122000);
+      expect(order.workerPayableAmount, isNull);
+      expect(order.workerGrossTotal, 0);
     });
 
     test('prefers current assignment worker net profit when available', () {
@@ -207,6 +224,44 @@ void main() {
 
       expect(order.workerGrossTotal, 90000);
       expect(order.workerNetProfit, 81000);
+      expect(order.workerPayableAmount, 81000);
     });
+
+    test('does not subtract customer-side admin margin from worker share', () {
+      final order = fetchOrdersUsecaseModelDataItemFromJson(<String, dynamic>{
+        'totalPrice': 850000,
+        'myAssignment': <String, dynamic>{
+          'serviceShareAmount': 180000,
+          'travelFee': 10000,
+          'adminMarginAmount': 20000,
+        },
+      });
+
+      expect(order.workerPayableAmount, 190000);
+      expect(order.workerNetProfit, 190000);
+    });
+
+    test(
+      'uses provisional offer when accepted team assignment still holds a zero snapshot',
+      () {
+        final order = fetchOrdersUsecaseModelDataItemFromJson(<String, dynamic>{
+          'status': 'pending',
+          'bookingTotalPrice': 2000,
+          'myAssignment': <String, dynamic>{
+            'workerAmount': 0,
+            'serviceShareAmount': 0,
+            'travelFee': 0,
+          },
+          'workerOffer': <String, dynamic>{
+            'workerAmount': 420,
+            'isPreview': true,
+          },
+        });
+
+        expect(order.workerPayableAmount, 420);
+        expect(order.workerGrossTotal, 420);
+        expect(order.withLifecycle(status: 'pending').workerPayableAmount, 420);
+      },
+    );
   });
 }

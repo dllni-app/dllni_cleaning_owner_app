@@ -12,7 +12,7 @@ void main() {
     );
   }
 
-  testWidgets('shows gross total before margin and net profit after margin', (
+  testWidgets('shows worker payable separately from customer margin', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -31,9 +31,8 @@ void main() {
     expect(find.text('رسوم التنقل'), findsOneWidget);
     expect(find.text('الإجمالي'), findsOneWidget);
     expect(find.text('هامش الإدارة'), findsOneWidget);
-    expect(find.text('صافي الربح'), findsOneWidget);
-    expect(find.textContaining('134,000'), findsOneWidget);
-    expect(find.textContaining('122,000'), findsOneWidget);
+    expect(find.text('مستحق العامل'), findsOneWidget);
+    expect(find.textContaining('134,000'), findsWidgets);
     expect(find.textContaining('146,000'), findsNothing);
 
     final totalY = tester.getTopLeft(find.text('الإجمالي')).dy;
@@ -41,7 +40,7 @@ void main() {
     expect(totalY, lessThan(marginY));
   });
 
-  testWidgets('calculates net profit before using legacy workerAmount', (
+  testWidgets('uses explicit server workerAmount before local calculation', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -59,9 +58,8 @@ void main() {
       ),
     );
 
-    expect(find.text('صافي الربح'), findsOneWidget);
-    expect(find.textContaining('820'), findsOneWidget);
-    expect(find.textContaining('9,000'), findsNothing);
+    expect(find.text('مستحق العامل'), findsOneWidget);
+    expect(find.textContaining('9,000'), findsOneWidget);
   });
 
   testWidgets(
@@ -80,7 +78,7 @@ void main() {
         ),
       );
 
-      expect(find.text('صافي الربح'), findsOneWidget);
+      expect(find.text('مستحق العامل'), findsOneWidget);
       expect(find.textContaining('900'), findsOneWidget);
       expect(find.textContaining('1,200'), findsNothing);
     },

@@ -24,6 +24,11 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
   bool get _isEventAssistance =>
       EventAssistanceOrderHelper.isEventAssistance(widget.order.propertyType);
 
+  bool get _hasEstimatedArea {
+    final area = widget.order.estimatedSqm?.trim().toLowerCase();
+    return area != null && area.isNotEmpty && area != 'null' && area != '-';
+  }
+
   String get _cleaningModeDisplayLabel {
     return CleaningEnumTranslations.preferArabicLabel(
       widget.order.propertyDetails?.cleaningModeLabel,
@@ -214,41 +219,42 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
             ],
           ),
 
-          14.verticalSpace,
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    _isEventAssistance ? Icons.schedule : Icons.square_foot,
-                    color: WorkerAppColors.brandPrimary,
-                    size: 18.sp,
-                  ),
-                  6.horizontalSpace,
-                  AppText.labelMedium(
-                    _isEventAssistance ? 'مدة الحجز' : 'المساحة التقديرية',
-                    fontWeight: FontWeight.w400,
-                  ),
-                ],
-              ),
-              AppText.labelMedium(
-                _isEventAssistance
-                    ? EventAssistanceOrderHelper.formatHoursDetail(
-                        EventAssistanceOrderHelper.resolveBookedHours(
-                          propertyHours: widget.order.propertyDetails?.hours,
-                          assignmentHours:
-                              widget.order.myAssignment?.totalHours,
-                          totalHours: widget.order.totalHours,
-                          estimatedHours: widget.order.estimatedHours,
-                        ),
-                      )
-                    : '${widget.order.estimatedSqm} متر مربع',
-                fontWeight: FontWeight.w300,
-              ),
-            ],
-          ),
+          if (_isEventAssistance || _hasEstimatedArea) ...[
+            14.verticalSpace,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      _isEventAssistance ? Icons.schedule : Icons.square_foot,
+                      color: WorkerAppColors.brandPrimary,
+                      size: 18.sp,
+                    ),
+                    6.horizontalSpace,
+                    AppText.labelMedium(
+                      _isEventAssistance ? 'مدة الحجز' : 'المساحة التقديرية',
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ],
+                ),
+                AppText.labelMedium(
+                  _isEventAssistance
+                      ? EventAssistanceOrderHelper.formatHoursDetail(
+                          EventAssistanceOrderHelper.resolveBookedHours(
+                            propertyHours: widget.order.propertyDetails?.hours,
+                            assignmentHours:
+                                widget.order.myAssignment?.totalHours,
+                            totalHours: widget.order.totalHours,
+                            estimatedHours: widget.order.estimatedHours,
+                          ),
+                        )
+                      : '${widget.order.estimatedSqm} متر مربع',
+                  fontWeight: FontWeight.w300,
+                ),
+              ],
+            ),
+          ],
           if (attributes.isNotEmpty) ...[
             18.verticalSpace,
             Wrap(

@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/core/extentions.dart';
 import 'package:dllni_cleaninig_owner_app/core/widgets/cancel_order_dialog.dart';
-import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_relative_time_formatter.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/cleaning_booking_status.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/fetch_extension_requests_usecas_use_case.dart';
@@ -37,66 +36,35 @@ class OrderCard extends StatelessWidget {
   final int index;
 
   String _bookingStatusLabel() {
-    final label = data.statusLabel?.trim();
-    if (label != null && label.isNotEmpty && _containsArabic(label)) {
-      return 'حالة الطلب: $label';
-    }
-    final status = data.status?.trim();
-    if (status != null && status.isNotEmpty) {
-      final localizedStatus = CleaningBookingStatus.toArabic(status);
-      if (localizedStatus != status) return 'حالة الطلب: $localizedStatus';
-    }
-    if (label != null && label.isNotEmpty) {
-      final localizedLabel = CleaningBookingStatus.toArabic(label);
-      if (localizedLabel != label) return 'حالة الطلب: $localizedLabel';
-    }
-    return 'حالة الطلب: غير محددة';
+    return 'حالة طلبي: ${localArabicWorkerStatusLabel(data.effectiveWorkerStatus)}';
   }
-
-  String? _workerAssignmentStatusLabel() {
-    final label = data.workerOrderStatusLabel?.trim();
-    if (label != null && label.isNotEmpty && _containsArabic(label)) {
-      return 'حالة تعييني: $label';
-    }
-    final status = data.workerOrderStatus?.trim();
-    final assignmentStatus = data.myAssignment?.status?.trim();
-    final assignmentStatusValue = status?.isNotEmpty == true
-        ? parseCleaningWorkerOrderStatus(status)
-        : parseCleaningWorkerOrderStatus(assignmentStatus);
-    if (assignmentStatusValue == CleaningWorkerOrderStatus.unknown) {
-      if (label == null || label.isEmpty) return null;
-      final labelStatus = parseCleaningWorkerOrderStatus(label);
-      if (labelStatus == CleaningWorkerOrderStatus.unknown) return null;
-      return 'حالة تعييني: ${localArabicWorkerStatusLabel(labelStatus)}';
-    }
-    return 'حالة تعييني: ${localArabicWorkerStatusLabel(assignmentStatusValue)}';
-  }
-
-  bool _containsArabic(String value) =>
-      RegExp(r'[\u0600-\u06FF]').hasMatch(value);
 
   Color _statusColor(BuildContext context) {
-    final status = data.status;
-    if (status == CleaningBookingStatus.pending) {
+    final status = data.effectiveWorkerStatus;
+    if (status == CleaningWorkerOrderStatus.pending) {
       return WorkerAppColors.brandPrimary;
     }
-    if (status == CleaningBookingStatus.workerAssigned) {
+    if (status == CleaningWorkerOrderStatus.workerAssigned ||
+        status == CleaningWorkerOrderStatus.accepted ||
+        status == CleaningWorkerOrderStatus.acceptedWaitingTeam ||
+        status == CleaningWorkerOrderStatus.acceptedWaitingForOrderStart) {
       return WorkerAppColors.info;
     }
-    if (status == CleaningBookingStatus.awaitingStartVerification) {
+    if (status == CleaningWorkerOrderStatus.awaitingStartVerification) {
       return WorkerAppColors.warning;
     }
-    if (status == CleaningBookingStatus.awaitingWorkerStartConfirmation) {
+    if (status == CleaningWorkerOrderStatus.awaitingWorkerStartConfirmation ||
+        status == CleaningWorkerOrderStatus.startApproved) {
       return WorkerAppColors.success;
     }
-    if (status == CleaningBookingStatus.inProgress ||
-        status == CleaningBookingStatus.timeExtensionRequested) {
+    if (status == CleaningWorkerOrderStatus.inProgress ||
+        status == CleaningWorkerOrderStatus.timeExtensionRequested) {
       return context.primaryContainer;
     }
-    if (status == CleaningBookingStatus.awaitingCustomerCompletion) {
+    if (status == CleaningWorkerOrderStatus.awaitingCustomerCompletion) {
       return WorkerAppColors.secondary;
     }
-    if (status == CleaningBookingStatus.completed) {
+    if (status == CleaningWorkerOrderStatus.completed) {
       return WorkerAppColors.success;
     }
     return WorkerAppColors.textSecondary;
@@ -152,16 +120,6 @@ class OrderCard extends StatelessWidget {
       data.scheduledTime,
       pattern: 'h:mm a',
     );
-  }
-
-  String _createdAtHumanReadable() {
-    return CleaningRelativeTimeFormatter.fromBackendCreatedAt(data.createdAt);
-  }
-
-  String _bookingSubtitle(String bookingLabel) {
-    final createdAtLabel = _createdAtHumanReadable();
-    if (createdAtLabel.isEmpty) return '#ORD-$bookingLabel';
-    return '#ORD-$bookingLabel \n• $createdAtLabel';
   }
 
   // List<String> _attributeLabels() {
@@ -367,42 +325,18 @@ class OrderCard extends StatelessWidget {
     return respondedAt == null || respondedAt.trim().isEmpty;
   }
 
-  Widget _metaTile({
-    required BuildContext context,
-    required String title,
-    required String value,
-    required IconData icon,
-  }) {
-    return Container(
-      padding: const EdgeInsetsDirectional.symmetric(
-        horizontal: 10,
-        vertical: 10,
-      ),
-      decoration: BoxDecoration(
-        color: WorkerAppColors.surfaceSubtle,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AppText.labelMedium(
-                  title,
-                  color: const Color(0xff6B7280),
-                  textAlign: TextAlign.start,
-                ),
-                const SizedBox(height: 4),
-                AppText.labelSmall(value, fontWeight: FontWeight.w700),
-              ],
-            ),
-          ),
-          Icon(icon, color: WorkerAppColors.brandPrimary, size: 18),
-        ],
-      ),
-    );
-  }
+  Widget _compactLine(IconData icon, String text) => Padding(
+    padding: const EdgeInsets.only(top: 8),
+    child: Row(
+      children: [
+        Icon(icon, size: 17, color: WorkerAppColors.textSecondary),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(text, maxLines: 2, overflow: TextOverflow.ellipsis),
+        ),
+      ],
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -453,15 +387,6 @@ class OrderCard extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                if (_workerAssignmentStatusLabel() != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    _workerAssignmentStatusLabel()!,
-                    style: const TextStyle(
-                      color: WorkerAppColors.textSecondary,
-                    ),
-                  ),
-                ],
                 const SizedBox(height: 8),
                 const Text(
                   'تفاصيل مهام الفريق والخدمات المتخصصة',
@@ -522,19 +447,10 @@ class OrderCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           AppText.labelSmall(
-                            _bookingSubtitle(bookingLabel),
+                            '#$bookingLabel',
                             color: const Color(0xff6B7280),
                             textAlign: TextAlign.start,
                           ),
-                          if (data.displayNeighborhoodName != null) ...[
-                            const SizedBox(height: 4),
-                            AppText.labelSmall(
-                              'الحي: ${data.displayNeighborhoodName}',
-                              color: const Color(0xff475569),
-                              fontWeight: FontWeight.w600,
-                              textAlign: TextAlign.start,
-                            ),
-                          ],
                         ],
                       ),
                     ),
@@ -562,7 +478,9 @@ class OrderCard extends StatelessWidget {
                                 const SizedBox(width: 6),
                                 Flexible(
                                   child: AppText.labelSmall(
-                                    _bookingStatusLabel(),
+                                    localArabicWorkerStatusLabel(
+                                      data.effectiveWorkerStatus,
+                                    ),
                                     color: statusColor,
                                     fontWeight: FontWeight.w700,
                                     textAlign: TextAlign.end,
@@ -571,37 +489,13 @@ class OrderCard extends StatelessWidget {
                               ],
                             ),
                           ),
-                          if (_workerAssignmentStatusLabel() != null) ...[
-                            const SizedBox(height: 4),
-                            AppText.labelSmall(
-                              _workerAssignmentStatusLabel()!,
-                              color: WorkerAppColors.textSecondary,
-                              textAlign: TextAlign.end,
-                            ),
-                          ],
                           const SizedBox(height: 4),
                           AppText.titleSmall(
-                            data.totalPrice.formatMoney(),
+                            data.workerPayableAmount?.formatMoney() ??
+                                'قيد التحديد',
                             color: WorkerAppColors.brandPrimary,
                             fontWeight: FontWeight.bold,
                           ),
-                          const SizedBox(height: 4),
-
-                          // Container(
-                          //   decoration: BoxDecoration(
-                          //     color: context.primaryContainer,
-                          //     borderRadius: BorderRadius.circular(8),
-                          //   ),
-                          //   padding: const EdgeInsetsDirectional.symmetric(
-                          //     horizontal: 12,
-                          //     vertical: 5,
-                          //   ),
-                          //   child: AppText.labelSmall(
-                          //     'نقدي',
-                          //     color: context.onPrimaryContainer,
-                          //     fontWeight: FontWeight.w700,
-                          //   ),
-                          // ),
                         ],
                       ),
                     ),
@@ -614,28 +508,15 @@ class OrderCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
 
-                Row(
-                  children: [
-                    Expanded(
-                      child: _metaTile(
-                        context: context,
-                        title: 'جدولة الحجز',
-                        value: _formatDate(),
-                        icon: Icons.calendar_today_rounded,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _metaTile(
-                        context: context,
-                        title: 'موعد الخدمة',
-                        value: _formatTime(),
-                        icon: Icons.schedule_rounded,
-                      ),
-                    ),
-                  ],
+                _compactLine(
+                  Icons.schedule_outlined,
+                  '${_formatDate()} • ${_formatTime()}',
                 ),
-                const SizedBox(height: 8),
+                if (data.displayNeighborhoodName?.trim().isNotEmpty == true)
+                  _compactLine(
+                    Icons.place_outlined,
+                    data.displayNeighborhoodName!.trim(),
+                  ),
                 if (OrderLifecyclePolicy.isAcceptedWaiting(data)) ...[
                   const SizedBox(height: 10),
                   _acceptedWaitingBanner(context),
@@ -712,7 +593,8 @@ class OrderCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Expanded(
+                      SizedBox(
+                        width: 44,
                         child: BlocBuilder<OrdersBloc, OrdersState>(
                           bloc: bloc,
                           builder: (context, state) {
@@ -769,10 +651,12 @@ class OrderCard extends StatelessWidget {
                                             color: context.error,
                                           ),
                                         )
-                                      : AppText.labelMedium(
-                                          isPending ? 'رفض' : 'إلغاء',
+                                      : Icon(
+                                          Icons.more_horiz,
                                           color: context.error,
-                                          fontWeight: FontWeight.w700,
+                                          semanticLabel: isPending
+                                              ? 'رفض'
+                                              : 'إلغاء',
                                         ),
                                 ),
                               ),
@@ -848,7 +732,8 @@ class OrderCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Expanded(
+                      SizedBox(
+                        width: 44,
                         child: InkWell(
                           onTap: OrderLifecyclePolicy.canCancel(data)
                               ? () {
@@ -870,10 +755,10 @@ class OrderCard extends StatelessWidget {
                               border: Border.all(color: context.error),
                             ),
                             child: Center(
-                              child: AppText.labelMedium(
-                                'إلغاء',
+                              child: Icon(
+                                Icons.more_horiz,
                                 color: context.error,
-                                fontWeight: FontWeight.w700,
+                                semanticLabel: 'إلغاء',
                               ),
                             ),
                           ),

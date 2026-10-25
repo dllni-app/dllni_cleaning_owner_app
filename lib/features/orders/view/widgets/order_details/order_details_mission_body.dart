@@ -30,6 +30,7 @@ import 'mission/mission_task_card.dart';
 import 'mission/mission_timer_card.dart';
 import 'mission/mission_waiting_customer_card.dart';
 import 'mission/waiting_customer_confirmation_sheet.dart';
+import 'worker_order_overview_card.dart';
 
 class OrderDetailsMissionBody extends StatefulWidget {
   const OrderDetailsMissionBody({
@@ -321,7 +322,8 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
       _timerSession = OrderWorkTimerSession(
         sessionStart: backendStart,
         maxDuration: maxDuration,
-        sessionKey: 'base:${widget.order.id}:${backendStart.toIso8601String()}:${maxDuration.inSeconds}',
+        sessionKey:
+            'base:${widget.order.id}:${backendStart.toIso8601String()}:${maxDuration.inSeconds}',
         isExtension: false,
       );
       _timerOrderId = widget.order.id;
@@ -859,7 +861,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                 ),
                 Expanded(
                   child: AppText.headlineMedium(
-                    'تفاصيل الطلب ${widget.order.bookingNumber ?? ''}',
+                    'تنفيذ المهمة',
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -871,6 +873,8 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    WorkerOrderOverviewCard(order: widget.order),
+                    14.verticalSpace,
                     _buildStartWorkCard(),
                     MissionTimerCard(
                       serviceDate: _serviceDate(),

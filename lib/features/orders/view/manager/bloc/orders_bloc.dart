@@ -75,6 +75,9 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
   /// Used to ensure refreshes reload using the exact same parameters
   /// that produced the currently displayed list data.
   FetchOrdersUsecaseParams get lastAppliedOrdersListFilter => _lastOrdersFilter;
+  // List filters change rapidly when workers switch task tabs. A slow response
+  // from an older tab must not overwrite the most recently selected tab.
+  int _ordersRequestVersion = 0;
   int? _arrivingBookingId;
   int? _securityCodeInFlightForBookingId;
   int? _securityCodeLoadedForBookingId;
@@ -96,10 +99,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     this.fetchSecurityCodeUseCase,
     this.startWorkUseCase,
   ) : super(OrdersState()) {
-    on<FetchOrdersUsecaseEvent>(
-      _fetchOrdersUsecase,
-      transformer: droppableProMax(),
-    );
+    on<FetchOrdersUsecaseEvent>(_fetchOrdersUsecase);
     on<FetchOrderDetailsUsecaseEvent>(_fetchOrderDetailsUsecase);
     on<AcceptOrderUsecaseEvent>(_acceptOrderUsecase);
     on<StartTravelUsecaseEvent>(_startTravelUsecase);
@@ -153,10 +153,11 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     FetchOrdersUsecaseEvent event,
     Emitter<OrdersState> emit,
   ) async {
+    final requestVersion = ++_ordersRequestVersion;
     if (!state.ordersUsecase!.isEndPage || event.isReload) {
       if (event.silent) {
         final res = await fetchOrdersUsecaseUseCase(event.params);
-        if (emit.isDone) return;
+        if (emit.isDone || requestVersion != _ordersRequestVersion) return;
         res.fold((l) {}, (r) {
           _rememberOrdersListFilter(event.params);
           _cacheWorkerEligibility(r);
@@ -179,7 +180,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
         ),
       );
       final res = await fetchOrdersUsecaseUseCase(event.params);
-      if (emit.isDone) return;
+      if (emit.isDone || requestVersion != _ordersRequestVersion) return;
       res.fold(
         (l) {
           AppToast.showErrorGlobal(l.message);
@@ -221,6 +222,9 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
           scheduledDateTo: _lastOrdersFilter.scheduledDateTo,
           sort: _lastOrdersFilter.sort,
           assignedToCurrentWorker: _lastOrdersFilter.assignedToCurrentWorker,
+          workerView: _lastOrdersFilter.workerView,
+          acceptedByCurrentWorkerOnly:
+              _lastOrdersFilter.acceptedByCurrentWorkerOnly,
         ),
         isReload: true,
         silent: silent,
@@ -321,7 +325,11 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
             .toLowerCase();
         final shouldKeepInPending =
             updatedOrder != null &&
-            updatedStatus == CleaningBookingStatus.pending;
+            updatedStatus == CleaningBookingStatus.pending &&
+            // A team booking can remain globally pending after this worker
+            // accepts it. It must immediately disappear from their new offers.
+            _lastOrdersFilter.workerView != 'available' &&
+            _lastOrdersFilter.status != CleaningBookingStatus.pending;
 
         final nextOrders = shouldKeepInPending
             ? OrdersPendingOrderListHydrator.upsert(
@@ -332,14 +340,8 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
                 (order) => order.id == event.params.id,
               );
 
-        if (shouldKeepInPending) {
-          _refreshOrderDetails(event.params.id);
-        } else if (updatedStatus == CleaningBookingStatus.workerAssigned) {
-          _refreshLastOrdersList();
-          _refreshOrderDetails(event.params.id);
-        } else {
-          _refreshLastOrdersList();
-        }
+        _refreshLastOrdersList();
+        _refreshOrderDetails(event.params.id);
 
         emit(
           state.copyWith(
@@ -1046,7 +1048,9 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     final normalized = raw.toLowerCase();
 
     if (normalized.contains('extension request is not for your booking') ||
-        normalized.contains('extension request is not for your worker assignment') ||
+        normalized.contains(
+          'extension request is not for your worker assignment',
+        ) ||
         normalized.contains('طلب التمديد مخصص لعامل آخر') ||
         normalized.contains('غير مرتبط بطلب التمديد')) {
       return 'تعذر تنفيذ القرار لأن طلب التمديد لم يعد مرتبطاً بحساب العامل الحالي. حدّث الطلب وحاول مرة أخرى.';

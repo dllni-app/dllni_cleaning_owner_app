@@ -4,6 +4,7 @@ import 'package:dllni_cleaninig_owner_app/features/orders/data/source/orders_rem
 import 'package:dllni_cleaninig_owner_app/features/orders/view/screens/emergency_sos_screen.dart';
 import 'package:flutter/material.dart';
 import 'worker_booking_inventory_card.dart';
+import 'worker_detail_section.dart';
 
 /// Read-only team view. No worker lifecycle or material controls are mounted.
 class SupervisedWorkerDetailsBody extends StatefulWidget {
@@ -51,23 +52,7 @@ class _SupervisedWorkerDetailsBodyState
   void _refresh() => setState(_reload);
 
   Widget _section(String title, List<Widget> children) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 12),
-            ...children,
-          ],
-        ),
-      ),
-    );
+    return WorkerDetailSection(title: title, children: children);
   }
 
   Widget _detailLine(IconData icon, String value) => Padding(
@@ -98,7 +83,7 @@ class _SupervisedWorkerDetailsBodyState
                 ),
                 const Expanded(
                   child: Text(
-                    'تفاصيل الطلب الجماعي',
+                    'تفاصيل مهمتي',
                     style: TextStyle(fontWeight: FontWeight.w700, fontSize: 19),
                   ),
                 ),
@@ -151,14 +136,14 @@ class _SupervisedWorkerDetailsBodyState
                   child: ListView(
                     padding: const EdgeInsets.all(14),
                     children: [
-                      _section('معلومات الطلب', [
+                      _section('ملخص المهمة', [
                         _detailLine(
                           Icons.groups_outlined,
                           'طلب جماعي بإدارة مشرف',
                         ),
                         _detailLine(
                           Icons.receipt_long_outlined,
-                          booking.bookingNumber,
+                          'المرجع: ${booking.bookingNumber}',
                         ),
                         if (booking.scheduledDate != null)
                           _detailLine(
@@ -200,7 +185,7 @@ class _SupervisedWorkerDetailsBodyState
                             ),
                         ]),
                       _section(
-                        'مهام التنظيف',
+                        'مهامي المطلوبة',
                         booking.tasks.isEmpty
                             ? [const Text('لم تتوفر تفاصيل مهام التنظيف بعد.')]
                             : booking.tasks.map((task) {

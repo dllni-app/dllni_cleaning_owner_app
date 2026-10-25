@@ -18,6 +18,7 @@ class OrdersTypeTabBar extends StatefulWidget {
 
 class _OrdersTypeTabBarState extends State<OrdersTypeTabBar> {
   late int _selectedIndex;
+  late final VoidCallback _statusListener;
 
   @override
   void initState() {
@@ -26,6 +27,21 @@ class _OrdersTypeTabBarState extends State<OrdersTypeTabBar> {
       (tab) => tab.status == widget.orderNotifier.status.value,
     );
     _selectedIndex = initial >= 0 ? initial : 0;
+    _statusListener = () {
+      final updatedIndex = ordersStatusTabs.indexWhere(
+        (tab) => tab.status == widget.orderNotifier.status.value,
+      );
+      if (mounted && updatedIndex >= 0 && updatedIndex != _selectedIndex) {
+        setState(() => _selectedIndex = updatedIndex);
+      }
+    };
+    widget.orderNotifier.status.addListener(_statusListener);
+  }
+
+  @override
+  void dispose() {
+    widget.orderNotifier.status.removeListener(_statusListener);
+    super.dispose();
   }
 
   void _onTabSelected(int index) {
@@ -37,7 +53,8 @@ class _OrdersTypeTabBarState extends State<OrdersTypeTabBar> {
         params: FetchOrdersUsecaseParams(
           page: 1,
           status: tab.status,
-          assignedToCurrentWorker: true,
+          assignedToCurrentWorker: tab.workerView == 'mine',
+          workerView: tab.workerView,
         ),
         isReload: true,
       ),
