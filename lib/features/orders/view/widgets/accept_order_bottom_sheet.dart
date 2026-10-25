@@ -1384,7 +1384,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                                   ),
                                   child: Text(
                                     widget.autoRejectOnClose
-                                        ? 'رفض الطلب'
+                                        ? 'لا أرغب باستلام الطلب'
                                         : 'إلغاء',
                                   ),
                                 ),
@@ -1447,7 +1447,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                                 child: Center(
                                   child: AppText.labelLarge(
                                     widget.autoRejectOnClose
-                                        ? 'رفض الطلب'
+                                        ? 'لا أرغب باستلام الطلب'
                                         : 'إلغاء',
                                     color: context.error,
                                     fontWeight: FontWeight.w700,

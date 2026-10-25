@@ -45,6 +45,42 @@ class OrderMissionTaskMapper {
       return _tasksFromRoomAssignments(rooms);
     }
 
+    final requirements =
+        order.roomRequirements ?? const <Map<String, dynamic>>[];
+    if (requirements.isNotEmpty) {
+      return requirements
+          .map((room) {
+            final count = room['count'] is num
+                ? (room['count'] as num).toInt()
+                : 1;
+            final roomType = (room['roomType'] ?? '').toString();
+            final roomSize = (room['roomSize'] ?? '').toString();
+            final type = CleaningEnumTranslations.preferArabicLabel(
+              room['roomTypeLabel']?.toString(),
+              roomType,
+              CleaningEnumTranslations.roomType,
+              fallback: 'غرفة',
+            );
+            final size = CleaningEnumTranslations.preferArabicLabel(
+              room['roomSizeLabel']?.toString(),
+              roomSize,
+              CleaningEnumTranslations.roomSize,
+              fallback: '',
+            );
+            final mode = (room['cleaningMode'] ?? '').toString() == 'deep'
+                ? 'تعزيل'
+                : 'حوسة';
+            return MissionTaskItem(
+              label: '$type × $count',
+              detail: [
+                if (size.isNotEmpty && size != 'غير محدد') size,
+                mode,
+              ].join(' • '),
+            );
+          })
+          .toList(growable: false);
+    }
+
     final breakdown = order.propertyDetails?.roomSizeBreakdown;
     if (breakdown != null && _hasAnyBreakdownCounts(breakdown)) {
       return _tasksFromBreakdown(
@@ -96,28 +132,35 @@ class OrderMissionTaskMapper {
   }) {
     final items = buildServicesInfo(services: services, addons: addons);
 
-    return items.asMap().entries.map((entry) {
-      final item = entry.value;
-      final label = item.label.trim();
-      final detail = item.detail?.trim();
+    return items
+        .asMap()
+        .entries
+        .map((entry) {
+          final item = entry.value;
+          final label = item.label.trim();
+          final detail = item.detail?.trim();
 
-      return <String, Object?>{
-        'name': label,
-        'label': detail == null || detail.isEmpty ? label : '$label: $detail',
-        if (detail != null && detail.isNotEmpty) 'detail': detail,
-        'sort': entry.key,
-      };
-    }).toList(growable: false);
+          return <String, Object?>{
+            'name': label,
+            'label': detail == null || detail.isEmpty
+                ? label
+                : '$label: $detail',
+            if (detail != null && detail.isNotEmpty) 'detail': detail,
+            'sort': entry.key,
+          };
+        })
+        .toList(growable: false);
   }
 
-  static String keyFor(MissionTaskItem task, int index) => '${task.label}-$index';
+  static String keyFor(MissionTaskItem task, int index) =>
+      '${task.label}-$index';
 
   static List<MissionTaskItem> _eventAssistanceInfoTasks(
     FetchOrdersUsecaseModelDataItem order,
   ) {
     final customService = order.propertyDetails?.customService?.trim();
-    final specialRequirement =
-        order.propertyDetails?.specialRequirement?.trim();
+    final specialRequirement = order.propertyDetails?.specialRequirement
+        ?.trim();
 
     return <MissionTaskItem>[
       MissionTaskItem(
@@ -180,7 +223,8 @@ class OrderMissionTaskMapper {
       fallback: '',
     );
 
-    final ordinal = extractRoomNumber(room.roomKey) ??
+    final ordinal =
+        extractRoomNumber(room.roomKey) ??
         extractRoomNumber(displayLabel) ??
         index + 1;
 
@@ -212,10 +256,7 @@ class OrderMissionTaskMapper {
         final sizeLabel = CleaningEnumTranslations.roomSize(size);
         for (var i = 0; i < count; i++) {
           items.add(
-            MissionTaskItem(
-              label: '$typeLabel $ordinal',
-              detail: sizeLabel,
-            ),
+            MissionTaskItem(label: '$typeLabel $ordinal', detail: sizeLabel),
           );
           ordinal++;
         }

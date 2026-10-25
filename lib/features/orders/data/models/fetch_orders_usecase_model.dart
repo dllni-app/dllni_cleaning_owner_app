@@ -371,6 +371,10 @@ class FetchOrdersUsecaseModelDataItem {
   final CleaningWorkerAcceptanceModel? workerAcceptance;
   final List<CleaningWorkerAssignmentModel>? workerAssignments;
   final List<CleaningRoomAssignmentModel>? roomAssignments;
+
+  /// Aggregated offer-safe room requirements from the worker API.
+  final List<Map<String, dynamic>>? roomRequirements;
+  final List<Map<String, dynamic>>? specialServicesPreview;
   final CleaningMyAssignmentModel? myAssignment;
 
   bool get isHourlyWorker =>
@@ -456,6 +460,8 @@ class FetchOrdersUsecaseModelDataItem {
     this.workerAcceptance,
     this.workerAssignments,
     this.roomAssignments,
+    this.roomRequirements,
+    this.specialServicesPreview,
     this.myAssignment,
   });
 
@@ -698,6 +704,12 @@ class FetchOrdersUsecaseModelDataItem {
       roomAssignments: _toMapList(
         m['roomAssignments'] ?? m['room_assignments'],
       ).map(CleaningRoomAssignmentModel.fromJson).toList(growable: false),
+      roomRequirements: _toMapList(
+        m['roomRequirements'] ?? m['room_requirements'],
+      ),
+      specialServicesPreview: _toMapList(
+        m['specialServicesPreview'] ?? m['special_services_preview'],
+      ),
       myAssignment: m['myAssignment'] == null && m['my_assignment'] == null
           ? null
           : CleaningMyAssignmentModel.fromJson(
@@ -736,7 +748,14 @@ class FetchOrdersUsecaseModelDataItem {
   num? get workerPayableAmount {
     // This server projection is scoped to the authenticated worker. Prefer it
     // over a stale acceptance snapshot, while retaining older API fallbacks.
-    if (workerFinancialsPayable != null) return workerFinancialsPayable;
+    if (workerFinancialsPayable != null) {
+      if (workerFinancialsPayable == 0 &&
+          isPricingFinal != true &&
+          (workerOfferPayable ?? 0) > 0) {
+        return workerOfferPayable;
+      }
+      return workerFinancialsPayable;
+    }
     final assignment = myAssignment;
     if (assignment != null) {
       if (assignment.workerAmount != null) {
@@ -883,6 +902,8 @@ class FetchOrdersUsecaseModelDataItem {
       'workerAcceptance': workerAcceptance,
       'workerAssignments': workerAssignments,
       'roomAssignments': roomAssignments,
+      'roomRequirements': roomRequirements,
+      'specialServicesPreview': specialServicesPreview,
       'myAssignment': myAssignment,
     };
   }
@@ -967,6 +988,8 @@ class FetchOrdersUsecaseModelDataItem {
       workerAcceptance: workerAcceptance ?? this.workerAcceptance,
       workerAssignments: workerAssignments ?? this.workerAssignments,
       roomAssignments: roomAssignments ?? this.roomAssignments,
+      roomRequirements: roomRequirements,
+      specialServicesPreview: specialServicesPreview,
       myAssignment: myAssignment ?? this.myAssignment,
     );
   }
@@ -1051,6 +1074,8 @@ class FetchOrdersUsecaseModelDataItem {
       workerAcceptance: workerAcceptance,
       workerAssignments: workerAssignments,
       roomAssignments: roomAssignments,
+      roomRequirements: roomRequirements,
+      specialServicesPreview: specialServicesPreview,
       myAssignment: myAssignment,
     );
   }

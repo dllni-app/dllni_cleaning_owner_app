@@ -122,11 +122,13 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         unawaited(_bindRealtimeListeners());
       }
     } else if (id != null) {
-      widget.params.bloc.add(
-        FetchOrderDetailsUsecaseEvent(
-          params: FetchOrderDetailsUsecaseParams(id: id),
-        ),
-      );
+      if (widget.params.bloc.state.orderDetailsUsecase?.data?.id != id) {
+        widget.params.bloc.add(
+          FetchOrderDetailsUsecaseEvent(
+            params: FetchOrderDetailsUsecaseParams(id: id),
+          ),
+        );
+      }
       unawaited(_loadSchedule());
       unawaited(_bindRealtimeListeners());
       _syncAwaitingVerificationPoll();
@@ -524,7 +526,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         widget.params.bloc.add(
           ChangeDetailsCurrentStep(step: _stepFor(_order)),
         );
-        unawaited(_loadSchedule());
+        // Schedule has its own initial read and realtime refresh path.
+        // Refetching it for every order detail emission caused duplicate
+        // requests and repeated loading while the BLoC synchronized details.
         _syncAwaitingVerificationPoll();
       }
     }
@@ -685,6 +689,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     return BlocListener<OrdersBloc, OrdersState>(
       bloc: widget.params.bloc,
       listenWhen: (p, c) =>
+          (p.rejectOrderUsecaseStatus != c.rejectOrderUsecaseStatus &&
+              c.rejectOrderUsecaseStatus == BlocStatus.success) ||
           c.orderDetailsUsecase != p.orderDetailsUsecase ||
           c.arrive != p.arrive ||
           c.securityCode != p.securityCode ||
@@ -695,6 +701,13 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       listener: (context, state) {
         final previous = _previousBlocState;
         _previousBlocState = state;
+        if (state.rejectOrderUsecaseStatus == BlocStatus.success &&
+            previous?.rejectOrderUsecaseStatus != BlocStatus.success &&
+            state.rejectOrderUsecase?.data?.id == _order.id &&
+            OrderLifecyclePolicy.canAcceptReject(_order)) {
+          context.pop();
+          return;
+        }
         _onBlocStateChanged(state, previous);
       },
       child: Scaffold(
@@ -740,7 +753,10 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
               }
               // Background schedule refreshes must not repeatedly dispose the
               // active map/mission widget or hide 'لقد وصلت' behind a spinner.
-              if (!_scheduleChecked) {
+              // An already-running mission has sufficient booking data to
+              // render immediately. The schedule request is for visit routing
+              // only; it must not flash an extra full-page loading screen.
+              if (!_scheduleChecked && !_canShowMissionBody) {
                 return _scheduleLoadingBody();
               }
               if (_scheduleLoadError != null &&

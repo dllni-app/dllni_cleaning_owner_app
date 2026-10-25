@@ -51,9 +51,15 @@ class WorkerPaymentSummary extends StatelessWidget {
     final grossTotal = useWorkerShare
         ? calculatedGrossTotal
         : (calculatedGrossTotal > 0 ? calculatedGrossTotal : (totalPrice ?? 0));
-    // Administration margin is a customer-side charge above the worker share,
-    // not a deduction from this worker's payout.
+    // Administration is charged *on top of* the customer's service bill,
+    // not deducted from this worker's share. Keep it visible but distinct.
     final calculatedNetProfit = grossTotal;
+    final effectiveAdminRate = serviceAmount > 0 && adminMargin != null
+        ? (adminMargin! / serviceAmount * 100)
+        : null;
+    final rateLabel = effectiveAdminRate == null
+        ? ''
+        : ' (${effectiveAdminRate.toStringAsFixed(effectiveAdminRate == effectiveAdminRate.roundToDouble() ? 0 : 1)}%)';
     final hasCalculableNet = useWorkerShare
         ? serviceShareAmount != null || travelFee != null || adminMargin != null
         : calculatedGrossTotal > 0 || totalPrice != null || adminMargin != null;
@@ -66,22 +72,28 @@ class WorkerPaymentSummary extends StatelessWidget {
     return Column(
       children: [
         _PaymentRow(
-          label: 'قيمة الخدمة',
+          label: 'قيمة الخدمة والخدمات الخاصة',
           amount: useWorkerShare && serviceShareAmount == null
               ? 'قيد التحديد'
               : serviceAmount.formatMoney(),
         ),
         12.verticalSpace,
         _PaymentRow(
-          label: 'رسوم التنقل',
+          label: 'أجور التنقل',
           amount: travelFee?.formatMoney() ?? 'قيد التحديد',
         ),
-        if (!useWorkerShare) ...[
-          12.verticalSpace,
-          _PaymentRow(label: 'الإجمالي', amount: grossTotal.formatMoney()),
-          12.verticalSpace,
-          _PaymentRow(label: 'هامش الإدارة', amount: adminMargin.formatMoney()),
-        ],
+        12.verticalSpace,
+        _PaymentRow(
+          label: 'إجمالي مستحق العامل',
+          amount: grossTotal.formatMoney(),
+        ),
+        12.verticalSpace,
+        _PaymentRow(
+          label: 'هامش الإدارة على العميل$rateLabel',
+          amount: adminMargin == null
+              ? 'قيد التحديد'
+              : adminMargin!.formatMoney(),
+        ),
         18.verticalSpace,
         LayoutBuilder(
           builder: (context, constraints) {

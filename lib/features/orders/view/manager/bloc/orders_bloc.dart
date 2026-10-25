@@ -627,13 +627,13 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
         );
       },
       (r) {
-        AppToast.showSuccessGlobal('تم رفض الطلب');
+        AppToast.showSuccessGlobal('لن يظهر لك هذا الطلب مجدداً');
         _refreshLastOrdersList();
         emit(
           state.copyWith(
             rejectOrderUsecaseStatus: BlocStatus.success,
             rejectOrderUsecase: r,
-            ordersUsecase: state.ordersUsecase!.removeWhere(
+            ordersUsecase: state.ordersUsecase?.removeWhere(
               (order) => order.id == event.params.id,
             ),
           ),

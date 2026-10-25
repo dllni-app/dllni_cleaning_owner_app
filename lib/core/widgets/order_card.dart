@@ -460,33 +460,37 @@ class OrderCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Container(
-                            padding: const EdgeInsetsDirectional.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: statusColor.withAlpha(30),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              children: [
-                                CircleAvatar(
-                                  radius: 3.5,
-                                  backgroundColor: statusColor,
-                                ),
-                                const SizedBox(width: 6),
-                                Flexible(
-                                  child: AppText.labelSmall(
-                                    localArabicWorkerStatusLabel(
-                                      data.effectiveWorkerStatus,
-                                    ),
-                                    color: statusColor,
-                                    fontWeight: FontWeight.w700,
-                                    textAlign: TextAlign.end,
+                          Align(
+                            alignment: AlignmentDirectional.centerEnd,
+                            child: Container(
+                              padding: const EdgeInsetsDirectional.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: statusColor.withAlpha(30),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  CircleAvatar(
+                                    radius: 3.5,
+                                    backgroundColor: statusColor,
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 6),
+                                  Flexible(
+                                    child: AppText.labelSmall(
+                                      localArabicWorkerStatusLabel(
+                                        data.effectiveWorkerStatus,
+                                      ),
+                                      color: statusColor,
+                                      fontWeight: FontWeight.w700,
+                                      textAlign: TextAlign.end,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -594,7 +598,7 @@ class OrderCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       SizedBox(
-                        width: 44,
+                        width: 118,
                         child: BlocBuilder<OrdersBloc, OrdersState>(
                           bloc: bloc,
                           builder: (context, state) {
@@ -608,56 +612,62 @@ class OrderCard extends StatelessWidget {
                                       ? state.rejectOrderUsecaseStatus
                                       : state.cancelOrderStatus,
                                 );
-                            return InkWell(
-                              onTap: loading
-                                  ? null
-                                  : () {
-                                      if (data.id == null) return;
-                                      if (isPending) {
-                                        bloc.add(
-                                          RejectOrderUsecaseEvent(
-                                            params: RejectOrderUsecaseParams(
-                                              id: data.id!,
+                            return Tooltip(
+                              message: isPending
+                                  ? 'لا أرغب باستلام هذا الطلب ولن يظهر لي مجدداً'
+                                  : 'إلغاء الطلب',
+                              child: InkWell(
+                                onTap: loading
+                                    ? null
+                                    : () {
+                                        if (data.id == null) return;
+                                        if (isPending) {
+                                          bloc.add(
+                                            RejectOrderUsecaseEvent(
+                                              params: RejectOrderUsecaseParams(
+                                                id: data.id!,
+                                              ),
+                                              index: index,
                                             ),
-                                            index: index,
-                                          ),
+                                          );
+                                          return;
+                                        }
+                                        CancelOrderDialog.show(
+                                          context,
+                                          bloc: bloc,
+                                          orderId: data.id!,
+                                          orderNum:
+                                              data.bookingNumber ??
+                                              bookingLabel,
+                                          index: index,
                                         );
-                                        return;
-                                      }
-                                      CancelOrderDialog.show(
-                                        context,
-                                        bloc: bloc,
-                                        orderId: data.id!,
-                                        orderNum:
-                                            data.bookingNumber ?? bookingLabel,
-                                        index: index,
-                                      );
-                                    },
-                              borderRadius: BorderRadius.circular(10),
-                              child: Container(
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(10),
-                                  color: context.error.withAlpha(20),
-                                  border: Border.all(color: context.error),
-                                ),
-                                child: Center(
-                                  child: loading
-                                      ? SizedBox(
-                                          width: 18,
-                                          height: 18,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
+                                      },
+                                borderRadius: BorderRadius.circular(10),
+                                child: Container(
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(10),
+                                    color: context.error.withAlpha(20),
+                                    border: Border.all(color: context.error),
+                                  ),
+                                  child: Center(
+                                    child: loading
+                                        ? SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: context.error,
+                                            ),
+                                          )
+                                        : AppText.labelSmall(
+                                            isPending
+                                                ? 'لا أرغب باستلامه'
+                                                : 'إلغاء',
                                             color: context.error,
+                                            fontWeight: FontWeight.w700,
                                           ),
-                                        )
-                                      : Icon(
-                                          Icons.more_horiz,
-                                          color: context.error,
-                                          semanticLabel: isPending
-                                              ? 'رفض'
-                                              : 'إلغاء',
-                                        ),
+                                  ),
                                 ),
                               ),
                             );
@@ -755,10 +765,10 @@ class OrderCard extends StatelessWidget {
                               border: Border.all(color: context.error),
                             ),
                             child: Center(
-                              child: Icon(
-                                Icons.more_horiz,
+                              child: AppText.labelMedium(
+                                'إلغاء',
                                 color: context.error,
-                                semanticLabel: 'إلغاء',
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ),

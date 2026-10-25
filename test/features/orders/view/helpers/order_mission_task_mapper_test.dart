@@ -5,13 +5,31 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('OrderMissionTaskMapper.build', () {
+    test('renders grouped offer rooms with count, size, and cleaning mode', () {
+      final order = FetchOrdersUsecaseModelDataItem.fromJson(<String, dynamic>{
+        'id': 88,
+        'roomRequirements': [
+          {
+            'roomType': 'bedroom',
+            'roomTypeLabel': 'غرفة نوم',
+            'roomSize': 'medium',
+            'roomSizeLabel': 'متوسطة',
+            'cleaningMode': 'deep',
+            'count': 2,
+          },
+        ],
+      });
+
+      final tasks = OrderMissionTaskMapper.build(order: order);
+      expect(tasks, hasLength(1));
+      expect(tasks.single.label, 'غرفة نوم × 2');
+      expect(tasks.single.detail, 'متوسطة • تعزيل');
+      expect(tasks.single.isReadOnlyInfo, isFalse);
+    });
     test('builds one task per assigned room with label and size detail', () {
       final order = FetchOrdersUsecaseModelDataItem.fromJson(<String, dynamic>{
         'id': 123,
-        'my_assignment': <String, dynamic>{
-          'workerId': 9,
-          'status': 'accepted',
-        },
+        'my_assignment': <String, dynamic>{'workerId': 9, 'status': 'accepted'},
         'room_assignments': <Map<String, dynamic>>[
           <String, dynamic>{
             'id': 1,
@@ -74,44 +92,37 @@ void main() {
       expect(tasks[1].detail, 'متوسطة');
     });
 
-    test(
-      'builds event assistance details instead of the room checklist',
-      () {
-        final order = FetchOrdersUsecaseModelDataItem.fromJson(
+    test('builds event assistance details instead of the room checklist', () {
+      final order = FetchOrdersUsecaseModelDataItem.fromJson(<String, dynamic>{
+        'id': 91,
+        'propertyType': 'event_assistance',
+        'roomAssignments': <Map<String, dynamic>>[
           <String, dynamic>{
-            'id': 91,
-            'propertyType': 'event_assistance',
-            'roomAssignments': <Map<String, dynamic>>[
-              <String, dynamic>{
-                'id': 183,
-                'roomKey': 'bedroom.large.1',
-                'roomType': 'bedroom',
-                'roomSize': 'large',
-              },
-            ],
-            'propertyDetails': <String, dynamic>{
-              'custom_service': 'تقديم الطعام وتنظيم الضيافة',
-              'special_requirement': 'الوصول قبل بدء المناسبة بنصف ساعة',
-              'room_size_breakdown': <String, dynamic>{
-                'bedroom': <String, dynamic>{
-                  'large': 1,
-                },
-              },
-            },
+            'id': 183,
+            'roomKey': 'bedroom.large.1',
+            'roomType': 'bedroom',
+            'roomSize': 'large',
           },
-        );
+        ],
+        'propertyDetails': <String, dynamic>{
+          'custom_service': 'تقديم الطعام وتنظيم الضيافة',
+          'special_requirement': 'الوصول قبل بدء المناسبة بنصف ساعة',
+          'room_size_breakdown': <String, dynamic>{
+            'bedroom': <String, dynamic>{'large': 1},
+          },
+        },
+      });
 
-        final tasks = OrderMissionTaskMapper.build(order: order);
+      final tasks = OrderMissionTaskMapper.build(order: order);
 
-        expect(tasks, hasLength(2));
-        expect(tasks[0].label, 'طبيعة المساعدة المطلوبة');
-        expect(tasks[0].detail, 'تقديم الطعام وتنظيم الضيافة');
-        expect(tasks[0].isReadOnlyInfo, isTrue);
-        expect(tasks[1].label, 'متطلبات خاصة');
-        expect(tasks[1].detail, 'الوصول قبل بدء المناسبة بنصف ساعة');
-        expect(tasks[1].isReadOnlyInfo, isTrue);
-      },
-    );
+      expect(tasks, hasLength(2));
+      expect(tasks[0].label, 'طبيعة المساعدة المطلوبة');
+      expect(tasks[0].detail, 'تقديم الطعام وتنظيم الضيافة');
+      expect(tasks[0].isReadOnlyInfo, isTrue);
+      expect(tasks[1].label, 'متطلبات خاصة');
+      expect(tasks[1].detail, 'الوصول قبل بدء المناسبة بنصف ساعة');
+      expect(tasks[1].isReadOnlyInfo, isTrue);
+    });
 
     test('shows no special requirements when the event has none', () {
       final order = FetchOrdersUsecaseModelDataItem.fromJson(<String, dynamic>{
@@ -135,10 +146,7 @@ void main() {
         'id': 10,
         'propertyDetails': <String, dynamic>{
           'room_size_breakdown': <String, dynamic>{
-            'bedroom': <String, dynamic>{
-              'large': 1,
-              'small': 2,
-            },
+            'bedroom': <String, dynamic>{'large': 1, 'small': 2},
           },
         },
       });
@@ -170,9 +178,7 @@ void main() {
           Service(name: 'تنظيف عميق', quantity: 1),
           Service(name: 'تنظيف نوافذ', quantity: 2),
         ],
-        addons: <Addon>[
-          Addon(name: 'مكواة', quantity: 1),
-        ],
+        addons: <Addon>[Addon(name: 'مكواة', quantity: 1)],
       );
 
       expect(tasks, hasLength(3));
@@ -186,15 +192,12 @@ void main() {
 
   group('OrderMissionTaskMapper.buildCompletionServiceSnapshots', () {
     test('sends every displayed service and addon to the customer', () {
-      final snapshots =
-          OrderMissionTaskMapper.buildCompletionServiceSnapshots(
+      final snapshots = OrderMissionTaskMapper.buildCompletionServiceSnapshots(
         services: <Service>[
           Service(name: 'تنظيف عميق', quantity: 1),
           Service(name: 'تنظيف نوافذ', quantity: 2),
         ],
-        addons: <Addon>[
-          Addon(name: 'مكواة', quantity: 1),
-        ],
+        addons: <Addon>[Addon(name: 'مكواة', quantity: 1)],
       );
 
       expect(snapshots, hasLength(3));

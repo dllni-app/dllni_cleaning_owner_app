@@ -41,6 +41,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   final OrderNotifier orderNotifier = OrderNotifier();
   late final OrdersBloc _ordersBloc;
   int _ordersCurrentPage = 1;
+  final Set<String> _requestedPaginationKeys = <String>{};
   late final VoidCallback _statusListener;
   int? _workerId;
   Timer? _fallbackRefreshDebounce;
@@ -169,6 +170,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
     _statusListener = () {
       // Any status tab change triggers a page reset inside the tab bar.
       _ordersCurrentPage = 1;
+      _requestedPaginationKeys.clear();
     };
     orderNotifier.status.addListener(_statusListener);
     _ordersBloc = getIt<OrdersBloc>()
@@ -192,6 +194,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final requestedStatus = _resolveStatus(widget.initialStatus);
     orderNotifier.changeStatus(requestedStatus);
     _ordersCurrentPage = 1;
+    _requestedPaginationKeys.clear();
     _ordersBloc.add(
       FetchOrdersUsecaseEvent(
         params: _assignedOrdersParams(page: 1, status: requestedStatus),
@@ -319,6 +322,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
               .read<OrdersBloc>()
               .lastAppliedOrdersListFilter
               .page;
+          if (_ordersCurrentPage == 1) {
+            _requestedPaginationKeys.clear();
+          }
         },
         child: SafeArea(
           child: Column(
@@ -357,15 +363,34 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       failedWidget: Padding(
                         padding: const EdgeInsetsDirectional.only(top: 40),
                         child: Center(
-                          child: AppText.labelMedium(
-                            ErrorMessageFormatter.format(
-                              orders.errorMessage.isNotEmpty
-                                  ? orders.errorMessage
-                                  : state.errorMessage,
-                              fallback: 'تعذر تحميل المهام',
-                            ),
-                            fontWeight: FontWeight.w400,
-                            textAlign: TextAlign.center,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              AppText.labelMedium(
+                                ErrorMessageFormatter.format(
+                                  orders.errorMessage.isNotEmpty
+                                      ? orders.errorMessage
+                                      : state.errorMessage,
+                                  fallback: 'تعذر تحميل المهام',
+                                ),
+                                fontWeight: FontWeight.w400,
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 12),
+                              TextButton.icon(
+                                onPressed: () {
+                                  _requestedPaginationKeys.clear();
+                                  _ordersBloc.add(
+                                    FetchOrdersUsecaseEvent(
+                                      params: _assignedOrdersParams(page: 1),
+                                      isReload: true,
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.refresh_rounded),
+                                label: const Text('إعادة المحاولة'),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -384,15 +409,29 @@ class _OrdersScreenState extends State<OrdersScreen> {
                             itemBuilder: (context, index) {
                               if (orders.length <= index) {
                                 if (orders.length == index) {
-                                  context.read<OrdersBloc>().add(
-                                    FetchOrdersUsecaseEvent(
-                                      isReload: false,
-                                      params: _assignedOrdersParams(
-                                        page: orders.pageNumber,
-                                        status: status,
-                                      ),
-                                    ),
-                                  );
+                                  final requestKey =
+                                      '$status:${orders.pageNumber}';
+                                  if (_requestedPaginationKeys.add(
+                                    requestKey,
+                                  )) {
+                                    WidgetsBinding.instance
+                                        .addPostFrameCallback((_) {
+                                          if (!mounted ||
+                                              orderNotifier.status.value !=
+                                                  status) {
+                                            return;
+                                          }
+                                          _ordersBloc.add(
+                                            FetchOrdersUsecaseEvent(
+                                              isReload: false,
+                                              params: _assignedOrdersParams(
+                                                page: orders.pageNumber,
+                                                status: status,
+                                              ),
+                                            ),
+                                          );
+                                        });
+                                  }
                                 }
 
                                 return const SizedBox(

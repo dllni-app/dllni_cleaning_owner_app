@@ -17,6 +17,7 @@ import '../../../domain/usecases/reject_extension_usecase_use_case.dart';
 import '../../../domain/usecases/start_work_use_case.dart';
 import '../../helpers/order_lifecycle_policy.dart';
 import '../../helpers/order_mission_task_mapper.dart';
+import '../../helpers/event_assistance_order_helper.dart';
 import '../../helpers/order_open_time_presentation.dart';
 import '../../helpers/order_work_timer_helper.dart';
 import 'mission/completion_message_sheet.dart';
@@ -63,12 +64,10 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
   bool _waitingSheetOpen = false;
   bool _extensionDecisionResolved = false;
   String? _lastCompletionMessage;
-  final Map<String, bool> _taskState = <String, bool>{};
 
   @override
   void initState() {
     super.initState();
-    _initTasks();
     _syncTimerSession(resetCurrentSession: true);
     _calculateWorkTimer();
     _startTimer();
@@ -81,12 +80,6 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
       _lastCompletionMessage = null;
       _extensionDecisionResolved = false;
       _syncTimerSession(resetCurrentSession: true);
-    }
-
-    if (oldWidget.order.id != widget.order.id ||
-        oldWidget.order.roomAssignments?.length !=
-            widget.order.roomAssignments?.length) {
-      _initTasks();
     }
 
     if (oldWidget.order.id != widget.order.id ||
@@ -132,39 +125,36 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
         addons: widget.addons,
       );
 
-  void _initTasks() {
-    _taskState.clear();
-    for (final entry in _tasks.asMap().entries) {
-      _taskState.putIfAbsent(
-        OrderMissionTaskMapper.keyFor(entry.value, entry.key),
-        () => false,
-      );
-    }
-  }
+  List<MissionTaskItem> get _completionServices => [
+    ..._servicesInfo,
+    for (final special in widget.order.specialServices ?? const [])
+      if ((special.name ?? '').trim().isNotEmpty)
+        MissionTaskItem(
+          label: special.name!.trim(),
+          detail: special.quantity == null
+              ? null
+              : 'الكمية: ${special.quantity}',
+        ),
+  ];
 
-  bool _isTaskChecked(MissionTaskItem task, int index) {
-    return _taskState[OrderMissionTaskMapper.keyFor(task, index)] ?? false;
-  }
+  List<Map<String, Object?>> _finishedServiceSnapshots(Set<int> selected) => [
+    for (final entry in _completionServices.asMap().entries)
+      if (selected.contains(entry.key))
+        <String, Object?>{
+          'name': entry.value.label,
+          'label': entry.value.detail == null
+              ? entry.value.label
+              : '${entry.value.label}: ${entry.value.detail}',
+          if (entry.value.detail != null) 'detail': entry.value.detail,
+          'sort': entry.key,
+        },
+  ];
 
-  void _setTaskChecked(MissionTaskItem task, int index, bool value) {
-    setState(() {
-      _taskState[OrderMissionTaskMapper.keyFor(task, index)] = value;
-    });
-  }
-
-  bool get _allTasksChecked {
-    final tasks = _tasks;
-    if (tasks.isEmpty) return true;
-    return tasks.asMap().entries.every(
-      (entry) => _isTaskChecked(entry.value, entry.key),
-    );
-  }
-
-  List<Map<String, Object?>> _checkedTaskSnapshots() {
+  List<Map<String, Object?>> _checkedTaskSnapshots(Set<int> selectedIndexes) {
     final snapshots = <Map<String, Object?>>[];
     for (final entry in _tasks.asMap().entries) {
+      if (!selectedIndexes.contains(entry.key)) continue;
       final task = entry.value;
-      if (!_isTaskChecked(task, entry.key)) continue;
 
       final label = task.label.trim();
       final detail = task.detail?.trim();
@@ -179,8 +169,6 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     }
     return snapshots;
   }
-
-  bool get _isChecklistLocked => !_uiState.isActiveWork;
 
   String _effectiveStatus(OrdersState state) {
     final details = state.orderDetailsUsecase?.data;
@@ -209,22 +197,28 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
     final message = await CompletionMessageSheet.show(
       context,
       initialMessage: _lastCompletionMessage,
+      services: _completionServices,
+      rooms:
+          widget.order.isHourlyWorker ||
+              EventAssistanceOrderHelper.isEventAssistance(
+                widget.order.propertyType,
+              )
+          ? const <MissionTaskItem>[]
+          : _tasks,
     );
     if (message == null || widget.order.id == null) return;
 
-    final trimmed = message.trim();
+    final trimmed = message.message.trim();
     setState(() => _lastCompletionMessage = trimmed.isEmpty ? null : trimmed);
     widget.bloc.add(
       CompleteOrderUsecaseEvent(
         params: CompleteOrderUsecaseParams(
           id: widget.order.id!,
           completionMessage: trimmed,
-          cleaningServices:
-              OrderMissionTaskMapper.buildCompletionServiceSnapshots(
-                services: widget.services,
-                addons: widget.addons,
-              ),
-          propertiesRooms: _checkedTaskSnapshots(),
+          cleaningServices: _finishedServiceSnapshots(
+            message.finishedServiceIndexes,
+          ),
+          propertiesRooms: _checkedTaskSnapshots(message.finishedRoomIndexes),
         ),
       ),
     );
@@ -521,7 +515,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
 
   String get _timerTitleText {
     if (_isAwaitingWorkerStartConfirmation) {
-      return 'تم تأكيد رمز الأمان — ابدأ العمل من قائمة المهام';
+      return 'تم تأكيد رمز الأمان — يمكنك الآن بدء العمل';
     }
     if (_isOpenTime) {
       if (!_openTimePresentation.hasStarted) {
@@ -559,7 +553,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
 
   String? get _timerHelperText {
     if (_isAwaitingWorkerStartConfirmation) {
-      return 'راجع قائمة المهام ثم اضغط بدء العمل. سيبدأ احتساب وقت التنفيذ بعد التأكيد.';
+      return 'راجع تفاصيل العمل ثم اضغط بدء العمل. سيبدأ احتساب وقت التنفيذ بعد التأكيد.';
     }
     if (_isOpenTime) {
       return _openTimePresentation.isFinal
@@ -567,7 +561,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
           : 'هذه مدة عرض فقط؛ لا يحتسب التطبيق التكلفة أو المبلغ النهائي.';
     }
     if (_uiState.isWaitingCustomer) {
-      return 'تم قفل قائمة المهام بعد إرسال طلب الإنهاء.';
+      return 'تم إرسال طلب إنهاء العمل وبانتظار تأكيد العميل.';
     }
     if (_uiState.isExtensionPending) {
       return 'لا يتم قبول أو رفض التمديد تلقائياً. اختر الإجراء المناسب.';
@@ -579,19 +573,6 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
       return 'انتهت مدة جلسة العمل الحالية. يرجى طلب تمديد وقت إذا كنت بحاجة للمزيد.';
     }
     return null;
-  }
-
-  String get _taskListHintText {
-    if (_isAwaitingWorkerStartConfirmation) {
-      return 'راجع المهام المطلوبة. سيتم تفعيل تحديدها بعد الضغط على بدء العمل.';
-    }
-    if (_tasks.isEmpty && _uiState.isActiveWork) {
-      return 'لا توجد مهام محددة من السيرفر. يمكنك إرسال طلب الإنهاء عند اكتمال العمل.';
-    }
-    if (_isChecklistLocked) {
-      return 'قائمة المهام مقفلة لأن الطلب ليس في مرحلة التنفيذ.';
-    }
-    return 'تحديد المهام التي قمت بتنفيذها';
   }
 
   String get _finishButtonText => 'إرسال طلب إنهاء العمل';
@@ -760,7 +741,7 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
               ),
               const SizedBox(height: 6),
               AppText.bodySmall(
-                'راجع قائمة المهام أدناه، ثم اضغط بدء العمل لبدء التنفيذ واحتساب الوقت.',
+                'راجع تفاصيل العمل أدناه، ثم اضغط بدء العمل لبدء التنفيذ واحتساب الوقت.',
                 color: const Color(0xff475569),
               ),
               const SizedBox(height: 12),
@@ -911,38 +892,23 @@ class _OrderDetailsMissionBodyState extends State<OrderDetailsMissionBody> {
                       ),
                       14.verticalSpace,
                     ],
-                    if (!_uiState.isDispute &&
-                        !_uiState.isFinal &&
-                        (widget.order.materials?.isNotEmpty ?? false)) ...[
+                    if (widget.order.materials?.isNotEmpty ?? false) ...[
                       MissionMaterialsInfoCard(
                         materials: widget.order.materials!,
                       ),
                       14.verticalSpace,
                     ],
-                    if (!_uiState.isDispute &&
-                        !_uiState.isFinal &&
-                        (widget.order.specialServices?.isNotEmpty ??
-                            false)) ...[
+                    if (widget.order.specialServices?.isNotEmpty ?? false) ...[
                       MissionSpecialServicesInfoCard(
                         services: widget.order.specialServices!,
                       ),
                       14.verticalSpace,
                     ],
-                    if (!_uiState.isDispute &&
-                        !_uiState.isFinal &&
-                        _servicesInfo.isNotEmpty) ...[
+                    if (_servicesInfo.isNotEmpty) ...[
                       MissionServicesInfoCard(services: _servicesInfo),
                       14.verticalSpace,
                     ],
-                    if (!_uiState.isDispute && !_uiState.isFinal)
-                      MissionTaskCard(
-                        tasks: _tasks,
-                        hintText: _taskListHintText,
-                        isChecklistLocked: _isChecklistLocked,
-                        allTasksChecked: _allTasksChecked,
-                        isChecked: _isTaskChecked,
-                        onChanged: _setTaskChecked,
-                      ),
+                    if (_tasks.isNotEmpty) MissionTaskCard(tasks: _tasks),
                     14.verticalSpace,
                     MissionPaymentSummaryCard(order: widget.order),
                     _buildWaitingCustomerCard(),

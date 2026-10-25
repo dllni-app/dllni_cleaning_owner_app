@@ -263,5 +263,15 @@ void main() {
         expect(order.withLifecycle(status: 'pending').workerPayableAmount, 420);
       },
     );
+    test('uses valid offer while provisional workerFinancials is zero', () {
+      final order = fetchOrdersUsecaseModelDataItemFromJson(<String, dynamic>{
+        'status': 'pending',
+        'isPricingFinal': false,
+        'workerFinancials': <String, dynamic>{'workerAmount': 0},
+        'workerOffer': <String, dynamic>{'workerAmount': 560},
+      });
+      expect(order.workerPayableAmount, 560);
+      expect(order.withLifecycle(status: 'pending').workerPayableAmount, 560);
+    });
   });
 }

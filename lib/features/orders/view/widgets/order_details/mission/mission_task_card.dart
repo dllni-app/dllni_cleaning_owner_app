@@ -3,26 +3,11 @@ import 'package:flutter/material.dart';
 
 import '../../../helpers/order_mission_task_mapper.dart';
 
+/// Read-only scope of work received from the booking; no worker checklist.
 class MissionTaskCard extends StatelessWidget {
-  const MissionTaskCard({
-    super.key,
-    required this.tasks,
-    required this.hintText,
-    required this.isChecklistLocked,
-    required this.allTasksChecked,
-    required this.isChecked,
-    required this.onChanged,
-  });
+  const MissionTaskCard({super.key, required this.tasks});
 
   final List<MissionTaskItem> tasks;
-  final String hintText;
-  final bool isChecklistLocked;
-  final bool allTasksChecked;
-  final bool Function(MissionTaskItem task, int index) isChecked;
-  final void Function(MissionTaskItem task, int index, bool value) onChanged;
-
-  bool get _isReadOnlyInfoCard =>
-      tasks.isNotEmpty && tasks.every((task) => task.isReadOnlyInfo);
 
   @override
   Widget build(BuildContext context) {
@@ -33,130 +18,48 @@ class MissionTaskCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xffECEFF3)),
       ),
-      child: _isReadOnlyInfoCard
-          ? _buildReadOnlyInfo()
-          : _buildChecklist(context),
-    );
-  }
-
-  Widget _buildReadOnlyInfo() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: tasks.asMap().entries.map((entry) {
-        final task = entry.value;
-        final isLast = entry.key == tasks.length - 1;
-
-        return Padding(
-          padding: EdgeInsets.only(bottom: isLast ? 0 : 10),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xffF8FAFC),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xffE5E7EB)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AppText.bodyMedium(
-                  task.label,
-                  color: const Color(0xff19B7C3),
-                  fontWeight: FontWeight.bold,
-                ),
-                const SizedBox(height: 6),
-                AppText.bodyMedium(
-                  task.detail ?? '-',
-                  color: const Color(0xff374151),
-                  fontWeight: FontWeight.w600,
-                ),
-              ],
-            ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AppText.titleMedium(
+            tasks.every((task) => task.isReadOnlyInfo)
+                ? 'تفاصيل المساعدة المطلوبة'
+                : 'الغرف والأعمال المطلوبة',
+            color: const Color(0xff19B7C3),
+            fontWeight: FontWeight.bold,
           ),
-        );
-      }).toList(growable: false),
-    );
-  }
-
-  Widget _buildChecklist(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AppText.titleMedium(
-          'قائمة المهام',
-          color: const Color(0xff19B7C3),
-          fontWeight: FontWeight.bold,
-        ),
-        const SizedBox(height: 4),
-        AppText.bodySmall(
-          hintText,
-          color: isChecklistLocked
-              ? const Color(0xffB45309)
-              : const Color(0xff6B7280),
-        ),
-        const SizedBox(height: 12),
-        ...tasks.asMap().entries.map((entry) {
-          final index = entry.key;
-          final task = entry.value;
-          final checked = isChecklistLocked || isChecked(task, index);
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: isChecklistLocked
-                    ? const Color(0xffF1F5F9)
-                    : const Color(0xffF8FAFC),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isChecklistLocked
-                      ? const Color(0xffCBD5E1)
-                      : const Color(0xffE5E7EB),
+          const SizedBox(height: 10),
+          for (final task in tasks)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xffF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xffE5E7EB)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AppText.bodyMedium(task.label, fontWeight: FontWeight.w700),
+                    if (task.detail != null &&
+                        task.detail!.trim().isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      AppText.bodySmall(
+                        task.detail!,
+                        color: const Color(0xff64748B),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-              child: Row(
-                children: [
-                  Checkbox(
-                    value: checked,
-                    onChanged: isChecklistLocked
-                        ? null
-                        : (value) => onChanged(task, index, value ?? false),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    side: const BorderSide(color: Color(0xffCBD5E1)),
-                  ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        AppText.bodyMedium(
-                          task.label,
-                          fontWeight: FontWeight.w700,
-                          color: isChecklistLocked
-                              ? const Color(0xff64748B)
-                              : null,
-                        ),
-                        if (task.detail != null)
-                          AppText.bodySmall(
-                            task.detail!,
-                            color: const Color(0xff9CA3AF),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
             ),
-          );
-        }),
-        if (!isChecklistLocked && !allTasksChecked) ...[
-          const SizedBox(height: 2),
-          AppText.bodySmall(
-            'حدّد المهام التي أنجزتها قبل إرسال طلب الإنهاء',
-            color: context.error,
-          ),
         ],
-      ],
+      ),
     );
   }
 }

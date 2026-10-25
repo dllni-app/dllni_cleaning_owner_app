@@ -27,16 +27,18 @@ void main() {
       ),
     );
 
-    expect(find.text('قيمة الخدمة'), findsOneWidget);
-    expect(find.text('رسوم التنقل'), findsOneWidget);
-    expect(find.text('الإجمالي'), findsOneWidget);
-    expect(find.text('هامش الإدارة'), findsOneWidget);
+    expect(find.text('قيمة الخدمة والخدمات الخاصة'), findsOneWidget);
+    expect(find.text('أجور التنقل'), findsOneWidget);
+    expect(find.text('إجمالي مستحق العامل'), findsOneWidget);
+    expect(find.text('هامش الإدارة على العميل (10%)'), findsOneWidget);
     expect(find.text('مستحق العامل'), findsOneWidget);
     expect(find.textContaining('134,000'), findsWidgets);
     expect(find.textContaining('146,000'), findsNothing);
 
-    final totalY = tester.getTopLeft(find.text('الإجمالي')).dy;
-    final marginY = tester.getTopLeft(find.text('هامش الإدارة')).dy;
+    final totalY = tester.getTopLeft(find.text('إجمالي مستحق العامل')).dy;
+    final marginY = tester
+        .getTopLeft(find.text('هامش الإدارة على العميل (10%)'))
+        .dy;
     expect(totalY, lessThan(marginY));
   });
 

@@ -47,7 +47,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   static final Set<String> _homePusherEvents =
       CleaningRealtimeContract.expandEventFilter(const <String>{
         CleaningRealtimeContract.trackingUpdated,
@@ -124,6 +124,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final data = SharedPreferencesHelper.getData(key: 'user');
     if (data != null) {
       user = fetchWorkerProfileUsecaseModelFromJson(
@@ -151,6 +152,19 @@ class _HomeScreenState extends State<HomeScreen> {
     _fcmForegroundSubscription = FirebaseMessaging.onMessage.listen(
       _onForegroundPushMessage,
     );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      _profileBloc.add(
+        FetchNotificationsEvent(
+          params: FetchNotificationsParams(),
+          isReload: true,
+          preserveExisting: true,
+        ),
+      );
+    }
   }
 
   int? _resolveWorkerId() {
@@ -311,6 +325,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     unawaited(_fcmForegroundSubscription?.cancel());
     _fcmForegroundSubscription = null;
     final handle = _workerRealtimeHandle;

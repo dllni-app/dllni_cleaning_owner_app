@@ -11,6 +11,7 @@ import '../../../domain/usecases/start_travel_usecase_use_case.dart';
 import '../../helpers/event_assistance_order_helper.dart';
 import '../../helpers/order_address_visibility_helper.dart';
 import '../../helpers/order_lifecycle_policy.dart';
+import '../../helpers/order_mission_task_mapper.dart';
 import '../../manager/bloc/orders_bloc.dart';
 import '../accept_order_bottom_sheet.dart';
 import '../estate_info_card.dart';
@@ -217,9 +218,10 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
   }
 
   Widget _buildServicesCard(BuildContext context) {
-    final services = widget.order.services ?? const [];
-    final addons = widget.order.addons ?? const [];
-    final hasItems = services.isNotEmpty || addons.isNotEmpty;
+    final tasks = OrderMissionTaskMapper.build(order: widget.order);
+    final specialServices = widget.order.specialServices ?? const [];
+    final specialPreview =
+        widget.order.specialServicesPreview ?? const <Map<String, dynamic>>[];
 
     return Container(
       width: context.width,
@@ -231,23 +233,43 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppText.labelMedium('الخدمات المطلوبة', fontWeight: FontWeight.w400),
+          AppText.labelMedium(
+            'الغرف المطلوبة والخدمات الخاصة',
+            fontWeight: FontWeight.w700,
+          ),
           const SizedBox(height: 12),
           Divider(color: Colors.black.withAlpha(42)),
           const SizedBox(height: 12),
-          if (!hasItems)
+          if (tasks.isEmpty &&
+              specialServices.isEmpty &&
+              specialPreview.isEmpty)
             AppText.bodySmall(
-              'لا توجد خدمات إضافية',
+              'لم تُسجّل غرف أو خدمات خاصة في بيانات هذا الطلب',
               color: const Color(0xff6B7280),
               textAlign: TextAlign.start,
             )
           else ...[
-            ...services.map(
-              (service) => _buildServiceRow(service.name, service.quantity),
+            ...tasks.map(
+              (task) => _buildServiceRow(
+                task.detail == null || task.detail!.isEmpty
+                    ? task.label
+                    : '${task.label} • ${task.detail}',
+                null,
+              ),
             ),
-            ...addons.map(
-              (addon) => _buildServiceRow(addon.name, addon.quantity),
+            ...specialServices.map(
+              (service) =>
+                  _buildServiceRow(service.name, service.quantity?.round()),
             ),
+            if (specialServices.isEmpty)
+              ...specialPreview.map(
+                (service) => _buildServiceRow(
+                  service['name']?.toString(),
+                  (service['quantity'] is num)
+                      ? (service['quantity'] as num).round()
+                      : null,
+                ),
+              ),
           ],
         ],
       ),
@@ -268,7 +290,7 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
               textAlign: TextAlign.start,
             ),
           ),
-          AppText.bodySmall('x${quantity ?? 1}'),
+          if (quantity != null) AppText.bodySmall('×$quantity'),
         ],
       ),
     );
@@ -425,7 +447,7 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                         ),
                       )
                     : AppText.labelLarge(
-                        'رفض',
+                        'لا أرغب باستلام هذا الطلب',
                         color: context.error,
                         fontWeight: FontWeight.w700,
                       ),

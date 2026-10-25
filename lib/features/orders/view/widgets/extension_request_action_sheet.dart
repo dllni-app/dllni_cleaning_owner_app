@@ -1,6 +1,7 @@
 import 'package:common_package/common_package.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/accept_extension_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/fetch_order_details_usecase_use_case.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/fetch_extension_requests_usecas_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/reject_extension_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_extension_requests_usecas_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/extension_time_format_helper.dart';
@@ -111,6 +112,43 @@ class _ExtensionRequestActionSheetBodyState
   bool _isSubmitting = false;
 
   @override
+  void initState() {
+    super.initState();
+    // Push and embedded-booking warnings can contain only the customer total.
+    // Always recover the authoritative signed components from the warning API
+    // before allowing acceptance; never approximate an administration rate.
+    if (!hasValidExtensionConsentTerms(
+      requestedMinutes: widget.requestedMinutes,
+      baseAmount: widget.baseAmount,
+      adminMargin: widget.adminMargin,
+      totalAmount: widget.totalAmount,
+      additionalAmount: widget.additionalAmount,
+      currency: widget.currency,
+    )) {
+      widget.bloc.add(
+        FetchExtensionRequestsUsecasEvent(
+          params: FetchExtensionRequestsUsecasParams(),
+          isReload: true,
+        ),
+      );
+    }
+  }
+
+  FetchExtensionRequestsUsecasModelDataItem? _trustedWarning(
+    OrdersState state,
+  ) {
+    for (final warning
+        in state.extensionRequestsUsecas?.list ??
+            const <FetchExtensionRequestsUsecasModelDataItem>[]) {
+      if (warning.id == widget.warningId &&
+          warning.hasValidWorkerConsentTerms) {
+        return warning;
+      }
+    }
+    return null;
+  }
+
+  @override
   void dispose() {
     _messageController.dispose();
     super.dispose();
@@ -139,7 +177,9 @@ class _ExtensionRequestActionSheetBodyState
       AcceptExtensionUsecaseEvent(
         params: AcceptExtensionUsecaseParams(
           id: widget.warningId,
-          additionalMinutes: widget.requestedMinutes,
+          additionalMinutes:
+              _trustedWarning(widget.bloc.state)?.resolvedAdditionalMinutes ??
+              widget.requestedMinutes,
         ),
       ),
     );
@@ -160,19 +200,6 @@ class _ExtensionRequestActionSheetBodyState
     final customerText = (widget.customerName?.trim().isNotEmpty ?? false)
         ? widget.customerName!.trim()
         : 'العميل';
-    final durationText = formatExtensionDurationAr(widget.requestedMinutes);
-    final totalAmount = widget.totalAmount ?? widget.additionalAmount;
-    final currencyText = (widget.currency?.trim().isNotEmpty ?? false)
-        ? widget.currency!.trim()
-        : 'العملة غير محددة';
-    final hasValidConsentTerms = hasValidExtensionConsentTerms(
-      requestedMinutes: widget.requestedMinutes,
-      baseAmount: widget.baseAmount,
-      adminMargin: widget.adminMargin,
-      totalAmount: widget.totalAmount,
-      additionalAmount: widget.additionalAmount,
-      currency: widget.currency,
-    );
     final paymentText = ExtensionRequestActionSheet.paymentMethodLabel(
       widget.paymentMethod,
     );
@@ -207,6 +234,8 @@ class _ExtensionRequestActionSheetBodyState
               rejectFailedNow;
         },
         buildWhen: (previous, current) =>
+            previous.extensionRequestsUsecas !=
+                current.extensionRequestsUsecas ||
             previous.acceptExtensionUsecaseStatus !=
                 current.acceptExtensionUsecaseStatus ||
             previous.rejectExtensionUsecaseStatus !=
@@ -234,6 +263,30 @@ class _ExtensionRequestActionSheetBodyState
           }
         },
         builder: (context, state) {
+          final verified = _trustedWarning(state);
+          final minutes =
+              verified?.resolvedAdditionalMinutes ?? widget.requestedMinutes;
+          final baseAmount = verified?.baseAmount ?? widget.baseAmount;
+          final adminMargin = verified?.adminMargin ?? widget.adminMargin;
+          final totalAmount =
+              verified?.authoritativeQuoteAmount ??
+              widget.totalAmount ??
+              widget.additionalAmount;
+          final currency = verified?.currency ?? widget.currency;
+          final currencyText = currency?.trim().isNotEmpty == true
+              ? currency!.trim()
+              : 'العملة غير محددة';
+          final durationText = formatExtensionDurationAr(minutes);
+          final hasValidConsentTerms =
+              verified != null ||
+              hasValidExtensionConsentTerms(
+                requestedMinutes: minutes,
+                baseAmount: baseAmount,
+                adminMargin: adminMargin,
+                totalAmount: widget.totalAmount,
+                additionalAmount: widget.additionalAmount,
+                currency: currency,
+              );
           final isLoading =
               _isSubmitting ||
               state.acceptExtensionUsecaseStatus == BlocStatus.loading ||
@@ -312,8 +365,8 @@ class _ExtensionRequestActionSheetBodyState
                       const Divider(height: 1, color: Color(0xffE5E7EB)),
                       const SizedBox(height: 10),
                       ExtensionRequestAmountBreakdown(
-                        baseAmount: widget.baseAmount,
-                        adminMargin: widget.adminMargin,
+                        baseAmount: baseAmount,
+                        adminMargin: adminMargin,
                         totalAmount: totalAmount,
                         currency: currencyText,
                       ),

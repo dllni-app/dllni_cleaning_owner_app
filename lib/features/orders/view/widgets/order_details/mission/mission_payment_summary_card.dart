@@ -1,7 +1,6 @@
 import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
 
-import '../../../../../../core/widgets/provisional_pricing_notice.dart';
 import '../../../../data/models/fetch_orders_usecase_model.dart';
 import '../../worker_payment_summary.dart';
 
@@ -30,16 +29,12 @@ class MissionPaymentSummaryCard extends StatelessWidget {
             addonsTotal: order.addonsTotal,
             totalPrice: order.workerGrossTotal,
             showAddonsTotal: false,
-            useWorkerShare: order.myAssignment != null,
+            useWorkerShare: true,
             serviceShareAmount: order.myAssignment?.serviceShareAmount,
-            workerAmount: order.workerNetProfit,
+            workerAmount: order.workerPayableAmount,
             adminMargin:
                 order.myAssignment?.adminMarginAmount ?? order.adminMargin,
           ),
-          if (order.isPricingFinal == false) ...[
-            const SizedBox(height: 10),
-            const ProvisionalPricingNotice(),
-          ],
           const SizedBox(height: 10),
           Row(
             children: [
