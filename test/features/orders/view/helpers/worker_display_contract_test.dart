@@ -14,7 +14,10 @@ void main() {
         CleaningEnumTranslations.eventType('birthday_party'),
         'حفلة عيد ميلاد',
       );
-      expect(CleaningEnumTranslations.eventType('large_gathering'), 'عزيمة كبيرة');
+      expect(
+        CleaningEnumTranslations.eventType('large_gathering'),
+        'عزيمة كبيرة',
+      );
       expect(CleaningEnumTranslations.eventType('funeral'), 'عزاء');
       expect(CleaningEnumTranslations.eventType('condolences'), 'عزاء');
     });
@@ -27,19 +30,41 @@ void main() {
       expect(OrderLifecyclePolicy.isCustomerDataHidden(order), isTrue);
     });
 
-    test('pending team order reveals full location after this worker accepts', () {
-      final order = FetchOrdersUsecaseModelDataItem(
-        status: CleaningBookingStatus.pending,
-        assignmentMode: 'open_count',
-        numberOfWorkers: 2,
-        myAssignment: CleaningMyAssignmentModel(
-          status: 'accepted',
-          acceptedAt: '2026-08-18T18:00:00Z',
-        ),
-      );
+    test(
+      'pending team order reveals full location after this worker accepts',
+      () {
+        final order = FetchOrdersUsecaseModelDataItem(
+          status: CleaningBookingStatus.pending,
+          assignmentMode: 'open_count',
+          numberOfWorkers: 2,
+          myAssignment: CleaningMyAssignmentModel(
+            status: 'accepted',
+            acceptedAt: '2026-08-18T18:00:00Z',
+          ),
+        );
 
-      expect(OrderLifecyclePolicy.hasCurrentWorkerAccepted(order), isTrue);
+        expect(OrderLifecyclePolicy.hasCurrentWorkerAccepted(order), isTrue);
+        expect(OrderLifecyclePolicy.isCustomerDataHidden(order), isFalse);
+      },
+    );
+
+    test('reads verified full address from backend only after acceptance', () {
+      final order = fetchOrdersUsecaseModelDataItemFromJson(<String, dynamic>{
+        'status': 'pending',
+        'myAssignment': <String, dynamic>{'status': 'accepted'},
+        'address': <String, dynamic>{
+          'fullAddress': 'حلب - الحمدانية - شارع القدس - بناء 12 - طابق 3',
+        },
+      });
       expect(OrderLifecyclePolicy.isCustomerDataHidden(order), isFalse);
+      expect(
+        order.bookingFullAddress,
+        'حلب - الحمدانية - شارع القدس - بناء 12 - طابق 3',
+      );
+      expect(
+        order.withLifecycle(status: 'pending').bookingFullAddress,
+        order.bookingFullAddress,
+      );
     });
   });
 }

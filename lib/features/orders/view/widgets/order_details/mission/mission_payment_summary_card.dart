@@ -25,15 +25,39 @@ class MissionPaymentSummaryCard extends StatelessWidget {
           const SizedBox(height: 10),
           WorkerPaymentSummary(
             basePrice: order.basePrice,
-            travelFee: order.myAssignment?.travelFee ?? order.travelFee,
+            bookingBasePrice: order.financialBookingBaseService,
+            bookingServicePriceIncludingAdmin:
+                order.financialBookingServicePriceIncludingAdmin,
+            bookingAdminMargin: order.financialBookingAdminMargin,
+            travelFee:
+                order.financialTravelFee ??
+                order.myAssignment?.travelFee ??
+                order.travelFee,
             addonsTotal: order.addonsTotal,
             totalPrice: order.workerGrossTotal,
             showAddonsTotal: false,
             useWorkerShare: true,
-            serviceShareAmount: order.myAssignment?.serviceShareAmount,
+            serviceShareAmount:
+                order.financialServiceShare ??
+                order.myAssignment?.serviceShareAmount,
+            baseServiceShareAmount: order.financialBaseServiceShare,
+            serviceAndOperationalShareAmount:
+                order.financialServiceAndOperationalShare,
+            specialServicesShareAmount: order.financialSpecialServicesShare,
+            materialsShareAmount: order.financialMaterialsShare,
+            adminMarginPercentage: order.financialAdminMarginPercentage,
+            plannedWorkerCount:
+                order.financialPlannedWorkerCount ?? order.numberOfWorkers,
+            actualWorkerCount: order.financialActualWorkerCount,
+            isFinal:
+                (order.numberOfWorkers ?? 1) <= 1 ||
+                order.isWorkerDistributionFinal,
+            hideGroupMaterialPrices: order.hidesGroupMaterialPrices,
             workerAmount: order.workerPayableAmount,
             adminMargin:
-                order.myAssignment?.adminMarginAmount ?? order.adminMargin,
+                order.financialAdminMargin ??
+                order.myAssignment?.adminMarginAmount ??
+                order.adminMargin,
           ),
           const SizedBox(height: 10),
           Row(

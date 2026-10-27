@@ -110,21 +110,15 @@ class _ExtensionRequestActionSheetBodyState
   final _messageController = TextEditingController();
   String? _rejectError;
   bool _isSubmitting = false;
+  _ExtensionDecision? _pendingDecision;
+  bool _pendingDecisionStarted = false;
 
   @override
   void initState() {
     super.initState();
-    // Push and embedded-booking warnings can contain only the customer total.
-    // Always recover the authoritative signed components from the warning API
-    // before allowing acceptance; never approximate an administration rate.
-    if (!hasValidExtensionConsentTerms(
-      requestedMinutes: widget.requestedMinutes,
-      baseAmount: widget.baseAmount,
-      adminMargin: widget.adminMargin,
-      totalAmount: widget.totalAmount,
-      additionalAmount: widget.additionalAmount,
-      currency: widget.currency,
-    )) {
+    // Fetch the latest quote when opening a push notification. The decision
+    // endpoint validates the warning; missing breakdown fields do not block it.
+    if (widget.warningId > 0) {
       widget.bloc.add(
         FetchExtensionRequestsUsecasEvent(
           params: FetchExtensionRequestsUsecasParams(),
@@ -140,8 +134,7 @@ class _ExtensionRequestActionSheetBodyState
     for (final warning
         in state.extensionRequestsUsecas?.list ??
             const <FetchExtensionRequestsUsecasModelDataItem>[]) {
-      if (warning.id == widget.warningId &&
-          warning.hasValidWorkerConsentTerms) {
+      if (warning.id == widget.warningId) {
         return warning;
       }
     }
@@ -159,6 +152,8 @@ class _ExtensionRequestActionSheetBodyState
     setState(() {
       _rejectError = null;
       _isSubmitting = true;
+      _pendingDecision = _ExtensionDecision.reject;
+      _pendingDecisionStarted = false;
     });
     widget.bloc.add(
       RejectExtensionUsecaseEvent(
@@ -172,6 +167,8 @@ class _ExtensionRequestActionSheetBodyState
     setState(() {
       _rejectError = null;
       _isSubmitting = true;
+      _pendingDecision = _ExtensionDecision.accept;
+      _pendingDecisionStarted = false;
     });
     widget.bloc.add(
       AcceptExtensionUsecaseEvent(
@@ -214,24 +211,21 @@ class _ExtensionRequestActionSheetBodyState
       child: BlocConsumer<OrdersBloc, OrdersState>(
         bloc: widget.bloc,
         listenWhen: (previous, current) {
-          final acceptedNow =
-              previous.acceptExtensionUsecaseStatus != BlocStatus.success &&
-              current.acceptExtensionUsecaseStatus == BlocStatus.success &&
-              current.acceptExtensionUsecase?.data?.id == widget.warningId;
-          final rejectedNow =
-              previous.rejectExtensionUsecaseStatus != BlocStatus.success &&
-              current.rejectExtensionUsecaseStatus == BlocStatus.success &&
-              current.rejectExtensionUsecase?.data?.id == widget.warningId;
-          final acceptFailedNow =
-              previous.acceptExtensionUsecaseStatus != BlocStatus.failed &&
-              current.acceptExtensionUsecaseStatus == BlocStatus.failed;
-          final rejectFailedNow =
-              previous.rejectExtensionUsecaseStatus != BlocStatus.failed &&
-              current.rejectExtensionUsecaseStatus == BlocStatus.failed;
-          return acceptedNow ||
-              rejectedNow ||
-              acceptFailedNow ||
-              rejectFailedNow;
+          if (!_isSubmitting || _pendingDecision == null) return false;
+          final oldStatus = _pendingDecision == _ExtensionDecision.accept
+              ? previous.acceptExtensionUsecaseStatus
+              : previous.rejectExtensionUsecaseStatus;
+          final newStatus = _pendingDecision == _ExtensionDecision.accept
+              ? current.acceptExtensionUsecaseStatus
+              : current.rejectExtensionUsecaseStatus;
+          if (newStatus == BlocStatus.loading) {
+            _pendingDecisionStarted = true;
+            return false;
+          }
+          return _pendingDecisionStarted &&
+              oldStatus != newStatus &&
+              (newStatus == BlocStatus.success ||
+                  newStatus == BlocStatus.failed);
         },
         buildWhen: (previous, current) =>
             previous.extensionRequestsUsecas !=
@@ -241,18 +235,21 @@ class _ExtensionRequestActionSheetBodyState
             previous.rejectExtensionUsecaseStatus !=
                 current.rejectExtensionUsecaseStatus,
         listener: (context, state) {
-          if (state.acceptExtensionUsecaseStatus == BlocStatus.success ||
-              state.rejectExtensionUsecaseStatus == BlocStatus.success) {
+          final decisionStatus = _pendingDecision == _ExtensionDecision.accept
+              ? state.acceptExtensionUsecaseStatus
+              : state.rejectExtensionUsecaseStatus;
+          if (decisionStatus == BlocStatus.success) {
             _refreshBookingAfterDecision();
             Navigator.of(context).pop(true);
             return;
           }
 
-          if (state.acceptExtensionUsecaseStatus == BlocStatus.failed ||
-              state.rejectExtensionUsecaseStatus == BlocStatus.failed) {
+          if (decisionStatus == BlocStatus.failed) {
             if (mounted) {
               setState(() {
                 _isSubmitting = false;
+                _pendingDecision = null;
+                _pendingDecisionStarted = false;
                 _rejectError = ErrorMessageFormatter.format(
                   state.errorMessage,
                   fallback:
@@ -277,16 +274,6 @@ class _ExtensionRequestActionSheetBodyState
               ? currency!.trim()
               : 'العملة غير محددة';
           final durationText = formatExtensionDurationAr(minutes);
-          final hasValidConsentTerms =
-              verified != null ||
-              hasValidExtensionConsentTerms(
-                requestedMinutes: minutes,
-                baseAmount: baseAmount,
-                adminMargin: adminMargin,
-                totalAmount: widget.totalAmount,
-                additionalAmount: widget.additionalAmount,
-                currency: currency,
-              );
           final isLoading =
               _isSubmitting ||
               state.acceptExtensionUsecaseStatus == BlocStatus.loading ||
@@ -370,14 +357,6 @@ class _ExtensionRequestActionSheetBodyState
                         totalAmount: totalAmount,
                         currency: currencyText,
                       ),
-                      if (!hasValidConsentTerms) ...[
-                        const SizedBox(height: 10),
-                        AppText.bodySmall(
-                          'لا يمكن قبول التمديد حتى تتوفر تفاصيل المبلغ والمدة بشكل موثوق.',
-                          color: WorkerAppColors.danger,
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
                       const SizedBox(height: 10),
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -435,10 +414,22 @@ class _ExtensionRequestActionSheetBodyState
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          child: AppText.labelLarge(
-                            'رفض الطلب',
-                            color: WorkerAppColors.danger,
-                          ),
+                          child:
+                              isLoading &&
+                                  _isSubmitting &&
+                                  state.rejectExtensionUsecaseStatus ==
+                                      BlocStatus.loading
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : AppText.labelLarge(
+                                  'رفض الطلب',
+                                  color: WorkerAppColors.danger,
+                                ),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -453,7 +444,7 @@ class _ExtensionRequestActionSheetBodyState
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          onPressed: isLoading || !hasValidConsentTerms
+                          onPressed: isLoading || widget.warningId <= 0
                               ? null
                               : _onAccept,
                           child:
@@ -486,6 +477,8 @@ class _ExtensionRequestActionSheetBodyState
   }
 }
 
+enum _ExtensionDecision { accept, reject }
+
 class ExtensionRequestAmountBreakdown extends StatelessWidget {
   const ExtensionRequestAmountBreakdown({
     required this.baseAmount,
@@ -515,13 +508,6 @@ class ExtensionRequestAmountBreakdown extends StatelessWidget {
           key: const Key('extension_base_amount'),
           label: 'القيمة الأساسية',
           amount: baseAmount!,
-          currency: currency,
-        ),
-      if (adminMargin != null && adminMargin!.isFinite && adminMargin! >= 0)
-        _ExtensionAmountRow(
-          key: const Key('extension_admin_margin'),
-          label: 'هامش الادارة',
-          amount: adminMargin!,
           currency: currency,
         ),
     ];

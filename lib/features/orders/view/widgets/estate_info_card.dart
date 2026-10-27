@@ -29,14 +29,6 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
     return area != null && area.isNotEmpty && area != 'null' && area != '-';
   }
 
-  String get _cleaningModeDisplayLabel {
-    return CleaningEnumTranslations.preferArabicLabel(
-      widget.order.propertyDetails?.cleaningModeLabel,
-      widget.order.propertyDetails?.cleaningMode,
-      CleaningEnumTranslations.cleaningMode,
-    );
-  }
-
   String get address {
     final neighborhood = widget.order.displayNeighborhoodName?.trim();
     if (neighborhood != null &&
@@ -47,7 +39,9 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
 
     final visible = visibleOrderAddress(
       address:
-          widget.order.propertyDetails?.address ?? widget.order.locationName,
+          widget.order.bookingFullAddress ??
+          widget.order.propertyDetails?.address ??
+          widget.order.locationName,
       status: OrderLifecyclePolicy.isCustomerDataHidden(widget.order)
           ? widget.order.status
           : null,
@@ -135,34 +129,6 @@ class _EstateInfoCardState extends State<EstateInfoCard> {
               ),
             ],
           ),
-          if (!_isEventAssistance &&
-              (_cleaningModeDisplayLabel.trim().isNotEmpty &&
-                  _cleaningModeDisplayLabel != 'غير محدد')) ...[
-            14.verticalSpace,
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.cleaning_services_outlined,
-                      color: WorkerAppColors.brandPrimary,
-                      size: 18.sp,
-                    ),
-                    6.horizontalSpace,
-                    AppText.labelMedium(
-                      'نوع التنظيف',
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ],
-                ),
-                AppText.labelMedium(
-                  _cleaningModeDisplayLabel,
-                  fontWeight: FontWeight.w300,
-                ),
-              ],
-            ),
-          ],
           if (widget.order.displayNeighborhoodName != null) ...[
             14.verticalSpace,
             Row(

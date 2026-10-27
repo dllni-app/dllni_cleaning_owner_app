@@ -1,4 +1,3 @@
-import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
@@ -31,13 +30,35 @@ class PaymentInfoCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppText.labelMedium(
-            'مستحقاتك من هذا الطلب',
-            fontWeight: FontWeight.w400,
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(9),
+                decoration: BoxDecoration(
+                  color: WorkerAppColors.brandPrimarySoft,
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: const Icon(
+                  Icons.account_balance_wallet_outlined,
+                  color: WorkerAppColors.brandPrimary,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'تفاصيل حصتك من الطلب',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: WorkerAppColors.textPrimary,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
           ),
-          12.verticalSpace,
-          Divider(color: Colors.black.withAlpha(42)),
-          12.verticalSpace,
+          const SizedBox(height: 14),
+          const Divider(color: WorkerAppColors.border, height: 1),
+          const SizedBox(height: 16),
           if (order.workerPayableAmount == null)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 12),
@@ -46,16 +67,40 @@ class PaymentInfoCard extends StatelessWidget {
           else
             WorkerPaymentSummary(
               basePrice: order.basePrice,
-              travelFee: order.myAssignment?.travelFee ?? order.travelFee,
+              bookingBasePrice: order.financialBookingBaseService,
+              bookingServicePriceIncludingAdmin:
+                  order.financialBookingServicePriceIncludingAdmin,
+              bookingAdminMargin: order.financialBookingAdminMargin,
+              travelFee:
+                  order.financialTravelFee ??
+                  order.myAssignment?.travelFee ??
+                  order.travelFee,
               addonsTotal: order.addonsTotal,
               totalPrice: order.workerGrossTotal,
 
               showAddonsTotal: showAddonsTotal,
               useWorkerShare: _usesWorkerShare,
-              serviceShareAmount: order.myAssignment?.serviceShareAmount,
+              serviceShareAmount:
+                  order.financialServiceShare ??
+                  order.myAssignment?.serviceShareAmount,
+              baseServiceShareAmount: order.financialBaseServiceShare,
+              serviceAndOperationalShareAmount:
+                  order.financialServiceAndOperationalShare,
+              specialServicesShareAmount: order.financialSpecialServicesShare,
+              materialsShareAmount: order.financialMaterialsShare,
+              adminMarginPercentage: order.financialAdminMarginPercentage,
+              plannedWorkerCount:
+                  order.financialPlannedWorkerCount ?? order.numberOfWorkers,
+              actualWorkerCount: order.financialActualWorkerCount,
+              isFinal:
+                  (order.numberOfWorkers ?? 1) <= 1 ||
+                  order.isWorkerDistributionFinal,
+              hideGroupMaterialPrices: order.hidesGroupMaterialPrices,
               workerAmount: order.workerPayableAmount,
               adminMargin:
-                  order.myAssignment?.adminMarginAmount ?? order.adminMargin,
+                  order.financialAdminMargin ??
+                  order.myAssignment?.adminMarginAmount ??
+                  order.adminMargin,
             ),
         ],
       ),

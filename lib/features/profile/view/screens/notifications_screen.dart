@@ -32,6 +32,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         FetchNotificationsEvent(
           params: FetchNotificationsParams(),
           isReload: true,
+          markAllReadOnSuccess: true,
         ),
       );
   }

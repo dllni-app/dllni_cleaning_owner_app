@@ -1,4 +1,5 @@
 import 'package:common_package/common_package.dart';
+import 'package:dllni_cleaninig_owner_app/core/extentions.dart';
 import 'package:flutter/material.dart';
 
 import '../../data/models/fetch_orders_usecase_model.dart';
@@ -62,7 +63,7 @@ class CompletedOrderCard extends StatelessWidget {
                       vertical: 8,
                     ),
                     child: AppText.labelLarge(
-                      '${date.workerNetProfit.toString()} ل.س',
+                      date.workerPayableAmount?.formatMoney() ?? 'قيد التحديد',
                       color: context.primaryContainer,
                       fontWeight: FontWeight.w500,
                     ),

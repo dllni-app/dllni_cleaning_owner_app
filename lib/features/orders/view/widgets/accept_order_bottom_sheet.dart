@@ -10,7 +10,6 @@ import 'package:dllni_cleaninig_owner_app/features/orders/data/source/worker_ses
 import 'package:dllni_cleaninig_owner_app/features/orders/data/source/orders_remote_data_source.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/fetch_order_details_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/accept_order_usecase_use_case.dart';
-import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/reject_order_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/cleaning_enum_translations.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/event_assistance_order_helper.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_address_visibility_helper.dart';
@@ -22,6 +21,7 @@ import 'package:dllni_cleaninig_owner_app/features/orders/view/widgets/worker_pa
 import 'order_details/worker_order_overview_card.dart';
 import 'order_details/worker_detail_section.dart';
 import 'package:flutter/material.dart';
+import 'worker_action_terms_sheet.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 const _borderColor = Color(0xffE5E7EB);
@@ -64,11 +64,27 @@ class AcceptOrderBottomSheet extends StatefulWidget {
     ValueChanged<int?>? onAccepted,
   }) async {
     if (!OrderLifecyclePolicy.canAcceptReject(order)) {
-      AppToast.showErrorGlobal(
-        OrderLifecyclePolicy.orderNoLongerAvailableMessage,
-      );
-      return;
+      final bookingId = order.id;
+      bool hasAvailableVisits = false;
+      if (bookingId != null) {
+        try {
+          final envelope = await getIt<WorkerSessionRemoteDataSource>()
+              .fetchBookingSchedule(bookingId);
+          hasAvailableVisits = envelope.schedule?.sessions.any(
+                (session) => session.id != null && !session.isTerminal,
+              ) ?? false;
+        } catch (_) {
+          // Preserve the legacy parent gate when the schedule cannot be checked.
+        }
+      }
+      if (!hasAvailableVisits) {
+        AppToast.showErrorGlobal(
+          OrderLifecyclePolicy.orderNoLongerAvailableMessage,
+        );
+        return;
+      }
     }
+    if (!context.mounted) return;
 
     final closeAction = await showModalBottomSheet<_AcceptOrderSheetResult>(
       context: context,
@@ -90,16 +106,7 @@ class AcceptOrderBottomSheet extends StatefulWidget {
       onAccepted?.call(closeAction?.selectedSessionId);
       return;
     }
-    if (!autoRejectOnClose) return;
-    final orderId = order.id;
-    if (orderId == null) return;
-
-    bloc.add(
-      RejectOrderUsecaseEvent(
-        params: RejectOrderUsecaseParams(id: orderId),
-        index: index,
-      ),
-    );
+    // Closing a visit offer is not an explicit rejection.
   }
 
   @override
@@ -117,6 +124,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
   bool _detailsChecked = false;
   bool _detailsLoading = false;
   bool _sessionAcceptanceLoading = false;
+  int? _lastAcceptedSessionId;
   String? _scheduleError;
   String? _detailsError;
 
@@ -214,7 +222,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       setState(() {
         _scheduleChecked = true;
         _scheduleLoading = false;
-        _scheduleError = 'تعذر تحميل جدول الجلسات. أعد المحاولة قبل القبول.';
+        _scheduleError = 'تعذر تحميل جدول الزيارات. أعد المحاولة قبل القبول.';
       });
     }
   }
@@ -279,48 +287,6 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
     return acceptedSessionIds.first;
   }
 
-  Future<void> _acceptAllSessions() async {
-    final bookingId = _order.id;
-    if (bookingId == null || _sessionAcceptanceLoading) return;
-
-    setState(() => _sessionAcceptanceLoading = true);
-    try {
-      final result = await getIt<WorkerSessionRemoteDataSource>()
-          .acceptAllSessions(bookingId);
-      if (!mounted) return;
-
-      if (!result.allAccepted) {
-        final message = _sessionAcceptanceFailureMessage(
-          result: result,
-          fallback: 'تعذر قبول جميع الجلسات. راجع جدولك وحاول مجدداً.',
-        );
-        AppToast.showErrorGlobal(message);
-        setState(() => _sessionAcceptanceLoading = false);
-        await _loadSchedule();
-        return;
-      }
-
-      _refreshAfterSessionAcceptance(bookingId);
-      AppToast.showSuccessGlobal('تم قبول جميع الجلسات المتاحة');
-      Navigator.of(context).pop(
-        _AcceptOrderSheetResult(
-          accepted: true,
-          selectedSessionId: _firstAcceptedSessionId(result.acceptedSessionIds),
-        ),
-      );
-    } catch (error) {
-      if (!mounted) return;
-      AppToast.showErrorGlobal(
-        _sessionAcceptanceExceptionMessage(
-          error,
-          fallback: 'تعذر قبول جميع الجلسات. راجع جدولك وحاول مجدداً.',
-        ),
-      );
-      setState(() => _sessionAcceptanceLoading = false);
-      await _loadSchedule();
-    }
-  }
-
   Future<void> _showSelectedSessionsPicker() async {
     final schedule = _schedule;
     if (schedule == null || _sessionAcceptanceLoading) return;
@@ -329,7 +295,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
         .where((session) => session.id != null && !session.isTerminal)
         .toList(growable: false);
     if (sessions.isEmpty) {
-      AppToast.showErrorGlobal('لا توجد جلسات متاحة للاختيار حالياً.');
+      AppToast.showErrorGlobal('لا توجد زيارات متاحة للاختيار حالياً.');
       return;
     }
 
@@ -370,12 +336,12 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 AppText.titleMedium(
-                                  'حدد الجلسات التي يمكنك قبولها',
+                                  'حدد الزيارات التي يمكنك قبولها',
                                   fontWeight: FontWeight.w800,
                                 ),
                                 const SizedBox(height: 4),
                                 AppText.bodySmall(
-                                  'سيتم حجز الجلسات التي تختارها لك، وتبقى باقي الجلسات متاحة لعمال آخرين.',
+                                  'سيتم حجز الزيارات التي تختارها لك، وتبقى باقي الزيارات متاحة لعمال آخرين.',
                                   color: _mutedTextColor,
                                   textAlign: TextAlign.start,
                                 ),
@@ -450,8 +416,8 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                                 ).pop(selectedIds.toList(growable: false)),
                           child: Text(
                             selectedIds.isEmpty
-                                ? 'اختر جلسة واحدة على الأقل'
-                                : 'قبول ${selectedIds.length} جلسة',
+                                ? 'اختر زيارة واحدة على الأقل'
+                                : 'قبول ${selectedIds.length} زيارة',
                           ),
                         ),
                       ),
@@ -471,7 +437,21 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
 
   Future<void> _acceptSelectedSessions(List<int> sessionIds) async {
     final bookingId = _order.id;
-    if (bookingId == null || _sessionAcceptanceLoading) return;
+    if (bookingId == null ||
+        _sessionAcceptanceLoading ||
+        !_canConfirmAcceptance)
+      return;
+    final availableIds =
+        _schedule?.sessions
+            .where((session) => session.id != null && !session.isTerminal)
+            .map((session) => session.id)
+            .toSet() ??
+        <int?>{};
+    if (sessionIds.isEmpty ||
+        sessionIds.any((id) => !availableIds.contains(id)))
+      return;
+    if (!await confirmWorkerActionTerms(context, cancelling: false)) return;
+    if (!mounted) return;
 
     setState(() => _sessionAcceptanceLoading = true);
     try {
@@ -482,7 +462,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       if (result.acceptedSessionIds.isEmpty) {
         final message = _sessionAcceptanceFailureMessage(
           result: result,
-          fallback: 'تعذر قبول الجلسات المحددة. راجع جدولك وحاول مجدداً.',
+          fallback: 'تعذر قبول الزيارات المحددة. راجع جدولك وحاول مجدداً.',
         );
         AppToast.showErrorGlobal(message);
         setState(() => _sessionAcceptanceLoading = false);
@@ -495,21 +475,24 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       final rejectedCount = result.rejected.length;
       AppToast.showSuccessGlobal(
         rejectedCount == 0
-            ? 'تم قبول $acceptedCount جلسة'
-            : 'تم قبول $acceptedCount جلسة، وتعذر قبول $rejectedCount جلسة',
+            ? 'تم قبول $acceptedCount زيارة'
+            : 'تم قبول $acceptedCount زيارة، وتعذر قبول $rejectedCount زيارة',
       );
-      Navigator.of(context).pop(
-        _AcceptOrderSheetResult(
-          accepted: true,
-          selectedSessionId: _firstAcceptedSessionId(result.acceptedSessionIds),
-        ),
+      _lastAcceptedSessionId = _firstAcceptedSessionId(
+        result.acceptedSessionIds,
       );
+      if (!_isMultiSession) {
+        _dismissSheet();
+        return;
+      }
+      setState(() => _sessionAcceptanceLoading = false);
+      await _loadSchedule();
     } catch (error) {
       if (!mounted) return;
       AppToast.showErrorGlobal(
         _sessionAcceptanceExceptionMessage(
           error,
-          fallback: 'تعذر قبول الجلسات المحددة. راجع جدولك وحاول مجدداً.',
+          fallback: 'تعذر قبول الزيارات المحددة. راجع جدولك وحاول مجدداً.',
         ),
       );
       setState(() => _sessionAcceptanceLoading = false);
@@ -565,7 +548,8 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
     if (_isEventAssistance) {
       return 'اليوم ${session.sequence} من ${_schedule?.daysCount ?? 1}';
     }
-    return 'الجلسة ${session.sequence} من ${_schedule?.daysCount ?? 1}';
+    if ((_schedule?.daysCount ?? 1) == 1) return 'الزيارة المطلوبة';
+    return 'زيارة ${session.sequence}';
   }
 
   String _hours(double value) =>
@@ -587,7 +571,12 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
   }
 
   void _dismissSheet() {
-    Navigator.of(context).pop(const _AcceptOrderSheetResult(accepted: false));
+    Navigator.of(context).pop(
+      _AcceptOrderSheetResult(
+        accepted: _lastAcceptedSessionId != null,
+        selectedSessionId: _lastAcceptedSessionId,
+      ),
+    );
   }
 
   Widget _detailCard(BuildContext context, List<Widget> children) {
@@ -994,25 +983,11 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
     final showPropertyType =
         propertyTypeLabel.trim().isNotEmpty && propertyTypeLabel != 'غير محدد';
 
-    final cleaningModeLabel = CleaningEnumTranslations.preferArabicLabel(
-      _order.propertyDetails?.cleaningModeLabel,
-      _order.propertyDetails?.cleaningMode,
-      CleaningEnumTranslations.cleaningMode,
-    );
-    final showCleaningMode =
-        cleaningModeLabel.trim().isNotEmpty && cleaningModeLabel != 'غير محدد';
-
     final rows = <Widget>[
       if (showPropertyType)
         _orderInfoRow(
           label: 'نوع المكان',
           value: propertyTypeLabel,
-          withDivider: showCleaningMode || visibleItems.isNotEmpty,
-        ),
-      if (showCleaningMode)
-        _orderInfoRow(
-          label: 'نوع التنظيف',
-          value: cleaningModeLabel,
           withDivider: visibleItems.isNotEmpty,
         ),
       ...List.generate(visibleItems.length, (index) {
@@ -1070,7 +1045,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
         OutlinedButton.icon(
           onPressed: _scheduleLoading ? null : _loadSchedule,
           icon: const Icon(Icons.refresh),
-          label: const Text('إعادة تحميل الجلسات'),
+          label: const Text('إعادة تحميل الزيارات'),
         ),
       ]);
     }
@@ -1088,7 +1063,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       children: [
         _detailCard(context, [
           _orderInfoRow(
-            label: _isEventAssistance ? 'عدد الأيام' : 'عدد الجلسات',
+            label: _isEventAssistance ? 'عدد الأيام' : 'عدد الزيارات',
             value: '${schedule.daysCount}',
           ),
           _orderInfoRow(
@@ -1127,6 +1102,34 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                     fontWeight: FontWeight.w700,
                     color: _titleTextColor,
                   ),
+                  if (session.pricingPreview?.workerAmount != null ||
+                      session.financial?.netAmount != null ||
+                      session.workerAssignmentState?.workerAmount != null) ...[
+                    const SizedBox(height: 6),
+                    AppText.bodyMedium(
+                      '${session.pricingPreview != null ? 'مستحق هذه الزيارة المتوقع' : 'مستحق هذه الزيارة'}: ${((session.pricingPreview?.workerAmount ?? session.financial?.netAmount ?? session.workerAssignmentState?.workerAmount)!).toStringAsFixed(2)} ${session.pricingPreview?.currency ?? session.financial?.currency ?? session.workerAssignmentState?.currency ?? ''}',
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xff047857),
+                    ),
+                    if (session.pricingPreview != null)
+                      AppText.bodySmall(
+                        'حصة الخدمة: ${session.pricingPreview!.serviceShareAmount?.toStringAsFixed(2) ?? '—'} • بدل النقل: ${session.pricingPreview!.travelFee?.toStringAsFixed(2) ?? '—'}',
+                        color: _mutedTextColor,
+                      ),
+                  ],
+                  if (session.id != null && !session.isTerminal) ...[
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed:
+                            _sessionAcceptanceLoading || !_canConfirmAcceptance
+                            ? null
+                            : () => _acceptSelectedSessions([session.id!]),
+                        child: const Text('قبول هذه الزيارة'),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -1140,9 +1143,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
             border: Border.all(color: const Color(0xffBFDBFE)),
           ),
           child: AppText.bodySmall(
-            _isEventAssistance
-                ? 'هذه المناسبة تتطلب الالتزام بجميع الأيام. لن يتم قبول الطلب إذا كان لديك تعارض في أي يوم.'
-                : 'يمكنك قبول جميع الجلسات، أو تحديد الجلسات التي تستطيع تنفيذها فقط. الجلسات التي لا تقبلها تبقى متاحة لعمال مؤهلين آخرين.',
+            'اقبل كل زيارة تناسب جدولك من بطاقتها. تبقى بقية الزيارات متاحة لعمال آخرين.',
             fontWeight: FontWeight.w800,
             color: const Color(0xff1E3A8A),
             textAlign: TextAlign.start,
@@ -1152,8 +1153,13 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
     );
   }
 
-  void _acceptSingleSession() {
+  Future<void> _acceptSingleSession() async {
     if (_order.id == null) return;
+    if (_schedule?.hasPersistedSessions == true) {
+      final sessionId = _schedule!.sessions.first.id;
+      if (sessionId != null) unawaited(_acceptSelectedSessions([sessionId]));
+      return;
+    }
     if (!OrderLifecyclePolicy.canAcceptReject(_order)) {
       AppToast.showErrorGlobal(
         OrderLifecyclePolicy.orderNoLongerAvailableMessage,
@@ -1161,6 +1167,10 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       Navigator.of(context).pop(const _AcceptOrderSheetResult(accepted: false));
       return;
     }
+    // A one-visit V2 booking is session-scoped. Legacy parent acceptance
+    // skips visit acceptance proof and may recalculate the signed total.
+    if (!await confirmWorkerActionTerms(context, cancelling: false)) return;
+    if (!mounted) return;
     widget.bloc.add(
       AcceptOrderUsecaseEvent(
         params: AcceptOrderUsecaseParams(id: _order.id!),
@@ -1214,10 +1224,8 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                             textAlign: TextAlign.start,
                           ),
                           AppText.bodySmall(
-                            _isEventAssistance && _isMultiSession
-                                ? 'راجع جميع أيام المناسبة؛ القبول يعني الالتزام بها جميعاً'
-                                : _isMultiSession
-                                ? 'راجع جميع الجلسات وحدد نطاق التزامك قبل القبول'
+                            _isMultiSession
+                                ? 'راجع جميع الزيارات وحدد نطاق التزامك قبل القبول'
                                 : 'الطلب #${_bookingCode()} • تحقق من المهام والمستحق قبل القبول',
                             color: _mutedTextColor,
                             textAlign: TextAlign.start,
@@ -1255,7 +1263,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: AppText.bodySmall(
-                            'طلب متعدد الجلسات',
+                            'طلب متعدد الزيارات',
                             color: const Color(0xff047857),
                             fontWeight: FontWeight.w800,
                           ),
@@ -1311,7 +1319,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                       ),
                       WorkerDetailSection(
                         title: _isMultiSession
-                            ? 'جميع الجلسات'
+                            ? 'جميع الزيارات'
                             : 'موعد ووقت الخدمة',
                         icon: Icons.schedule_outlined,
                         children: [_scheduleSection(context)],
@@ -1336,7 +1344,10 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                           else
                             WorkerPaymentSummary(
                               basePrice: null,
+                              bookingBasePrice:
+                                  _order.financialBookingBaseService,
                               travelFee:
+                                  _order.financialTravelFee ??
                                   _order.myAssignment?.travelFee ??
                                   _order.travelFee,
                               addonsTotal: null,
@@ -1344,9 +1355,31 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                               showAddonsTotal: false,
                               useWorkerShare: true,
                               serviceShareAmount:
+                                  _order.financialServiceShare ??
                                   _order.myAssignment?.serviceShareAmount,
+                              baseServiceShareAmount:
+                                  _order.financialBaseServiceShare,
+                              serviceAndOperationalShareAmount:
+                                  _order.financialServiceAndOperationalShare,
+                              specialServicesShareAmount:
+                                  _order.financialSpecialServicesShare,
+                              materialsShareAmount:
+                                  _order.financialMaterialsShare,
+                              adminMarginPercentage:
+                                  _order.financialAdminMarginPercentage,
+                              plannedWorkerCount:
+                                  _order.financialPlannedWorkerCount ??
+                                  _order.numberOfWorkers,
+                              actualWorkerCount:
+                                  _order.financialActualWorkerCount,
+                              isFinal:
+                                  (_order.numberOfWorkers ?? 1) <= 1 ||
+                                  _order.isWorkerDistributionFinal,
+                              hideGroupMaterialPrices:
+                                  _order.hidesGroupMaterialPrices,
                               workerAmount: _order.workerPayableAmount,
                               adminMargin:
+                                  _order.financialAdminMargin ??
                                   _order.myAssignment?.adminMarginAmount,
                             ),
                         ],
@@ -1382,40 +1415,14 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                                     foregroundColor: context.error,
                                     side: BorderSide(color: context.error),
                                   ),
-                                  child: Text(
-                                    widget.autoRejectOnClose
-                                        ? 'لا أرغب باستلام الطلب'
-                                        : 'إلغاء',
-                                  ),
+                                  child: const Text('إغلاق'),
                                 ),
                               ),
                               const SizedBox(width: 10),
-                              Expanded(
-                                flex: 2,
-                                child: FilledButton(
-                                  onPressed: accepting || !_canConfirmAcceptance
-                                      ? null
-                                      : _acceptAllSessions,
-                                  child: accepting
-                                      ? SizedBox(
-                                          width: 18,
-                                          height: 18,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: context.onPrimary,
-                                          ),
-                                        )
-                                      : Text(
-                                          _isEventAssistance
-                                              ? 'قبول جميع أيام المناسبة'
-                                              : 'قبول جميع الجلسات',
-                                        ),
-                                ),
-                              ),
                             ],
                           ),
-                          if (!_isEventAssistance) ...[
-                            const SizedBox(height: 10),
+                          ...[
+                            const SizedBox(height: 8),
                             SizedBox(
                               width: double.infinity,
                               child: OutlinedButton.icon(
@@ -1423,9 +1430,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                                     ? null
                                     : _showSelectedSessionsPicker,
                                 icon: const Icon(Icons.checklist_rtl),
-                                label: const Text(
-                                  'تحديد الجلسات التي يمكنني قبولها',
-                                ),
+                                label: const Text('اختيار عدة زيارات'),
                               ),
                             ),
                           ],
@@ -1446,9 +1451,7 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                                 ),
                                 child: Center(
                                   child: AppText.labelLarge(
-                                    widget.autoRejectOnClose
-                                        ? 'لا أرغب باستلام الطلب'
-                                        : 'إلغاء',
+                                    'إغلاق',
                                     color: context.error,
                                     fontWeight: FontWeight.w700,
                                   ),

@@ -23,6 +23,7 @@ import '../order_details_map_app_bar.dart';
 import '../../helpers/cleaning_security_code_display.dart';
 import 'worker_order_overview_card.dart';
 import 'worker_detail_section.dart';
+import 'worker_travel_contact_card.dart';
 
 bool _securityCodeInFlightForBooking(OrdersBloc bloc, int bookingId) {
   return bloc.state.securityCodeStatus == BlocStatus.loading &&
@@ -57,6 +58,13 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
 
   List<LatLng> _road = <LatLng>[];
   LatLng? _myLocation;
+  bool _locationUnavailable = false;
+  LatLng? get _fallbackCenter {
+    final lat = widget.order.addressLatitude;
+    final lng = widget.order.addressLongitude;
+    return lat == null || lng == null ? null : LatLng(lat, lng);
+  }
+
   StreamSubscription<Position>? _positionSub;
   bool _requestedSecurityCode = false;
   bool _suppressLocationReporting = false;
@@ -211,21 +219,28 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
   }
 
   Future<void> _loadInitialMap() async {
+    if (mounted) setState(() => _locationUnavailable = false);
     try {
       final position = await _getCurrentLocation();
       if (!mounted) return;
-      _myLocation = LatLng(position.latitude, position.longitude);
-      await _drawRoad(_myLocation!);
-      if (!mounted) return;
+      final location = LatLng(position.latitude, position.longitude);
+      setState(() {
+        _myLocation = location;
+        _locationUnavailable = false;
+      });
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || _myLocation == null) return;
         _centerMapOnWorker(_myLocation!, zoom: _mapInitialZoom);
       });
+      // Directions are optional; never make the map depend on an external
+      // routing server responding successfully.
+      unawaited(_drawRoad(location).catchError((Object _) {}));
       _startLocationStream();
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _road = <LatLng>[];
+        _locationUnavailable = true;
       });
     }
   }
@@ -238,6 +253,10 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
         'overview': 'full',
         'geometries': 'geojson',
       },
+      options: Options(
+        sendTimeout: const Duration(seconds: 6),
+        receiveTimeout: const Duration(seconds: 6),
+      ),
     );
     final routes = response.data['routes'];
     if (routes is! List || routes.isEmpty) {
@@ -262,6 +281,7 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       await Geolocator.openLocationSettings();
+      throw StateError('Location services are disabled');
     }
     var permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
@@ -269,8 +289,14 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
     }
     if (permission == LocationPermission.deniedForever) {
       await Geolocator.openAppSettings();
+      throw StateError('Location permission permanently denied');
     }
-    return Geolocator.getCurrentPosition(locationSettings: _locationSettings());
+    if (permission == LocationPermission.denied) {
+      throw StateError('Location permission denied');
+    }
+    return Geolocator.getCurrentPosition(
+      locationSettings: _locationSettings(),
+    ).timeout(const Duration(seconds: 12));
   }
 
   Future<void> _drawRoad(LatLng start) async {
@@ -538,6 +564,10 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
     final hideCustomerData = OrderLifecyclePolicy.isCustomerDataHidden(
       widget.order,
     );
+    final supervisor = widget.order.supervisorContact;
+    final isTeamOrder =
+        widget.order.isMultiWorkerTeam ||
+        widget.order.bookingKind == 'supervised_team';
     final neighborhood = widget.order.displayNeighborhoodName?.trim();
     final useNeighborhoodOnly =
         hideCustomerData && neighborhood != null && neighborhood.isNotEmpty;
@@ -645,88 +675,30 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
                     ),
                   ],
                 ),
-                if (!hideCustomerData) ...[
-                  16.verticalSpace,
-                  Row(
-                    children: [
-                      Expanded(
-                        child: InkWell(
-                          onTap: () {
-                            final phone = widget.order.customer?.phone;
-                            if (phone == null || phone.isEmpty) return;
-                            callPhone(phone);
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: context.onPrimary,
-                              borderRadius: BorderRadius.circular(26),
-                            ),
-                            child: Row(
-                              children: [
-                                CircleAvatar(
-                                  backgroundColor: context.primaryContainer,
-                                  radius: 19,
-                                  child: Icon(
-                                    Icons.phone_outlined,
-                                    color: context.onPrimaryContainer,
-                                  ),
-                                ),
-                                12.horizontalSpace,
-                                Expanded(
-                                  child: AppText.labelMedium(
-                                    widget.order.customer?.name ?? '-',
-                                    color: context.primaryContainer,
-                                  ),
-                                ),
-                                12.horizontalSpace,
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      10.horizontalSpace,
-                      Expanded(
-                        child: InkWell(
-                          onTap: () {
-                            final phone = widget.order.customer?.phone;
-                            if (phone == null || phone.isEmpty) return;
-                            sendMessage(phone);
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: context.onPrimary,
-                              borderRadius: BorderRadius.circular(26),
-                            ),
-                            child: Row(
-                              children: [
-                                CircleAvatar(
-                                  backgroundColor: context.primaryContainer,
-                                  radius: 19,
-                                  child: Icon(
-                                    Icons.chat_bubble_outlined,
-                                    color: context.onPrimaryContainer,
-                                  ),
-                                ),
-                                12.horizontalSpace,
-                                Expanded(
-                                  child: AppText.labelMedium(
-                                    widget.order.customer?.name ?? '-',
-                                    color: context.primaryContainer,
-                                  ),
-                                ),
-                                12.horizontalSpace,
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
               ],
             ),
           ),
           16.verticalSpace,
+          if (!hideCustomerData) ...[
+            WorkerTravelContactCard(
+              isTeam: isTeamOrder,
+              name: isTeamOrder
+                  ? supervisor?.firstName
+                  : widget.order.customer?.name,
+              phone: isTeamOrder
+                  ? supervisor?.phone
+                  : widget.order.customer?.phone,
+              onCall: () => _launchContact(
+                'tel',
+                isTeamOrder ? supervisor?.phone : widget.order.customer?.phone,
+              ),
+              onMessage: () => _launchContact(
+                'sms',
+                isTeamOrder ? supervisor?.phone : widget.order.customer?.phone,
+              ),
+            ),
+            16.verticalSpace,
+          ],
           BlocBuilder<OrdersBloc, OrdersState>(
             bloc: widget.bloc,
             builder: (context, state) => _buildAction(state),
@@ -738,6 +710,7 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
 
   @override
   Widget build(BuildContext context) {
+    final mapCenter = _myLocation ?? _fallbackCenter;
     return BlocListener<OrdersBloc, OrdersState>(
       bloc: widget.bloc,
       listenWhen: (previous, current) =>
@@ -754,12 +727,28 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
       child: Stack(
         children: [
           Positioned.fill(
-            child: _myLocation == null
-                ? const Center(child: CircularProgressIndicator.adaptive())
+            child: mapCenter == null
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.location_off_outlined, size: 42),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'تعذّر تحديد الموقع. يرجى تفعيل الموقع والسماح للتطبيق بالوصول إليه.',
+                        ),
+                        const SizedBox(height: 12),
+                        FilledButton(
+                          onPressed: _loadInitialMap,
+                          child: const Text('إعادة المحاولة'),
+                        ),
+                      ],
+                    ),
+                  )
                 : FlutterMap(
                     mapController: _mapController,
                     options: MapOptions(
-                      initialCenter: _myLocation!,
+                      initialCenter: mapCenter,
                       initialZoom: _mapInitialZoom,
                     ),
                     children: [
@@ -780,16 +769,17 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
                         ),
                       MarkerLayer(
                         markers: [
-                          Marker(
-                            point: _myLocation!,
-                            width: 40,
-                            height: 40,
-                            child: const Icon(
-                              Icons.location_on,
-                              color: Colors.blue,
-                              size: 40,
+                          if (_myLocation != null)
+                            Marker(
+                              point: _myLocation!,
+                              width: 40,
+                              height: 40,
+                              child: const Icon(
+                                Icons.location_on,
+                                color: Colors.blue,
+                                size: 40,
+                              ),
                             ),
-                          ),
                           if (_road.isNotEmpty)
                             Marker(
                               point: _road.last,
@@ -827,6 +817,20 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
               orderNum: widget.order.bookingNumber ?? '-',
             ),
           ),
+          if (_locationUnavailable && mapCenter != null)
+            SafeArea(
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: Padding(
+                  padding: EdgeInsetsDirectional.only(top: 88.h),
+                  child: ActionChip(
+                    avatar: const Icon(Icons.location_off_outlined, size: 18),
+                    label: const Text('الموقع غير متاح · إعادة المحاولة'),
+                    onPressed: _loadInitialMap,
+                  ),
+                ),
+              ),
+            ),
           if (_distanceLabel != null)
             SafeArea(
               child: Align(
@@ -870,22 +874,28 @@ class _OrderDetailsMapBodyState extends State<OrderDetailsMapBody> {
     );
   }
 
-  Future<void> callPhone(String phoneNumber) async {
-    final Uri url = Uri(scheme: 'tel', path: phoneNumber);
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-      return;
+  Future<void> _launchContact(String scheme, String? phoneNumber) async {
+    final phone = phoneNumber?.trim();
+    if (phone == null || phone.isEmpty) return;
+    try {
+      final launched = await launchUrl(
+        Uri(scheme: scheme, path: phone),
+        mode: LaunchMode.externalApplication,
+      );
+      if (launched) return;
+    } catch (_) {
+      // Dialer / SMS apps are not guaranteed to exist on an Android emulator.
     }
-    throw 'Could not launch $url';
-  }
-
-  Future<void> sendMessage(String phoneNumber) async {
-    final Uri url = Uri(scheme: 'sms', path: phoneNumber);
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-      return;
-    }
-    throw 'Could not launch $url';
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          scheme == 'tel'
+              ? 'تعذّر فتح تطبيق الاتصال على هذا الجهاز.'
+              : 'تعذّر فتح تطبيق الرسائل على هذا الجهاز.',
+        ),
+      ),
+    );
   }
 }
 

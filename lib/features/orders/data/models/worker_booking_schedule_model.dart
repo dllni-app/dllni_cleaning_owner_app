@@ -257,6 +257,7 @@ class WorkerBookingSessionModel {
   final WorkerSessionAssignmentModel? workerAssignmentState;
   final List<WorkerSessionAssignmentModel> workerAssignments;
   final WorkerSessionFinancialModel? financial;
+  final WorkerSessionAssignmentModel? pricingPreview;
   final CleaningOpenTimeDetails? openTime;
 
   const WorkerBookingSessionModel({
@@ -289,6 +290,7 @@ class WorkerBookingSessionModel {
     this.workerAssignmentState,
     this.workerAssignments = const <WorkerSessionAssignmentModel>[],
     this.financial,
+    this.pricingPreview,
     this.openTime,
   });
 
@@ -367,6 +369,11 @@ class WorkerBookingSessionModel {
           : const <WorkerSessionAssignmentModel>[],
       financial: financialRaw is Map
           ? WorkerSessionFinancialModel.fromJson(_map(financialRaw))
+          : null,
+      pricingPreview: (json['pricingPreview'] ?? json['pricing_preview']) is Map
+          ? WorkerSessionAssignmentModel.fromJson(
+              _map(json['pricingPreview'] ?? json['pricing_preview']),
+            )
           : null,
       openTime: (json['openTime'] ?? json['open_time']) is Map
           ? CleaningOpenTimeDetails.fromJson(
@@ -485,6 +492,11 @@ class WorkerBookingScheduleModel {
 
   bool get isMultiDay =>
       (bookingDaysCount ?? 0) > 1 || mode == 'multi_day' || sessions.length > 1;
+
+  /// Single-visit V2 orders still have an authoritative execution session.
+  /// Accept using the session endpoint to preserve its worker and price proof.
+  bool get hasPersistedSessions =>
+      sessions.any((session) => session.id != null);
 
   WorkerBookingSessionModel? sessionById(int? sessionId) {
     if (sessionId == null) return null;

@@ -456,7 +456,8 @@ class _WorkerFinanceModuleState extends State<WorkerFinanceModule> {
         WrListRow(title: _tr('مرجع للدعم', 'Support reference'), subtitle: reference),
       WrAmountText(amount: e.authoritativeAmount,
           unavailableLabel: _tr('لا يوجد تخصيص مالي متاح', 'Allocation unavailable')),
-      for (final part in e.frozenBreakdown.entries)
+      for (final part in e.frozenBreakdown.entries.where(
+          (part) => part.key != 'admin_margin_amount'))
         WrListRow(title: _componentLabel(part.key),
           trailing: WrAmountText(amount: part.value, unavailableLabel: '—')),
       Text(_tr('الأرباح المسجلة منفصلة عن حساب الإيداع والديون.',

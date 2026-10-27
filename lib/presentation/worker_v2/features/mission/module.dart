@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/cleaning_worker_order_status.dart';
 
 import '../../contracts/common.dart';
 import '../../contracts/models.dart';
@@ -11,6 +12,7 @@ import '../../contracts/requests.dart';
 import '../../design_system/design_system.dart';
 import 'catalog_ar.dart';
 import 'catalog_en.dart';
+import 'mission_sos_window_policy.dart';
 
 /// Candidate visits must originate from a caller's authenticated, server-scoped
 /// query. A candidate is never trusted as an authorization to view or mutate.
@@ -60,7 +62,9 @@ class _MissionModuleState extends State<MissionModule> {
   final Map<String, String> _reasonDrafts = <String, String>{};
 
   Map<String, String> get _catalog =>
-      widget.languageCode.toLowerCase().startsWith('en') ? missionEn : missionAr;
+      widget.languageCode.toLowerCase().startsWith('en')
+      ? missionEn
+      : missionAr;
   String _t(String key) => _catalog[key] ?? _catalog['notProvided']!;
   bool get _sameUser {
     final current = widget.runtime.context;
@@ -87,9 +91,7 @@ class _MissionModuleState extends State<MissionModule> {
   /// Only a currently verified, fresh assignment can leave this feature with
   /// its booking/visit scope. A route selector alone grants no authorization.
   bool get _hasAuthorizedMission =>
-      _canWrite &&
-      _mission != null &&
-      _sameScope(_scope, _mission!.scope);
+      _canWrite && _mission != null && _sameScope(_scope, _mission!.scope);
 
   bool _can(WorkerAction action) {
     final view = _mission;
@@ -98,6 +100,10 @@ class _MissionModuleState extends State<MissionModule> {
     }
     if (OperationalContext.executionActions.contains(action) &&
         view.operational.executionOwner != ExecutionOwner.worker) {
+      return false;
+    }
+    if (action == WorkerAction.sendSos &&
+        !MissionSosWindowPolicy.permits(view)) {
       return false;
     }
     return view.operational.permits(action);
@@ -181,8 +187,11 @@ class _MissionModuleState extends State<MissionModule> {
       _readError = null;
       _verifiedCode = null; // Verification is never retained across refreshes.
     });
-    bool current() => mounted && epoch == _epoch &&
-        requested.cacheKey == _scope.cacheKey && _sameUser;
+    bool current() =>
+        mounted &&
+        epoch == _epoch &&
+        requested.cacheKey == _scope.cacheKey &&
+        _sameUser;
     try {
       final result = requested.sessionId == null
           ? await widget.missionPort.fetchMission(requested)
@@ -220,7 +229,10 @@ class _MissionModuleState extends State<MissionModule> {
         inventory = await widget.missionPort.fetchInventory(requested);
       } catch (_) {
         inventory = ReadFailure<InventoryView>(
-          PortFailure(kind: FailureKind.network, reasonCode: 'inventory_read_failed'),
+          PortFailure(
+            kind: FailureKind.network,
+            reasonCode: 'inventory_read_failed',
+          ),
         );
       }
       if (!current()) return;
@@ -229,7 +241,10 @@ class _MissionModuleState extends State<MissionModule> {
         decisions = await widget.missionPort.fetchDecisions(requested);
       } catch (_) {
         decisions = ReadFailure<List<DecisionView>>(
-          PortFailure(kind: FailureKind.network, reasonCode: 'decisions_read_failed'),
+          PortFailure(
+            kind: FailureKind.network,
+            reasonCode: 'decisions_read_failed',
+          ),
         );
       }
       if (!current()) return;
@@ -334,9 +349,11 @@ class _MissionModuleState extends State<MissionModule> {
       });
       await _load();
     } else {
-      setState(() => _notification = outcome.fieldErrors.isNotEmpty
-          ? _t('validation')
-          : _reason(outcome.reasonCode) ?? _t('rejected'));
+      setState(
+        () => _notification = outcome.fieldErrors.isNotEmpty
+            ? _t('validation')
+            : _reason(outcome.reasonCode) ?? _t('rejected'),
+      );
       // A rejected command may be based on stale ownership or visit state.
       await _load();
     }
@@ -349,14 +366,20 @@ class _MissionModuleState extends State<MissionModule> {
 
   String _statusLabel(String status) {
     if (status == 'rejected') return _t('rejected_status');
-    return _catalog[status] ?? status;
+    return _catalog[status] ??
+        (widget.languageCode.toLowerCase().startsWith('en')
+            ? status
+            : arabicCleaningStatusLabel(status));
   }
 
   Widget? _terminalStatus(MissionView mission) {
     final status = mission.status;
     final tone = switch (status) {
       'completed' => WrStatusTone.success,
-      'cancelled' || 'skipped' || 'disputed' || 'rejected' => WrStatusTone.warning,
+      'cancelled' ||
+      'skipped' ||
+      'disputed' ||
+      'rejected' => WrStatusTone.warning,
       'rework' || 'waiting_customer' => WrStatusTone.info,
       _ => null,
     };
@@ -387,17 +410,18 @@ class _MissionModuleState extends State<MissionModule> {
     }
     // SOS must be explicitly permitted for this assignment, but does not
     // depend on the mission's execution owner/capability.
-    if (destination == WorkerDestination.sos &&
-        !_can(WorkerAction.sendSos)) {
+    if (destination == WorkerDestination.sos && !_can(WorkerAction.sendSos)) {
       return;
     }
     // Generic support remains reachable after 403/404, without exposing or
     // forwarding an unverified booking/visit identifier to another feature.
-    widget.onRoute(RouteIntent(
-      destination: destination,
-      origin: RouteOrigin.mission,
-      scope: _hasAuthorizedMission ? _scope : null,
-    ));
+    widget.onRoute(
+      RouteIntent(
+        destination: destination,
+        origin: RouteOrigin.mission,
+        scope: _hasAuthorizedMission ? _scope : null,
+      ),
+    );
   }
 
   Future<void> _showCode() async {
@@ -474,11 +498,14 @@ class _MissionModuleState extends State<MissionModule> {
   }
 
   void _decision(DecisionView decision, bool accept) {
-    if (!_sameScope(decision.scope, _scope) || !_canWrite ||
+    if (!_sameScope(decision.scope, _scope) ||
+        !_canWrite ||
         _decisionFreshness != ReadFreshness.fresh) {
       return;
     }
-    final action = accept ? WorkerAction.acceptExtension : WorkerAction.rejectExtension;
+    final action = accept
+        ? WorkerAction.acceptExtension
+        : WorkerAction.rejectExtension;
     if (decision.extensionFamily != null && _can(action)) {
       _withReason(
         title: accept ? _t('approve') : _t('decline'),
@@ -552,7 +579,10 @@ class _MissionModuleState extends State<MissionModule> {
           if (_scope.sessionId != null)
             WrListRow(title: _t('visit'), subtitle: _scope.sessionId),
           WrListRow(title: _t('stage'), subtitle: mission.stage),
-          WrListRow(title: _t('assignment'), subtitle: mission.ownAssignmentStatus),
+          WrListRow(
+            title: _t('assignment'),
+            subtitle: mission.ownAssignmentStatus,
+          ),
           WrStatusBadge(label: '${_statusLabel(mission.status)} · $owner'),
           if (_terminalStatus(mission) != null) ...[
             const SizedBox(height: WrSpace.sm),
@@ -565,8 +595,8 @@ class _MissionModuleState extends State<MissionModule> {
               message: mission.operational.blockedReasons.isEmpty
                   ? _t('ownerNotice')
                   : mission.operational.blockedReasons
-                      .map((reason) => _reason(reason) ?? _t('blocked'))
-                      .join(' · '),
+                        .map((reason) => _reason(reason) ?? _t('blocked'))
+                        .join(' · '),
             ),
           ],
           if (mission.waitingReasons.isNotEmpty) ...[
@@ -579,17 +609,23 @@ class _MissionModuleState extends State<MissionModule> {
             ),
           ],
           if (mission.customerLocation != null)
-            WrListRow(title: _t('location'), subtitle: mission.customerLocation),
+            WrListRow(
+              title: _t('location'),
+              subtitle: mission.customerLocation,
+            ),
         ],
       ),
     );
   }
 
   Widget _visitSelector() {
-    final choices = widget.authorizedVisitScopes.where(
-      (candidate) => candidate.bookingId == _scope.bookingId &&
-          (candidate.sessionId != null || _scope.sessionId == null),
-    ).toList();
+    final choices = widget.authorizedVisitScopes
+        .where(
+          (candidate) =>
+              candidate.bookingId == _scope.bookingId &&
+              (candidate.sessionId != null || _scope.sessionId == null),
+        )
+        .toList();
     if (choices.isEmpty) return const SizedBox.shrink();
     return _section(
       _t('chooseVisit'),
@@ -617,7 +653,10 @@ class _MissionModuleState extends State<MissionModule> {
         WrActionButton(
           label: _t('startTravel'),
           onPressed: _can(WorkerAction.startTravel)
-              ? () => _simple(WorkerAction.startTravel, SimpleMissionAction.startTravel)
+              ? () => _simple(
+                  WorkerAction.startTravel,
+                  SimpleMissionAction.startTravel,
+                )
               : null,
           disabledExplanation: _t('blocked'),
           busy: _busy,
@@ -654,7 +693,8 @@ class _MissionModuleState extends State<MissionModule> {
         if (mission.billableStartAt != null)
           WrListRow(
             title: _t('billableStartAt'),
-            subtitle: '${mission.billableStartAt!.toUtc().toIso8601String()} UTC',
+            subtitle:
+                '${mission.billableStartAt!.toUtc().toIso8601String()} UTC',
             subtitleDirection: TextDirection.ltr,
           ),
         if (mission.expiresAt != null)
@@ -704,9 +744,9 @@ class _MissionModuleState extends State<MissionModule> {
           label: _t('startWork'),
           onPressed: _can(WorkerAction.confirmWorkStart)
               ? () => _simple(
-                    WorkerAction.confirmWorkStart,
-                    SimpleMissionAction.confirmWorkStart,
-                  )
+                  WorkerAction.confirmWorkStart,
+                  SimpleMissionAction.confirmWorkStart,
+                )
               : null,
           busy: _busy,
           busyLabel: _t('busy'),
@@ -721,7 +761,11 @@ class _MissionModuleState extends State<MissionModule> {
     Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        WrEligibilityNotice(title: _t('localDraft'), message: _t('completionWarning'), tone: WrStatusTone.info),
+        WrEligibilityNotice(
+          title: _t('localDraft'),
+          message: _t('completionWarning'),
+          tone: WrStatusTone.info,
+        ),
         for (var i = 0; i < mission.ownServices.length; i++)
           Material(
             color: WrColors.surface,
@@ -757,8 +801,7 @@ class _MissionModuleState extends State<MissionModule> {
               }),
             ),
           ),
-        for (final line in mission.serviceLines)
-          _serviceLine(line),
+        for (final line in mission.serviceLines) _serviceLine(line),
         if (mission.ownServices.isEmpty &&
             mission.ownRooms.isEmpty &&
             mission.serviceLines.isEmpty)
@@ -769,10 +812,12 @@ class _MissionModuleState extends State<MissionModule> {
 
   Widget _serviceLine(MissionServiceLineView line) {
     final scoped = _sameScope(_scope, line.scope);
-    final start = scoped &&
+    final start =
+        scoped &&
         line.allowedActions.contains(WorkerAction.startSpecialService) &&
         _can(WorkerAction.startSpecialService);
-    final finish = scoped &&
+    final finish =
+        scoped &&
         line.allowedActions.contains(WorkerAction.finishSpecialService) &&
         _can(WorkerAction.finishSpecialService);
     return Column(
@@ -844,7 +889,9 @@ class _MissionModuleState extends State<MissionModule> {
               ),
               if (_inventoryFreshness == ReadFreshness.fresh &&
                   item.reservationId != null &&
-                  item.allowedActions.contains(WorkerAction.acknowledgeEquipment) &&
+                  item.allowedActions.contains(
+                    WorkerAction.acknowledgeEquipment,
+                  ) &&
                   _can(WorkerAction.acknowledgeEquipment))
                 WrActionButton(
                   label: _t('acknowledge'),
@@ -889,16 +936,26 @@ class _MissionModuleState extends State<MissionModule> {
 
   Widget _decisionCard(DecisionView decision) {
     final same = _sameScope(_scope, decision.scope);
-    final actionable = same && decision.status == 'pending' &&
+    final actionable =
+        same &&
+        decision.status == 'pending' &&
         decision.decisionActor == 'worker' &&
         _decisionFreshness == ReadFreshness.fresh;
     final extension = decision.extensionFamily != null;
-    final canAccept = actionable && ((extension && _can(WorkerAction.acceptExtension)) ||
-        (decision.kind == 'open_time_end' && _can(WorkerAction.decideOpenTimeEnd)) ||
-        (decision.kind == 'schedule_change' && _can(WorkerAction.decideScheduleChange)));
-    final canReject = actionable && ((extension && _can(WorkerAction.rejectExtension)) ||
-        (decision.kind == 'open_time_end' && _can(WorkerAction.decideOpenTimeEnd)) ||
-        (decision.kind == 'schedule_change' && _can(WorkerAction.decideScheduleChange)));
+    final canAccept =
+        actionable &&
+        ((extension && _can(WorkerAction.acceptExtension)) ||
+            (decision.kind == 'open_time_end' &&
+                _can(WorkerAction.decideOpenTimeEnd)) ||
+            (decision.kind == 'schedule_change' &&
+                _can(WorkerAction.decideScheduleChange)));
+    final canReject =
+        actionable &&
+        ((extension && _can(WorkerAction.rejectExtension)) ||
+            (decision.kind == 'open_time_end' &&
+                _can(WorkerAction.decideOpenTimeEnd)) ||
+            (decision.kind == 'schedule_change' &&
+                _can(WorkerAction.decideScheduleChange)));
     return WrSectionPanel(
       title: decision.kind,
       subtitle: decision.status,
@@ -907,16 +964,28 @@ class _MissionModuleState extends State<MissionModule> {
         children: [
           for (final entry in decision.currentValues.entries)
             if (entry.value != null)
-              WrListRow(title: '${_t('current')} · ${entry.key}', subtitle: entry.value),
+              WrListRow(
+                title: '${_t('current')} · ${entry.key}',
+                subtitle: entry.value,
+              ),
           for (final entry in decision.proposedValues.entries)
             if (entry.value != null)
-              WrListRow(title: '${_t('proposed')} · ${entry.key}', subtitle: entry.value),
+              WrListRow(
+                title: '${_t('proposed')} · ${entry.key}',
+                subtitle: entry.value,
+              ),
           Text(_t('price'), style: WrType.support),
-          WrAmountText(amount: decision.pricedAmount, unavailableLabel: _t('unavailablePrice')),
+          WrAmountText(
+            amount: decision.pricedAmount,
+            unavailableLabel: _t('unavailablePrice'),
+          ),
           if (canAccept || canReject) ...[
             const SizedBox(height: WrSpace.sm),
             if (canAccept)
-              WrActionButton(label: _t('approve'), onPressed: () => _decision(decision, true)),
+              WrActionButton(
+                label: _t('approve'),
+                onPressed: () => _decision(decision, true),
+              ),
             if (canReject) ...[
               const SizedBox(height: WrSpace.xs),
               WrActionButton(
@@ -936,8 +1005,7 @@ class _MissionModuleState extends State<MissionModule> {
     Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (_decisions.isEmpty)
-          Text(_t('noDecisions'), style: WrType.support),
+        if (_decisions.isEmpty) Text(_t('noDecisions'), style: WrType.support),
         for (final decision in _decisions) ...[
           _decisionCard(decision),
           const SizedBox(height: WrSpace.xs),
@@ -961,21 +1029,22 @@ class _MissionModuleState extends State<MissionModule> {
         const SizedBox(height: WrSpace.sm),
         WrActionButton(
           label: _t('complete'),
-          onPressed: _scope.sessionId != null && _can(WorkerAction.submitCompletion)
+          onPressed:
+              _scope.sessionId != null && _can(WorkerAction.submitCompletion)
               ? () => _withReason(
-                    title: _t('completion'),
-                    requiredReason: false,
-                    primaryLabel: _t('complete'),
-                    fieldLabel: _t('completionNote'),
-                    draftIdentity: 'handover',
-                    onSubmit: (note) => _submit(
-                      WorkerAction.submitCompletion,
-                      CompletionReportCommand(
-                        _scope,
-                        completionMessage: note.isEmpty ? null : note,
-                      ),
+                  title: _t('completion'),
+                  requiredReason: false,
+                  primaryLabel: _t('complete'),
+                  fieldLabel: _t('completionNote'),
+                  draftIdentity: 'handover',
+                  onSubmit: (note) => _submit(
+                    WorkerAction.submitCompletion,
+                    CompletionReportCommand(
+                      _scope,
+                      completionMessage: note.isEmpty ? null : note,
                     ),
-                  )
+                  ),
+                )
               : null,
           busy: _busy,
           busyLabel: _t('busy'),
@@ -1012,26 +1081,28 @@ class _MissionModuleState extends State<MissionModule> {
             title: _t('unauthorized'),
           )
         : error != null &&
-            (view == null || error.kind == FailureKind.forbidden ||
-                error.kind == FailureKind.notFound ||
-                error.kind == FailureKind.unauthenticated)
-            ? WrFeedbackPanel(
-                kind: error.kind == FailureKind.forbidden
-                    ? WrFeedbackKind.forbidden
-                    : WrFeedbackKind.initialError,
-                title: _failureText(error),
-                retryLabel: _t('retry'),
-                onRetry: error.kind == FailureKind.forbidden ||
-                        error.kind == FailureKind.unauthenticated
-                    ? null
-                    : _load,
-              )
-            : view == null
-                ? WrFeedbackPanel(
-                    kind: _loading ? WrFeedbackKind.loading : WrFeedbackKind.empty,
-                    title: _loading ? _t('loading') : _t('empty'),
-                  )
-                : _content(view);
+              (view == null ||
+                  error.kind == FailureKind.forbidden ||
+                  error.kind == FailureKind.notFound ||
+                  error.kind == FailureKind.unauthenticated)
+        ? WrFeedbackPanel(
+            kind: error.kind == FailureKind.forbidden
+                ? WrFeedbackKind.forbidden
+                : WrFeedbackKind.initialError,
+            title: _failureText(error),
+            retryLabel: _t('retry'),
+            onRetry:
+                error.kind == FailureKind.forbidden ||
+                    error.kind == FailureKind.unauthenticated
+                ? null
+                : _load,
+          )
+        : view == null
+        ? WrFeedbackPanel(
+            kind: _loading ? WrFeedbackKind.loading : WrFeedbackKind.empty,
+            title: _loading ? _t('loading') : _t('empty'),
+          )
+        : _content(view);
     return Directionality(
       textDirection: widget.languageCode.toLowerCase().startsWith('en')
           ? TextDirection.ltr
@@ -1054,19 +1125,23 @@ class _MissionModuleState extends State<MissionModule> {
               child: WrActionButton(
                 label: _t('support'),
                 role: WrActionRole.secondary,
-                onPressed: _sameUser ? () => _go(WorkerDestination.support) : null,
-              ),
-            ),
-            const SizedBox(width: WrSpace.xs),
-            Expanded(
-              child: WrActionButton(
-                label: _t('sos'),
-                role: WrActionRole.destructive,
-                onPressed: _can(WorkerAction.sendSos)
-                    ? () => _go(WorkerDestination.sos)
+                onPressed: _sameUser
+                    ? () => _go(WorkerDestination.support)
                     : null,
               ),
             ),
+            if (view == null || MissionSosWindowPolicy.permits(view)) ...[
+              const SizedBox(width: WrSpace.xs),
+              Expanded(
+                child: WrActionButton(
+                  label: _t('sos'),
+                  role: WrActionRole.destructive,
+                  onPressed: _can(WorkerAction.sendSos)
+                      ? () => _go(WorkerDestination.sos)
+                      : null,
+                ),
+              ),
+            ],
           ],
         ),
         child: panel,
@@ -1136,7 +1211,10 @@ class _MissionModuleState extends State<MissionModule> {
       _space(),
       _handover(),
       _space(),
-      _section(_t('schedule'), Text(_t('scheduleUnavailable'), style: WrType.support)),
+      _section(
+        _t('schedule'),
+        Text(_t('scheduleUnavailable'), style: WrType.support),
+      ),
     ],
   );
 }

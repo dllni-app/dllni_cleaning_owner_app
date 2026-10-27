@@ -217,5 +217,10 @@ class _QueuedFetchNotificationsUseCase extends FetchNotificationsUseCase {
 
 class _UnusedProfileRepo implements ProfileRepo {
   @override
+  DataResponse<ActionResultModel> markAllNotificationsRead(
+    NoParams params,
+  ) async => const Right<Failure, ActionResultModel>(ActionResultModel());
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

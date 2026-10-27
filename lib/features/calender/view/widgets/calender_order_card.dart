@@ -16,6 +16,8 @@ import '../helpers/calendar_schedule_request_guard.dart';
 import '../helpers/calendar_session_selection.dart';
 import '../../../orders/data/models/fetch_orders_usecase_model.dart';
 import '../../../orders/view/screens/order_details_screen.dart';
+import '../../../orders/view/helpers/worker_order_visual_identity.dart';
+import '../../../orders/view/helpers/order_lifecycle_policy.dart';
 
 class CalenderOrderCard extends StatefulWidget {
   const CalenderOrderCard({super.key, required this.date, required this.index});
@@ -143,6 +145,7 @@ class _CalenderOrderCardState extends State<CalenderOrderCard> {
     required WorkerBookingSessionModel? session,
     required WorkerBookingScheduleModel? schedule,
   }) {
+    final identity = WorkerOrderVisualIdentity.fromOrder(order);
     final displayTime = session?.time ?? order.scheduledTime;
     final displayDate = session == null
         ? order.scheduledDate
@@ -150,7 +153,7 @@ class _CalenderOrderCardState extends State<CalenderOrderCard> {
     final workerAmount =
         session?.workerAssignmentState?.workerAmount ??
         session?.workerAssignmentState?.netAmount;
-    final displayedProfit = workerAmount ?? order.workerNetProfit;
+    final displayedProfit = workerAmount ?? order.workerPayableAmount;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -180,11 +183,11 @@ class _CalenderOrderCardState extends State<CalenderOrderCard> {
                 ),
               );
             },
-            borderRadius: BorderRadius.circular(16.r),
+            borderRadius: BorderRadius.circular(20),
             child: Container(
               decoration: BoxDecoration(
                 color: WorkerAppColors.surface,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: WorkerAppColors.border),
               ),
               child: Padding(
@@ -200,8 +203,8 @@ class _CalenderOrderCardState extends State<CalenderOrderCard> {
                         children: [
                           Expanded(
                             child: AppText.labelLarge(
-                              order.locationName ?? '',
-                              fontWeight: FontWeight.w400,
+                              identity.title,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
                           if (schedule?.isMultiDay == true && session != null)
@@ -215,7 +218,7 @@ class _CalenderOrderCardState extends State<CalenderOrderCard> {
                                 borderRadius: BorderRadius.circular(999),
                               ),
                               child: AppText.labelSmall(
-                                'الجلسة ${session.sequence}/${schedule!.daysCount}',
+                                'زيارة ${session.sequence}',
                                 color: WorkerAppColors.brandPrimary,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -223,6 +226,22 @@ class _CalenderOrderCardState extends State<CalenderOrderCard> {
                         ],
                       ),
                     ),
+                    SizedBox(height: 12.h),
+                    if (order.displayNeighborhoodName?.isNotEmpty == true)
+                      Padding(
+                        padding: EdgeInsetsDirectional.symmetric(
+                          horizontal: 10.w,
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.place_outlined, size: 16),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(order.displayNeighborhoodName!),
+                            ),
+                          ],
+                        ),
+                      ),
                     SizedBox(height: 12.h),
                     Divider(height: 1, color: WorkerAppColors.border),
                     SizedBox(height: 12.h),
@@ -271,7 +290,14 @@ class _CalenderOrderCardState extends State<CalenderOrderCard> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          order.customer?.phone == null
+                          order.customer?.phone == null ||
+                                  (order.numberOfWorkers ?? 1) > 1 ||
+                                  !OrderLifecyclePolicy.hasCurrentWorkerAccepted(
+                                    order,
+                                  ) ||
+                                  !OrderLifecyclePolicy.isStartTravelWithinAllowedWindow(
+                                    order,
+                                  )
                               ? const SizedBox.shrink()
                               : InkWell(
                                   onTap: () async {
@@ -288,9 +314,21 @@ class _CalenderOrderCardState extends State<CalenderOrderCard> {
                                     ),
                                   ),
                                 ),
-                          AppText.titleSmall(
-                            '${CleaningArabicTimeFormatter.toWesternDigits(_money(displayedProfit))} ل.س',
-                            color: WorkerAppColors.success,
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              AppText.labelSmall(
+                                'مستحقاتك',
+                                color: WorkerAppColors.textSecondary,
+                              ),
+                              AppText.titleSmall(
+                                displayedProfit == null
+                                    ? 'قيد التحديد'
+                                    : '${CleaningArabicTimeFormatter.toWesternDigits(_money(displayedProfit))} ل.س',
+                                color: WorkerAppColors.success,
+                              ),
+                            ],
                           ),
                         ],
                       ),

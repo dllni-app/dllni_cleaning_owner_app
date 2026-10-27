@@ -33,6 +33,7 @@ MissionView fixtureMission(
   List<String> waitingReasons = const [],
   String? customerLocation,
   String? customerPhone,
+  DateTime? scheduledStartsAt,
 }) => MissionView(
   scope: scope,
   status: 'assigned',
@@ -50,6 +51,9 @@ MissionView fixtureMission(
   waitingReasons: waitingReasons,
   customerLocation: customerLocation,
   customerPhone: customerPhone,
+  scheduledStartsAt:
+      scheduledStartsAt ??
+      DateTime.now().toUtc().subtract(const Duration(hours: 2)),
 );
 
 ReadSuccess<T> fresh<T>(T value) => ReadSuccess<T>(
@@ -60,7 +64,7 @@ ReadSuccess<T> fresh<T>(T value) => ReadSuccess<T>(
 
 class FakeRuntime implements WorkerRuntimePort {
   FakeRuntime({WorkerSessionContext? context})
-      : contextValue = context ?? fixtureSession;
+    : contextValue = context ?? fixtureSession;
 
   WorkerSessionContext? contextValue;
   RuntimePhase phaseValue = RuntimePhase.signedIn;
@@ -75,7 +79,11 @@ class FakeRuntime implements WorkerRuntimePort {
   @override
   Stream<DomainInvalidation> get invalidations => const Stream.empty();
   @override
-  void invalidate(InvalidationTopic topic, {WorkScope? scope, String? entityKey}) {}
+  void invalidate(
+    InvalidationTopic topic, {
+    WorkScope? scope,
+    String? entityKey,
+  }) {}
   @override
   Future<void> purgeSessionData() async {}
 }
@@ -99,7 +107,8 @@ class FakeMissionPort implements MissionPort {
   @override
   Future<ReadResult<MissionView>> fetchMission(WorkScope scope) => _read(scope);
   @override
-  Future<ReadResult<MissionView>> fetchVisitScope(WorkScope scope) => _read(scope);
+  Future<ReadResult<MissionView>> fetchVisitScope(WorkScope scope) =>
+      _read(scope);
 
   Future<ReadResult<MissionView>> _read(WorkScope scope) async {
     requested.add(scope);
@@ -123,12 +132,15 @@ class FakeMissionPort implements MissionPort {
   @override
   Future<ReadResult<InventoryView>> fetchInventory(WorkScope scope) async =>
       inventoryFailure == null
-          ? fresh(inventories[scope.cacheKey] ?? InventoryView(scope: scope, items: []))
-          : ReadFailure<InventoryView>(inventoryFailure!);
+      ? fresh(
+          inventories[scope.cacheKey] ?? InventoryView(scope: scope, items: []),
+        )
+      : ReadFailure<InventoryView>(inventoryFailure!);
 
   @override
-  Future<ReadResult<List<DecisionView>>> fetchDecisions(WorkScope scope) async =>
-      fresh(decisions[scope.cacheKey] ?? <DecisionView>[]);
+  Future<ReadResult<List<DecisionView>>> fetchDecisions(
+    WorkScope scope,
+  ) async => fresh(decisions[scope.cacheKey] ?? <DecisionView>[]);
 
   @override
   Future<ReadResult<String?>> fetchVerificationCode(WorkScope scope) async {

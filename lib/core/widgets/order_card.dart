@@ -73,41 +73,6 @@ class OrderCard extends StatelessWidget {
   bool get _isDedicatedToMe =>
       DedicatedOrderHelper.isDedicatedToCurrentUser(data.preferredWorkerId);
 
-  Widget _acceptedWaitingBanner(BuildContext context) {
-    // 1. التحقق الأساسي من الحالة
-    if (!OrderLifecyclePolicy.isAcceptedWaiting(data)) {
-      return const SizedBox.shrink();
-    }
-
-    // 2. الحصول على الرسالة (التي قد تكون null)
-    final String? message = OrderLifecyclePolicy.acceptedWaitingMessage(data);
-
-    // 3. إذا كانت الرسالة null، نقوم بإخفاء الـ Banner تماماً
-    if (message == null || message.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    // 4. عرض الـ Banner فقط إذا كانت هناك رسالة حقيقية
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsetsDirectional.symmetric(
-        horizontal: 12,
-        vertical: 10,
-      ),
-      decoration: BoxDecoration(
-        color: WorkerAppColors.infoSoft,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: WorkerAppColors.info.withAlpha(90)),
-      ),
-      child: AppText.labelMedium(
-        message, // الآن نحن متأكدون أنها ليست null
-        color: WorkerAppColors.info,
-        fontWeight: FontWeight.w700,
-        textAlign: TextAlign.start,
-      ),
-    );
-  }
-
   String _formatDate() {
     return CleaningArabicTimeFormatter.formatScheduledDate(
       data.scheduledDate,
@@ -494,6 +459,11 @@ class OrderCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 4),
+                          AppText.labelSmall(
+                            'مستحقاتك',
+                            color: WorkerAppColors.textSecondary,
+                            fontWeight: FontWeight.w600,
+                          ),
                           AppText.titleSmall(
                             data.workerPayableAmount?.formatMoney() ??
                                 'قيد التحديد',
@@ -521,10 +491,6 @@ class OrderCard extends StatelessWidget {
                     Icons.place_outlined,
                     data.displayNeighborhoodName!.trim(),
                   ),
-                if (OrderLifecyclePolicy.isAcceptedWaiting(data)) ...[
-                  const SizedBox(height: 10),
-                  _acceptedWaitingBanner(context),
-                ],
                 const SizedBox(height: 12),
                 if (OrderLifecyclePolicy.canAcceptReject(data))
                   Row(
@@ -639,6 +605,8 @@ class OrderCard extends StatelessWidget {
                                           orderNum:
                                               data.bookingNumber ??
                                               bookingLabel,
+                                          cancellationPenaltyAmount: data
+                                              .workerCancellationPenaltyAmount,
                                           index: index,
                                         );
                                       },
@@ -677,102 +645,142 @@ class OrderCard extends StatelessWidget {
                     ],
                   )
                 else if (OrderLifecyclePolicy.canStartTravel(data))
-                  Row(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Expanded(
-                        flex: 2,
-                        child: BlocBuilder<OrdersBloc, OrdersState>(
-                          bloc: bloc,
-                          builder: (context, state) {
-                            final loading =
-                                OrderLifecyclePolicy.isLoadingForOrderIndex(
-                                  state: state,
-                                  orderIndex: index,
-                                  actionStatus: state.startTravelUsecaseStatus,
+                      if (!OrderLifecyclePolicy.isStartTravelWithinAllowedWindow(
+                        data,
+                      ))
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Icon(
+                                Icons.schedule_outlined,
+                                size: 18,
+                                color: Color(0xff64748B),
+                              ),
+                              SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  OrderLifecyclePolicy
+                                      .startTravelUnavailableMessage,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xff64748B),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: BlocBuilder<OrdersBloc, OrdersState>(
+                              bloc: bloc,
+                              builder: (context, state) {
+                                final loading =
+                                    OrderLifecyclePolicy.isLoadingForOrderIndex(
+                                      state: state,
+                                      orderIndex: index,
+                                      actionStatus:
+                                          state.startTravelUsecaseStatus,
+                                    );
+                                return InkWell(
+                                  onTap:
+                                      loading ||
+                                          !OrderLifecyclePolicy.isStartTravelWithinAllowedWindow(
+                                            data,
+                                          )
+                                      ? null
+                                      : () {
+                                          if (data.id == null) return;
+                                          bloc.add(
+                                            StartTravelUsecaseEvent(
+                                              params: StartTravelUsecaseParams(
+                                                id: data.id!,
+                                              ),
+                                              index: index,
+                                            ),
+                                          );
+                                        },
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Container(
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(10),
+                                      color:
+                                          OrderLifecyclePolicy.isStartTravelWithinAllowedWindow(
+                                            data,
+                                          )
+                                          ? context.primary
+                                          : const Color(0xffCBD5E1),
+                                    ),
+                                    child: Center(
+                                      child: loading
+                                          ? SizedBox(
+                                              width: 18,
+                                              height: 18,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: context.onPrimary,
+                                              ),
+                                            )
+                                          : AppText.labelMedium(
+                                              'أنا في الطريق',
+                                              color:
+                                                  OrderLifecyclePolicy.isStartTravelWithinAllowedWindow(
+                                                    data,
+                                                  )
+                                                  ? context.onPrimary
+                                                  : const Color(0xff475569),
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                    ),
+                                  ),
                                 );
-                            return InkWell(
-                              onTap: loading
-                                  ? null
-                                  : () {
-                                      if (data.id == null) return;
-                                      if (!OrderLifecyclePolicy.isStartTravelWithinAllowedWindow(
-                                        data,
-                                      )) {
-                                        AppToast.showErrorGlobal(
-                                          OrderLifecyclePolicy
-                                              .startTravelUnavailableMessage,
-                                        );
-                                        return;
-                                      }
-                                      bloc.add(
-                                        StartTravelUsecaseEvent(
-                                          params: StartTravelUsecaseParams(
-                                            id: data.id!,
-                                          ),
-                                          index: index,
-                                        ),
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          SizedBox(
+                            width: 44,
+                            child: InkWell(
+                              onTap: OrderLifecyclePolicy.canCancel(data)
+                                  ? () {
+                                      CancelOrderDialog.show(
+                                        context,
+                                        bloc: bloc,
+                                        orderId: data.id!,
+                                        orderNum: data.bookingNumber!,
+                                        cancellationPenaltyAmount: data
+                                            .workerCancellationPenaltyAmount,
+                                        index: index,
                                       );
-                                    },
+                                    }
+                                  : null,
                               borderRadius: BorderRadius.circular(10),
                               child: Container(
                                 height: 44,
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(10),
-                                  color: context.primary,
+                                  color: context.error.withAlpha(20),
+                                  border: Border.all(color: context.error),
                                 ),
                                 child: Center(
-                                  child: loading
-                                      ? SizedBox(
-                                          width: 18,
-                                          height: 18,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: context.onPrimary,
-                                          ),
-                                        )
-                                      : AppText.labelMedium(
-                                          'أنا في الطريق',
-                                          color: context.onPrimary,
-                                          fontWeight: FontWeight.w700,
-                                        ),
+                                  child: AppText.labelMedium(
+                                    'إلغاء',
+                                    color: context.error,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      SizedBox(
-                        width: 44,
-                        child: InkWell(
-                          onTap: OrderLifecyclePolicy.canCancel(data)
-                              ? () {
-                                  CancelOrderDialog.show(
-                                    context,
-                                    bloc: bloc,
-                                    orderId: data.id!,
-                                    orderNum: data.bookingNumber!,
-                                    index: index,
-                                  );
-                                }
-                              : null,
-                          borderRadius: BorderRadius.circular(10),
-                          child: Container(
-                            height: 44,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              color: context.error.withAlpha(20),
-                              border: Border.all(color: context.error),
-                            ),
-                            child: Center(
-                              child: AppText.labelMedium(
-                                'إلغاء',
-                                color: context.error,
-                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
                     ],
                   )

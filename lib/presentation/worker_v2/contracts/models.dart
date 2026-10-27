@@ -162,6 +162,7 @@ class MissionView {
     this.customerPhone,
     this.customerLocation,
     this.verificationCode,
+    this.scheduledStartsAt,
     this.startedAt,
     this.expiresAt,
     this.billableStartAt,
@@ -183,6 +184,10 @@ class MissionView {
   final String? customerPhone;
   final String? customerLocation;
   final String? verificationCode;
+
+  /// Canonical UTC appointment instant. Null when the server has not
+  /// supplied a verifiable visit time; it is not inferred from device date.
+  final DateTime? scheduledStartsAt;
   final DateTime? startedAt;
   final DateTime? expiresAt;
   final DateTime? billableStartAt;
@@ -343,6 +348,7 @@ class DepositView {
   final List<String> restrictionCodes;
   final Map<String, String> remedyDestinations;
   final MoneyValue? currentBalance;
+
   /// Server-approved debt snapshot, distinct from the deposit and capacity.
   /// Null is unknown, never inferred or interpreted as zero.
   final MoneyValue? debtBalance;
@@ -413,9 +419,11 @@ class NotificationView {
     this.promptKind,
     this.promptStatus,
   }) : id = requireId(id, 'id'),
-       targetState = targetState ?? (target == null
-           ? NotificationTargetState.pending
-           : NotificationTargetState.ready) {
+       targetState =
+           targetState ??
+           (target == null
+               ? NotificationTargetState.pending
+               : NotificationTargetState.ready) {
     if (this.targetState == NotificationTargetState.ready && target == null) {
       throw ArgumentError('A ready notification requires a typed target');
     }
@@ -427,6 +435,7 @@ class NotificationView {
   final bool isRead;
   final RouteIntent? target;
   final NotificationTargetState targetState;
+
   /// Allowlisted display hint only; it never authorizes a decision.
   final String? promptKind;
   final String? promptStatus;

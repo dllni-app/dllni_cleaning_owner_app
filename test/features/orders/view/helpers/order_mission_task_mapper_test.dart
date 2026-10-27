@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('OrderMissionTaskMapper.build', () {
-    test('renders grouped offer rooms with count, size, and cleaning mode', () {
+    test('renders grouped offer rooms with count and size but without cleaning mode', () {
       final order = FetchOrdersUsecaseModelDataItem.fromJson(<String, dynamic>{
         'id': 88,
         'roomRequirements': [
@@ -23,13 +23,12 @@ void main() {
       final tasks = OrderMissionTaskMapper.build(order: order);
       expect(tasks, hasLength(1));
       expect(tasks.single.label, 'غرفة نوم × 2');
-      expect(tasks.single.detail, 'متوسطة • تعزيل');
+      expect(tasks.single.detail, 'متوسطة');
       expect(tasks.single.isReadOnlyInfo, isFalse);
     });
-    test('builds one task per assigned room with label and size detail', () {
+    test('builds all requested room tasks without assigning workers', () {
       final order = FetchOrdersUsecaseModelDataItem.fromJson(<String, dynamic>{
         'id': 123,
-        'my_assignment': <String, dynamic>{'workerId': 9, 'status': 'accepted'},
         'room_assignments': <Map<String, dynamic>>[
           <String, dynamic>{
             'id': 1,
@@ -38,8 +37,6 @@ void main() {
             'roomTypeLabel': 'غرفة نوم',
             'roomSize': 'large',
             'roomSizeLabel': 'كبيرة',
-            'assignedWorkerId': 9,
-            'isAssignedToMe': true,
           },
           <String, dynamic>{
             'id': 2,
@@ -48,8 +45,6 @@ void main() {
             'roomTypeLabel': 'حمام',
             'roomSize': 'medium',
             'roomSizeLabel': 'متوسطة',
-            'assignedWorkerId': 9,
-            'isAssignedToMe': true,
           },
         ],
       });

@@ -13,9 +13,23 @@ abstract class CleaningBookingStatus {
   static const cancelled = 'cancelled';
 
   static String toArabic(String status) {
-    switch (status) {
+    final normalized = status.trim().toLowerCase().replaceAll(
+      RegExp(r'[\s-]+'),
+      '_',
+    );
+    switch (normalized) {
       case pending:
         return 'قيد الانتظار';
+      case 'accepted':
+        return 'تم القبول';
+      case 'accepted_waiting_team':
+        return 'تم القبول - بانتظار اكتمال الفريق';
+      case 'accepted_waiting_for_order_start':
+        return 'تم القبول - بانتظار بدء الطلب';
+      case 'start_approved':
+        return 'تم تأكيد بدء العمل';
+      case 'scheduled':
+        return 'مجدول';
       case workerAssigned:
         return 'تم تعيين العامل';
       case awaitingStartVerification:
@@ -37,7 +51,10 @@ abstract class CleaningBookingStatus {
       case cancelled:
         return 'ملغي';
       default:
-        return status;
+        // Unknown English backend enums must never leak into Arabic UI.
+        return RegExp(r'[\u0600-\u06FF]').hasMatch(status)
+            ? status
+            : 'قيد المتابعة';
     }
   }
 }

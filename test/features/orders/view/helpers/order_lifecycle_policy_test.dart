@@ -88,10 +88,7 @@ void main() {
       expect(OrderLifecyclePolicy.hasCurrentWorkerAccepted(order), isTrue);
       expect(OrderLifecyclePolicy.isAcceptedWaiting(order), isTrue);
       expect(OrderLifecyclePolicy.canAcceptReject(order), isFalse);
-      expect(
-        OrderLifecyclePolicy.statusLabel(order),
-        'تم قبول الطلب',
-      );
+      expect(OrderLifecyclePolicy.statusLabel(order), 'تم قبول الطلب');
       expect(
         OrderLifecyclePolicy.acceptedWaitingMessage(order),
         contains('1 من 3'),
@@ -113,10 +110,7 @@ void main() {
       );
 
       expect(OrderLifecyclePolicy.isAcceptedWaiting(order), isTrue);
-      expect(
-        OrderLifecyclePolicy.statusLabel(order),
-        'بانتظار بدء الطلب',
-      );
+      expect(OrderLifecyclePolicy.statusLabel(order), 'بانتظار بدء الطلب');
       expect(
         OrderLifecyclePolicy.acceptedWaitingMessage(order),
         contains('اكتمل الفريق'),
@@ -182,21 +176,18 @@ void main() {
           ),
         );
 
-        expect(
-          OrderLifecyclePolicy.canStartTravelForSession(session),
-          isTrue,
-        );
+        expect(OrderLifecyclePolicy.canStartTravelForSession(session), isTrue);
       },
     );
 
-    test('multi-day scheduled session without worker assignment cannot start travel', () {
-      final session = _session(status: 'scheduled', canStartTravel: false);
+    test(
+      'multi-day scheduled session without worker assignment cannot start travel',
+      () {
+        final session = _session(status: 'scheduled', canStartTravel: false);
 
-      expect(
-        OrderLifecyclePolicy.canStartTravelForSession(session),
-        isFalse,
-      );
-    });
+        expect(OrderLifecyclePolicy.canStartTravelForSession(session), isFalse);
+      },
+    );
 
     test(
       'multi-day session keeps start travel for this worker when another worker already started',
@@ -211,55 +202,51 @@ void main() {
           ),
         );
 
+        expect(OrderLifecyclePolicy.canStartTravelForSession(session), isTrue);
+      },
+    );
+
+    test(
+      'multi-day session cannot start travel after this worker already started',
+      () {
+        final session = _session(
+          status: 'scheduled',
+          startedTravelAt: '2026-06-16T09:00:00+03:00',
+          assignment: const WorkerSessionAssignmentModel(
+            id: 77,
+            workerId: 28,
+            status: 'accepted',
+            startedTravelAt: '2026-06-16T09:05:00+03:00',
+          ),
+        );
+
+        expect(OrderLifecyclePolicy.canStartTravelForSession(session), isFalse);
+      },
+    );
+
+    test(
+      'multi-day session start travel respects the configured time window',
+      () {
+        final session = _session(date: DateTime(2026, 6, 17), time: '10:00:00');
+
         expect(
-          OrderLifecyclePolicy.canStartTravelForSession(session),
+          OrderLifecyclePolicy.isSessionStartTravelWithinAllowedWindow(
+            session,
+            now: DateTime(2026, 6, 16, 10),
+            enforceWindow: true,
+          ),
+          isFalse,
+        );
+        expect(
+          OrderLifecyclePolicy.isSessionStartTravelWithinAllowedWindow(
+            session,
+            now: DateTime(2026, 6, 16, 10),
+            enforceWindow: false,
+          ),
           isTrue,
         );
       },
     );
-
-    test('multi-day session cannot start travel after this worker already started', () {
-      final session = _session(
-        status: 'scheduled',
-        startedTravelAt: '2026-06-16T09:00:00+03:00',
-        assignment: const WorkerSessionAssignmentModel(
-          id: 77,
-          workerId: 28,
-          status: 'accepted',
-          startedTravelAt: '2026-06-16T09:05:00+03:00',
-        ),
-      );
-
-      expect(
-        OrderLifecyclePolicy.canStartTravelForSession(session),
-        isFalse,
-      );
-    });
-
-    test('multi-day session start travel respects the configured time window', () {
-      final session = _session(
-        date: DateTime(2026, 6, 17),
-        time: '10:00:00',
-      );
-
-      expect(
-        OrderLifecyclePolicy.isSessionStartTravelWithinAllowedWindow(
-          session,
-          now: DateTime(2026, 6, 16, 10),
-          enforceWindow: true,
-        ),
-        isFalse,
-      );
-      expect(
-        OrderLifecyclePolicy.isSessionStartTravelWithinAllowedWindow(
-          session,
-          now: DateTime(2026, 6, 16, 10),
-          enforceWindow: false,
-        ),
-        isTrue,
-      );
-    });
-
 
     test('withdrawn team worker must not see start travel again', () {
       final order = _order(
@@ -275,71 +262,118 @@ void main() {
       expect(OrderLifecyclePolicy.canArrive(order), isFalse);
     });
 
-    test('another team member travelling does not mark this worker as arrived or travelling', () {
+    test(
+      'another team member travelling does not mark this worker as arrived or travelling',
+      () {
+        final order = _order(
+          status: CleaningBookingStatus.workerAssigned,
+          numberOfWorkers: 2,
+          startedTravelAt: '2026-10-16T10:00:00Z',
+          myAssignment: CleaningMyAssignmentModel(
+            status: 'accepted',
+            acceptedAt: '2026-10-16T09:40:00Z',
+          ),
+        );
+        expect(OrderLifecyclePolicy.canStartTravel(order), isTrue);
+        expect(OrderLifecyclePolicy.canArrive(order), isFalse);
+        expect(OrderLifecyclePolicy.isTravelingToCustomer(order), isFalse);
+        expect(OrderLifecyclePolicy.detailsStepFor(order), 1);
+        expect(
+          OrderLifecyclePolicy.detailsUiStateFor(order),
+          OrderDetailsUiState.readyToStartTravel,
+        );
+      },
+    );
+
+    test(
+      'only this worker starting travel enables arrival on team booking',
+      () {
+        final order = _order(
+          status: CleaningBookingStatus.workerAssigned,
+          numberOfWorkers: 2,
+          startedTravelAt: '2026-10-16T10:00:00Z',
+          myAssignment: CleaningMyAssignmentModel(
+            status: 'accepted',
+            acceptedAt: '2026-10-16T09:40:00Z',
+            startedTravelAt: '2026-10-16T10:05:00Z',
+          ),
+        );
+        expect(OrderLifecyclePolicy.canStartTravel(order), isFalse);
+        expect(OrderLifecyclePolicy.canArrive(order), isTrue);
+        expect(OrderLifecyclePolicy.detailsStepFor(order), 2);
+      },
+    );
+
+    test('confirmed personal team travel transitions from details to map', () {
       final order = _order(
         status: CleaningBookingStatus.workerAssigned,
         numberOfWorkers: 2,
-        startedTravelAt: '2026-10-16T10:00:00Z',
         myAssignment: CleaningMyAssignmentModel(
           status: 'accepted',
-          acceptedAt: '2026-10-16T09:40:00Z',
+          acceptedAt: '2026-10-27T08:00:00Z',
+          serviceShareAmount: 150,
         ),
       );
-      expect(OrderLifecyclePolicy.canStartTravel(order), isTrue);
-      expect(OrderLifecyclePolicy.canArrive(order), isFalse);
-      expect(OrderLifecyclePolicy.isTravelingToCustomer(order), isFalse);
       expect(OrderLifecyclePolicy.detailsStepFor(order), 1);
-      expect(OrderLifecyclePolicy.detailsUiStateFor(order), OrderDetailsUiState.readyToStartTravel);
+
+      final confirmed = order
+          .withLifecycle(startedTravelAt: '2026-10-27T08:05:00Z')
+          .withTeamData(
+            myAssignment: order.myAssignment!.withStartedTravelAt(
+              '2026-10-27T08:05:00Z',
+            ),
+          );
+      expect(confirmed.myAssignment?.serviceShareAmount, 150);
+      expect(OrderLifecyclePolicy.detailsStepFor(confirmed), 2);
+      expect(OrderLifecyclePolicy.canStartTravel(confirmed), isFalse);
+      expect(OrderLifecyclePolicy.canArrive(confirmed), isTrue);
     });
 
-    test('only this worker starting travel enables arrival on team booking', () {
-      final order = _order(
-        status: CleaningBookingStatus.workerAssigned,
-        numberOfWorkers: 2,
-        startedTravelAt: '2026-10-16T10:00:00Z',
-        myAssignment: CleaningMyAssignmentModel(
-          status: 'accepted',
-          acceptedAt: '2026-10-16T09:40:00Z',
-          startedTravelAt: '2026-10-16T10:05:00Z',
-        ),
-      );
-      expect(OrderLifecyclePolicy.canStartTravel(order), isFalse);
-      expect(OrderLifecyclePolicy.canArrive(order), isTrue);
-      expect(OrderLifecyclePolicy.detailsStepFor(order), 2);
-    });
+    test(
+      'travel opens exactly three hours before booking and not a minute earlier',
+      () {
+        final order = _order(
+          status: CleaningBookingStatus.workerAssigned,
+          scheduledDate: '2026-06-16',
+          scheduledTime: '12:00:00',
+        );
+        expect(
+          OrderLifecyclePolicy.isStartTravelWithinAllowedWindow(
+            order,
+            now: DateTime(2026, 6, 16, 8, 59),
+            enforceWindow: true,
+          ),
+          isFalse,
+        );
+        expect(
+          OrderLifecyclePolicy.isStartTravelWithinAllowedWindow(
+            order,
+            now: DateTime(2026, 6, 16, 9),
+            enforceWindow: true,
+          ),
+          isTrue,
+        );
+      },
+    );
 
-
-    test('travel opens exactly three hours before booking and not a minute earlier', () {
-      final order = _order(
-        status: CleaningBookingStatus.workerAssigned,
-        scheduledDate: '2026-06-16',
-        scheduledTime: '12:00:00',
-      );
+    test('session travel opens exactly three hours before its start time', () {
+      final session = _session(date: DateTime(2026, 6, 16), time: '12:00');
       expect(
-        OrderLifecyclePolicy.isStartTravelWithinAllowedWindow(
-          order, now: DateTime(2026, 6, 16, 8, 59), enforceWindow: true,
+        OrderLifecyclePolicy.isSessionStartTravelWithinAllowedWindow(
+          session,
+          now: DateTime(2026, 6, 16, 8, 59),
+          enforceWindow: true,
         ),
         isFalse,
       );
       expect(
-        OrderLifecyclePolicy.isStartTravelWithinAllowedWindow(
-          order, now: DateTime(2026, 6, 16, 9), enforceWindow: true,
+        OrderLifecyclePolicy.isSessionStartTravelWithinAllowedWindow(
+          session,
+          now: DateTime(2026, 6, 16, 9),
+          enforceWindow: true,
         ),
         isTrue,
       );
-    });
-
-    test('session travel opens exactly three hours before its start time', () {
-      final session = _session(
-        date: DateTime(2026, 6, 16),
-        time: '12:00',
-      );
-      expect(OrderLifecyclePolicy.isSessionStartTravelWithinAllowedWindow(
-        session, now: DateTime(2026, 6, 16, 8, 59), enforceWindow: true,
-      ), isFalse);
-      expect(OrderLifecyclePolicy.isSessionStartTravelWithinAllowedWindow(
-        session, now: DateTime(2026, 6, 16, 9), enforceWindow: true,
-      ), isTrue);
     });
 
     test('traveling allows arrive on map step', () {

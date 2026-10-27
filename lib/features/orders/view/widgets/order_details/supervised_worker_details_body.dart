@@ -1,8 +1,12 @@
 import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/supervised_worker_booking.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/source/orders_remote_data_source.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/arrive_use_case.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/domain/usecases/start_travel_usecase_use_case.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/screens/emergency_sos_screen.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_lifecycle_policy.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'worker_booking_inventory_card.dart';
 import 'worker_detail_section.dart';
 
@@ -27,6 +31,8 @@ class SupervisedWorkerDetailsBody extends StatefulWidget {
 class _SupervisedWorkerDetailsBodyState
     extends State<SupervisedWorkerDetailsBody> {
   late Future<SupervisedWorkerBooking> _booking;
+  bool _attendanceBusy = false;
+  String? _attendanceFeedback;
 
   @override
   void initState() {
@@ -39,6 +45,8 @@ class _SupervisedWorkerDetailsBodyState
     super.didUpdateWidget(oldWidget);
     if (widget.bookingId != oldWidget.bookingId ||
         widget.refreshRevision != oldWidget.refreshRevision) {
+      _attendanceBusy = false;
+      _attendanceFeedback = null;
       _reload();
     }
   }
@@ -50,6 +58,71 @@ class _SupervisedWorkerDetailsBodyState
   }
 
   void _refresh() => setState(_reload);
+
+  Future<void> _callSupervisor(String number) async {
+    final phone = number.trim();
+    if (phone.isEmpty) return;
+    await launchUrl(Uri(scheme: 'tel', path: phone));
+  }
+
+  Future<void> _messageSupervisor(String number) async {
+    final phone = number.trim();
+    if (phone.isEmpty) return;
+    await launchUrl(Uri(scheme: 'sms', path: phone));
+  }
+
+  Future<void> _recordAttendance({required bool arrive}) async {
+    if (_attendanceBusy) return;
+    final bookingId = widget.bookingId;
+    setState(() {
+      _attendanceBusy = true;
+      _attendanceFeedback = null;
+    });
+
+    Object? writeError;
+    try {
+      final source = getIt<OrdersRemoteDataSource>();
+      if (arrive) {
+        await source.arrive(ArriveParams(id: bookingId));
+      } else {
+        await source.startTravelUsecase(
+          StartTravelUsecaseParams(id: bookingId),
+        );
+      }
+    } catch (error) {
+      // A timed-out write may still have reached the server. Always read the
+      // authenticated worker's authoritative attendance before offering retry.
+      writeError = error;
+    }
+
+    try {
+      final refreshed = await getIt<OrdersRemoteDataSource>()
+          .fetchSupervisedBooking(bookingId);
+      if (!mounted || widget.bookingId != bookingId) return;
+      setState(() {
+        _booking = Future.value(refreshed);
+        _attendanceBusy = false;
+        final confirmed = arrive
+            ? refreshed.arrivedAt != null
+            : refreshed.startedTravelAt != null;
+        _attendanceFeedback = confirmed
+            ? (arrive ? 'تم تحديث حالة الوصول.' : 'تم تسجيل بدء التنقل.')
+            : writeError == null
+            ? 'لم يؤكد الخادم تغيير الحالة. تحقق منها قبل المحاولة مجدداً.'
+            : 'تعذر تأكيد نتيجة الإجراء. تحقق من الحالة قبل المحاولة مجدداً.';
+      });
+    } catch (_) {
+      if (!mounted || widget.bookingId != bookingId) return;
+      setState(() {
+        _booking = Future.error(
+          StateError('تعذر تحديث حالة الحضور من الخادم.'),
+        );
+        _attendanceBusy = false;
+        _attendanceFeedback =
+            'تعذر تحديث الحالة بعد الإجراء. أعد تحميل الطلب قبل أي محاولة أخرى.';
+      });
+    }
+  }
 
   Widget _section(String title, List<Widget> children) {
     return WorkerDetailSection(title: title, children: children);
@@ -155,19 +228,53 @@ class _SupervisedWorkerDetailsBodyState
                             Icons.place_outlined,
                             booking.neighborhoodName!,
                           ),
-                        if (booking.supervisorName?.isNotEmpty == true)
-                          _detailLine(
-                            Icons.person_outline,
-                            'المشرف: ${booking.supervisorName}',
-                          ),
                         _detailLine(
                           Icons.info_outline,
                           'الحالة: ${_status(booking.status)}',
                         ),
                         const SizedBox(height: 6),
                         const Text(
-                          'المشرف مسؤول عن الحضور والانطلاق وبدء التنفيذ والاستلام.',
+                          'سجّل حضورك الشخصي من هنا. بدء تنفيذ العمل والاستلام من مسؤولية المشرف.',
                         ),
+                        if (booking.startedTravelAt != null)
+                          _detailLine(
+                            Icons.directions_walk_outlined,
+                            'بدء التنقل: ${booking.startedTravelAt}',
+                          ),
+                        if (booking.arrivedAt != null)
+                          _detailLine(
+                            Icons.location_on_outlined,
+                            'الوصول: ${booking.arrivedAt}',
+                          ),
+                        if (booking.canStartTravel || booking.canArrive) ...[
+                          const SizedBox(height: 10),
+                          if (booking.canStartTravel)
+                            FilledButton.icon(
+                              onPressed: _attendanceBusy
+                                  ? null
+                                  : () => _recordAttendance(arrive: false),
+                              icon: const Icon(Icons.directions_walk),
+                              label: const Text('بدء التنقل'),
+                            ),
+                          if (booking.canArrive)
+                            FilledButton.icon(
+                              onPressed: _attendanceBusy
+                                  ? null
+                                  : () => _recordAttendance(arrive: true),
+                              icon: const Icon(Icons.location_on_outlined),
+                              label: const Text('تأكيد الوصول'),
+                            ),
+                        ],
+                        if (_attendanceBusy)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8),
+                            child: LinearProgressIndicator(),
+                          ),
+                        if (_attendanceFeedback != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(_attendanceFeedback!),
+                          ),
                       ]),
                       if (booking.propertyDetails['customService']
                               ?.toString()
@@ -236,7 +343,52 @@ class _SupervisedWorkerDetailsBodyState
                               }).toList(),
                       ),
                       WorkerBookingInventoryCard(bookingId: widget.bookingId),
-                      if (booking.allowedActions.contains('sos'))
+                      if (booking.startedTravelAt != null ||
+                          booking.arrivedAt != null)
+                        _section('التواصل مع المشرف', [
+                          _detailLine(
+                            Icons.person_outline,
+                            'المشرف: ${booking.supervisorName?.trim().isNotEmpty == true ? booking.supervisorName : 'غير محدد'}',
+                          ),
+                          if (booking.supervisorPhone?.trim().isNotEmpty ==
+                              true) ...[
+                            _detailLine(
+                              Icons.phone_outlined,
+                              'رقم المشرف: ${booking.supervisorPhone}',
+                            ),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: FilledButton.icon(
+                                    onPressed: () => _callSupervisor(
+                                      booking.supervisorPhone!,
+                                    ),
+                                    icon: const Icon(Icons.phone_outlined),
+                                    label: const Text('اتصال بالمشرف'),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: () => _messageSupervisor(
+                                      booking.supervisorPhone!,
+                                    ),
+                                    icon: const Icon(Icons.message_outlined),
+                                    label: const Text('رسالة للمشرف'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ] else
+                            const Text(
+                              'رقم المشرف غير متاح حالياً. حدّث بيانات الطلب.',
+                            ),
+                        ]),
+                      if (booking.allowedActions.contains('sos') &&
+                          OrderLifecyclePolicy.canShowScheduledSos(
+                            date: booking.scheduledDate,
+                            time: booking.scheduledTime,
+                          ))
                         OutlinedButton.icon(
                           icon: const Icon(Icons.sos_outlined),
                           label: const Text('الإبلاغ عن حالة طارئة'),

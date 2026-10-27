@@ -21,9 +21,9 @@ void main() {
 
     expect(find.text('المبلغ الإضافي المعتمد'), findsOneWidget);
     expect(find.text('القيمة الأساسية'), findsOneWidget);
-    expect(find.text('هامش الادارة'), findsOneWidget);
+    expect(find.text('هامش الادارة'), findsNothing);
     expect(find.text('4500.00 SYP'), findsOneWidget);
-    expect(find.text('500.00 SYP'), findsOneWidget);
+    expect(find.text('500.00 SYP'), findsNothing);
     expect(find.text('5000.00 SYP'), findsOneWidget);
     expect(find.text('صافي الربح'), findsNothing);
   });
@@ -85,7 +85,7 @@ void main() {
         expect(tester.takeException(), isNull, reason: 'width $width');
         expect(find.text('المبلغ الإضافي المعتمد'), findsOneWidget);
         expect(find.text('القيمة الأساسية'), findsOneWidget);
-        expect(find.text('هامش الادارة'), findsOneWidget);
+        expect(find.text('هامش الادارة'), findsNothing);
       }
     },
   );

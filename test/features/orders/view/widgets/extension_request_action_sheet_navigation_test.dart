@@ -61,7 +61,7 @@ void main() {
     await _closeOrdersBloc(tester, bloc);
   });
 
-  testWidgets('success for another warning does not close this sheet', (
+  testWidgets('submitted acceptance closes with mismatched response id', (
     WidgetTester tester,
   ) async {
     final bloc = _buildOrdersBloc(
@@ -80,10 +80,53 @@ void main() {
     await tester.tap(find.text('قبول الطلب'));
     await tester.pumpAndSettle();
 
-    expect(find.text('طلب تمديد مدة العمل'), findsOneWidget);
-    expect(result.isCompleted, isFalse);
-    await tester.binding.handlePopRoute();
+    expect(await result.future, isTrue);
+    expect(find.text('طلب تمديد مدة العمل'), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await finishWidgetCleanup(tester, bloc.close());
+  });
+
+  testWidgets('submitted rejection closes even when response id is absent', (
+    WidgetTester tester,
+  ) async {
+    final bloc = _buildOrdersBloc(
+      repo: _OrdersRepoFake(
+        rejectResults: <Either<Failure, RejectExtensionUsecaseModel>>[
+          Right<Failure, RejectExtensionUsecaseModel>(
+            RejectExtensionUsecaseModel(),
+          ),
+        ],
+      ),
+    );
+    final result = await _openSheet(tester, bloc, warningId: 10);
+    await tester.tap(find.text('رفض الطلب'));
     await tester.pumpAndSettle();
+    expect(await result.future, isTrue);
+    expect(find.text('طلب تمديد مدة العمل'), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await finishWidgetCleanup(tester, bloc.close());
+  });
+
+  testWidgets('unrelated decision success before tapping does not close', (
+    WidgetTester tester,
+  ) async {
+    final bloc = _buildOrdersBloc(
+      repo: _OrdersRepoFake(
+        rejectResults: <Either<Failure, RejectExtensionUsecaseModel>>[
+          Right<Failure, RejectExtensionUsecaseModel>(
+            RejectExtensionUsecaseModel(
+              data: RejectExtensionUsecaseModelData(id: 99),
+            ),
+          ),
+        ],
+      ),
+    );
+    final result = await _openSheet(tester, bloc, warningId: 10);
+    bloc.add(
+      RejectExtensionUsecaseEvent(params: RejectExtensionUsecaseParams(id: 99)),
+    );
+    await tester.pumpAndSettle();
+    expect(result.isCompleted, isFalse);
     expect(find.text('طلب تمديد مدة العمل'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
     await finishWidgetCleanup(tester, bloc.close());
@@ -139,7 +182,7 @@ void main() {
   });
 
   testWidgets(
-    'missing quote stays disabled with 2x text and reachable actions',
+    'missing quote permits backend decision with 2x text and reachable actions',
     (WidgetTester tester) async {
       final bloc = _buildOrdersBloc(repo: _OrdersRepoFake());
       final result = await _openSheet(
@@ -153,7 +196,7 @@ void main() {
       final acceptButton = tester.widget<FilledButton>(
         find.widgetWithText(FilledButton, 'قبول الطلب'),
       );
-      expect(acceptButton.onPressed, isNull);
+      expect(acceptButton.onPressed, isNotNull);
       await tester.ensureVisible(find.text('رفض الطلب'));
       expect(
         tester.getSize(find.widgetWithText(OutlinedButton, 'رفض الطلب')).height,
@@ -188,7 +231,11 @@ void main() {
         final invalidAccept = tester.widget<FilledButton>(
           find.widgetWithText(FilledButton, 'قبول الطلب'),
         );
-        expect(invalidAccept.onPressed, isNull, reason: 'invalid terms $terms');
+        expect(
+          invalidAccept.onPressed,
+          isNotNull,
+          reason: 'server validates terms $terms',
+        );
         await tester.pumpWidget(const SizedBox.shrink());
         await finishWidgetCleanup(tester, invalidBloc.close());
       }

@@ -3,6 +3,41 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test(
+    'single visit with persisted session needs session-scoped acceptance',
+    () {
+      final schedule = workerMultiDayBookingEnvelopeFromJson({
+        'data': {
+          'id': 83,
+          'schedule': {
+            'mode': 'single_day',
+            'daysCount': 1,
+            'sessions': [
+              {
+                'id': 49,
+                'sequence': 1,
+                'date': '2026-11-01',
+                'time': '09:00',
+                'hours': 0.58,
+                'status': 'scheduled',
+              },
+            ],
+          },
+        },
+      }).schedule!;
+
+      expect(schedule.isMultiDay, isFalse);
+      expect(schedule.hasPersistedSessions, isTrue);
+      expect(schedule.sessionById(49)?.id, 49);
+      expect(
+        WorkerBookingScheduleModel.fromJson(const {
+          'sessions': [],
+        }).hasPersistedSessions,
+        isFalse,
+      );
+    },
+  );
+
+  test(
     'parses multi-day worker schedule capability flags and assignment state',
     () {
       final result = workerMultiDayBookingEnvelopeFromJson({

@@ -67,14 +67,10 @@ class OrderMissionTaskMapper {
               CleaningEnumTranslations.roomSize,
               fallback: '',
             );
-            final mode = (room['cleaningMode'] ?? '').toString() == 'deep'
-                ? 'تعزيل'
-                : 'حوسة';
             return MissionTaskItem(
               label: '$type × $count',
               detail: [
                 if (size.isNotEmpty && size != 'غير محدد') size,
-                mode,
               ].join(' • '),
             );
           })
@@ -89,7 +85,48 @@ class OrderMissionTaskMapper {
       );
     }
 
-    return const <MissionTaskItem>[];
+    return _legacyPropertyTasks(order);
+  }
+
+  /// Historic bookings sometimes have room counts but neither V2
+  /// requirements nor a size breakdown. Display only recorded counts;
+  /// do not invent room types or imply worker-specific room allocation.
+  static List<MissionTaskItem> _legacyPropertyTasks(
+    FetchOrdersUsecaseModelDataItem order,
+  ) {
+    final details = order.propertyDetails;
+    final tasks = <MissionTaskItem>[];
+    void add(String name, int? count) {
+      if (count != null && count > 0) {
+        tasks.add(MissionTaskItem(label: '$name × $count'));
+      }
+    }
+
+    add('غرفة نوم', details?.bedRooms);
+    if ((details?.bedRooms ?? 0) == 0) {
+      add('غرفة', details?.rooms ?? order.numberOfRooms);
+    }
+    add('حمام', details?.bathrooms);
+    add(
+      'مطبخ',
+      details?.kitchens ??
+          order.numberOfKitchens ??
+          (details?.kitchenIncluded == true ? 1 : null),
+    );
+    add('شرفة', details?.balconies ?? order.numberOfBalconies);
+    add('سقيفة', details?.sheds ?? order.numberOfSheds);
+    final livingRoomSize = details?.livingRoomSize?.trim();
+    if (livingRoomSize != null &&
+        livingRoomSize.isNotEmpty &&
+        livingRoomSize != 'none') {
+      tasks.add(
+        MissionTaskItem(
+          label: 'غرفة معيشة',
+          detail: CleaningEnumTranslations.roomSize(livingRoomSize),
+        ),
+      );
+    }
+    return tasks;
   }
 
   static List<MissionTaskItem> buildServicesInfo({
@@ -183,8 +220,6 @@ class OrderMissionTaskMapper {
   static List<CleaningRoomAssignmentModel> _resolveRooms(
     FetchOrdersUsecaseModelDataItem order,
   ) {
-    final assigned = order.myAssignedRooms;
-    if (assigned.isNotEmpty) return assigned;
     return order.roomAssignments ?? const <CleaningRoomAssignmentModel>[];
   }
 

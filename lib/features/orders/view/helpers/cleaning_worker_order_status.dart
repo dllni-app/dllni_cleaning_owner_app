@@ -22,7 +22,17 @@ enum CleaningWorkerOrderStatus {
 }
 
 CleaningWorkerOrderStatus parseCleaningWorkerOrderStatus(String? value) {
-  switch ((value ?? '').trim().toLowerCase()) {
+  // The API may use snake_case values or human-readable English labels.
+  // Both must resolve to one Arabic label instead of leaking raw status text.
+  final normalized = (value ?? '')
+      .trim()
+      .replaceAllMapped(
+        RegExp(r'([a-z])([A-Z])'),
+        (match) => '${match[1]}_${match[2]}',
+      )
+      .toLowerCase()
+      .replaceAll(RegExp(r'[\s-]+'), '_');
+  switch (normalized) {
     case CleaningBookingStatus.pending:
       return CleaningWorkerOrderStatus.pending;
     case 'accepted':
@@ -58,6 +68,54 @@ CleaningWorkerOrderStatus parseCleaningWorkerOrderStatus(String? value) {
     default:
       return CleaningWorkerOrderStatus.unknown;
   }
+}
+
+/// Converts a status received from the API to a display-safe Arabic label.
+/// Do not expose unrecognized English status values in an Arabic screen.
+String arabicCleaningStatusLabel(
+  String? raw, {
+  String fallback = 'قيد المتابعة',
+}) {
+  final value = raw?.trim() ?? '';
+  if (value.isEmpty) return fallback;
+  final parsed = parseCleaningWorkerOrderStatus(value);
+  if (parsed != CleaningWorkerOrderStatus.unknown) {
+    return localArabicWorkerStatusLabel(parsed);
+  }
+  final normalized = value.toLowerCase().replaceAll(RegExp(r'[\s-]+'), '_');
+  switch (normalized) {
+    case 'scheduled':
+      return 'مجدول';
+    case 'partially_completed':
+      return 'مكتمل جزئياً';
+    case 'active':
+      return 'نشط';
+    case 'available':
+    case 'open':
+      return 'متاح';
+    case 'waiting_customer':
+      return 'بانتظار العميل';
+    case 'needs_response':
+      return 'بانتظار الرد';
+    case 'rework':
+      return 'إعادة تنفيذ العمل';
+    case 'disputed':
+      return 'قيد المراجعة';
+    case 'travelling':
+    case 'traveling':
+    case 'on_the_way':
+    case 'en_route':
+      return 'في الطريق إلى العميل';
+    case 'not_assigned':
+      return 'لم يتم التعيين';
+    case 'assigned':
+      return 'تم التعيين';
+    case 'skipped':
+      return 'تم التجاوز';
+  }
+  // Localized labels supplied by the backend are safe to retain.
+  if (RegExp(r'[\u0600-\u06FF]').hasMatch(value)) return value;
+  return fallback;
 }
 
 bool isWorkerAcceptedAssignmentStatusValue(String? value) {
@@ -224,9 +282,28 @@ extension FetchOrdersWorkerStatusX on FetchOrdersUsecaseModelDataItem {
   }
 
   String get effectiveWorkerStatusLabel {
+    // The booking may retain a stale team-waiting label after V2 visit seats
+    // have been filled. Prefer the live accepted seat count for display only.
+    final accepted = acceptedWorkersCount ?? workerAcceptance?.accepted ?? 0;
+    final required =
+        requiredWorkersCount ??
+        workerAcceptance?.required ??
+        numberOfWorkers ??
+        1;
+    if (required > 1 &&
+        accepted >= required &&
+        (effectiveWorkerStatus ==
+                CleaningWorkerOrderStatus.acceptedWaitingTeam ||
+            effectiveWorkerStatus ==
+                CleaningWorkerOrderStatus.acceptedWaitingForOrderStart)) {
+      return 'تم القبول - بانتظار بدء الطلب';
+    }
     final label = workerOrderStatusLabel?.trim();
     if (label != null && label.isNotEmpty) {
-      return label;
+      return arabicCleaningStatusLabel(
+        label,
+        fallback: localArabicWorkerStatusLabel(effectiveWorkerStatus),
+      );
     }
     return localArabicWorkerStatusLabel(effectiveWorkerStatus);
   }

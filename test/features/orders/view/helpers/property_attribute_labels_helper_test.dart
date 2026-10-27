@@ -13,53 +13,29 @@ void main() {
         'living_room_size': 'large',
         'living_room_size_label': 'كبيرة',
         'room_size_breakdown': <String, dynamic>{
-          'balcony': <String, dynamic>{
-            'large': 1,
-            'small': 1,
-            'medium': 1,
-          },
-          'bedroom': <String, dynamic>{
-            'large': 1,
-            'small': 1,
-            'medium': 1,
-          },
-          'kitchen': <String, dynamic>{
-            'large': 1,
-            'small': 1,
-            'medium': 1,
-          },
-          'bathroom': <String, dynamic>{
-            'large': 3,
-            'small': 1,
-            'medium': 3,
-          },
-          'living_room': <String, dynamic>{
-            'large': 1,
-            'small': 1,
-            'medium': 1,
-          },
-          'shed': <String, dynamic>{
-            'large': 1,
-            'small': 0,
-            'medium': 1,
-          },
+          'balcony': <String, dynamic>{'large': 1, 'small': 1, 'medium': 1},
+          'bedroom': <String, dynamic>{'large': 1, 'small': 1, 'medium': 1},
+          'kitchen': <String, dynamic>{'large': 1, 'small': 1, 'medium': 1},
+          'bathroom': <String, dynamic>{'large': 3, 'small': 1, 'medium': 3},
+          'living_room': <String, dynamic>{'large': 1, 'small': 1, 'medium': 1},
+          'shed': <String, dynamic>{'large': 1, 'small': 0, 'medium': 1},
         },
       });
 
       final labels = PropertyAttributeLabelsHelper.build(property);
 
-      expect(labels, containsAll(<String>[
-        '1 غرفة نوم كبيرة',
-        '1 مطبخ كبيرة',
-        '1 شرفة كبيرة',
-        '1 سقيفة كبيرة',
-        '1 سقيفة متوسطة',
-      ]));
       expect(
-        PropertyAttributeLabelsHelper.roomTypeCount(
-          property,
-          roomType: 'shed',
-        ),
+        labels,
+        containsAll(<String>[
+          '1 غرفة نوم كبيرة',
+          '1 مطبخ كبيرة',
+          '1 شرفة كبيرة',
+          '1 سقيفة كبيرة',
+          '1 سقيفة متوسطة',
+        ]),
+      );
+      expect(
+        PropertyAttributeLabelsHelper.roomTypeCount(property, roomType: 'shed'),
         2,
       );
     });
@@ -67,16 +43,8 @@ void main() {
     test('roomTypeCount sums all sizes in breakdown', () {
       final property = PropertyDetailsData.fromJson(<String, dynamic>{
         'room_size_breakdown': <String, dynamic>{
-          'bathroom': <String, dynamic>{
-            'large': 3,
-            'small': 1,
-            'medium': 3,
-          },
-          'bedroom': <String, dynamic>{
-            'large': 1,
-            'small': 1,
-            'medium': 1,
-          },
+          'bathroom': <String, dynamic>{'large': 3, 'small': 1, 'medium': 3},
+          'bedroom': <String, dynamic>{'large': 1, 'small': 1, 'medium': 1},
         },
       });
 
@@ -106,23 +74,18 @@ void main() {
         'living_room_size_label': 'كبيرة',
       });
 
-      expect(
-        PropertyAttributeLabelsHelper.build(property),
-        <String>[
-          '2 حمام',
-          '3 غرف نوم',
-          '1 مطبخ',
-          '2 شرفة',
-          '1 سقيفة',
-          'غرفة معيشة كبيرة',
-        ],
-      );
+      expect(PropertyAttributeLabelsHelper.build(property), <String>[
+        '2 حمام',
+        '3 غرف نوم',
+        '1 مطبخ',
+        '2 شرفة',
+        '1 سقيفة',
+        'غرفة معيشة كبيرة',
+      ]);
     });
     test('roomTypeCountForOrder falls back to roomAssignments', () {
       final order = fetchOrdersUsecaseModelDataItemFromJson(<String, dynamic>{
-        'propertyDetails': <String, dynamic>{
-          'bedrooms': 19,
-        },
+        'propertyDetails': <String, dynamic>{'bedrooms': 19},
         'roomAssignments': <Map<String, dynamic>>[
           <String, dynamic>{'id': 1, 'roomType': 'bedroom'},
           <String, dynamic>{'id': 2, 'roomType': 'bedroom'},
@@ -139,7 +102,7 @@ void main() {
       );
     });
 
-    test('multi-worker order counts only rooms explicitly assigned to me', () {
+    test('multi-worker order counts every requested room for the team', () {
       final order = fetchOrdersUsecaseModelDataItemFromJson(<String, dynamic>{
         'assignmentMode': 'open_count',
         'numberOfWorkers': 2,
@@ -150,21 +113,9 @@ void main() {
           },
         },
         'roomAssignments': <Map<String, dynamic>>[
-          <String, dynamic>{
-            'id': 1,
-            'roomType': 'bedroom',
-            'isAssignedToMe': true,
-          },
-          <String, dynamic>{
-            'id': 2,
-            'roomType': 'bedroom',
-            'isAssignedToMe': false,
-          },
-          <String, dynamic>{
-            'id': 3,
-            'roomType': 'bathroom',
-            'isAssignedToMe': false,
-          },
+          <String, dynamic>{'id': 1, 'roomType': 'bedroom'},
+          <String, dynamic>{'id': 2, 'roomType': 'bedroom'},
+          <String, dynamic>{'id': 3, 'roomType': 'bathroom'},
         ],
       });
 
@@ -173,18 +124,18 @@ void main() {
           order,
           roomType: 'bedroom',
         ),
-        1,
+        2,
       );
       expect(
         PropertyAttributeLabelsHelper.roomTypeCountForOrder(
           order,
           roomType: 'bathroom',
         ),
-        0,
+        1,
       );
     });
 
-    test('multi-worker order can resolve my rooms from myAssignment roomIds', () {
+    test('multi-worker order never filters by roomIds', () {
       final order = fetchOrdersUsecaseModelDataItemFromJson(<String, dynamic>{
         'assignmentMode': 'open_count',
         'numberOfWorkers': 2,
@@ -204,7 +155,7 @@ void main() {
           order,
           roomType: 'bedroom',
         ),
-        1,
+        2,
       );
       expect(
         PropertyAttributeLabelsHelper.roomTypeCountForOrder(

@@ -2,22 +2,18 @@ import 'package:common_package/common_package.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../core/widgets/cancel_order_dialog.dart';
 import '../../../data/models/fetch_orders_usecase_model.dart';
 import '../../../domain/usecases/reject_order_usecase_use_case.dart';
 import '../../../domain/usecases/start_travel_usecase_use_case.dart';
-import '../../helpers/event_assistance_order_helper.dart';
-import '../../helpers/order_address_visibility_helper.dart';
 import '../../helpers/order_lifecycle_policy.dart';
-import '../../helpers/order_mission_task_mapper.dart';
+import 'worker_order_requirements_card.dart';
 import '../../manager/bloc/orders_bloc.dart';
 import '../accept_order_bottom_sheet.dart';
 import '../estate_info_card.dart';
 import 'worker_order_overview_card.dart';
 import '../payment_info_card.dart';
-import '../worker_room_assignments_card.dart';
 
 class OrderDetailsBody extends StatefulWidget {
   const OrderDetailsBody({
@@ -36,14 +32,6 @@ class OrderDetailsBody extends StatefulWidget {
 }
 
 class _OrderDetailsBodyState extends State<OrderDetailsBody> {
-  bool get _isEventAssistance =>
-      EventAssistanceOrderHelper.isEventAssistance(widget.order.propertyType);
-
-  bool get _shouldShowAssignedRooms =>
-      !_isEventAssistance &&
-      widget.order.numberOfWorkers != null &&
-      widget.order.numberOfWorkers! > 1;
-
   @override
   Widget build(BuildContext context) {
     final canAcceptReject = OrderLifecyclePolicy.canAcceptReject(widget.order);
@@ -126,17 +114,8 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                   EstateInfoCard(order: widget.order),
                   const SizedBox(height: 14),
                   _buildServicesCard(context),
-                  _buildOrderAddressCard(context),
-                  if (_shouldShowCustomerContact) ...[
-                    const SizedBox(height: 14),
-                    _buildCustomerContactCard(context),
-                  ],
-                  const SizedBox(height: 14),
-                  WorkerTeamStatusCard(order: widget.order),
-                  if (OrderLifecyclePolicy.isAcceptedWaiting(widget.order))
-                    const SizedBox(height: 14),
-                  if (_shouldShowAssignedRooms)
-                    WorkerRoomAssignmentsCard(order: widget.order),
+                  // The overview already states the current accepted/team
+                  // status. Avoid a second large banner repeating it.
                   const SizedBox(height: 14),
                   PaymentInfoCard(order: widget.order),
                   const SizedBox(height: 10),
@@ -153,204 +132,8 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
     );
   }
 
-  bool get _shouldShowCustomerContact {
-    final phone = widget.order.customer?.phone?.trim();
-    return OrderLifecyclePolicy.hasCurrentWorkerAccepted(widget.order) &&
-        phone != null &&
-        phone.isNotEmpty;
-  }
-
-  Widget _buildCustomerContactCard(BuildContext context) {
-    final phone = widget.order.customer!.phone!.trim();
-
-    return Container(
-      width: context.width,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xffF4F5F7),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AppText.labelMedium('التواصل مع العميل', fontWeight: FontWeight.w600),
-          const SizedBox(height: 6),
-          AppText.bodySmall(
-            'تظهر وسائل التواصل بعد قبولك للمهمة.',
-            color: const Color(0xff6B7280),
-            textAlign: TextAlign.start,
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: () => _launchContact('tel', phone),
-                  icon: const Icon(Icons.phone_outlined),
-                  label: const Text('اتصال'),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _launchContact('sms', phone),
-                  icon: const Icon(Icons.sms_outlined),
-                  label: const Text('رسالة SMS'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _launchContact(String scheme, String phone) async {
-    final uri = Uri(scheme: scheme, path: phone);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-      return;
-    }
-
-    AppToast.showErrorGlobal(
-      scheme == 'tel' ? 'تعذر فتح تطبيق الاتصال.' : 'تعذر فتح تطبيق الرسائل.',
-    );
-  }
-
-  Widget _buildServicesCard(BuildContext context) {
-    final tasks = OrderMissionTaskMapper.build(order: widget.order);
-    final specialServices = widget.order.specialServices ?? const [];
-    final specialPreview =
-        widget.order.specialServicesPreview ?? const <Map<String, dynamic>>[];
-
-    return Container(
-      width: context.width,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xffF4F5F7),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AppText.labelMedium(
-            'الغرف المطلوبة والخدمات الخاصة',
-            fontWeight: FontWeight.w700,
-          ),
-          const SizedBox(height: 12),
-          Divider(color: Colors.black.withAlpha(42)),
-          const SizedBox(height: 12),
-          if (tasks.isEmpty &&
-              specialServices.isEmpty &&
-              specialPreview.isEmpty)
-            AppText.bodySmall(
-              'لم تُسجّل غرف أو خدمات خاصة في بيانات هذا الطلب',
-              color: const Color(0xff6B7280),
-              textAlign: TextAlign.start,
-            )
-          else ...[
-            ...tasks.map(
-              (task) => _buildServiceRow(
-                task.detail == null || task.detail!.isEmpty
-                    ? task.label
-                    : '${task.label} • ${task.detail}',
-                null,
-              ),
-            ),
-            ...specialServices.map(
-              (service) =>
-                  _buildServiceRow(service.name, service.quantity?.round()),
-            ),
-            if (specialServices.isEmpty)
-              ...specialPreview.map(
-                (service) => _buildServiceRow(
-                  service['name']?.toString(),
-                  (service['quantity'] is num)
-                      ? (service['quantity'] as num).round()
-                      : null,
-                ),
-              ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildServiceRow(String? name, int? quantity) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          Icon(Icons.check_circle_outline, size: 18, color: context.primary),
-          const SizedBox(width: 6),
-          Expanded(
-            child: AppText.labelMedium(
-              (name ?? '').trim().isEmpty ? 'خدمة' : name!,
-              fontWeight: FontWeight.w400,
-              textAlign: TextAlign.start,
-            ),
-          ),
-          if (quantity != null) AppText.bodySmall('×$quantity'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOrderAddressCard(BuildContext context) {
-    final neighborhood = widget.order.displayNeighborhoodName?.trim();
-    final hideExactAddress = OrderLifecyclePolicy.isCustomerDataHidden(
-      widget.order,
-    );
-    final useNeighborhoodOnly =
-        hideExactAddress && neighborhood != null && neighborhood.isNotEmpty;
-    final visibleAddress = useNeighborhoodOnly
-        ? neighborhood
-        : visibleOrderAddress(
-            address:
-                widget.order.propertyDetails?.address ??
-                widget.order.locationName,
-            status: hideExactAddress ? widget.order.status : null,
-          );
-    final address =
-        visibleAddress.trim().isEmpty || visibleAddress.trim() == '-'
-        ? 'الحي غير محدد'
-        : visibleAddress;
-
-    return Container(
-      width: context.width,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xffF4F5F7),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AppText.labelMedium('عنوان العقار', fontWeight: FontWeight.w400),
-          const SizedBox(height: 12),
-          Divider(color: Colors.black.withAlpha(42)),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Icon(
-                Icons.location_on_outlined,
-                color: context.secondary,
-                size: 18,
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: AppText.labelMedium(
-                  address,
-                  fontWeight: FontWeight.w300,
-                  textAlign: TextAlign.start,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildServicesCard(BuildContext context) =>
+      WorkerOrderRequirementsCard(order: widget.order);
 
   Widget _buildAcceptRejectActions(BuildContext context) {
     return Column(
@@ -460,8 +243,29 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
   }
 
   Widget _buildStartTravelActions(BuildContext context, bool canCancel) {
+    final tooEarly = !OrderLifecyclePolicy.isStartTravelWithinAllowedWindow(
+      widget.order,
+    );
     return Column(
       children: [
+        if (tooEarly) ...[
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline, color: Color(0xff64748B), size: 19),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    OrderLifecyclePolicy.startTravelUnavailableMessage,
+                    style: TextStyle(color: Color(0xff64748B), fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         BlocBuilder<OrdersBloc, OrdersState>(
           bloc: widget.bloc,
           builder: (context, state) {
@@ -471,17 +275,9 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
               actionStatus: state.startTravelUsecaseStatus,
             );
             return InkWell(
-              onTap: loading || widget.order.id == null
+              onTap: loading || tooEarly || widget.order.id == null
                   ? null
                   : () {
-                      if (!OrderLifecyclePolicy.isStartTravelWithinAllowedWindow(
-                        widget.order,
-                      )) {
-                        AppToast.showErrorGlobal(
-                          OrderLifecyclePolicy.startTravelUnavailableMessage,
-                        );
-                        return;
-                      }
                       widget.bloc.add(
                         StartTravelUsecaseEvent(
                           params: StartTravelUsecaseParams(
@@ -495,7 +291,7 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                 width: context.width,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
-                  color: context.primary,
+                  color: tooEarly ? const Color(0xffCBD5E1) : context.primary,
                 ),
                 padding: const EdgeInsetsDirectional.symmetric(
                   horizontal: 12,
@@ -513,7 +309,9 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                       )
                     : AppText.labelLarge(
                         'أنا في الطريق',
-                        color: context.onPrimary,
+                        color: tooEarly
+                            ? const Color(0xff475569)
+                            : context.onPrimary,
                         fontWeight: FontWeight.w700,
                       ),
               ),
@@ -529,6 +327,8 @@ class _OrderDetailsBodyState extends State<OrderDetailsBody> {
                     bloc: widget.bloc,
                     orderId: widget.order.id!,
                     orderNum: widget.order.bookingNumber!,
+                    cancellationPenaltyAmount:
+                        widget.order.workerCancellationPenaltyAmount,
                     index: widget.index,
                   );
                 }

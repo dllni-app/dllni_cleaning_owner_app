@@ -1,6 +1,7 @@
 import 'package:dllni_cleaninig_owner_app/core/extentions.dart';
 import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_arabic_time_formatter.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/data/models/worker_booking_schedule_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/cleaning_worker_order_status.dart';
 import 'package:flutter/material.dart';
 
@@ -9,20 +10,40 @@ import '../../../../../core/theme/worker_app_colors.dart';
 /// Worker-scoped identity, earnings and next appointment. Reusable on the
 /// booking detail and acceptance surfaces; never displays customer order total.
 class WorkerOrderOverviewCard extends StatelessWidget {
-  const WorkerOrderOverviewCard({super.key, required this.order});
+  const WorkerOrderOverviewCard({super.key, required this.order, this.visit});
 
   final FetchOrdersUsecaseModelDataItem order;
+  final WorkerBookingSessionModel? visit;
 
   @override
   Widget build(BuildContext context) {
     final isMultiWorker = (order.numberOfWorkers ?? 1) > 1;
     final individualHours =
+        visit?.hours ??
         order.myAssignment?.totalHours ??
-        (isMultiWorker ? null : order.totalHours);
-    final earnings = order.workerPayableAmount;
-    final formattedHours = individualHours == null
+        order.estimatedHours ??
+        order.totalHours ??
+        order.bookingTotalHours;
+    final earnings = visit == null
+        ? order.workerPayableAmount
+        : (visit!.workerAssignmentState?.workerAmount ??
+              visit!.workerAssignmentState?.netAmount ??
+              visit!.financial?.netAmount);
+    final visitDate = visit?.date;
+    final scheduledDate = visitDate == null
+        ? order.scheduledDate
+        : '${visitDate.year.toString().padLeft(4, '0')}-${visitDate.month.toString().padLeft(2, '0')}-${visitDate.day.toString().padLeft(2, '0')}';
+    final scheduledTime = visit?.time ?? order.scheduledTime;
+    final minutes = individualHours == null
+        ? null
+        : (individualHours * 60).round();
+    final formattedHours = minutes == null
         ? 'قيد التحديد'
-        : '${individualHours % 1 == 0 ? individualHours.toInt() : individualHours} ساعة';
+        : minutes < 60
+        ? '$minutes دقيقة'
+        : minutes % 60 == 0
+        ? '${minutes ~/ 60} ساعة'
+        : '${minutes ~/ 60} ساعة و${minutes % 60} دقيقة';
 
     return Container(
       width: double.infinity,
@@ -59,7 +80,7 @@ class WorkerOrderOverviewCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            localArabicWorkerStatusLabel(order.effectiveWorkerStatus),
+            order.effectiveWorkerStatusLabel,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: WorkerAppColors.brandPrimary,
               fontWeight: FontWeight.w700,
@@ -70,7 +91,12 @@ class WorkerOrderOverviewCard extends StatelessWidget {
             children: [
               Expanded(
                 child: _OverviewValue(
-                  label: 'مستحقاتي',
+                  label:
+                      visit != null ||
+                          !isMultiWorker ||
+                          order.isWorkerDistributionFinal
+                      ? 'مستحقاتك'
+                      : 'مستحقك الحالي',
                   value: earnings?.formatMoney() ?? 'قيد التحديد',
                   icon: Icons.account_balance_wallet_outlined,
                 ),
@@ -78,7 +104,7 @@ class WorkerOrderOverviewCard extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: _OverviewValue(
-                  label: 'مدة عملي',
+                  label: 'مدة العمل المتوقعة',
                   value: formattedHours,
                   icon: Icons.timer_outlined,
                 ),
@@ -99,21 +125,12 @@ class WorkerOrderOverviewCard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  '${CleaningArabicTimeFormatter.formatScheduledDate(order.scheduledDate, emptyValue: 'الموعد غير محدد')} • ${CleaningArabicTimeFormatter.formatScheduledTime(order.scheduledTime, emptyValue: '—')}',
+                  '${CleaningArabicTimeFormatter.formatScheduledDate(scheduledDate, emptyValue: 'الموعد غير محدد')} • ${CleaningArabicTimeFormatter.formatScheduledTime(scheduledTime, emptyValue: '—')}',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ),
             ],
           ),
-          if (isMultiWorker) ...[
-            const SizedBox(height: 8),
-            Text(
-              'الفريق ${order.acceptedWorkersCount ?? 0} من ${order.requiredWorkersCount ?? order.numberOfWorkers} عمال. تظهر لك مهامك الشخصية فقط.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: WorkerAppColors.textSecondary,
-              ),
-            ),
-          ],
         ],
       ),
     );

@@ -8,6 +8,7 @@ import 'package:dllni_cleaninig_owner_app/core/utils/cleaning_arabic_time_format
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/fetch_orders_usecase_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/models/worker_booking_schedule_model.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/data/source/worker_session_remote_data_source.dart';
+import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/cleaning_worker_order_status.dart';
 import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_lifecycle_policy.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -17,7 +18,10 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../estate_info_card.dart';
 import 'worker_order_overview_card.dart';
-import 'worker_detail_section.dart';
+import 'worker_travel_contact_card.dart';
+import 'worker_order_requirements_card.dart';
+import '../../../../../core/theme/worker_app_colors.dart';
+import '../worker_action_terms_sheet.dart';
 
 class MultiDayOrderDetailsBody extends StatefulWidget {
   const MultiDayOrderDetailsBody({
@@ -181,7 +185,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
       widget.onScheduleChanged?.call(schedule);
     } catch (_) {
       if (!mounted) return;
-      setState(() => _error = 'تعذر تحديث حالة جلسات المناسبة.');
+      setState(() => _error = 'تعذر تحديث حالة زيارات المناسبة.');
     } finally {
       _refreshing = false;
     }
@@ -319,11 +323,11 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     AppText.headlineMedium(
-                      'تفاصيل الجلسة',
+                      'تفاصيل الزيارة',
                       textAlign: TextAlign.start,
                     ),
                     AppText.bodySmall(
-                      'الجلسة ${session.sequence} من ${_schedule.daysCount}',
+                      'رقم الطلب: ${order.bookingNumber ?? widget.order.bookingNumber ?? '—'}',
                       color: const Color(0xff6B7280),
                       textAlign: TextAlign.start,
                     ),
@@ -362,14 +366,15 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
                   const LinearProgressIndicator(minHeight: 2),
                   const SizedBox(height: 12),
                 ],
-                WorkerOrderOverviewCard(order: order),
+                WorkerOrderOverviewCard(order: order, visit: session),
                 const SizedBox(height: 14),
                 EstateInfoCard(order: order),
                 const SizedBox(height: 14),
                 _sessionOrderContextCard(session),
                 const SizedBox(height: 14),
                 if (_shouldShowNavigationMap(session)) ...[
-                  const SizedBox(height: 14),
+                  _travelContactCard(),
+                  const SizedBox(height: 12),
                   _SessionNavigationMapCard(order: order),
                 ],
                 const SizedBox(height: 14),
@@ -388,7 +393,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     if (text.contains('overlap') || text.contains('conflict')) {
       return 'تعذر تنفيذ العملية بسبب تعارض في الجدول.';
     }
-    return 'تعذر تنفيذ العملية. حدّث الجلسة وتحقق من الصلاحيات ثم حاول مرة أخرى.';
+    return 'تعذر تنفيذ العملية. حدّث الزيارة وتحقق من الصلاحيات ثم حاول مرة أخرى.';
   }
 
   Future<void> _startTravel() async {
@@ -538,7 +543,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     }
 
     final message = await _askText(
-      title: 'إنهاء عمل هذه الجلسة',
+      title: 'إنهاء عمل هذه الزيارة',
       hint: 'رسالة الإكمال للعميل (اختياري)',
       isRequired: false,
       maxLength: 1000,
@@ -564,7 +569,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     String? reason;
     if (decision == 'rejected') {
       reason = await _askText(
-        title: 'رفض تمديد الجلسة',
+        title: 'رفض تمديد الزيارة',
         hint: 'سبب الرفض',
         isRequired: true,
         maxLength: 2000,
@@ -589,7 +594,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     String? reason;
     if (decision == 'rejected') {
       reason = await _askText(
-        title: 'رفض إنهاء الجلسة',
+        title: 'رفض إنهاء الزيارة',
         hint: 'سبب الرفض',
         isRequired: true,
         maxLength: 2000,
@@ -608,6 +613,13 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
   }
 
   Future<void> _cancelSession() async {
+    if (!await confirmWorkerActionTerms(
+      context,
+      cancelling: true,
+      cancellationPenaltyAmount: widget.order.workerCancellationPenaltyAmount,
+    )) {
+      return;
+    }
     final bookingId = _bookingId;
     final session = _activeSession;
     final sessionId = session?.id;
@@ -619,7 +631,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     }
 
     final reason = await _askText(
-      title: 'إلغاء هذه الجلسة',
+      title: 'إلغاء الزيارة',
       hint: 'سبب الإلغاء',
       isRequired: true,
       maxLength: 1000,
@@ -643,12 +655,12 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     if (bookingId == null ||
         session == null ||
         sessionId == null ||
-        session.isTerminal) {
+        !OrderLifecyclePolicy.canShowSessionSos(session)) {
       return;
     }
 
     final message = await _askText(
-      title: 'إرسال SOS للجلسة ${session.sequence}',
+      title: 'إرسال SOS للزيارة ${session.sequence}',
       hint: 'اشرح الحالة الطارئة',
       isRequired: true,
       maxLength: 1000,
@@ -730,7 +742,10 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
 
   String _statusLabel(WorkerBookingSessionModel session) {
     final fromApi = session.statusLabel?.trim();
-    if (fromApi != null && fromApi.isNotEmpty) return fromApi;
+    if (fromApi != null && fromApi.isNotEmpty) {
+      final translated = arabicCleaningStatusLabel(fromApi, fallback: '');
+      if (translated.isNotEmpty) return translated;
+    }
     return switch (session.status) {
       'scheduled' => 'مجدول',
       'worker_assigned' =>
@@ -789,7 +804,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
                 _error = null;
               });
             },
-            label: Text('الجلسة ${session.sequence}'),
+            label: Text('زيارة ${session.sequence}'),
             avatar: session.isCompleted
                 ? const Icon(Icons.check_circle, size: 18)
                 : session.isCancelled
@@ -822,7 +837,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
             children: [
               Expanded(
                 child: AppText.titleMedium(
-                  'طلب متعدد الجلسات',
+                  'طلب متعدد الزيارات',
                   fontWeight: FontWeight.w800,
                   textAlign: TextAlign.start,
                 ),
@@ -853,9 +868,9 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xffE5E7EB)),
+        color: WorkerAppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: WorkerAppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -864,7 +879,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
             children: [
               Expanded(
                 child: AppText.titleMedium(
-                  'الجلسة ${session.sequence} من ${_schedule.daysCount}',
+                  'الزيارة المطلوبة',
                   fontWeight: FontWeight.w800,
                   textAlign: TextAlign.start,
                 ),
@@ -882,16 +897,21 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          AppText.bodyMedium(_dateLabel(session), fontWeight: FontWeight.w700),
-          const SizedBox(height: 4),
-          AppText.bodySmall(
-            '${_timeLabel(session.time)} · ${_hours(session.hours)} ساعة',
-          ),
-          if (workerAmount != null) ...[
+          if (!widget.sessionDetailsOnly) ...[
+            const SizedBox(height: 12),
+            AppText.bodyMedium(
+              _dateLabel(session),
+              fontWeight: FontWeight.w700,
+            ),
+            const SizedBox(height: 4),
+            AppText.bodySmall(
+              '${_timeLabel(session.time)} · ${_hours(session.hours)} ساعة',
+            ),
+          ],
+          if (workerAmount != null && !widget.sessionDetailsOnly) ...[
             const SizedBox(height: 5),
             AppText.bodySmall(
-              'مستحقاتك لهذه الجلسة: ${_money(workerAmount)} ${assignment?.currency ?? 'SYP'}',
+              'مستحقاتك للزيارة: ${_money(workerAmount)} ${assignment?.currency ?? 'SYP'}',
               fontWeight: FontWeight.w700,
             ),
           ],
@@ -913,7 +933,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
               ),
               child: Column(
                 children: [
-                  const Text('الوقت المتبقي للجلسة'),
+                  const Text('الوقت المتبقي للزيارة'),
                   const SizedBox(height: 4),
                   Text(
                     _durationLabel(remaining),
@@ -943,7 +963,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
               ),
               child: Column(
                 children: [
-                  const Text('رمز بدء هذه الجلسة'),
+                  const Text('رمز بدء الزيارة'),
                   const SizedBox(height: 4),
                   SelectableText(
                     _securityCode!.securityCode!,
@@ -955,7 +975,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
                   ),
                   const SizedBox(height: 4),
                   AppText.bodySmall(
-                    'أعطِ العميل هذا الرمز لهذه الجلسة فقط.',
+                    'أعطِ العميل هذا الرمز لهذه الزيارة فقط.',
                     textAlign: TextAlign.center,
                   ),
                   if (_securityCode?.expiresAt != null) ...[
@@ -975,7 +995,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
               child: OutlinedButton.icon(
                 onPressed: _busy ? null : () => _openSessionDetails(session),
                 icon: const Icon(Icons.info_outline),
-                label: const Text('تفاصيل الجلسة'),
+                label: const Text('تفاصيل الزيارة'),
               ),
             ),
             const SizedBox(height: 10),
@@ -986,91 +1006,11 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     );
   }
 
-  Widget _sessionOrderContextCard(WorkerBookingSessionModel session) {
-    final services = <String>[];
-    for (final service in widget.order.services ?? const []) {
-      final name = service.name?.trim();
-      if (name != null && name.isNotEmpty) services.add(name);
-    }
-    for (final addon in widget.order.addons ?? const []) {
-      final name = addon.name?.trim();
-      if (name != null && name.isNotEmpty) services.add(name);
-    }
-
-    final sessionSpecialServices = (widget.order.specialServices ?? const [])
-        .where(
-          (service) =>
-              service.sessionIds.isEmpty ||
-              (session.id != null && service.sessionIds.contains(session.id)),
-        )
-        .toList(growable: false);
-
-    final property = widget.order.propertyDetails;
-    final address = OrderLifecyclePolicy.isCustomerDataHidden(widget.order)
-        ? widget.order.displayNeighborhoodName?.trim()
-        : (property?.address?.trim() ?? widget.order.locationName?.trim());
-    final cleaningType = property?.cleaningModeLabel?.trim().isNotEmpty == true
-        ? property!.cleaningModeLabel!.trim()
-        : property?.cleaningMode?.trim();
-    final customService = property?.customService?.trim();
-
-    return WorkerDetailSection(
-      title: 'المهام والخدمات المطلوبة',
-      children: [
-        if (cleaningType != null && cleaningType.isNotEmpty)
-          _contextRow('نوع التنظيف', cleaningType),
-        if (customService != null && customService.isNotEmpty)
-          _contextRow('الخدمة المطلوبة', customService),
-        if (services.isNotEmpty) _contextRow('الخدمات', services.join('، ')),
-        if (sessionSpecialServices.isNotEmpty)
-          _contextRow(
-            'الخدمات الخاصة',
-            sessionSpecialServices
-                .map((service) => service.name?.trim())
-                .whereType<String>()
-                .where((name) => name.isNotEmpty)
-                .join('، '),
-          ),
-        if (address != null && address.isNotEmpty)
-          _contextRow('الموقع', address, withDivider: false),
-      ],
-    );
-  }
-
-  Widget _contextRow(String label, String value, {bool withDivider = true}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Column(
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: AppText.bodySmall(
-                  label,
-                  color: const Color(0xff6B7280),
-                  textAlign: TextAlign.start,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: AppText.bodyMedium(
-                  value,
-                  fontWeight: FontWeight.w700,
-                  textAlign: TextAlign.end,
-                ),
-              ),
-            ],
-          ),
-          if (withDivider) ...[
-            const SizedBox(height: 8),
-            const Divider(height: 1, color: Color(0xffE5E7EB)),
-          ],
-        ],
-      ),
-    );
-  }
+  Widget _sessionOrderContextCard(WorkerBookingSessionModel session) =>
+      WorkerOrderRequirementsCard(
+        order: _orderForSession(session),
+        sessionId: session.id,
+      );
 
   Widget _actionArea(WorkerBookingSessionModel session) {
     final displayedCodeExpiresAt = DateTime.tryParse(
@@ -1085,7 +1025,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     if (session.id == null) {
       return const _InfoBanner(
         icon: Icons.info_outline,
-        text: 'هذه جلسة توافق قديمة ولا يمكن تنفيذ إجراء خاص بالجلسة عليها.',
+        text: 'هذه زيارة توافق قديمة ولا يمكن تنفيذ إجراء خاص بالزيارة عليها.',
       );
     }
     if (session.isCompleted) {
@@ -1095,7 +1035,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
         children: [
           const _InfoBanner(
             icon: Icons.check_circle_outline,
-            text: 'تم إكمال عمل هذه الجلسة.',
+            text: 'تم إكمال عمل هذه الزيارة.',
           ),
           if (next != null) ...[
             const SizedBox(height: 8),
@@ -1111,25 +1051,25 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     if (session.isCancelled) {
       return const _InfoBanner(
         icon: Icons.cancel_outlined,
-        text: 'تم إلغاء هذه الجلسة.',
+        text: 'تم إلغاء هذه الزيارة.',
       );
     }
     if (session.status == 'under_dispute') {
       return const _InfoBanner(
         icon: Icons.gavel_outlined,
-        text: 'هذه الجلسة قيد المراجعة الإدارية.',
+        text: 'هذه الزيارة قيد المراجعة الإدارية.',
       );
     }
     if (session.status == 'awaiting_customer_completion') {
       return const _InfoBanner(
         icon: Icons.hourglass_top,
-        text: 'تم إنهاء العمل. بانتظار تأكيد العميل لهذه الجلسة.',
+        text: 'تم إنهاء العمل. بانتظار تأكيد العميل لهذه الزيارة.',
       );
     }
     if (session.status == 'time_extension_requested') {
       return const _InfoBanner(
         icon: Icons.more_time,
-        text: 'يوجد طلب تمديد مرتبط بهذه الجلسة. تعامل معه من إشعار التمديد.',
+        text: 'يوجد طلب تمديد مرتبط بهذه الزيارة. تعامل معه من إشعار التمديد.',
       );
     }
     if (session.openTime?.pendingExtension?.status == 'pending') {
@@ -1137,7 +1077,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
       return _OpenTimeDecisionPanel(
         icon: Icons.more_time,
         title: 'طلب تمديد وقت العامل بالساعة',
-        message: 'طلب العميل تمديد هذه الجلسة $minutes دقيقة.',
+        message: 'طلب العميل تمديد هذه الزيارة $minutes دقيقة.',
         busy: _busy,
         onAccept: () => _decideOpenTimeExtension('accepted'),
         onReject: () => _decideOpenTimeExtension('rejected'),
@@ -1148,7 +1088,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
       return _OpenTimeDecisionPanel(
         icon: Icons.stop_circle_outlined,
         title: 'طلب إنهاء عمل العامل بالساعة',
-        message: 'يريد العميل إنهاء هذه الجلسة الآن.',
+        message: 'يريد العميل إنهاء هذه الزيارة الآن.',
         busy: _busy,
         onAccept: () => _decideOpenTimeEnd('accepted'),
         onReject: () => _decideOpenTimeEnd('rejected'),
@@ -1157,10 +1097,26 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
 
     Widget primary;
     if (OrderLifecyclePolicy.canStartTravelForSession(session)) {
-      primary = FilledButton.icon(
-        onPressed: _busy ? null : _startTravel,
-        icon: const Icon(Icons.directions_car_outlined),
-        label: const Text('أنا في الطريق'),
+      final tooEarly =
+          !OrderLifecyclePolicy.isSessionStartTravelWithinAllowedWindow(
+            session,
+          );
+      primary = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (tooEarly) ...[
+            const _InfoBanner(
+              icon: Icons.schedule_outlined,
+              text: OrderLifecyclePolicy.startTravelUnavailableMessage,
+            ),
+            const SizedBox(height: 10),
+          ],
+          FilledButton.icon(
+            onPressed: _busy || tooEarly ? null : _startTravel,
+            icon: const Icon(Icons.directions_car_outlined),
+            label: const Text('أنا في الطريق'),
+          ),
+        ],
       );
     } else if (session.canArrive) {
       primary = FilledButton.icon(
@@ -1177,7 +1133,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
         label: Text(
           hasActiveDisplayedSecurityCode
               ? 'رمز التحقق ظاهر أعلاه'
-              : 'إظهار رمز التحقق لهذه الجلسة',
+              : 'إظهار رمز التحقق لهذه الزيارة',
         ),
       );
     } else if (session.canStartWork) {
@@ -1190,7 +1146,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
       primary = FilledButton.icon(
         onPressed: _busy ? null : _complete,
         icon: const Icon(Icons.task_alt),
-        label: const Text('إنهاء عمل هذه الجلسة'),
+        label: const Text('إنهاء عمل هذه الزيارة'),
       );
     } else if (session.isInProgress) {
       primary = const _InfoBanner(
@@ -1200,7 +1156,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     } else {
       primary = const _InfoBanner(
         icon: Icons.schedule,
-        text: 'بانتظار موعد الجلسة أو تحديث صلاحيات التنفيذ من النظام.',
+        text: 'بانتظار موعد الزيارة أو تحديث صلاحيات التنفيذ من النظام.',
       );
     }
 
@@ -1209,27 +1165,31 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
       children: [
         primary,
         const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _busy ? null : _sendSos,
-                icon: const Icon(Icons.sos_outlined),
-                label: const Text('SOS'),
-              ),
-            ),
-            if (session.canCancel) ...[
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _busy ? null : _cancelSession,
-                  icon: const Icon(Icons.cancel_outlined),
-                  label: const Text('إلغاء الجلسة'),
+        if (OrderLifecyclePolicy.canShowSessionSos(session) ||
+            session.canCancel)
+          Row(
+            children: [
+              if (OrderLifecyclePolicy.canShowSessionSos(session))
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _busy ? null : _sendSos,
+                    icon: const Icon(Icons.sos_outlined),
+                    label: const Text('SOS'),
+                  ),
                 ),
-              ),
+              if (session.canCancel) ...[
+                if (OrderLifecyclePolicy.canShowSessionSos(session))
+                  const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _busy ? null : _cancelSession,
+                    icon: const Icon(Icons.cancel_outlined),
+                    label: const Text('إلغاء الزيارة'),
+                  ),
+                ),
+              ],
             ],
-          ],
-        ),
+          ),
       ],
     );
   }
@@ -1242,7 +1202,51 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     return !session.isTerminal &&
         (isTrackedTravel ||
             session.canArrive ||
-            (session.startedTravelAt != null && session.arrivedAt == null));
+            (session.workerAssignmentState?.startedTravelAt != null &&
+                session.workerAssignmentState?.arrivedAt == null));
+  }
+
+  Widget _travelContactCard() {
+    final team =
+        widget.order.isMultiWorkerTeam ||
+        widget.order.bookingKind == 'supervised_team';
+    final name = team
+        ? widget.order.supervisorContact?.firstName
+        : widget.order.customer?.name;
+    final phone = team
+        ? widget.order.supervisorContact?.phone
+        : widget.order.customer?.phone;
+    return WorkerTravelContactCard(
+      isTeam: team,
+      name: name,
+      phone: phone,
+      onCall: () => _launchTravelContact('tel', phone),
+      onMessage: () => _launchTravelContact('sms', phone),
+    );
+  }
+
+  Future<void> _launchTravelContact(String scheme, String? phone) async {
+    if (phone == null || phone.trim().isEmpty) return;
+    try {
+      if (await launchUrl(
+        Uri(scheme: scheme, path: phone.trim()),
+        mode: LaunchMode.externalApplication,
+      )) {
+        return;
+      }
+    } catch (_) {
+      // On Android emulators no dialer or SMS app may be installed.
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          scheme == 'tel'
+              ? 'تعذّر فتح تطبيق الاتصال على هذا الجهاز.'
+              : 'تعذّر فتح تطبيق الرسائل على هذا الجهاز.',
+        ),
+      ),
+    );
   }
 
   @override
@@ -1251,7 +1255,7 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
     if (widget.sessionDetailsOnly && session != null) {
       return _buildSessionOrderDetails(session);
     }
-    const title = 'جلسات مهمتي';
+    const title = 'زيارات مهمتي';
 
     return Column(
       children: [
@@ -1313,13 +1317,15 @@ class _MultiDayOrderDetailsBodyState extends State<MultiDayOrderDetailsBody> {
                   const _InfoBanner(
                     icon: Icons.event_busy,
                     text:
-                        'لم تعد لديك جلسات متاحة في هذا الطلب. قد يكون تم تغيير تعيينك لأحد أيام المناسبة.',
+                        'لم تعد لديك زيارات متاحة في هذا الطلب. قد يكون تم تغيير تعيينك لأحد أيام المناسبة.',
                   )
                 else ...[
                   if (widget.sessionDetailsOnly) ...[
                     _sessionOrderContextCard(session),
                     const SizedBox(height: 12),
                     if (_shouldShowNavigationMap(session)) ...[
+                      _travelContactCard(),
+                      const SizedBox(height: 12),
                       _SessionNavigationMapCard(order: widget.order),
                       const SizedBox(height: 12),
                     ],
@@ -1361,6 +1367,19 @@ class _SessionNavigationMapCardState extends State<_SessionNavigationMapCard> {
     return LatLng(lat, lng);
   }
 
+  String? get _textDestination {
+    for (final value in [
+      widget.order.bookingFullAddress,
+      widget.order.propertyDetails?.address,
+      widget.order.locationName,
+      widget.order.neighborhoodName,
+    ]) {
+      final text = value?.trim();
+      if (text != null && text.isNotEmpty && text != '-') return text;
+    }
+    return null;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -1377,6 +1396,7 @@ class _SessionNavigationMapCardState extends State<_SessionNavigationMapCard> {
   Future<Position> _currentPosition() async {
     if (!await Geolocator.isLocationServiceEnabled()) {
       await Geolocator.openLocationSettings();
+      throw StateError('location_service_disabled');
     }
     var permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
@@ -1390,7 +1410,7 @@ class _SessionNavigationMapCardState extends State<_SessionNavigationMapCard> {
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.bestForNavigation,
       ),
-    );
+    ).timeout(const Duration(seconds: 12));
   }
 
   Future<void> _loadNavigation() async {
@@ -1399,7 +1419,9 @@ class _SessionNavigationMapCardState extends State<_SessionNavigationMapCard> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'تعذر تحديد موقع العميل لهذا الطلب.';
+        _error = _textDestination == null
+            ? 'لم يزوّد الخادم الطلب بعنوان أو إحداثيات للموقع.'
+            : 'العنوان متوفر، لكن إحداثيات العقار الدقيقة غير مسجّلة. يمكنك البحث عن العنوان في الخرائط والتحقق من الوجهة قبل الانطلاق.';
       });
       return;
     }
@@ -1407,14 +1429,18 @@ class _SessionNavigationMapCardState extends State<_SessionNavigationMapCard> {
     try {
       final position = await _currentPosition();
       final current = LatLng(position.latitude, position.longitude);
-      final route = await _fetchRoute(current, destination);
       if (!mounted) return;
       setState(() {
         _currentLocation = current;
-        _route = route;
         _loading = false;
         _error = null;
       });
+      // Show location immediately. The external directions service is optional.
+      unawaited(
+        _fetchRoute(current, destination).then((route) {
+          if (mounted) setState(() => _route = route);
+        }),
+      );
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         try {
@@ -1455,6 +1481,10 @@ class _SessionNavigationMapCardState extends State<_SessionNavigationMapCard> {
           'overview': 'full',
           'geometries': 'geojson',
         },
+        options: Options(
+          sendTimeout: const Duration(seconds: 6),
+          receiveTimeout: const Duration(seconds: 6),
+        ),
       );
       final data = response.data;
       if (data is! Map) return const <LatLng>[];
@@ -1500,12 +1530,18 @@ class _SessionNavigationMapCardState extends State<_SessionNavigationMapCard> {
 
   Future<void> _openExternalNavigation() async {
     final destination = _destination;
-    if (destination == null) return;
-    final uri = Uri.parse(
-      'https://www.google.com/maps/dir/?api=1'
-      '&destination=${destination.latitude},${destination.longitude}'
-      '&travelmode=driving',
-    );
+    final address = _textDestination;
+    if (destination == null && address == null) return;
+    final uri = destination != null
+        ? Uri.parse(
+            'https://www.google.com/maps/dir/?api=1'
+            '&destination=${destination.latitude},${destination.longitude}'
+            '&travelmode=driving',
+          )
+        : Uri.https('www.google.com', '/maps/search/', {
+            'api': '1',
+            'query': address!,
+          });
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
@@ -1630,9 +1666,15 @@ class _SessionNavigationMapCardState extends State<_SessionNavigationMapCard> {
           Padding(
             padding: const EdgeInsets.all(12),
             child: FilledButton.icon(
-              onPressed: destination == null ? null : _openExternalNavigation,
+              onPressed: destination == null && _textDestination == null
+                  ? null
+                  : _openExternalNavigation,
               icon: const Icon(Icons.directions),
-              label: const Text('فتح الملاحة'),
+              label: Text(
+                destination == null
+                    ? 'البحث عن العنوان في الخرائط'
+                    : 'فتح الملاحة',
+              ),
             ),
           ),
         ],

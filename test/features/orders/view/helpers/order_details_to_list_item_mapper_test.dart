@@ -4,6 +4,46 @@ import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/order_det
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test(
+    'preserves the prospective worker penalty from refreshed booking details',
+    () {
+      final details = fetchOrderDetailsUsecaseModelFromJson(<String, dynamic>{
+        'data': <String, dynamic>{
+          'id': 734,
+          'cancellationFee': 0,
+          'workerCancellationPenaltyAmount': 250,
+        },
+      }).data!;
+      final mapped = OrderDetailsToListItemMapper.fromDetails(details);
+      expect(mapped.cancellationFee, 0);
+      expect(mapped.workerCancellationPenaltyAmount, 250);
+    },
+  );
+
+  test(
+    'preserves the verified booking service price on an accepted visit detail',
+    () {
+      final details = fetchOrderDetailsUsecaseModelFromJson(<String, dynamic>{
+        'data': <String, dynamic>{
+          'id': 85,
+          'bookingBasePrice': 2900,
+          'basePrice': 1450,
+          'workerFinancials': <String, dynamic>{
+            'bookingServicePriceIncludingAdmin': 3625,
+            'bookingAdminMarginAmount': 725,
+            'serviceShareAmount': 1450,
+            'workerAmount': 1460,
+          },
+        },
+      }).data!;
+
+      final mapped = OrderDetailsToListItemMapper.fromDetails(details);
+      expect(mapped.bookingBasePrice, 2900);
+      expect(mapped.financialBookingServicePriceIncludingAdmin, 3625);
+      expect(mapped.financialBookingAdminMargin, 725);
+      expect(mapped.basePrice, 1450);
+    },
+  );
 
   test('maps operational extras from full order details before acceptance', () {
     final details = fetchOrderDetailsUsecaseModelFromJson(<String, dynamic>{

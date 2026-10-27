@@ -206,7 +206,7 @@ void main() {
       });
 
       expect(order.workerPayableAmount, isNull);
-      expect(order.workerGrossTotal, 0);
+      expect(order.workerGrossTotal, isNull);
     });
 
     test('prefers current assignment worker net profit when available', () {
@@ -222,7 +222,7 @@ void main() {
         },
       });
 
-      expect(order.workerGrossTotal, 90000);
+      expect(order.workerGrossTotal, 81000);
       expect(order.workerNetProfit, 81000);
       expect(order.workerPayableAmount, 81000);
     });
@@ -234,6 +234,7 @@ void main() {
           'serviceShareAmount': 180000,
           'travelFee': 10000,
           'adminMarginAmount': 20000,
+          'workerAmount': 190000,
         },
       });
 
@@ -272,6 +273,43 @@ void main() {
       });
       expect(order.workerPayableAmount, 560);
       expect(order.withLifecycle(status: 'pending').workerPayableAmount, 560);
+    });
+
+    test('keeps authoritative session breakdown through model updates', () {
+      final order = fetchOrdersUsecaseModelDataItemFromJson(<String, dynamic>{
+        'bookingBasePrice': 2900,
+        'basePrice': 1450,
+        'workerFinancials': <String, dynamic>{
+          'bookingBaseServiceAmount': 2900,
+          'bookingServicePriceIncludingAdmin': 3625,
+          'bookingAdminMarginAmount': 725,
+          'serviceShareAmount': 1450,
+          'travelFee': 10,
+          'adminMarginAmount': 362.5,
+          'workerAmount': 1460,
+        },
+        'myAssignment': <String, dynamic>{
+          'serviceShareAmount': 1665,
+          'travelFee': 10,
+          'adminMarginAmount': 416,
+          'workerAmount': 1460,
+        },
+      });
+      expect(order.financialServiceShare, 1450);
+      expect(order.bookingBasePrice, 2900);
+      expect(order.financialBookingBaseService, 2900);
+      expect(order.financialBookingServicePriceIncludingAdmin, 3625);
+      expect(order.financialBookingAdminMargin, 725);
+      expect(order.withLifecycle(status: 'pending').bookingBasePrice, 2900);
+      expect(order.financialTravelFee, 10);
+      expect(order.financialAdminMargin, 362.5);
+      expect(order.workerPayableAmount, 1460);
+      expect(
+        order.withLifecycle(status: 'pending').financialServiceShare,
+        1450,
+      );
+      expect(order.withTeamData().financialAdminMargin, 362.5);
+      expect(order.withTeamData().financialBookingAdminMargin, 725);
     });
   });
 }

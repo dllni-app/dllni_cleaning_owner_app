@@ -304,8 +304,14 @@ class FetchOrdersUsecaseModelDataItem {
   final String? statusLabel;
   final String? propertyType;
   final String? bookingKind;
+
+  /// Authorized group supervisor contact, scoped by backend to the worker's visit.
+  final WorkerData? supervisorContact;
   final String? propertyTypeLabel;
   final String? locationName;
+
+  /// Full booking address returned by the server only after acceptance.
+  final String? bookingFullAddress;
   final int? neighborhoodId;
   final String? neighborhoodName;
   final String? estimatedSqm;
@@ -323,15 +329,24 @@ class FetchOrdersUsecaseModelDataItem {
   final double? bookingTotalHours;
 
   final double? basePrice;
+
+  /// Booking-wide service total, not an individual worker's offer.
+  final double? bookingBasePrice;
   final double? addonsTotal;
   final double? travelFee;
   final double? travelDistanceKm;
   final double? adminMargin;
   final double? cancellationFee;
+
+  /// Current potential worker cancellation penalty, from the backend.
+  final double? workerCancellationPenaltyAmount;
   final double? totalPrice;
   final double? bookingTotalPrice;
   final double? workerOfferPayable;
   final double? workerFinancialsPayable;
+
+  /// The authoritative worker-scoped persisted session breakdown, when given.
+  final Map<String, dynamic>? workerFinancials;
   final bool? isPricingFinal;
   final String? currency;
 
@@ -400,8 +415,10 @@ class FetchOrdersUsecaseModelDataItem {
     this.statusLabel,
     this.propertyType,
     this.bookingKind,
+    this.supervisorContact,
     this.propertyTypeLabel,
     this.locationName,
+    this.bookingFullAddress,
     this.neighborhoodId,
     this.neighborhoodName,
     this.estimatedSqm,
@@ -417,15 +434,18 @@ class FetchOrdersUsecaseModelDataItem {
     this.totalHours,
     this.bookingTotalHours,
     this.basePrice,
+    this.bookingBasePrice,
     this.addonsTotal,
     this.travelFee,
     this.travelDistanceKm,
     this.adminMargin,
     this.cancellationFee,
+    this.workerCancellationPenaltyAmount,
     this.totalPrice,
     this.bookingTotalPrice,
     this.workerOfferPayable,
     this.workerFinancialsPayable,
+    this.workerFinancials,
     this.isPricingFinal,
     this.currency,
     this.addressLatitude,
@@ -496,11 +516,23 @@ class FetchOrdersUsecaseModelDataItem {
       bookingKind: _toStringValue(
         _pick(m, const <String>['bookingKind', 'booking_kind']),
       ),
+      supervisorContact:
+          m['supervisorContact'] == null && m['supervisor_contact'] == null
+          ? null
+          : WorkerData.fromJson(
+              _toMap(m['supervisorContact'] ?? m['supervisor_contact']),
+            ),
       propertyTypeLabel: _toStringValue(
         _pick(m, const <String>['propertyTypeLabel', 'property_type_label']),
       ),
       locationName: _toStringValue(
         _pick(m, const <String>['locationName', 'location_name']),
+      ),
+      bookingFullAddress: _toStringValue(
+        _pick(_toMap(m['address']), const <String>[
+          'fullAddress',
+          'full_address',
+        ]),
       ),
       neighborhoodId: _toInt(
         _pick(m, const <String>['neighborhoodId', 'neighborhood_id']),
@@ -545,6 +577,9 @@ class FetchOrdersUsecaseModelDataItem {
         _pick(m, const <String>['bookingTotalHours', 'booking_total_hours']),
       ),
       basePrice: _toDouble(_pick(m, const <String>['basePrice', 'base_price'])),
+      bookingBasePrice: _toDouble(
+        _pick(m, const <String>['bookingBasePrice', 'booking_base_price']),
+      ),
       addonsTotal: _toDouble(
         _pick(m, const <String>['addonsTotal', 'addons_total']),
       ),
@@ -564,6 +599,12 @@ class FetchOrdersUsecaseModelDataItem {
       ),
       cancellationFee: _toDouble(
         _pick(m, const <String>['cancellationFee', 'cancellation_fee']),
+      ),
+      workerCancellationPenaltyAmount: _toDouble(
+        _pick(m, const <String>[
+          'workerCancellationPenaltyAmount',
+          'worker_cancellation_penalty_amount',
+        ]),
       ),
       totalPrice: _toDouble(
         _pick(m, const <String>['totalPrice', 'total_price']),
@@ -588,6 +629,9 @@ class FetchOrdersUsecaseModelDataItem {
             ),
           ) ??
           _toDouble(_pick(m, const <String>['workerFinancialsPayable'])),
+      workerFinancials: (m['workerFinancials'] ?? m['worker_financials']) is Map
+          ? _toMap(m['workerFinancials'] ?? m['worker_financials'])
+          : null,
       isPricingFinal: _toBool(
         _pick(m, const <String>['isPricingFinal', 'is_pricing_final']),
       ),
@@ -722,26 +766,118 @@ class FetchOrdersUsecaseModelDataItem {
       (assignmentMode ?? '').toLowerCase() == 'open_count' ||
       (numberOfWorkers ?? 1) > 1;
 
-  num get workerGrossTotal {
-    final payable = workerPayableAmount;
-    if (payable != null && (isPricingFinal != true || myAssignment == null)) {
-      final gross =
-          (myAssignment?.serviceShareAmount ?? 0) +
-          (myAssignment?.travelFee ?? 0);
-      if (gross == 0 && payable > 0) return payable;
-    }
-    final assignment = myAssignment;
-    if (assignment != null) {
-      if (assignment.serviceShareAmount != null ||
-          assignment.travelFee != null) {
-        return (assignment.serviceShareAmount ?? 0) +
-            (assignment.travelFee ?? 0);
-      }
-      if (assignment.workerAmount != null) return assignment.workerAmount!;
-    }
-    // A booking-wide amount is not a safe fallback for a worker's share.
-    return workerPayableAmount ?? 0;
-  }
+  bool get hidesGroupMaterialPrices =>
+      isMultiWorkerTeam ||
+      bookingKind?.toLowerCase() == 'supervised_team' ||
+      assignmentMode?.toLowerCase() == 'supervised_team';
+
+  num? get financialServiceShare => _toDouble(
+    _pick(workerFinancials ?? const {}, const [
+      'serviceShareAmount',
+      'service_share_amount',
+    ]),
+  );
+
+  num? get financialBaseServiceShare => _toDouble(
+    _pick(workerFinancials ?? const {}, const <String>[
+      'baseServiceShareAmount',
+      'base_service_share_amount',
+    ]),
+  );
+
+  /// Trust the worker-scoped financial response when detail snapshots omit the
+  /// booking-wide field; never infer it by multiplying a rounded worker share.
+  num? get financialBookingBaseService =>
+      _toDouble(
+        _pick(workerFinancials ?? const {}, const [
+          'bookingBaseServiceAmount',
+          'booking_base_service_amount',
+        ]),
+      ) ??
+      bookingBasePrice;
+
+  /// Price actually charged to the customer for the service, including its
+  /// applicable platform margin and any stored discount/minimum-price rule.
+  /// Do not calculate this by adding the worker-scoped admin-margin share.
+  num? get financialBookingServicePriceIncludingAdmin => _toDouble(
+    _pick(workerFinancials ?? const {}, const [
+      'bookingServicePriceIncludingAdmin',
+      'booking_service_price_including_admin',
+    ]),
+  );
+
+  num? get financialBookingAdminMargin => _toDouble(
+    _pick(workerFinancials ?? const {}, const [
+      'bookingAdminMarginAmount',
+      'booking_admin_margin_amount',
+    ]),
+  );
+
+  num? get financialServiceAndOperationalShare => _toDouble(
+    _pick(workerFinancials ?? const {}, const <String>[
+      'serviceAndOperationalShareAmount',
+      'service_and_operational_share_amount',
+    ]),
+  );
+
+  num? get financialSpecialServicesShare => _toDouble(
+    _pick(workerFinancials ?? const {}, const <String>[
+      'specialServicesShareAmount',
+      'special_services_share_amount',
+    ]),
+  );
+
+  num? get financialMaterialsShare => _toDouble(
+    _pick(workerFinancials ?? const {}, const <String>[
+      'materialsShareAmount',
+      'materials_share_amount',
+    ]),
+  );
+
+  num? get financialAdminMarginPercentage => _toDouble(
+    _pick(workerFinancials ?? const {}, const <String>[
+      'adminMarginPercentage',
+      'admin_margin_percentage',
+    ]),
+  );
+
+  int? get financialPlannedWorkerCount => _toInt(
+    _pick(workerFinancials ?? const {}, const <String>[
+      'plannedWorkerCount',
+      'planned_worker_count',
+    ]),
+  );
+
+  int? get financialActualWorkerCount => _toInt(
+    _pick(workerFinancials ?? const {}, const <String>[
+      'actualWorkerCount',
+      'actual_worker_count',
+    ]),
+  );
+
+  // Never mark an assignment amount final based solely on booking acceptance.
+  bool get isWorkerDistributionFinal =>
+      _toBool(
+        _pick(workerFinancials ?? const {}, const <String>[
+          'isFinal',
+          'is_final',
+        ]),
+      ) ==
+      true;
+
+  num? get financialTravelFee => _toDouble(
+    _pick(workerFinancials ?? const {}, const ['travelFee', 'travel_fee']),
+  );
+
+  num? get financialAdminMargin => _toDouble(
+    _pick(workerFinancials ?? const {}, const [
+      'adminMarginAmount',
+      'admin_margin_amount',
+    ]),
+  );
+
+  /// Money is calculated by the backend, never reconstructed from components.
+  num? get workerGrossTotal => workerPayableAmount;
 
   /// Amount payable to this worker, not the customer's booking total.
   /// A missing offer is unknown, not a zero-priced service.
@@ -766,17 +902,6 @@ class FetchOrdersUsecaseModelDataItem {
         }
         return assignment.workerAmount;
       }
-      if (assignment.serviceShareAmount != null ||
-          assignment.travelFee != null) {
-        final computed =
-            (assignment.serviceShareAmount ?? 0) + (assignment.travelFee ?? 0);
-        if (computed == 0 &&
-            isPricingFinal != true &&
-            (workerOfferPayable ?? 0) > 0) {
-          return workerOfferPayable;
-        }
-        return computed;
-      }
     }
     // The admin margin is charged on top of the worker share in the API.
     // Never subtract it again or fall back to bookingTotalPrice.
@@ -796,30 +921,6 @@ class FetchOrdersUsecaseModelDataItem {
     return acceptance.isFulfilled != true;
   }
 
-  List<CleaningRoomAssignmentModel> get myAssignedRooms {
-    final assignment = myAssignment;
-    final rooms = roomAssignments ?? const <CleaningRoomAssignmentModel>[];
-    if (assignment == null) return const [];
-
-    final assignedToMe = rooms
-        .where((room) => room.isAssignedToMe)
-        .toList(growable: false);
-    if (assignedToMe.isNotEmpty) return assignedToMe;
-
-    final roomIds = assignment.roomIds ?? const <int>[];
-    if (roomIds.isNotEmpty) {
-      return rooms
-          .where((room) => roomIds.contains(room.id))
-          .toList(growable: false);
-    }
-
-    final workerId = assignment.workerId;
-    if (workerId == null) return const [];
-    return rooms
-        .where((room) => room.assignedWorkerId == workerId)
-        .toList(growable: false);
-  }
-
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'id': id,
@@ -833,8 +934,12 @@ class FetchOrdersUsecaseModelDataItem {
       'statusLabel': statusLabel,
       'propertyType': propertyType,
       'bookingKind': bookingKind,
+      'supervisorContact': supervisorContact?.toJson(),
       'propertyTypeLabel': propertyTypeLabel,
       'locationName': locationName,
+      'address': bookingFullAddress == null
+          ? null
+          : <String, dynamic>{'fullAddress': bookingFullAddress},
       'neighborhoodId': neighborhoodId,
       'neighborhoodName': neighborhoodName,
       'estimatedSqm': estimatedSqm,
@@ -850,15 +955,18 @@ class FetchOrdersUsecaseModelDataItem {
       'totalHours': totalHours,
       'bookingTotalHours': bookingTotalHours,
       'basePrice': basePrice,
+      'bookingBasePrice': bookingBasePrice,
       'addonsTotal': addonsTotal,
       'travelFee': travelFee,
       'travelDistanceKm': travelDistanceKm,
       'adminMargin': adminMargin,
       'cancellationFee': cancellationFee,
+      'workerCancellationPenaltyAmount': workerCancellationPenaltyAmount,
       'totalPrice': totalPrice,
       'bookingTotalPrice': bookingTotalPrice,
       'workerOfferPayable': workerOfferPayable,
       'workerFinancialsPayable': workerFinancialsPayable,
+      'workerFinancials': workerFinancials,
       'isPricingFinal': isPricingFinal,
       'currency': currency,
       'addressLatitude': addressLatitude,
@@ -928,6 +1036,7 @@ class FetchOrdersUsecaseModelDataItem {
       statusLabel: statusLabel,
       propertyType: propertyType,
       bookingKind: bookingKind,
+      supervisorContact: supervisorContact,
       propertyTypeLabel: propertyTypeLabel,
       locationName: locationName,
       neighborhoodId: neighborhoodId,
@@ -945,17 +1054,21 @@ class FetchOrdersUsecaseModelDataItem {
       totalHours: totalHours,
       bookingTotalHours: bookingTotalHours,
       basePrice: basePrice,
+      bookingBasePrice: bookingBasePrice,
       addonsTotal: addonsTotal,
       travelFee: travelFee,
       travelDistanceKm: travelDistanceKm,
       adminMargin: adminMargin,
       cancellationFee: cancellationFee,
+      workerCancellationPenaltyAmount: workerCancellationPenaltyAmount,
       totalPrice: totalPrice,
       bookingTotalPrice: bookingTotalPrice,
       workerOfferPayable: workerOfferPayable,
       workerFinancialsPayable: workerFinancialsPayable,
+      workerFinancials: workerFinancials,
       isPricingFinal: isPricingFinal,
       currency: currency,
+      bookingFullAddress: bookingFullAddress,
       addressLatitude: addressLatitude,
       addressLongitude: addressLongitude,
       termsAccepted: termsAccepted,
@@ -1014,6 +1127,7 @@ class FetchOrdersUsecaseModelDataItem {
       statusLabel: statusLabel,
       propertyType: propertyType,
       bookingKind: bookingKind,
+      supervisorContact: supervisorContact,
       propertyTypeLabel: propertyTypeLabel,
       locationName: locationName,
       neighborhoodId: neighborhoodId,
@@ -1031,17 +1145,21 @@ class FetchOrdersUsecaseModelDataItem {
       totalHours: totalHours,
       bookingTotalHours: bookingTotalHours,
       basePrice: basePrice,
+      bookingBasePrice: bookingBasePrice,
       addonsTotal: addonsTotal,
       travelFee: travelFee,
       travelDistanceKm: travelDistanceKm,
       adminMargin: adminMargin,
       cancellationFee: cancellationFee,
+      workerCancellationPenaltyAmount: workerCancellationPenaltyAmount,
       totalPrice: totalPrice,
       bookingTotalPrice: bookingTotalPrice,
       workerOfferPayable: workerOfferPayable,
       workerFinancialsPayable: workerFinancialsPayable,
+      workerFinancials: workerFinancials,
       isPricingFinal: isPricingFinal,
       currency: currency,
+      bookingFullAddress: bookingFullAddress,
       addressLatitude: addressLatitude,
       addressLongitude: addressLongitude,
       termsAccepted: termsAccepted,

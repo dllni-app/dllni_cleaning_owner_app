@@ -3,6 +3,7 @@ library;
 
 import 'dart:async';
 import 'package:flutter/material.dart' hide Page;
+import 'package:dllni_cleaninig_owner_app/features/orders/view/helpers/cleaning_worker_order_status.dart';
 import '../../contracts/common.dart';
 import '../../contracts/models.dart';
 import '../../contracts/navigation.dart';
@@ -130,6 +131,9 @@ class _WorkDiscoveryModuleState extends State<WorkDiscoveryModule> {
 
   String t(String key) =>
       (widget.locale.languageCode == 'en' ? workEn : workAr)[key] ?? key;
+  String _localizedStatus(String status) => widget.locale.languageCode == 'en'
+      ? status
+      : arabicCleaningStatusLabel(status);
   bool get _offline =>
       widget.runtime.connection != wr.ConnectionState.online ||
       _freshness == ReadFreshness.offline ||
@@ -728,7 +732,7 @@ class _WorkDiscoveryModuleState extends State<WorkDiscoveryModule> {
             ),
             Text(time, textDirection: TextDirection.ltr),
             if (item.taskIntervalLabel != null) Text(item.taskIntervalLabel!),
-            WrStatusBadge(label: item.status),
+            WrStatusBadge(label: _localizedStatus(item.status)),
             const SizedBox(height: 8),
             WrActionButton(
               label: t('view'),
@@ -963,7 +967,9 @@ class _WorkDiscoveryModuleState extends State<WorkDiscoveryModule> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  WrStatusBadge(label: item.ownAssignmentStatus),
+                  WrStatusBadge(
+                    label: _localizedStatus(item.ownAssignmentStatus),
+                  ),
                   if (item.visitCount != null)
                     Text('${item.visitCount} ${t('assigned')}'),
                   WrActionButton(

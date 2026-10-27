@@ -156,6 +156,7 @@ class FetchOrderDetailsUsecaseModelData {
   final String? status;
   final String? propertyType;
   final String? locationName;
+  final String? bookingFullAddress;
   final String? estimatedSqm;
   final String? scheduledDate;
   final String? scheduledTime;
@@ -169,11 +170,17 @@ class FetchOrderDetailsUsecaseModelData {
   final double? bookingTotalHours;
 
   final double? basePrice;
+
+  /// Full booking service before splitting into a worker-specific share.
+  final double? bookingBasePrice;
   final double? addonsTotal;
   final double? travelFee;
   final double? travelDistanceKm;
   final double? adminMargin;
   final double? cancellationFee;
+
+  /// Configured prospective worker penalty, distinct from a charged fee.
+  final double? workerCancellationPenaltyAmount;
   final double? totalPrice;
   final bool? isPricingFinal;
 
@@ -210,6 +217,9 @@ class FetchOrderDetailsUsecaseModelData {
   final List<CleaningRoomAssignmentModel>? roomAssignments;
   final CleaningMyAssignmentModel? myAssignment;
 
+  /// Worker-scoped financial data must survive details-to-list mapping.
+  final Map<String, dynamic>? workerFinancials;
+
   FetchOrderDetailsUsecaseModelData({
     this.id,
     this.customerId,
@@ -221,6 +231,7 @@ class FetchOrderDetailsUsecaseModelData {
     this.status,
     this.propertyType,
     this.locationName,
+    this.bookingFullAddress,
     this.estimatedSqm,
     this.scheduledDate,
     this.scheduledTime,
@@ -232,11 +243,13 @@ class FetchOrderDetailsUsecaseModelData {
     this.totalHours,
     this.bookingTotalHours,
     this.basePrice,
+    this.bookingBasePrice,
     this.addonsTotal,
     this.travelFee,
     this.travelDistanceKm,
     this.adminMargin,
     this.cancellationFee,
+    this.workerCancellationPenaltyAmount,
     this.totalPrice,
     this.isPricingFinal,
     this.addressLatitude,
@@ -267,6 +280,7 @@ class FetchOrderDetailsUsecaseModelData {
     this.workerAssignments,
     this.roomAssignments,
     this.myAssignment,
+    this.workerFinancials,
   });
 
   factory FetchOrderDetailsUsecaseModelData.fromJson(
@@ -299,6 +313,12 @@ class FetchOrderDetailsUsecaseModelData {
       locationName: _toStringValue(
         _pick(m, const <String>['locationName', 'location_name']),
       ),
+      bookingFullAddress: _toStringValue(
+        _pick(_toMap(m['address']), const <String>[
+          'fullAddress',
+          'full_address',
+        ]),
+      ),
       estimatedSqm: _toStringValue(
         _pick(m, const <String>['estimatedSqm', 'estimated_sqm']),
       ),
@@ -330,6 +350,9 @@ class FetchOrderDetailsUsecaseModelData {
         _pick(m, const <String>['bookingTotalHours', 'booking_total_hours']),
       ),
       basePrice: _toDouble(_pick(m, const <String>['basePrice', 'base_price'])),
+      bookingBasePrice: _toDouble(
+        _pick(m, const <String>['bookingBasePrice', 'booking_base_price']),
+      ),
       addonsTotal: _toDouble(
         _pick(m, const <String>['addonsTotal', 'addons_total']),
       ),
@@ -342,6 +365,12 @@ class FetchOrderDetailsUsecaseModelData {
       ),
       cancellationFee: _toDouble(
         _pick(m, const <String>['cancellationFee', 'cancellation_fee']),
+      ),
+      workerCancellationPenaltyAmount: _toDouble(
+        _pick(m, const <String>[
+          'workerCancellationPenaltyAmount',
+          'worker_cancellation_penalty_amount',
+        ]),
       ),
       totalPrice: _toDouble(
         _pick(m, const <String>['totalPrice', 'total_price']),
@@ -453,6 +482,7 @@ class FetchOrderDetailsUsecaseModelData {
           : CleaningMyAssignmentModel.fromJson(
               _toMap(m['myAssignment'] ?? m['my_assignment']),
             ),
+      workerFinancials: _toMap(m['workerFinancials'] ?? m['worker_financials']),
     );
   }
 
@@ -468,6 +498,9 @@ class FetchOrderDetailsUsecaseModelData {
       'status': status,
       'propertyType': propertyType,
       'locationName': locationName,
+      'address': bookingFullAddress == null
+          ? null
+          : <String, dynamic>{'fullAddress': bookingFullAddress},
       'estimatedSqm': estimatedSqm,
       'scheduledDate': scheduledDate,
       'scheduledTime': scheduledTime,
@@ -479,11 +512,13 @@ class FetchOrderDetailsUsecaseModelData {
       'totalHours': totalHours,
       'bookingTotalHours': bookingTotalHours,
       'basePrice': basePrice,
+      'bookingBasePrice': bookingBasePrice,
       'addonsTotal': addonsTotal,
       'travelFee': travelFee,
       'travelDistanceKm': travelDistanceKm,
       'adminMargin': adminMargin,
       'cancellationFee': cancellationFee,
+      'workerCancellationPenaltyAmount': workerCancellationPenaltyAmount,
       'totalPrice': totalPrice,
       'isPricingFinal': isPricingFinal,
       'addressLatitude': addressLatitude,
@@ -523,6 +558,7 @@ class FetchOrderDetailsUsecaseModelData {
       'workerAssignments': workerAssignments,
       'roomAssignments': roomAssignments,
       'myAssignment': myAssignment,
+      'workerFinancials': workerFinancials,
     };
   }
 }

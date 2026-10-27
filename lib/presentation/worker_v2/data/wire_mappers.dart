@@ -319,6 +319,7 @@ class WorkerWireMappers {
       customerPhone: nullableString(map['customerPhone']),
       customerLocation: nullableString(map['customerLocation']),
       verificationCode: nullableString(map['verificationCode']),
+      scheduledStartsAt: instant(map['startsAt']),
       startedAt: instant(map['startedAt']),
       expiresAt: instant(map['expiresAt']),
       billableStartAt: instant(map['billableStartAt']),
@@ -459,7 +460,8 @@ class WorkerWireMappers {
     // Only validated *selectors* are exposed. Root must still fetch/authorize
     // current worker's exact booking/visit before navigation renders content.
     final data = map['data'] is Map ? object(map['data']) : <String, Object?>{};
-    final unavailable = data['state'] == 'unavailable' || data['actionable'] == false;
+    final unavailable =
+        data['state'] == 'unavailable' || data['actionable'] == false;
     final targetName = data['deep_link_target'] ?? data['deepLinkTarget'];
     RouteIntent? target;
     var targetState = NotificationTargetState.pending;
@@ -467,23 +469,36 @@ class WorkerWireMappers {
       targetState = NotificationTargetState.unavailable;
     } else if (targetName != null) {
       if (targetName is! String ||
-          !const {'cleaning_booking_details', '/orderdetails',
-                  '/transactiondetails', 'dispute_thread', '/emergencysos'}
-              .contains(targetName)) {
+          !const {
+            'cleaning_booking_details',
+            '/orderdetails',
+            '/transactiondetails',
+            'dispute_thread',
+            '/emergencysos',
+          }.contains(targetName)) {
         targetState = NotificationTargetState.unavailable;
       } else {
         final action = data['action'];
         final rawCanonical = map['canonicalType'] ?? map['canonical_type'];
-        final isDispute = rawCanonical == 'cleaning.booking.dispute_opened' ||
+        final isDispute =
+            rawCanonical == 'cleaning.booking.dispute_opened' ||
             action == 'dispute_opened';
         final routeName = isDispute ? 'dispute_thread' : targetName;
         final identity = <String, Object?>{};
         var invalidIdentity = false;
         for (final name in const [
-          'bookingId', 'booking_id', 'orderId', 'order_id',
-          'sessionId', 'session_id', 'cleaningBookingSessionId',
-          'cleaning_booking_session_id', 'assignmentId', 'assignment_id',
-          'disputeId', 'dispute_id',
+          'bookingId',
+          'booking_id',
+          'orderId',
+          'order_id',
+          'sessionId',
+          'session_id',
+          'cleaningBookingSessionId',
+          'cleaning_booking_session_id',
+          'assignmentId',
+          'assignment_id',
+          'disputeId',
+          'dispute_id',
         ]) {
           if (!data.containsKey(name)) continue;
           final raw = data[name];
@@ -500,12 +515,16 @@ class WorkerWireMappers {
           targetState = NotificationTargetState.unavailable;
         } else {
           final resolution = LegacyRouteAdapter.resolve(
-              routeName, identity, origin: RouteOrigin.notification);
+            routeName,
+            identity,
+            origin: RouteOrigin.notification,
+          );
           if (resolution.isAvailable) {
             target = resolution.intent;
             targetState = NotificationTargetState.ready;
           } else {
-            targetState = resolution.errorCode == 'target_invalid' ||
+            targetState =
+                resolution.errorCode == 'target_invalid' ||
                     resolution.errorCode == 'target_unknown'
                 ? NotificationTargetState.unavailable
                 : NotificationTargetState.pending;
@@ -513,15 +532,29 @@ class WorkerWireMappers {
         }
       }
     }
-    const promptKinds = {'extension_request', 'schedule_change',
-      'price_adjustment', 'completion_decision', 'open_time_end'};
-    const promptStatuses = {'pending', 'active', 'needs_response',
-      'expired', 'handled', 'completed', 'unavailable'};
+    const promptKinds = {
+      'extension_request',
+      'schedule_change',
+      'price_adjustment',
+      'completion_decision',
+      'open_time_end',
+    };
+    const promptStatuses = {
+      'pending',
+      'active',
+      'needs_response',
+      'expired',
+      'handled',
+      'completed',
+      'unavailable',
+    };
     final kind = data['action'];
     final status = data['decisionStatus'] ?? data['decision_status'];
     final promptStatus = status == 'actionable' && data['actionable'] == true
         ? 'actionable'
-        : status is String && promptStatuses.contains(status) ? status : null;
+        : status is String && promptStatuses.contains(status)
+        ? status
+        : null;
     final readValue = map['isRead'];
     final readTime = map['readAt'] ?? map['read_at'];
     if (readValue != null && readValue is! bool) {
@@ -532,7 +565,9 @@ class WorkerWireMappers {
       id: string(map['id']),
       title: string(map['title']),
       body: string(map['body']),
-      sentAt: requiredInstant(map['sentAt'] ?? map['createdAt'] ?? map['created_at']),
+      sentAt: requiredInstant(
+        map['sentAt'] ?? map['createdAt'] ?? map['created_at'],
+      ),
       isRead: readValue is bool ? readValue : readTime != null,
       target: target,
       targetState: targetState,

@@ -1,7 +1,6 @@
 import '../../data/models/cleaning_team_models.dart';
 import '../../data/models/fetch_orders_usecase_model.dart';
 import 'cleaning_enum_translations.dart';
-import 'cleaning_room_display.dart';
 
 class PropertyAttributeLabelsHelper {
   static int roomTypeCount(
@@ -34,16 +33,6 @@ class PropertyAttributeLabelsHelper {
     FetchOrdersUsecaseModelDataItem order, {
     required String roomType,
   }) {
-    if (order.isMultiWorkerTeam) {
-      final normalizedType = roomType.trim().toLowerCase();
-      return assignedRoomsForCurrentWorker(order)
-          .where(
-            (room) =>
-                (room.roomType ?? '').trim().toLowerCase() == normalizedType,
-          )
-          .length;
-    }
-
     return roomTypeCount(
       order.propertyDetails,
       roomType: roomType,
@@ -151,7 +140,9 @@ class PropertyAttributeLabelsHelper {
       for (final size in _sizeOrder) {
         final count = counts.countFor(size);
         if (count <= 0) continue;
-        labels.add(_breakdownChip(roomType: roomType, size: size, count: count));
+        labels.add(
+          _breakdownChip(roomType: roomType, size: size, count: count),
+        );
       }
     }
 
@@ -211,7 +202,9 @@ class PropertyAttributeLabelsHelper {
       CleaningEnumTranslations.livingRoomSize,
       fallback: '',
     );
-    if (sizeLabel.isEmpty || sizeLabel == 'غير محدد' || sizeLabel == 'لا يوجد') {
+    if (sizeLabel.isEmpty ||
+        sizeLabel == 'غير محدد' ||
+        sizeLabel == 'لا يوجد') {
       return null;
     }
     return 'غرفة معيشة $sizeLabel';

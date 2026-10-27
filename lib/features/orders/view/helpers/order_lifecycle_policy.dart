@@ -72,7 +72,7 @@ class OrderLifecyclePolicy {
   OrderLifecyclePolicy._();
 
   static const String startTravelUnavailableMessage =
-      'لا يمكنك اجراء هذه العملية حاليا';
+      'يمكنك اختيار «أنا في الطريق» خلال الساعات الثلاث السابقة لموعد المهمة. لم يبدأ وقت التوجه المسموح بعد.';
   static const String orderNoLongerAvailableMessage =
       'تم قبول هذا الطلب مسبقاً أو لم يعد متاحاً.';
 
@@ -96,7 +96,9 @@ class OrderLifecyclePolicy {
     FetchOrdersUsecaseModelDataItem order,
   ) {
     final assignment = order.myAssignment;
-    return isWorkerRejectedOrClosedAssignmentStatusValue(order.workerOrderStatus) ||
+    return isWorkerRejectedOrClosedAssignmentStatusValue(
+          order.workerOrderStatus,
+        ) ||
         isWorkerRejectedOrClosedAssignmentStatusValue(assignment?.status);
   }
 
@@ -230,7 +232,10 @@ class OrderLifecyclePolicy {
     DateTime? now,
     bool? enforceWindow,
   }) {
-    if (!(enforceWindow ?? AppConfig.enforceStartTravelWindow)) return true;
+    if (AppConfig.allowEarlyTravelForQa ||
+        !(enforceWindow ?? AppConfig.enforceStartTravelWindow)) {
+      return true;
+    }
 
     final scheduledAt = _scheduledDateTime(order);
     if (scheduledAt == null) return true;
@@ -244,7 +249,10 @@ class OrderLifecyclePolicy {
     DateTime? now,
     bool? enforceWindow,
   }) {
-    if (!(enforceWindow ?? AppConfig.enforceStartTravelWindow)) return true;
+    if (AppConfig.allowEarlyTravelForQa ||
+        !(enforceWindow ?? AppConfig.enforceStartTravelWindow)) {
+      return true;
+    }
 
     final scheduledAt = _sessionScheduledDateTime(session);
     if (scheduledAt == null) return true;
@@ -270,6 +278,53 @@ class OrderLifecyclePolicy {
 
     final timePart = rawTime.contains('T') ? rawTime.split('T').last : rawTime;
     return DateTime.tryParse('${datePart}T$timePart');
+  }
+
+  /// SOS opens one hour before the scheduled visit, never for closed visits.
+  static bool canShowSessionSos(
+    WorkerBookingSessionModel session, {
+    DateTime? now,
+  }) {
+    if (session.isTerminal) return false;
+    // A pre-acceptance offer is not permission to submit an emergency for the
+    // customer's visit. The backend accepts SOS only for a committed worker.
+    const activeWorkerStatuses = <String>{
+      'accepted',
+      'accepted_waiting_for_order_start',
+      'awaiting_start_verification',
+      'start_approved',
+      'in_progress',
+      'awaiting_customer_completion',
+      'time_extension_requested',
+    };
+    final workerStatus = session.assignment?.status?.trim().toLowerCase();
+    final hasWorkerAccess =
+        (workerStatus != null && activeWorkerStatuses.contains(workerStatus)) ||
+        session.canStartTravel ||
+        session.canArrive ||
+        session.canStartWork ||
+        session.canComplete;
+    if (!hasWorkerAccess) return false;
+    final scheduledAt = _sessionScheduledDateTime(session);
+    if (scheduledAt == null) return false;
+    return !(now ?? DateTime.now()).isBefore(
+      scheduledAt.subtract(const Duration(hours: 1)),
+    );
+  }
+
+  static bool canShowScheduledSos({
+    required String? date,
+    required String? time,
+    DateTime? now,
+  }) {
+    final day = date?.trim().split(RegExp(r'[T ]')).first ?? '';
+    final clock = time?.trim().split('T').last ?? '';
+    if (day.isEmpty || clock.isEmpty) return false;
+    final scheduledAt = DateTime.tryParse('${day}T$clock');
+    if (scheduledAt == null) return false;
+    return !(now ?? DateTime.now()).isBefore(
+      scheduledAt.subtract(const Duration(hours: 1)),
+    );
   }
 
   static DateTime? _scheduledDateTime(FetchOrdersUsecaseModelDataItem order) {
@@ -328,6 +383,9 @@ class OrderLifecyclePolicy {
     switch (order.effectiveWorkerStatus) {
       case CleaningWorkerOrderStatus.accepted:
       case CleaningWorkerOrderStatus.acceptedWaitingTeam:
+        if (accepted >= required && required > 0) {
+          return 'اكتمل عدد العمال المطلوب. بانتظار خطوات بدء الخدمة حسب الموعد.';
+        }
         return 'تم قبولك ضمن الفريق. بانتظار اكتمال عدد العمال ($accepted من $required).';
       case CleaningWorkerOrderStatus.acceptedWaitingForOrderStart:
         if (order.numberOfWorkers == null || order.numberOfWorkers == 1) {
@@ -497,8 +555,7 @@ class OrderLifecyclePolicy {
     required OrdersState state,
     required int orderIndex,
     required BlocStatus? actionStatus,
-  }) =>
-      actionStatus == BlocStatus.loading && state.selectedIndex == orderIndex;
+  }) => actionStatus == BlocStatus.loading && state.selectedIndex == orderIndex;
 
   static String statusLabel(FetchOrdersUsecaseModelDataItem order) {
     if (isAcceptedWaiting(order)) return acceptedWaitingLabel(order);

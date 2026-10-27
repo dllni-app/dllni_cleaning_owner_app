@@ -1,8 +1,11 @@
 import 'package:common_package/common_package.dart';
+import 'package:dllni_cleaninig_owner_app/core/di/injection.dart';
 import 'package:flutter/material.dart';
 
 import '../../features/orders/domain/usecases/cancel_order_use_case.dart';
+import '../../features/orders/domain/usecases/fetch_order_details_usecase_use_case.dart';
 import '../../features/orders/view/manager/bloc/orders_bloc.dart';
+import '../../features/orders/view/widgets/worker_action_terms_sheet.dart';
 
 class CancelOrderDialog extends StatelessWidget {
   const CancelOrderDialog({
@@ -23,8 +26,35 @@ class CancelOrderDialog extends StatelessWidget {
     required OrdersBloc bloc,
     required int orderId,
     required String orderNum,
+    num? cancellationPenaltyAmount,
     int index = 0,
-  }) {
+  }) async {
+    // A list card may be hydrated from an older cached response. Fetch the
+    // authoritative penalty once before asking the worker to acknowledge it.
+    num? resolvedPenalty = cancellationPenaltyAmount;
+    if (resolvedPenalty == null) {
+      try {
+        final response = await getIt<FetchOrderDetailsUsecaseUseCase>()(
+          FetchOrderDetailsUsecaseParams(id: orderId),
+        );
+        response.fold((_) {}, (result) {
+          if (result.data?.id == orderId) {
+            resolvedPenalty = result.data?.workerCancellationPenaltyAmount;
+          }
+        });
+      } catch (_) {
+        // Do not substitute an invented amount if the source is unavailable.
+      }
+    }
+    if (!context.mounted) return;
+    if (!await confirmWorkerActionTerms(
+      context,
+      cancelling: true,
+      cancellationPenaltyAmount: resolvedPenalty,
+    )) {
+      return;
+    }
+    if (!context.mounted) return;
     return showDialog<void>(
       context: context,
       barrierDismissible: false,

@@ -1,12 +1,16 @@
-import 'package:common_package/common_package.dart';
-import 'package:dllni_cleaninig_owner_app/core/extentions.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
+import 'package:intl/intl.dart';
 
+import '../../../../core/theme/worker_app_colors.dart';
+
+/// Only worker-facing earnings. Every amount is supplied by the backend.
 class WorkerPaymentSummary extends StatelessWidget {
   const WorkerPaymentSummary({
     super.key,
     required this.basePrice,
+    this.bookingBasePrice,
+    this.bookingServicePriceIncludingAdmin,
+    this.bookingAdminMargin,
     required this.travelFee,
     required this.adminMargin,
     required this.addonsTotal,
@@ -15,9 +19,21 @@ class WorkerPaymentSummary extends StatelessWidget {
     this.serviceShareAmount,
     this.workerAmount,
     this.useWorkerShare = false,
+    this.baseServiceShareAmount,
+    this.serviceAndOperationalShareAmount,
+    this.specialServicesShareAmount,
+    this.materialsShareAmount,
+    this.adminMarginPercentage,
+    this.plannedWorkerCount,
+    this.actualWorkerCount,
+    this.isFinal = false,
+    this.hideGroupMaterialPrices = false,
   });
 
   final num? basePrice;
+  final num? bookingBasePrice;
+  final num? bookingServicePriceIncludingAdmin;
+  final num? bookingAdminMargin;
   final num? travelFee;
   final num? adminMargin;
   final num? addonsTotal;
@@ -26,101 +42,76 @@ class WorkerPaymentSummary extends StatelessWidget {
   final num? serviceShareAmount;
   final num? workerAmount;
   final bool useWorkerShare;
+  final num? baseServiceShareAmount;
+  final num? serviceAndOperationalShareAmount;
+  final num? specialServicesShareAmount;
+  final num? materialsShareAmount;
+  final num? adminMarginPercentage;
+  final int? plannedWorkerCount;
+  final int? actualWorkerCount;
+  final bool isFinal;
+  final bool hideGroupMaterialPrices;
+
+  static String _money(num? value) => value == null
+      ? 'قيد التحديد'
+      : '${NumberFormat('#,##0.##').format(value)} ل.س';
 
   @override
   Widget build(BuildContext context) {
-    if (useWorkerShare && serviceShareAmount == null && travelFee == null) {
-      // Accepted/pre-acceptance offers may expose only a worker-specific
-      // payable amount. Do not fill the absent component breakdown with zeros.
-      return _PaymentRow(
-        label: 'مستحق العامل',
-        amount: workerAmount?.formatMoney() ?? 'قيد التحديد',
-        isTotal: true,
-        labelColor: context.primaryContainer,
-        amountColor: context.primaryContainer,
-      );
-    }
-    // In worker-share mode the booking base price belongs to the whole order,
-    // not to the current worker. Never fall back to it while assignment pricing
-    // is still being refreshed, otherwise a multi-worker order briefly shows
-    // the entire service amount as this worker's earnings.
+    // Prefer the backend's complete per-worker service share (including
+    // applicable special services) over a partial base-service breakdown.
+    // Never substitute booking-level amounts for a worker's share.
     final serviceAmount = useWorkerShare
-        ? (serviceShareAmount ?? 0)
-        : ((basePrice ?? 0) + (addonsTotal ?? 0));
-    final calculatedGrossTotal = serviceAmount + (travelFee ?? 0);
-    final grossTotal = useWorkerShare
-        ? calculatedGrossTotal
-        : (calculatedGrossTotal > 0 ? calculatedGrossTotal : (totalPrice ?? 0));
-    // Administration is charged *on top of* the customer's service bill,
-    // not deducted from this worker's share. Keep it visible but distinct.
-    final calculatedNetProfit = grossTotal;
-    final effectiveAdminRate = serviceAmount > 0 && adminMargin != null
-        ? (adminMargin! / serviceAmount * 100)
-        : null;
-    final rateLabel = effectiveAdminRate == null
-        ? ''
-        : ' (${effectiveAdminRate.toStringAsFixed(effectiveAdminRate == effectiveAdminRate.roundToDouble() ? 0 : 1)}%)';
-    final hasCalculableNet = useWorkerShare
-        ? serviceShareAmount != null || travelFee != null || adminMargin != null
-        : calculatedGrossTotal > 0 || totalPrice != null || adminMargin != null;
-    final netProfit =
-        workerAmount ??
-        (hasCalculableNet
-            ? (calculatedNetProfit > 0 ? calculatedNetProfit : 0)
-            : null);
+        ? serviceShareAmount ??
+              serviceAndOperationalShareAmount ??
+              baseServiceShareAmount
+        : basePrice;
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _PaymentRow(
-          label: 'قيمة الخدمة والخدمات الخاصة',
-          amount: useWorkerShare && serviceShareAmount == null
-              ? 'قيد التحديد'
-              : serviceAmount.formatMoney(),
-        ),
-        12.verticalSpace,
-        _PaymentRow(
-          label: 'أجور التنقل',
-          amount: travelFee?.formatMoney() ?? 'قيد التحديد',
-        ),
-        12.verticalSpace,
-        _PaymentRow(
-          label: 'إجمالي مستحق العامل',
-          amount: grossTotal.formatMoney(),
-        ),
-        12.verticalSpace,
-        _PaymentRow(
-          label: 'هامش الإدارة على العميل$rateLabel',
-          amount: adminMargin == null
-              ? 'قيد التحديد'
-              : adminMargin!.formatMoney(),
-        ),
-        18.verticalSpace,
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final dashWidth = 6.0.w;
-            final dashSpace = 6.0.w;
-            final dashCount =
-                (constraints.constrainWidth() / (dashWidth + dashSpace))
-                    .floor();
-            return Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: List.generate(dashCount, (_) {
-                return Container(
-                  width: dashWidth,
-                  height: 2.h,
-                  color: context.primaryContainer,
-                );
-              }),
-            );
-          },
-        ),
-        18.verticalSpace,
-        _PaymentRow(
-          label: 'مستحق العامل',
-          amount: netProfit?.formatMoney() ?? 'قيد التحديد',
-          isTotal: true,
-          labelColor: context.primaryContainer,
-          amountColor: context.primaryContainer,
+        _PaymentRow(label: 'حصتك من الخدمة', amount: _money(serviceAmount)),
+        const SizedBox(height: 12),
+        _PaymentRow(label: 'بدل المواصلات', amount: _money(travelFee)),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
+          decoration: BoxDecoration(
+            color: WorkerAppColors.brandPrimarySoft,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFD5DCF6)),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.account_balance_wallet_outlined,
+                color: WorkerAppColors.brandPrimary,
+                size: 24,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  isFinal ? 'مستحقك النهائي' : 'مستحقك الحالي',
+                  style: const TextStyle(
+                    color: WorkerAppColors.brandPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Flexible(
+                child: Text(
+                  _money(workerAmount),
+                  textAlign: TextAlign.end,
+                  style: const TextStyle(
+                    color: WorkerAppColors.brandPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -128,41 +119,36 @@ class WorkerPaymentSummary extends StatelessWidget {
 }
 
 class _PaymentRow extends StatelessWidget {
-  const _PaymentRow({
-    required this.label,
-    required this.amount,
-    this.labelColor,
-    this.amountColor,
-    this.isTotal = false,
-  });
+  const _PaymentRow({required this.label, required this.amount});
 
   final String label;
   final String amount;
-  final Color? labelColor;
-  final Color? amountColor;
-  final bool isTotal;
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: AppText.labelMedium(
-              label,
-              fontWeight: isTotal ? FontWeight.w500 : FontWeight.w400,
-              color: labelColor,
-            ),
+  Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Expanded(
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            height: 1.45,
+            fontWeight: FontWeight.w500,
+            color: WorkerAppColors.textPrimary,
           ),
         ),
-        AppText.labelMedium(
-          amount,
-          fontWeight: isTotal ? FontWeight.w600 : FontWeight.w400,
-          color: amountColor,
+      ),
+      const SizedBox(width: 12),
+      Text(
+        amount,
+        textAlign: TextAlign.end,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+          color: WorkerAppColors.textPrimary,
         ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
 }

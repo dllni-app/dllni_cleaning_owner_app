@@ -194,7 +194,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         }
         _multiDaySchedule =
             schedule != null &&
-                (schedule.isMultiDay || widget.params.selectedSessionId != null)
+                (schedule.isMultiDay ||
+                    schedule.hasPersistedSessions ||
+                    widget.params.selectedSessionId != null)
             ? schedule
             : null;
         _scheduleChecked = true;
@@ -469,6 +471,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     String? workStartedAt,
     String? workFinishedAt,
     String? customerConfirmedAt,
+    bool currentWorkerStartedTravel = false,
   }) {
     if (!mounted) return;
 
@@ -482,7 +485,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         : _order.status;
 
     setState(() {
-      _order = _order.withLifecycle(
+      final lifecycleOrder = _order.withLifecycle(
         status: resolvedStatus,
         arrivedAt: arrivedAt,
         startedTravelAt: startedTravelAt,
@@ -490,6 +493,19 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         workFinishedAt: workFinishedAt,
         customerConfirmedAt: customerConfirmedAt,
       );
+      // A team's top-level startedTravelAt may represent another worker.
+      // Only this worker's confirmed start-travel response may advance their
+      // scoped assignment, which decides when the map/arrival step opens.
+      _order =
+          currentWorkerStartedTravel &&
+              startedTravelAt != null &&
+              lifecycleOrder.myAssignment != null
+          ? lifecycleOrder.withTeamData(
+              myAssignment: lifecycleOrder.myAssignment!.withStartedTravelAt(
+                startedTravelAt,
+              ),
+            )
+          : lifecycleOrder;
     });
     widget.params.bloc.add(ChangeDetailsCurrentStep(step: _stepFor(_order)));
     _syncAwaitingVerificationPoll();
@@ -558,6 +574,12 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           startedTravelAt:
               _order.startedTravelAt ??
               DateTime.now().toUtc().toIso8601String(),
+          currentWorkerStartedTravel: true,
+        );
+        widget.params.bloc.add(
+          FetchOrderDetailsUsecaseEvent(
+            params: FetchOrderDetailsUsecaseParams(id: oid),
+          ),
         );
       }
     }
@@ -766,12 +788,17 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
               final schedule = _multiDaySchedule;
               if (schedule != null &&
                   (schedule.isMultiDay ||
+                      schedule.hasPersistedSessions ||
                       widget.params.selectedSessionId != null)) {
+                final singlePersistedSession =
+                    schedule.hasPersistedSessions && !schedule.isMultiDay;
                 return MultiDayOrderDetailsBody(
                   order: _order,
                   initialSchedule: schedule,
                   initialSelectedSessionId: _selectedSessionId,
-                  sessionDetailsOnly: widget.params.sessionDetailsOnly,
+                  sessionDetailsOnly:
+                      widget.params.sessionDetailsOnly ||
+                      singlePersistedSession,
                   onScheduleChanged: (updated) {
                     if (!mounted) return;
                     setState(() {

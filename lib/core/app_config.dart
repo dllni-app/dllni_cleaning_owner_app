@@ -3,13 +3,23 @@ import 'package:flutter/foundation.dart';
 class AppConfig {
   const AppConfig._();
 
+  /// Explicit QA-only bypass. Release builds and production deployments must
+  /// not allow this flag to change lifecycle timing.
+  static const bool allowEarlyTravelForQa =
+      !kReleaseMode &&
+      String.fromEnvironment('WORKER_APP_ENV', defaultValue: 'production') !=
+          'production' &&
+      bool.fromEnvironment(
+        'WORKER_NON_PRODUCTION_TEST_MODE',
+        defaultValue: false,
+      );
+
   /// When true, start travel is only allowed within three hours of the scheduled time.
   /// Enabled by default. Override with
   /// `--dart-define=ENFORCE_START_TRAVEL_WINDOW=true|false`.
-  static const bool enforceStartTravelWindow = bool.fromEnvironment(
-    'ENFORCE_START_TRAVEL_WINDOW',
-    defaultValue: true,
-  );
+  static const bool enforceStartTravelWindow =
+      kReleaseMode ||
+      bool.fromEnvironment('ENFORCE_START_TRAVEL_WINDOW', defaultValue: true);
 
   static const String appName = 'cleaning owner';
   static const String orgIdentifier = 'com.dllni.clOwner';

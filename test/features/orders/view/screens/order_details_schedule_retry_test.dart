@@ -67,6 +67,32 @@ void main() {
     },
   );
 
+  testWidgets('single persisted V2 visit uses session details automatically', (
+    tester,
+  ) async {
+    final source = _QueuedScheduleSource([() async => _scheduleEnvelope()]);
+    _registerScreenDependencies(source);
+    final bloc = _buildOrdersBloc();
+
+    await tester.pumpWidget(
+      _screen(
+        bloc,
+        selectedSessionId: null,
+        sessionDetailsOnly: false,
+        bookingKind: 'standard',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(source.calls, 1);
+    expect(find.text('تفاصيل الجلسة'), findsOneWidget);
+    expect(find.text('الجلسة 1 من 1'), findsWidgets);
+    expect(find.text('جلسات مهمتي'), findsNothing);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await _dispose(tester, bloc);
+  });
+
   testWidgets('403 schedule error waits for one explicit retry', (
     WidgetTester tester,
   ) async {
@@ -178,19 +204,24 @@ Future<void> _dispose(WidgetTester tester, OrdersBloc bloc) async {
   await getIt.reset();
 }
 
-Widget _screen(OrdersBloc bloc) => MaterialApp(
+Widget _screen(
+  OrdersBloc bloc, {
+  int? selectedSessionId = 501,
+  bool sessionDetailsOnly = true,
+  String bookingKind = 'multi_day',
+}) => MaterialApp(
   home: OrderDetailsScreen(
     params: OrderDetailsScreenParams(
       order: FetchOrdersUsecaseModelDataItem(
         id: 44,
         status: 'in_progress',
-        bookingKind: 'multi_day',
+        bookingKind: bookingKind,
       ),
       isNewOrder: false,
       bloc: bloc,
       index: -1,
-      selectedSessionId: 501,
-      sessionDetailsOnly: true,
+      selectedSessionId: selectedSessionId,
+      sessionDetailsOnly: sessionDetailsOnly,
     ),
   ),
 );
