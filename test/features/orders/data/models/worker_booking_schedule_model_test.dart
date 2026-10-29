@@ -2,6 +2,26 @@ import 'package:dllni_cleaninig_owner_app/features/orders/data/models/worker_boo
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('acceptance mode distinguishes legacy from hidden session offers', () {
+    final legacy = WorkerBookingScheduleModel.fromJson(const {
+      'mode': 'single_day',
+      'bookingDaysCount': 1,
+      'acceptanceMode': 'legacy',
+      'sessions': [
+        {'id': null, 'sequence': 1},
+      ],
+    });
+    final hidden = WorkerBookingScheduleModel.fromJson(const {
+      'mode': 'single_day',
+      'bookingDaysCount': 1,
+      'acceptanceMode': 'session',
+      'sessions': [],
+    });
+    expect(legacy.acceptanceMode, 'legacy');
+    expect(legacy.hasPersistedSessions, isFalse);
+    expect(hidden.acceptanceMode, 'session');
+    expect(hidden.hasPersistedSessions, isFalse);
+  });
   test(
     'single visit with persisted session needs session-scoped acceptance',
     () {

@@ -141,13 +141,23 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       _scheduleChecked &&
       !_scheduleLoading &&
       _scheduleError == null &&
-      // A signed single-visit booking may be readable but have no eligible
-      // execution session. Never fall back to the parent accept endpoint.
-      !((_schedule?.bookingDaysCount ?? 0) > 0 &&
-          _schedule?.hasPersistedSessions != true) &&
+      (_schedule?.hasPersistedSessions == true ||
+          (_schedule?.acceptanceMode == 'legacy' &&
+              OrderLifecyclePolicy.canAcceptReject(_order))) &&
       _detailsChecked &&
       !_detailsLoading &&
       _detailsError == null;
+
+  String? get _acceptanceUnavailableReason {
+    if (_scheduleLoading || _detailsLoading) return null;
+    if (_scheduleError != null || _detailsError != null) return null;
+    if (_scheduleChecked &&
+        _schedule?.hasPersistedSessions != true &&
+        _schedule?.acceptanceMode != 'legacy') {
+      return 'لا توجد زيارة متاحة للقبول من حسابك حالياً. تحقق من أهلية العامل أو من توزيع الزيارات، ثم حدّث الطلب.';
+    }
+    return null;
+  }
 
   @override
   void initState() {
@@ -1178,8 +1188,9 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
 
   Future<void> _acceptSingleSession() async {
     if (_order.id == null) return;
-    if ((_schedule?.bookingDaysCount ?? 0) > 0 &&
-        _schedule?.hasPersistedSessions != true) {
+    if (!_canConfirmAcceptance) return;
+    if (_schedule?.hasPersistedSessions != true &&
+        _schedule?.acceptanceMode != 'legacy') {
       AppToast.showErrorGlobal(
         'هذه الزيارة غير متاحة للقبول من حسابك حالياً. قد تتطلب مؤهلاً خاصاً أو عاملاً آخر. حدّث الطلب وتحقق من الزيارات المتاحة.',
       );
@@ -1433,99 +1444,115 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
                 decoration: const BoxDecoration(
                   border: Border(top: BorderSide(color: _borderColor)),
                 ),
-                child: _isMultiSession
-                    ? Column(
-                        children: [
-                          Row(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_acceptanceUnavailableReason != null) ...[
+                      Text(
+                        _acceptanceUnavailableReason!,
+                        textAlign: TextAlign.start,
+                        style: TextStyle(color: context.error),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    _isMultiSession
+                        ? Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton(
+                                      onPressed: accepting
+                                          ? null
+                                          : _dismissSheet,
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: context.error,
+                                        side: BorderSide(color: context.error),
+                                      ),
+                                      child: const Text('إغلاق'),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                ],
+                              ),
+                              ...[
+                                const SizedBox(height: 8),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: OutlinedButton.icon(
+                                    onPressed:
+                                        accepting || !_canConfirmAcceptance
+                                        ? null
+                                        : _showSelectedSessionsPicker,
+                                    icon: const Icon(Icons.checklist_rtl),
+                                    label: const Text('اختيار عدة زيارات'),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          )
+                        : Row(
                             children: [
                               Expanded(
-                                child: OutlinedButton(
-                                  onPressed: accepting ? null : _dismissSheet,
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: context.error,
-                                    side: BorderSide(color: context.error),
+                                child: InkWell(
+                                  onTap: accepting ? null : _dismissSheet,
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Container(
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: context.error),
+                                      color: context.error.withAlpha(20),
+                                    ),
+                                    child: Center(
+                                      child: AppText.labelLarge(
+                                        'إغلاق',
+                                        color: context.error,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
                                   ),
-                                  child: const Text('إغلاق'),
                                 ),
                               ),
                               const SizedBox(width: 10),
-                            ],
-                          ),
-                          ...[
-                            const SizedBox(height: 8),
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                onPressed: accepting || !_canConfirmAcceptance
-                                    ? null
-                                    : _showSelectedSessionsPicker,
-                                icon: const Icon(Icons.checklist_rtl),
-                                label: const Text('اختيار عدة زيارات'),
-                              ),
-                            ),
-                          ],
-                        ],
-                      )
-                    : Row(
-                        children: [
-                          Expanded(
-                            child: InkWell(
-                              onTap: accepting ? null : _dismissSheet,
-                              borderRadius: BorderRadius.circular(10),
-                              child: Container(
-                                height: 44,
-                                decoration: BoxDecoration(
+                              Expanded(
+                                flex: 2,
+                                child: InkWell(
+                                  onTap: accepting || !_canConfirmAcceptance
+                                      ? null
+                                      : _acceptSingleSession,
                                   borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: context.error),
-                                  color: context.error.withAlpha(20),
-                                ),
-                                child: Center(
-                                  child: AppText.labelLarge(
-                                    'إغلاق',
-                                    color: context.error,
-                                    fontWeight: FontWeight.w700,
+                                  child: Container(
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(10),
+                                      color: _canConfirmAcceptance
+                                          ? context.primary
+                                          : const Color(0xff9CA3AF),
+                                    ),
+                                    child: Center(
+                                      child: accepting || _scheduleLoading
+                                          ? SizedBox(
+                                              width: 18,
+                                              height: 18,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: context.onPrimary,
+                                              ),
+                                            )
+                                          : AppText.labelLarge(
+                                              'تأكيد القبول',
+                                              color: context.onPrimary,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
+                            ],
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            flex: 2,
-                            child: InkWell(
-                              onTap: accepting || !_canConfirmAcceptance
-                                  ? null
-                                  : _acceptSingleSession,
-                              borderRadius: BorderRadius.circular(10),
-                              child: Container(
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(10),
-                                  color: _canConfirmAcceptance
-                                      ? context.primary
-                                      : const Color(0xff9CA3AF),
-                                ),
-                                child: Center(
-                                  child: accepting || _scheduleLoading
-                                      ? SizedBox(
-                                          width: 18,
-                                          height: 18,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: context.onPrimary,
-                                          ),
-                                        )
-                                      : AppText.labelLarge(
-                                          'تأكيد القبول',
-                                          color: context.onPrimary,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                  ],
+                ),
               ),
             ],
           ),

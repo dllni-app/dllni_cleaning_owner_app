@@ -401,6 +401,7 @@ class WorkerBookingSessionModel {
 
 class WorkerBookingScheduleModel {
   final String mode;
+  final String? acceptanceMode;
   final int? bookingDaysCount;
   final int daysCount;
   final int? mySessionsCount;
@@ -417,6 +418,7 @@ class WorkerBookingScheduleModel {
 
   const WorkerBookingScheduleModel({
     required this.mode,
+    this.acceptanceMode,
     this.bookingDaysCount,
     required this.daysCount,
     this.mySessionsCount,
@@ -443,6 +445,9 @@ class WorkerBookingScheduleModel {
     final rawNext = json['nextSession'] ?? json['next_session'];
 
     return WorkerBookingScheduleModel(
+      acceptanceMode: _string(
+        json['acceptanceMode'] ?? json['acceptance_mode'],
+      ),
       mode:
           _string(json['mode']) ??
           (sessions.length > 1 ? 'multi_day' : 'single_day'),
