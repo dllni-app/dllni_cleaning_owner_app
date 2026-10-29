@@ -4,6 +4,7 @@ import 'package:common_package/helpers/api_handler.dart';
 import '../models/fetch_orders_usecase_model.dart';
 import '../models/supervised_worker_booking.dart';
 import '../models/worker_booking_inventory.dart';
+import '../models/worker_v2_replacement_offer.dart';
 import '../../domain/usecases/fetch_orders_usecase_use_case.dart';
 import '../models/fetch_order_details_usecase_model.dart';
 import '../../domain/usecases/fetch_order_details_usecase_use_case.dart';
@@ -46,6 +47,28 @@ class OrdersRemoteDataSource with HandlingApiManager {
 
   OrdersRemoteDataSource({required this.dioNetwork});
 
+  Future<List<WorkerV2ReplacementOffer>> fetchV2ReplacementOffers() =>
+      wrapHandlingApi(
+        tryCall: () => dioNetwork.getData(
+          endPoint: '/api/v1/cleaning/v2/replacement-offers',
+        ),
+        jsonConvert: workerV2ReplacementOffersFromJson,
+      );
+
+  Future<bool> acceptV2ReplacementOffer({
+    required int bookingId,
+    required int visitSequence,
+    required int requestId,
+  }) => wrapHandlingApi(
+    tryCall: () => dioNetwork.postData(
+      endPoint:
+          '/api/v1/cleaning/v2/bookings/$bookingId/visits/$visitSequence/replacement-requests/$requestId/accept',
+      data: const <String, dynamic>{},
+    ),
+    jsonConvert: (dynamic response) =>
+        response is Map && response['success'] == true,
+  );
+
   Future<WorkerBookingInventory> fetchBookingInventory(int bookingId) =>
       wrapHandlingApi(
         tryCall: () => dioNetwork.getData(
@@ -62,6 +85,7 @@ class OrdersRemoteDataSource with HandlingApiManager {
       jsonConvert: SupervisedWorkerBooking.fromJson,
     );
   }
+
   Future<FetchOrdersUsecaseModel> fetchOrdersUsecase(
     FetchOrdersUsecaseParams params,
   ) {

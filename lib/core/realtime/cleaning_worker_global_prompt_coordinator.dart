@@ -101,6 +101,9 @@ class CleaningWorkerGlobalPromptCoordinator {
   final Set<String> _handledRealtimeEventKeys = <String>{};
   final Map<int, _ExtensionPromptState> _extensionPromptStates =
       <int, _ExtensionPromptState>{};
+  // Deferring a pending extension must not re-open the blocking prompt every
+  // poll. The request stays pending on the server and can be handled later.
+  final Set<int> _deferredExtensionWarningIds = <int>{};
 
   Future<void> start() async {
     if (_started) return;
@@ -608,7 +611,8 @@ class CleaningWorkerGlobalPromptCoordinator {
     final state = _extensionPromptStates[warningId];
     if (state == _ExtensionPromptState.showing ||
         state == _ExtensionPromptState.pendingPrompt ||
-        state == _ExtensionPromptState.resolved) {
+        state == _ExtensionPromptState.resolved ||
+        _deferredExtensionWarningIds.contains(warningId)) {
       return false;
     }
 
@@ -763,6 +767,7 @@ class CleaningWorkerGlobalPromptCoordinator {
             currency: enriched.currency,
             paymentMethod: enriched.paymentMethod,
           );
+          if (!decision) _deferredExtensionWarningIds.add(warningId);
           return decision;
         }
         await Future<void>.delayed(const Duration(milliseconds: 120));
@@ -1021,6 +1026,7 @@ class CleaningWorkerGlobalPromptCoordinator {
     _handledCompletionDecisionKeys.clear();
     _handledRealtimeEventKeys.clear();
     _extensionPromptStates.clear();
+    _deferredExtensionWarningIds.clear();
   }
 
   String? _completionDecisionKey({

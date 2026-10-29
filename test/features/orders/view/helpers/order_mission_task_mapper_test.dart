@@ -5,6 +5,23 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('OrderMissionTaskMapper.build', () {
+    test('Open-Time tasks display customer instructions, not synthetic rooms', () {
+      final order = FetchOrdersUsecaseModelDataItem.fromJson(<String, dynamic>{
+        'id': 502,
+        'bookingKind': 'open_time',
+        'propertyDetails': <String, dynamic>{
+          'notes': 'ترتيب المخزن وتجهيز الرفوف',
+          'room_size_breakdown': <String, dynamic>{
+            'living_room': <String, dynamic>{'small': 1},
+          },
+        },
+      });
+
+      final tasks = OrderMissionTaskMapper.build(order: order);
+      expect(tasks, hasLength(1));
+      expect(tasks.single.detail, 'ترتيب المخزن وتجهيز الرفوف');
+      expect(tasks.single.isReadOnlyInfo, isTrue);
+    });
     test('renders grouped offer rooms with count and size but without cleaning mode', () {
       final order = FetchOrdersUsecaseModelDataItem.fromJson(<String, dynamic>{
         'id': 88,

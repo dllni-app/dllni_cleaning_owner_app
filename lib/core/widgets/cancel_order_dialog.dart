@@ -136,10 +136,22 @@ class CancelOrderDialog extends StatelessWidget {
                     style: FilledButton.styleFrom(
                       backgroundColor: const Color(0xffE11D48),
                       foregroundColor: Colors.white,
+                      minimumSize: const Size.fromHeight(52),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
-                    child: AppText.labelLarge(
-                      'إلغاء مشاركتي',
-                      color: Colors.white,
+                    child: const FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'تأكيد الانسحاب',
+                        maxLines: 1,
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
                     ),
                   ),
                 ),

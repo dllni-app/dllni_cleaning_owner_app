@@ -31,6 +31,25 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../../../support/finish_widget_cleanup.dart';
 
 void main() {
+  testWidgets('later closes extension prompt without making a decision', (
+    WidgetTester tester,
+  ) async {
+    final repo = _OrdersRepoFake();
+    final bloc = _buildOrdersBloc(repo: repo);
+    final result = await _openSheet(tester, bloc, warningId: 72);
+
+    expect(find.text('لاحقاً'), findsOneWidget);
+    await tester.tap(find.text('لاحقاً'));
+    await tester.pumpAndSettle();
+
+    expect(await result.future, isFalse);
+    expect(find.text('طلب تمديد مدة العمل'), findsNothing);
+    expect(repo._acceptIndex, 0);
+    expect(repo._rejectIndex, 0);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await _closeOrdersBloc(tester, bloc);
+  });
+
   testWidgets('root navigator accept waits for its own success and closes', (
     WidgetTester tester,
   ) async {

@@ -18,12 +18,25 @@ class WorkerOrderOverviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMultiWorker = (order.numberOfWorkers ?? 1) > 1;
+    // A single visit already carries its scheduled wall-clock duration.
+    // For legacy task bookings, the order estimate represents total work
+    // hours, so divide only the fallback estimate across the team.
     final individualHours =
         visit?.hours ??
         order.myAssignment?.totalHours ??
-        order.estimatedHours ??
-        order.totalHours ??
-        order.bookingTotalHours;
+        ((isMultiWorker && !order.isHourlyWorker)
+            ? ((order.estimatedHours ??
+                          order.totalHours ??
+                          order.bookingTotalHours) ==
+                      null
+                  ? null
+                  : (order.estimatedHours ??
+                            order.totalHours ??
+                            order.bookingTotalHours)! /
+                        (order.numberOfWorkers ?? 1))
+            : (order.estimatedHours ??
+                  order.totalHours ??
+                  order.bookingTotalHours));
     final earnings = visit == null
         ? order.workerPayableAmount
         : (visit!.workerAssignmentState?.workerAmount ??
@@ -92,7 +105,9 @@ class WorkerOrderOverviewCard extends StatelessWidget {
               Expanded(
                 child: _OverviewValue(
                   label:
-                      visit != null ||
+                      (order.isHourlyWorker && !order.isWorkerDistributionFinal)
+                      ? 'الحد الأدنى لمستحقاتك'
+                      : visit != null ||
                           !isMultiWorker ||
                           order.isWorkerDistributionFinal
                       ? 'مستحقاتك'

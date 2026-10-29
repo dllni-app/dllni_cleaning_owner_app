@@ -36,6 +36,20 @@ class OrderMissionTaskMapper {
   static List<MissionTaskItem> build({
     required FetchOrdersUsecaseModelDataItem order,
   }) {
+    // Open-Time jobs are free-form work requests. The synthetic apartment
+    // used by pricing must not appear as a requested living room task.
+    if (order.isHourlyWorker) {
+      final instructions = order.propertyDetails?.notes?.trim();
+      return <MissionTaskItem>[
+        MissionTaskItem(
+          label: 'المهام التي طلبها العميل',
+          detail: instructions == null || instructions.isEmpty
+              ? 'لم يحدد العميل مهاماً إضافية.'
+              : instructions,
+          isReadOnlyInfo: true,
+        ),
+      ];
+    }
     if (EventAssistanceOrderHelper.isEventAssistance(order.propertyType)) {
       return _eventAssistanceInfoTasks(order);
     }

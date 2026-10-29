@@ -285,6 +285,12 @@ class _ExtensionRequestActionSheetBodyState
               children: [
                 Row(
                   children: [
+                    TextButton(
+                      onPressed: isLoading
+                          ? null
+                          : () => Navigator.of(context).pop(false),
+                      child: const Text('لاحقاً'),
+                    ),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -303,7 +309,6 @@ class _ExtensionRequestActionSheetBodyState
                         ],
                       ),
                     ),
-                    const SizedBox(width: 48),
                   ],
                 ),
                 const SizedBox(height: 16),

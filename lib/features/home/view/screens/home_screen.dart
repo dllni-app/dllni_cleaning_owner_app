@@ -25,6 +25,7 @@ import '../../../profile/view/manager/bloc/profile_bloc.dart';
 import '../../domain/usecases/fetch_home_page_usecase_use_case.dart';
 import '../manager/bloc/home_bloc.dart';
 import '../widgets/home_app_bar.dart';
+import '../widgets/worker_v2_replacement_offers_card.dart';
 
 enum HomeOrdersTab { newOrders, todayOrders }
 
@@ -451,6 +452,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           ),
                           12.verticalSpace,
                           TodayOverviewCard(),
+                          const WorkerV2ReplacementOffersCard(),
                           // The primary overview already contains these three
                           // metrics. Do not repeat the same numbers below it.
                           16.verticalSpace,

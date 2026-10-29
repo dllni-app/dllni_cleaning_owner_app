@@ -70,9 +70,11 @@ class AcceptOrderBottomSheet extends StatefulWidget {
         try {
           final envelope = await getIt<WorkerSessionRemoteDataSource>()
               .fetchBookingSchedule(bookingId);
-          hasAvailableVisits = envelope.schedule?.sessions.any(
+          hasAvailableVisits =
+              envelope.schedule?.sessions.any(
                 (session) => session.id != null && !session.isTerminal,
-              ) ?? false;
+              ) ??
+              false;
         } catch (_) {
           // Preserve the legacy parent gate when the schedule cannot be checked.
         }
@@ -139,6 +141,10 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       _scheduleChecked &&
       !_scheduleLoading &&
       _scheduleError == null &&
+      // A signed single-visit booking may be readable but have no eligible
+      // execution session. Never fall back to the parent accept endpoint.
+      !((_schedule?.bookingDaysCount ?? 0) > 0 &&
+          _schedule?.hasPersistedSessions != true) &&
       _detailsChecked &&
       !_detailsLoading &&
       _detailsError == null;
@@ -639,6 +645,21 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
 
     final widgets = <Widget>[];
 
+    if (_isHourlyWorker) {
+      final instructions = _order.propertyDetails?.notes?.trim();
+      if (instructions != null && instructions.isNotEmpty) {
+        widgets.add(
+          AppText.bodyMedium(
+            instructions,
+            textAlign: TextAlign.start,
+            color: _titleTextColor,
+          ),
+        );
+      } else {
+        widgets.add(const Text('لم يحدد العميل تفاصيل المهام بعد.'));
+      }
+    }
+
     if (_isEventAssistance) {
       widgets.add(
         AppText.bodyMedium(
@@ -649,8 +670,10 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
       );
     }
 
-    widgets.addAll(services.map((s) => _serviceLine(s.name, s.quantity)));
-    widgets.addAll(addons.map((a) => _serviceLine(a.name, a.quantity)));
+    if (!_isHourlyWorker) {
+      widgets.addAll(services.map((s) => _serviceLine(s.name, s.quantity)));
+      widgets.addAll(addons.map((a) => _serviceLine(a.name, a.quantity)));
+    }
 
     for (final service in specialServices) {
       if (widgets.isNotEmpty) {
@@ -1155,6 +1178,13 @@ class _AcceptOrderBottomSheetState extends State<AcceptOrderBottomSheet> {
 
   Future<void> _acceptSingleSession() async {
     if (_order.id == null) return;
+    if ((_schedule?.bookingDaysCount ?? 0) > 0 &&
+        _schedule?.hasPersistedSessions != true) {
+      AppToast.showErrorGlobal(
+        'هذه الزيارة غير متاحة للقبول من حسابك حالياً. قد تتطلب مؤهلاً خاصاً أو عاملاً آخر. حدّث الطلب وتحقق من الزيارات المتاحة.',
+      );
+      return;
+    }
     if (_schedule?.hasPersistedSessions == true) {
       final sessionId = _schedule!.sessions.first.id;
       if (sessionId != null) unawaited(_acceptSelectedSessions([sessionId]));

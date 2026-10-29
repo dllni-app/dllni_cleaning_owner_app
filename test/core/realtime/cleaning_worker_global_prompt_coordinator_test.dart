@@ -50,6 +50,53 @@ void main() {
   });
 
   group('CleaningWorkerGlobalPromptCoordinator', () {
+    testWidgets('later defers repeated extension polling without a decision', (
+      WidgetTester tester,
+    ) async {
+      await getIt.reset();
+      final bloc = _buildCoordinatorOrdersBloc();
+      getIt.registerSingleton<OrdersBloc>(bloc);
+      final navigatorKey = GlobalKey<NavigatorState>();
+      final coordinator =
+          CleaningWorkerGlobalPromptCoordinator(
+              navigatorKey: navigatorKey,
+              pusherManager: _buildNoopPusherManager(),
+              pendingRequestsLoader: () async =>
+                  const <WorkerPendingExtensionRequest>[
+                    WorkerPendingExtensionRequest(
+                      warningId: 920,
+                      bookingId: 49,
+                      requestedMinutes: 30,
+                      totalAmount: 25,
+                      currency: 'SYP',
+                    ),
+                  ],
+            )
+            ..markStartedForTest()
+            ..markAuthBypassForTest();
+      await tester.pumpWidget(
+        MaterialApp(
+          navigatorKey: navigatorKey,
+          home: const Scaffold(body: SizedBox.expand()),
+        ),
+      );
+
+      final firstPoll = coordinator.pollPendingExtensionPrompts();
+      await tester.pumpAndSettle();
+      expect(find.text('طلب تمديد مدة العمل'), findsOneWidget);
+      await tester.tap(find.text('لاحقاً'));
+      await tester.pumpAndSettle();
+      await firstPoll;
+      expect(find.text('طلب تمديد مدة العمل'), findsNothing);
+
+      await coordinator.pollPendingExtensionPrompts();
+      await tester.pumpAndSettle();
+      expect(find.text('طلب تمديد مدة العمل'), findsNothing);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await finishWidgetCleanup(tester, coordinator.stop());
+      await getIt.reset();
+    });
+
     testWidgets(
       'real root modal keeps realtime and resume work pending until close',
       (WidgetTester tester) async {
@@ -171,7 +218,7 @@ void main() {
       },
     );
     testWidgets(
-      'pending poll carries authoritative quote and keeps incomplete consent disabled',
+      'pending poll displays quote and leaves decision validation to backend',
       (WidgetTester tester) async {
         for (final request in <WorkerPendingExtensionRequest>[
           const WorkerPendingExtensionRequest(
@@ -221,17 +268,12 @@ void main() {
           );
           expect(find.text('المبلغ الإضافي المعتمد'), findsOneWidget);
           expect(find.text('110.00 SYP'), findsOneWidget);
-          if (request.warningId == 891) {
-            final accept = tester.widget<FilledButton>(
-              find.widgetWithText(FilledButton, 'قبول الطلب'),
-            );
-            expect(accept.onPressed, isNotNull);
-          } else {
-            final accept = tester.widget<FilledButton>(
-              find.widgetWithText(FilledButton, 'قبول الطلب'),
-            );
-            expect(accept.onPressed, isNull);
-          }
+          // Missing client-side breakdown data is not a fabricated business
+          // restriction: the Laravel decision endpoint validates the request.
+          final accept = tester.widget<FilledButton>(
+            find.widgetWithText(FilledButton, 'قبول الطلب'),
+          );
+          expect(accept.onPressed, isNotNull);
 
           await tester.tap(find.text('رفض الطلب'));
           await tester.pumpAndSettle();
